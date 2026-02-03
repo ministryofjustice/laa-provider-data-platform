@@ -1,0 +1,26 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = "gitHubPackages"
+            url = 'https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common'
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser')
+                password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find('project.ext.gitPackageKey')
+            }
+        }
+        maven { url = "https://plugins.gradle.org/m2/" }
+        gradlePluginPortal()
+    }
+
+    plugins {
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.0.1'
+        id 'org.openapi.generator' version '7.18.0'
+        id 'io.freefair.lombok' version '9.1.0'
+    }
+}
+
+rootProject.name = 'laa-spring-boot-microservice-template'
+
+include 'spring-boot-microservice-api'
+include 'spring-boot-microservice-service'
+

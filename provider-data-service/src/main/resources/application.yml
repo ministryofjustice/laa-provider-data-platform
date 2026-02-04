@@ -1,0 +1,52 @@
+spring:
+  profiles:
+    active: ${TARGET_ENVIRONMENT:local}
+  application:
+    name: provider-data-platform
+
+  # example database
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10  # Maximum connections per pod
+      minimum-idle: 3        # Start with 3, grow to max under load
+      idle-timeout: 300000   # 5 minutes - close idle connections
+      connection-timeout: 30000        # 30 seconds - fail fast if pool exhausted
+      max-lifetime: 1800000            # 30 minutes - refresh connections periodically
+      leak-detection-threshold: 60000  # 60 seconds - detect connection leaks
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# used by actuator info endpoint
+info:
+  app:
+    name: provider-data-platform
+    description: Implements a REST API for retrieving and updating provider firm, office, contract and schedule data.
+    version: 1.0.0
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${TARGET_ENVIRONMENT:local}
+  send-default-pii: false
+  traces-sample-rate: ${SENTRY_TRACESSAMPLERATE:0.2}
+  enable-tracing: true
+
+management:
+  # specify actuator endpoints to enable
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  # show detailed health status
+  endpoint:
+    health:
+      show-details: always

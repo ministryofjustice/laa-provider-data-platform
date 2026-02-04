@@ -1,0 +1,67 @@
+# https://github.com/marketplace/actions/aqua-security-trivy
+# Note: This workflow only updates the cached Trivy DB. You should create a separate workflow for your actual Trivy scans.
+# In your scan workflow, set TRIVY_SKIP_DB_UPDATE=true and TRIVY_SKIP_JAVA_DB_UPDATE=true.
+name: Update Trivy DB
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  update-trivy-db:
+    name: Update Trivy DB
+    permissions: { contents: read }
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send started Slack message
+        run: |
+          MESSAGE=" :github:  Started updating Trivy DB cache"
+          curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"
+
+      - name: Get current date
+        id:   date
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Install ORAS if not present
+        run: |
+          if ! command -v oras &> /dev/null; then
+            echo "ORAS not found, installing..."
+            curl -LO https://github.com/oras-project/oras/releases/download/v1.0.0/oras_1.0.0_linux_amd64.tar.gz
+            tar -zxvf oras_1.0.0_linux_amd64.tar.gz
+            sudo mv oras /usr/local/bin/
+          else
+            echo "ORAS is already installed"
+          fi
+
+      - name: Download and extract the vulnerability DB
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.cache/trivy/db"
+          oras pull ghcr.io/aquasecurity/trivy-db:2
+          tar -xzf db.tar.gz -C "$GITHUB_WORKSPACE/.cache/trivy/db"
+          rm db.tar.gz
+
+      - name: Download and extract the Java DB
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.cache/trivy/java-db"
+          oras pull ghcr.io/aquasecurity/trivy-java-db:1
+          tar -xzf javadb.tar.gz -C "$GITHUB_WORKSPACE/.cache/trivy/java-db"
+          rm javadb.tar.gz
+
+      - name: Save the Trivy DB to a GitHub cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/.cache/trivy
+          key: cache-trivy-${{ steps.date.outputs.date }}
+
+      - name: Send successful Slack message
+        run: |
+          MESSAGE=" :github-success:  Successfully updated Trivy DB cache"
+          curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"
+
+      - name: Send failure Slack message
+        if:   failure()
+        run: |
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          MESSAGE=" :github-failure:  Failed to update Trivy DB cache. View run log at ${RUN_URL}"
+          curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"

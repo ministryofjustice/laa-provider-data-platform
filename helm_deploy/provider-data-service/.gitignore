@@ -1,0 +1,3 @@
+# Helm dependency charts (built from dependencies in Chart.yaml)
+charts/
+*.tgz

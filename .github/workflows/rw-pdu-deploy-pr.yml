@@ -1,0 +1,110 @@
+name: "Reusable workflow: PDA (unified) deploy PR"
+
+on:
+  workflow_call:
+    inputs:
+      application: { type: string, required: true }
+      tag:         { type: string, required: true }
+      target:      { type: string, required: true }
+      prnum:       { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
+                     description: "Application to deploy" }
+      prnum:       { type: number, required: true, description: "Pull request # (e.g. '942')" }
+      target:      { type: choice, required: true, options: [ "uat" ],
+                     description: "Target environment" }
+
+jobs:
+  deploy-pr:
+    name: "Deploy ${{ inputs.application }} ${{ inputs.tag || format('pr-{0}', inputs.prnum) }} to ${{ inputs.target }}"
+    permissions: { contents: read, id-token: write }
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.target }}
+      url:  https://${{ inputs.application == 'providers-app' && format('laa-provider-details-api-pr-{0}', inputs.prnum) || format('laa-provider-data-pr-{0}', inputs.prnum) }}.apps.cloud-platform.service.justice.gov.uk
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Determine variable values"
+        id:   vars
+        shell: bash
+        env:
+          APP: ${{ inputs.application }}
+        run: |
+          printf "* inputs.application=%s\n* inputs.prnum=%s\n* inputs.tag=%s\n* inputs.target=%s\n" \
+              "$APP" "${{ inputs.prnum }}" "${{ inputs.tag }}" "${{ inputs.target }}"
+          case "$APP" in
+            providers-app)
+              CHART=helm_deploy/providers-app
+              PR_HOST="laa-provider-details-api-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+              REL="pr-${{ inputs.prnum }}"
+              TAG="${{ inputs.tag || format('pr-{0}', inputs.prnum) }}"
+              ;;
+            provider-data-service)
+              CHART=helm_deploy/provider-data-service
+              PR_HOST="laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+              REL="pds-pr-${{ inputs.prnum }}"
+              TAG="${{ inputs.tag || format('pds-pr-{0}', inputs.prnum) }}"
+              ;;
+            *)
+              echo "Unknown application: $APP" >&2
+              exit 1
+              ;;
+          esac
+          printf "* outputs.chart=%s\n* outputs.pr_host=%s\n* outputs.rel=%s\n* outputs.tag=%s\n" \
+              "$CHART" "$PR_HOST" "$REL" "$TAG"
+          echo "chart=$CHART" >> "$GITHUB_OUTPUT"
+          echo "pr_host=$PR_HOST" >> "$GITHUB_OUTPUT"
+          echo "rel=$REL" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: "Authenticate with Amazon ECR"  # (needed to get ecr_registry)
+        id:   ecr_auth
+        uses: ./.github/actions/cp-ecr-auth
+        with:
+          ecr_region:         ${{ vars.DPD_ECR_REGION }}
+          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+
+      - name: "Authenticate with Kubernetes cluster"
+        id:   kube_auth
+        uses: ./.github/actions/cp-kube-auth
+        with:
+          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
+          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+
+      - name: "Install Helm chart as ${{ steps.vars.outputs.rel }}"
+        if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
+              && steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        shell: bash
+        env:
+          CHART:   ${{ steps.vars.outputs.chart }}
+          IMAGE:   ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          PR_HOST: ${{ steps.vars.outputs.pr_host }}
+          REL:     ${{ steps.vars.outputs.rel }}
+          TAG:     ${{ steps.vars.outputs.tag }}
+          TARGET:  ${{ inputs.target }}
+        run: |
+          set -eu
+          echo "Upgrade Helm chart - image: [${IMAGE}], tag: [${TAG}], target: [${TARGET}], release: [${REL}]"
+          IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d')"
+          HELM_OPTS=(
+              -f "${CHART}/values.yaml"
+              -f "${CHART}/values-${TARGET}.yaml"
+              --set replicaCount=2
+              --set-string "image.repository=${IMAGE}"
+              --set-string "image.tag=${TAG}"
+              --set-string "canary.role=none"
+              --set-string "ingress.hosts[0].host=${PR_HOST}"
+              --set-string "ingress.tls[0].hosts[0]=${PR_HOST}"
+              --set ingressInternal.enabled=false
+              --set ingressPda.enabled=false
+              --set ingressShared.enabled=false
+              --set prometheus.metricsEnabled=false
+              --set-string "ingress.allowlist=${IP_ALLOWLIST//,/\\,}"
+          )
+          helm upgrade --install "${REL}" "${CHART}" "${HELM_OPTS[@]}" --debug --dry-run=server
+          # If the dry-run succeeded, do the real thing
+          helm upgrade --install "${REL}" "${CHART}" "${HELM_OPTS[@]}"

@@ -1,0 +1,57 @@
+{{/*
+ingress-internal.yaml
+Defines how the service is exposed to the internal cluster (only release app).
+*/}}
+{{ if (.Values.ingressInternal).enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "provider-data-service.fullname" . }}-internal
+  labels:
+    {{- include "provider-data-service.labels" . | nindent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-service.fullname" . }}-internal-{{ .Release.Namespace }}-green
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+    {{/* We don't use an IP allowlist for the internal ingress. */}}
+    {{- if .Values.rateLimit.rps }}
+    nginx.ingress.kubernetes.io/limit-rps: "{{ .Values.rateLimit.rps }}"
+    {{- end }}
+    {{- if .Values.rateLimit.rpm }}
+    nginx.ingress.kubernetes.io/limit-rpm: "{{ .Values.rateLimit.rpm }}"
+    {{- end }}
+    {{- with .Values.ingressInternal.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingressInternal.secretAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingressInternal.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingressInternal.tls }}
+  tls:
+    {{- range .Values.ingressInternal.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- with .secretName }}
+      secretName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingressInternal.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: {{ include "provider-data-service.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+    {{- end }}
+{{- end }}

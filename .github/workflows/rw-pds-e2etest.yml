@@ -1,0 +1,126 @@
+name: "Reusable workflow: PDS end-to-end test"
+
+on:
+  workflow_call:
+    inputs:
+      target:      { type: string, required: true }
+      rel:         { type: string, required: false, default: "" }
+      servicePort: { type: string, required: false, default: "8080" }
+  workflow_dispatch:
+    inputs:
+      target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
+                     description: "Target environment" }
+      rel:         { type: string, required: false, default: "",
+                     description: "Optional release name (e.g. 'pr-913', defaults to default release)" }
+      servicePort: { type: number, required: false, default: 8080,
+                     description: "Optional service port to forward (e.g. '8080', defaults to 8080)" }
+
+jobs:
+  e2etest:
+    name: "E2E test in ${{ inputs.target }} of ${{ inputs.rel || 'provider-data-service' }}"
+    permissions: { contents: read, packages: read }
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    concurrency: e2e-${{ inputs.target }}-${{ inputs.rel || 'provider-data-service' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Determine variable values"
+        id:   vars
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+          REL:    ${{ inputs.rel || '' }}
+          SP:     ${{ inputs.servicePort }}
+        run: |
+          echo "Run e2e tests - target: [$TARGET], rel: [$REL], servicePort: [$SP]"
+          # Map target to profile
+          case "$TARGET" in
+            dev)     PROFILE=dev ;;
+            uat)     PROFILE=uat ;;
+            staging) PROFILE=staging ;;
+            prod)    PROFILE=prod ;;
+            *)       exit 1 ;;
+          esac
+          # Determine service name
+          if [[ -n "$REL" && "$REL" != "provider-data-service" ]]; then
+            SVC="${REL}-provider-data-service"
+          else
+            SVC="provider-data-service"
+          fi
+          echo "Resolved profile name: [$PROFILE]"
+          echo "Resolved service name: [$SVC]"
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+          echo "svc=$SVC" >> "$GITHUB_OUTPUT"
+
+      - name: "Set up Java 25 (Temurin distro)"
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: "Set up Gradle (cache)"
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: "Authenticate with Kubernetes cluster"
+        id:   kube_auth
+        uses: ./.github/actions/cp-kube-auth
+        with:
+          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
+          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+
+      - name: "Display Kubernetes context (diagnostic-only)"
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        run: |
+          kubectl config current-context
+          kubectl -n "${{ secrets.DPD_KUBE_NAMESPACE }}" get svc "${{ steps.vars.outputs.svc }}" -o wide || true
+
+      - name: "Wait for rollout" # Because this tends to be run just after a deployment
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        run: |
+          kubectl -n "${{ secrets.DPD_KUBE_NAMESPACE }}" rollout status deploy/"${{ steps.vars.outputs.svc }}" --timeout=180s || true
+
+      - name: "Port-forward service -> localhost:18080"
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        env:
+          NS:  ${{ secrets.DPD_KUBE_NAMESPACE }}
+          SVC: ${{ steps.vars.outputs.svc }}
+          SP:  ${{ inputs.servicePort }}
+        run: |
+          echo "Port-forwarding svc/${SVC} on ${SP} → localhost:18080 in namespace=${NS}"
+          kubectl -n "${NS}" port-forward "svc/${SVC}" 18080:"${SP}" &
+          echo $! > /tmp/pf.pid
+          sleep 3
+
+      - name: "Run E2E tests"
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        env:
+          AUTH_TOKEN:   ""
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          PROFILE:      ${{ steps.vars.outputs.profile }}
+        run: |
+          ./gradlew :provider-data-e2e:e2eTest \
+            -Penv="$PROFILE" \
+            -Dbase.url="http://127.0.0.1:18080" \
+            -Dauth.token="${AUTH_TOKEN}" \
+            --stacktrace
+
+      - name: "Upload E2E reports"
+        if:   always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-${{ inputs.target }}-${{ inputs.rel || 'provider-data-service' }}-reports
+          path: |
+            provider-data-e2e/build/reports/**
+            provider-data-e2e/build/test-results/**
+          if-no-files-found: ignore
+
+      - name: "Cleanup port-forward"
+        if:   always()
+        run: |
+          test -f /tmp/pf.pid && kill "$(cat /tmp/pf.pid)" 2>/dev/null || true
+          echo "==== Port-forward processes ===="
+          ps -ef | grep "[p]ort-forward" || true

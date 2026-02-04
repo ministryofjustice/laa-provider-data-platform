@@ -1,0 +1,34 @@
+# values-prod.yaml
+# Production environment override values for the chart.
+
+target:
+  environment: prod
+
+replicaCount: 5
+
+prometheus:
+  metricsQualifier: "pds-prod"
+
+# Configuration for rate limiting.
+rateLimit:
+  rps: "100"   # requests per second, override in values-*.yaml as needed
+  rpm: "6000"  # requests per minute, override in values-*.yaml as needed
+
+ingressInternal:
+  enabled: false
+  className: "internal"
+  hosts:
+    - host: "laa-provider-data-prod.internal.cloud-platform.service.justice.gov.uk"
+
+ingress:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-prod.apps.cloud-platform.service.justice.gov.uk"
+  tls:
+    - hosts:
+        - "laa-provider-data-prod.apps.cloud-platform.service.justice.gov.uk"
+
+ingressShared:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-prod.apps.live.cloud-platform.service.justice.gov.uk"

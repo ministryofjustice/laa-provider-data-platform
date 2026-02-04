@@ -1,21 +1,38 @@
-README.md
-.gradle
+.DS_Store
+._*
+
+### Potential secrets? ###
+bin
+.env*
+env
+*.bak
+*.csv
+*.db
+*.docx
+*.gz
+*.log
+*.out
+*.pptx
+*.tar
+*.tmp
+*.txt
+*.xlsx
+*.zip
+
+### Gradle ###
+.gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-.DS_Store
-
-spring-boot-microservice-api/generated
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
+.run/
 *.iws
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
 
 ### VS Code ###
 .vscode/
+*.code-workspace
+/provider-data-api/generated/

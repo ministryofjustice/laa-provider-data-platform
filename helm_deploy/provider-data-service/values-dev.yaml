@@ -1,0 +1,32 @@
+# values-dev.yaml
+# Dev environment override values for the chart.
+
+target:
+  environment: "dev"
+
+prometheus:
+  metricsQualifier: "pds-dev"
+
+# Configuration for rate limiting.
+rateLimit:
+  rps: ""    # requests per second
+  rpm: ""    # requests per minute
+  burst: ""  # burst size
+
+ingressInternal:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-dev.internal-non-prod.cloud-platform.service.justice.gov.uk"
+
+ingress:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-dev.apps.cloud-platform.service.justice.gov.uk"
+  tls:
+    - hosts:
+        - "laa-provider-data-dev.apps.cloud-platform.service.justice.gov.uk"
+
+ingressShared:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-dev.apps.live.cloud-platform.service.justice.gov.uk"

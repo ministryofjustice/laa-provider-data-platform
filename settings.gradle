@@ -2,25 +2,24 @@ pluginManagement {
     repositories {
         maven {
             name = "gitHubPackages"
-            url = 'https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common'
+            url = uri('https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common')
             credentials {
                 username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser')
                 password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find('project.ext.gitPackageKey')
             }
         }
-        maven { url = "https://plugins.gradle.org/m2/" }
         gradlePluginPortal()
     }
-
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.0.1'
-        id 'org.openapi.generator' version '7.18.0'
-        id 'io.freefair.lombok' version '9.1.0'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.0.7'
+        id 'org.openapi.generator' version '7.19.0'
+        id 'io.freefair.lombok' version '9.2.0'
+        id 'com.diffplug.spotless' version '8.2.0'
     }
 }
 
-rootProject.name = 'laa-spring-boot-microservice-template'
+rootProject.name = 'laa-provider-data-platform'
 
-include 'spring-boot-microservice-api'
-include 'spring-boot-microservice-service'
-
+include 'provider-data-api'
+include 'provider-data-service'
+include 'provider-data-e2e'

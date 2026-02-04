@@ -1,0 +1,47 @@
+name: "Authenticate to Kubernetes cluster in Cloud Platform"
+description: "Authenticate to Kubernetes cluster in Cloud Platform"
+inputs:
+  kube_cert:      { required: true, description: "Kubernetes cluster authentication certificate" }
+  kube_cluster:   { required: true, description: "Kubernetes cluster name" }
+  kube_namespace: { required: true, description: "Kubernetes cluster namespace" }
+  kube_token:     { required: true, description: "Kubernetes cluster authentication token" }
+outputs:
+  kube_auth_attempted:
+    description: "Whether credentials were supplied"
+    value:       ${{ steps.guard.outputs.auth }}
+
+runs:
+  using: composite
+  steps:
+    - id:   guard
+      shell: bash
+      env:
+        KUBE_CERT:      ${{ inputs.kube_cert }}
+        KUBE_CLUSTER:   ${{ inputs.kube_cluster }}
+        KUBE_NAMESPACE: ${{ inputs.kube_namespace }}
+        KUBE_TOKEN:     ${{ inputs.kube_token }}
+      run: |
+        set -eu
+        if [ -n "$KUBE_CERT" ] && [ -n "$KUBE_CLUSTER" ] && [ -n "$KUBE_NAMESPACE" ] && [ -n "$KUBE_TOKEN" ]; then
+          echo "auth=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Did not authenticate to cluster as Kubernetes details were missing" >&2
+        fi
+
+    - name: "Authenticate to the cluster using kubectl"
+      if:   steps.guard.outputs.auth == 'true'
+      shell: bash
+      env:
+        KUBE_CERT:      ${{ inputs.kube_cert }}
+        KUBE_CLUSTER:   ${{ inputs.kube_cluster }}
+        KUBE_NAMESPACE: ${{ inputs.kube_namespace }}
+        KUBE_TOKEN:     ${{ inputs.kube_token }}
+      run: |
+        set -eu
+        echo "${KUBE_CERT}" > ./ca.crt
+        kubectl config set-cluster "${KUBE_CLUSTER}" --server="https://${KUBE_CLUSTER}" \
+                                    --certificate-authority=./ca.crt --embed-certs=true
+        kubectl config set-credentials "deploy_user" --token="${KUBE_TOKEN}"
+        kubectl config set-context "${KUBE_CLUSTER}" --cluster="${KUBE_CLUSTER}" \
+                                    --user="deploy_user" --namespace="${KUBE_NAMESPACE}"
+        kubectl config use-context "${KUBE_CLUSTER}"

@@ -1,0 +1,66 @@
+{{/*
+ingress-shared.yaml
+Defines how the service is exposed to the internet (using the shared hostname URL).
+Supports canary deployments with role-based configuration.
+*/}}
+{{ if ne (.Values.canary).role "none" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "provider-data-service.fullname" . }}-shared
+  labels:
+    {{- include "provider-data-service.labels" . | nindent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-service.fullname" . }}-shared-{{ .Release.Namespace }}-green
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+    {{/* Share the standard ingress IP allowlist for the shared ingress. */}}
+    {{- if .Values.ingress.allowlist }}
+    nginx.ingress.kubernetes.io/allowlist-source-range: {{ .Values.ingress.allowlist | quote }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: {{ .Values.ingress.allowlist | quote }}
+    {{- end }}
+    {{- if .Values.rateLimit.rps }}
+    nginx.ingress.kubernetes.io/limit-rps: "{{ .Values.rateLimit.rps }}"
+    {{- end }}
+    {{- if .Values.rateLimit.rpm }}
+    nginx.ingress.kubernetes.io/limit-rpm: "{{ .Values.rateLimit.rpm }}"
+    {{- end }}
+    {{- if eq (.Values.canary).role "canary" }}
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "{{ (.Values.canary).weight }}"
+    {{- end }}
+    {{- with .Values.ingressShared.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingressShared.secretAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingressShared.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingressShared.tls }}
+  tls:
+    {{- range .Values.ingressShared.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- with .secretName }}
+      secretName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingressShared.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: {{ include "provider-data-service.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+    {{- end }}
+{{- end }}

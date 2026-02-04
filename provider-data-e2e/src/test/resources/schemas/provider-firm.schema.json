@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProviderFirmResponse",
+  "type": "object",
+  "required": ["firm"],
+  "additionalProperties": true,
+  "properties": {
+    "firm": {
+      "type": "object",
+      "required": [
+        "firmNumber",
+        "firmId",
+        "ccmsFirmId",
+        "firmName",
+        "firmType"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "firmNumber": { "type": "string" },
+        "firmId": { "type": "integer" },
+        "ccmsFirmId": { "type": "integer" },
+        "parentFirmId": { "type": ["integer", "null"] },
+        "firmName": { "type": "string" },
+        "firmType": { "type": "string" },
+        "constitutionalStatus": { "type": "string" },
+        "solicitorAdvocateYN": { "type": ["string", "null"] },
+        "advocateLevel": { "type": ["string", "null"] },
+        "barCouncilRoll": { "type": ["string", "null"] },
+        "companyHouseNumber": { "type": ["string", "null"] },
+        "indemnityReceivedDate": { "type": ["string", "null"] },
+        "highRiskSupplier": { "type": ["string", "null"] },
+        "holdAllPaymentsFlag": { "type": ["string", "null"] },
+        "holdReason": { "type": ["string", "null"] },
+        "nonProfitOrganisation": { "type": ["string", "null"] },
+        "smallBusinessFlag": { "type": ["string", "null"] },
+        "womenOwnedFlag": { "type": ["string", "null"] },
+        "websiteUrl": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

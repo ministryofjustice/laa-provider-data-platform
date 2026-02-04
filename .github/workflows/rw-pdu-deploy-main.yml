@@ -1,0 +1,146 @@
+name: "Reusable workflow: PDA (unified) deploy main"
+
+on:
+  workflow_call:
+    inputs:
+      application: { type: string, required: true }
+      tag:         { type: string, required: true }
+      target:      { type: string, required: true }
+      rel:         { type: string, required: false, default: "" }
+  workflow_dispatch:
+    inputs:
+      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
+                     description: "Application to deploy" }
+      tag:         { type: string, required: true, description: "Tag name (e.g. 'v1.4.2' or 'pds-v1.4.2')" }
+      target:      { type: choice, required: true, options: [ "dev", "uat", "staging", "prod" ],
+                     description: "Target environment" }
+      rel:         { type: string, required: false, default: "",
+                     description: "Optional release name (leave blank for default)" }
+
+jobs:
+  deploy-main:
+    name: "Deploy ${{ inputs.application }} ${{ inputs.tag }} to ${{ inputs.target }}"
+    permissions: { contents: read, id-token: write }
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.target }}
+      url:  ${{ inputs.application == 'providers-app' && format('https://laa-provider-details-api-{0}.apps.live.cloud-platform.service.justice.gov.uk', inputs.target == 'staging' && 'preprod' || inputs.target) || format('https://laa-provider-data-{0}.apps.live.cloud-platform.service.justice.gov.uk', inputs.target) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Determine variable values"
+        id:   vars
+        shell: bash
+        env:
+          APP:    ${{ inputs.application }}
+          REL:    ${{ inputs.rel }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -eu
+          printf "* inputs.application=%s\n* inputs.rel=%s\n* inputs.target=%s\n" \
+              "$APP" "$REL" "$TARGET"
+          case "$APP" in
+            providers-app)
+              CHART=helm_deploy/providers-app
+              DEFAULT_RELEASE=providers-app
+              SECONDARY_RELEASE=pdl-2
+              ;;
+            provider-data-service)
+              CHART=helm_deploy/provider-data-service
+              DEFAULT_RELEASE=provider-data-service
+              SECONDARY_RELEASE=pds-2
+              ;;
+            *)
+              echo "Error: Unknown application: $APP" >&2
+              exit 1
+              ;;
+          esac
+          # Use provided release name or default
+          if [[ -n "$REL" ]]; then
+            RELEASE="$REL"
+          else
+            RELEASE="$DEFAULT_RELEASE"
+          fi
+          # Determine release suffix, canary role, and secret name based on release type
+          if [[ "${RELEASE}" == "${DEFAULT_RELEASE}" ]]; then
+            # Primary release
+            RELEASE_SUFFIX="-1"
+            CANARY_ROLE="stable"
+            DATACFG_SECRET="app-secrets"
+          elif [[ "${RELEASE}" == "${SECONDARY_RELEASE}" ]]; then
+            # Secondary release
+            RELEASE_SUFFIX="-2"
+            CANARY_ROLE="canary"
+            DATACFG_SECRET="app-secrets-secondary"
+          else
+            # Other release names - no canary participation
+            RELEASE_SUFFIX=""
+            CANARY_ROLE="none"
+            DATACFG_SECRET="app-secrets"
+          fi
+          printf "* outputs.chart=%s\n* outputs.default_release=%s\n* outputs.release=%s\n" \
+              "$CHART" "$DEFAULT_RELEASE" "$RELEASE"
+          printf "* outputs.release_suffix=%s\n* outputs.canary_role=%s\n* outputs.datacfg_secret=%s\n" \
+              "$RELEASE_SUFFIX" "$CANARY_ROLE" "$DATACFG_SECRET"
+          echo "chart=$CHART" >> "$GITHUB_OUTPUT"
+          echo "default_release=$DEFAULT_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "release_suffix=$RELEASE_SUFFIX" >> "$GITHUB_OUTPUT"
+          echo "canary_role=$CANARY_ROLE" >> "$GITHUB_OUTPUT"
+          echo "datacfg_secret=$DATACFG_SECRET" >> "$GITHUB_OUTPUT"
+
+      - name: "Authenticate with Amazon ECR"  # (needed to get ecr_registry)
+        id:   ecr_auth
+        uses: ./.github/actions/cp-ecr-auth
+        with:
+          ecr_region:         ${{ vars.DPD_ECR_REGION }}
+          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+
+      - name: "Authenticate with Kubernetes cluster"
+        id:   kube_auth
+        uses: ./.github/actions/cp-kube-auth
+        with:
+          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
+          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+
+      - name: "Install Helm chart as ${{ steps.vars.outputs.release }}"
+        if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
+              && steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        shell: bash
+        env:
+          CHART:  ${{ steps.vars.outputs.chart }}
+          IMAGE:  ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          REL:    ${{ steps.vars.outputs.release }}
+          TAG:    ${{ inputs.tag }}
+          TARGET: ${{ inputs.target }}
+          RELEASE_SUFFIX: ${{ steps.vars.outputs.release_suffix }}
+          CANARY_ROLE:    ${{ steps.vars.outputs.canary_role }}
+          DATACFG_SECRET: ${{ steps.vars.outputs.datacfg_secret }}
+        run: |
+          set -eu
+          echo "Upgrade Helm chart - chart: [${CHART}], image: [${IMAGE}], tag: [${TAG}], target: [${TARGET}], release: [${REL}]"
+          echo "  release_suffix: [${RELEASE_SUFFIX}], canary_role: [${CANARY_ROLE}], datacfg_secret: [${DATACFG_SECRET}]"
+          PINGDOM_IPS=$(curl -s https://my.pingdom.com/probes/ipv4 | tr -d ' ' | tr '\n' ',' | sed 's/,$//')
+          IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d'),${PINGDOM_IPS}"
+          HELM_OPTS=(
+              -f "${CHART}/values.yaml"
+              -f "${CHART}/values-${TARGET}.yaml"
+              --set-string "image.repository=${IMAGE}"
+              --set-string "image.tag=${TAG}"
+              --set-string "ingress.allowlist=${IP_ALLOWLIST//,/\\,}"
+              --set-string "releaseSuffix=${RELEASE_SUFFIX}"
+              --set-string "canary.role=${CANARY_ROLE}"
+              --set-string "secretNames.dataConfig=${DATACFG_SECRET}"
+          )
+          # For non-primary releases, disable the Grafana dashboard ConfigMap, the ServiceMonitor and the internal Ingress
+          if [ "${CANARY_ROLE}" != "stable" ]; then
+            HELM_OPTS+=(
+                --set ingressInternal.enabled=false
+                --set prometheus.metricsEnabled=false
+            )
+          fi
+          helm upgrade --install "${REL}" "${CHART}" "${HELM_OPTS[@]}" --debug --dry-run=server
+          # If the dry-run succeeded, do the real thing
+          helm upgrade --install "${REL}" "${CHART}" "${HELM_OPTS[@]}"

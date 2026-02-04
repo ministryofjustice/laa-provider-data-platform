@@ -1,0 +1,60 @@
+{{/*
+ingress.yaml
+Defines how the service is exposed to the internet.
+*/}}
+{{ if (.Values.ingress).enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "provider-data-service.fullname" . }}
+  labels:
+    {{- include "provider-data-service.labels" . | nindent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-service.fullname" . }}-{{ .Release.Namespace }}-green
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+    {{- if .Values.ingress.allowlist }}
+    nginx.ingress.kubernetes.io/allowlist-source-range: {{ .Values.ingress.allowlist | quote }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: {{ .Values.ingress.allowlist | quote }}
+    {{- end }}
+    {{- if .Values.rateLimit.rps }}
+    nginx.ingress.kubernetes.io/limit-rps: "{{ .Values.rateLimit.rps }}"
+    {{- end }}
+    {{- if .Values.rateLimit.rpm }}
+    nginx.ingress.kubernetes.io/limit-rpm: "{{ .Values.rateLimit.rpm }}"
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingress.secretAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ include "provider-data-service.hostnameWithSuffix" (dict "host" . "suffix" $.Values.releaseSuffix) | quote }}
+        {{- end }}
+      {{- with .secretName }}
+      secretName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ include "provider-data-service.hostnameWithSuffix" (dict "host" .host "suffix" $.Values.releaseSuffix) | quote }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: {{ include "provider-data-service.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+    {{- end }}
+{{- end }}

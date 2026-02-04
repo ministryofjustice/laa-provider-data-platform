@@ -1,3 +1,19 @@
+allprojects {
+    afterEvaluate {
+        pluginManager.withPlugin('java') {
+            java {
+                toolchain {
+                    languageVersion = JavaLanguageVersion.of(25)
+                }
+            }
+        }
+    }
+}
+
 subprojects {
-    group = 'uk.gov.justice.laa.springboot.microservice'
+    pluginManager.withPlugin('java') {
+        dependencies {
+            implementation platform('io.sentry:sentry-bom:8.31.0')
+        }
+    }
 }

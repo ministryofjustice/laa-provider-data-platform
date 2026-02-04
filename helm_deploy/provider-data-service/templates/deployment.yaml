@@ -1,0 +1,155 @@
+{{/*
+deployment.yaml
+Defines the Kubernetes Deployment for the application.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "provider-data-service.fullname" . }}
+  labels:
+    {{- include "provider-data-service.labels" . | nindent 4 }}
+spec:
+  {{- if not (.Values.autoscaling).enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "provider-data-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "provider-data-service.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "provider-data-service.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: DB_HOST # Intermediate var for building the JDBC URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).rdspgConnection }}
+                  key: rds_instance_endpoint
+            - name: DB_NAME # Intermediate var for building the JDBC URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).rdspgConnection }}
+                  key: database_name
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).rdspgConnection }}
+                  key: database_username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).rdspgConnection }}
+                  key: database_password
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://$(DB_HOST)/$(DB_NAME)" # "?sslmode=require"
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "org.postgresql.Driver"
+
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.javaToolOptions | quote }}
+            # https://user-guide.cloud-platform.service.justice.gov.uk/documentation/deploying-an-app/container-repositories/requirements.html#setting-utc-timezone-inside-your-container
+            - name: TZ
+              value: UTC
+            - name: SLACK_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).envConfig }}
+                  key: SLACK_WEBHOOK
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).envConfig }}
+                  key: SENTRY_DSN
+                  optional: true
+            - name: AUTHORIZED_CLIENTS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).envConfig }}
+                  key: AUTHORIZED_CLIENTS
+            - name: AUTHORIZED_ROLES
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).envConfig }}
+                  key: AUTHORIZED_ROLES
+            - name: UNPROTECTED_URIS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).envConfig }}
+                  key: UNPROTECTED_URIS
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- if (.Values.target).environment }}
+            - name: TARGET_ENVIRONMENT
+              value: "{{ (.Values.target).environment }}"
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

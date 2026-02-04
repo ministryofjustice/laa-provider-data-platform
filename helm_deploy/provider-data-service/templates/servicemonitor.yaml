@@ -1,0 +1,20 @@
+{{/*
+servicemonitor.yaml (release-only)
+Prometheus Operator-defined CRD for how to collect metrics from service pods.
+*/}}
+{{ if (.Values.prometheus).metricsEnabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: provider-data-service-monitor
+  labels:
+    {{- include "provider-data-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "provider-data-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http  # this is the port name from the running service
+      interval: 15s
+      path: /actuator/prometheus  # this is the endpoint exposed by the app
+{{- end }}

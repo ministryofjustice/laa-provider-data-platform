@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: PDA V2
+
+  # example database
+  datasource:
+    url: jdbc:postgresql://db:5432/mydb
+    driver-class-name: org.postgresql.Driver
+    username: myuser
+    password: mypassword
+  h2:
+    console:
+      enabled: true
+
+  #do not auto create db schema, use .sql scripts
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# used by actuator info endpoint
+info:
+  app:
+    name: PDA V2
+    description: PDA V2 Microservice application that provides a REST API.
+    version: 1.0.0
+
+management:
+  # specify actuator endpoints to enable
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  # show detailed health status
+  endpoint:
+    health:
+      show-details: always

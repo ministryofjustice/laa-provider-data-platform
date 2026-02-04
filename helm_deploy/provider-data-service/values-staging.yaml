@@ -1,0 +1,34 @@
+# values-staging.yaml
+# Staging environment override values for the chart.
+
+target:
+  environment: staging
+
+replicaCount: 5
+
+prometheus:
+  metricsQualifier: "pds-staging"
+
+# Configuration for rate limiting.
+rateLimit:
+  rps: "100"   # requests per second
+  rpm: "6000"  # requests per minute
+  burst: "1"   # burst size, Very strict - minimal tolerance for traffic spikes
+
+ingressInternal:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-staging.internal-non-prod.cloud-platform.service.justice.gov.uk"
+
+ingress:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-staging.apps.cloud-platform.service.justice.gov.uk"
+  tls:
+    - hosts:
+        - "laa-provider-data-staging.apps.cloud-platform.service.justice.gov.uk"
+
+ingressShared:
+  enabled: false
+  hosts:
+    - host: "laa-provider-data-staging.apps.live.cloud-platform.service.justice.gov.uk"

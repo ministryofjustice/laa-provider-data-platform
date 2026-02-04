@@ -1,0 +1,76 @@
+plugins {
+    id 'io.freefair.lombok'
+    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
+    id 'com.diffplug.spotless'
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        formatAnnotations()
+    }
+}
+
+tasks.withType(Checkstyle) {
+    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+    configProperties = [
+            "org.checkstyle.google.suppressionfilter.config":
+                    "$rootDir/config/checkstyle/suppressions.xml",
+    ]
+}
+
+check.dependsOn(
+        tasks.named("checkstyleMain"),
+        tasks.named("checkstyleTest")
+)
+
+test {
+    useJUnitPlatform()  // Ensures JUnit 5 tests are run by default
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/SpringBootMicroserviceApplication.class'])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/SpringBootMicroserviceApplication.class'])
+        }))
+    }
+}
+
+dependencies {
+    implementation project(':provider-data-api')
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
+    implementation 'org.apache.commons:commons-lang3:3.20.0'
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    implementation 'org.postgresql:postgresql'
+
+    // Sentry observability
+    implementation 'io.sentry:sentry-spring-boot-4'
+    implementation 'io.sentry:sentry-logback'
+
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+}
+
+

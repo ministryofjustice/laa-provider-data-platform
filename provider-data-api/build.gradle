@@ -1,0 +1,68 @@
+
+plugins {
+    id 'java-library'
+    id 'org.openapi.generator'
+    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
+    id 'maven-publish'
+}
+
+dependencies {
+    // Match providers-api style: interface/model library, no runtime Spring Boot
+    api 'org.openapitools:jackson-databind-nullable:0.2.8'
+    compileOnly "io.swagger.core.v3:swagger-annotations:2.2.42"
+    compileOnly "jakarta.annotation:jakarta.annotation-api"
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+    compileOnly 'jakarta.validation:jakarta.validation-api'
+    compileOnly "org.springframework:spring-context"
+    compileOnly "org.springframework:spring-web"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            // This is what other services will use to import your models
+            artifactId = 'provider-data-api'
+        }
+    }
+}
+
+def generatedDir = layout.buildDirectory.dir("generated/openapi")
+def generatedJavaDir = generatedDir.map { it.dir("src/main/java") }
+def generatedJavaPath = generatedJavaDir.map { it.asFile.toPath() }
+
+sourceSets.main.java.srcDir(generatedJavaDir)
+
+tasks.named('checkstyleMain', Checkstyle) {
+    exclude { details -> details.file.toPath().startsWith(generatedJavaPath.get()) }
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = layout.projectDirectory.file("open-api-specification.yml").asFile.path
+    outputDir = generatedDir.get().asFile.path
+
+    // Keep provider-data-api package naming (not providers-xyz)
+    apiPackage     = "uk.gov.justice.laa.providerdata.api"
+    invokerPackage = "uk.gov.justice.laa.providerdata.invoker"
+    modelPackage   = "uk.gov.justice.laa.providerdata.model"
+
+    configOptions = [
+            generateBuilders    : "true",
+            interfaceOnly       : "true", // interfaces only
+            serializableModel   : "true",
+            skipDefaultInterface: "true",
+            useJakartaEe        : "true",
+            useSpringBoot3      : "true",
+            useTags             : "true",
+    ]
+}
+
+tasks.named('compileJava') { dependsOn tasks.named('openApiGenerate') }
+
+plugins.withId('org.springframework.boot') {
+    tasks.named('bootJar')        { enabled = false }
+    tasks.named('bootRun')        { enabled = false }
+    tasks.named('bootBuildImage') { enabled = false }
+    tasks.named('jar')            { enabled = true }
+}

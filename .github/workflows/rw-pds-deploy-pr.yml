@@ -1,0 +1,72 @@
+name: "Reusable workflow: PDS deploy PR"
+
+on:
+  workflow_call:
+    inputs:
+      tag:    { type: string, required: true }
+      target: { type: string, required: true }
+      prnum:  { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }
+      target: { type: choice, required: true, options: [ "uat" ],
+                description: "Target environment" }
+
+jobs:
+  deploy-pr:
+    name: "Deploy ${{ inputs.tag || format('pr-{0}', inputs.prnum) }} to ${{ inputs.target }}"
+    permissions: { contents: read, id-token: write }
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.target }}
+      url:  https://laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Authenticate with Amazon ECR"  # (needed to get ecr_registry)
+        id:   ecr_auth
+        uses: ./.github/actions/cp-ecr-auth
+        with:
+          ecr_region:         ${{ vars.DPD_ECR_REGION }}
+          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+
+      - name: "Authenticate with Kubernetes cluster"
+        id:   kube_auth
+        uses: ./.github/actions/cp-kube-auth
+        with:
+          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
+          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+
+      - name: "Install Helm chart as pr-${{ inputs.prnum }}"
+        if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
+              && steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        shell: bash
+        env:
+          IMAGE:   ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          PR_HOST: "laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+          REL:     "pds-pr-${{ inputs.prnum }}"
+          TAG:     ${{ inputs.tag || format('pr-{0}', inputs.prnum) }}
+          TARGET:  ${{ inputs.target }}
+        run: |
+          set -eu
+          echo "Upgrade Helm chart - image: [${IMAGE}], tag: [${TAG}], target: [${TARGET}], release: [${REL}]"
+          IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d')"
+          HELM_OPTS=(
+              -f "./helm_deploy/provider-data-service/values.yaml"
+              -f "./helm_deploy/provider-data-service/values-${TARGET}.yaml"
+              --set replicaCount=2
+              --set-string "image.repository=${IMAGE}"
+              --set-string "image.tag=${TAG}"
+              --set-string "canary.role=none"
+              --set-string "ingress.hosts[0].host=${PR_HOST}"
+              --set-string "ingress.tls[0].hosts[0]=${PR_HOST}"
+              --set ingressInternal.enabled=false
+              --set ingressShared.enabled=false
+              --set prometheus.metricsEnabled=false
+              --set-string "ingress.allowlist=${IP_ALLOWLIST//,/\\,}"
+          )
+          helm upgrade --install "${REL}" "./helm_deploy/provider-data-service" "${HELM_OPTS[@]}" --debug --dry-run=server
+          # If the dry-run succeeded, do the real thing
+          helm upgrade --install "${REL}" "./helm_deploy/provider-data-service" "${HELM_OPTS[@]}"

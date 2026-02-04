@@ -1,0 +1,84 @@
+name: "Pipeline: PDS PR opened/updated"
+
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize, ready_for_review ]
+    paths: [ "provider-data-api/**", "provider-data-e2e/**", "provider-data-service/**",
+             "helm_deploy/provider-data-service/**"]
+
+concurrency:
+  group: "pipeline-pds-pr-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: "Plan"
+    permissions: { contents: read }
+    runs-on: ubuntu-latest
+    outputs:
+      prnum:      ${{ steps.vars.outputs.prnum }}       # pull request number (e.g. `835`)
+      short:      ${{ steps.vars.outputs.short }}       # short SHA to use in immutable tags (e.g. `0fe21ac`)
+      no_preview: ${{ steps.vars.outputs.no_preview }}  # don't deploy a preview app (e.g. `true`)
+    steps:
+      - name: "Determine variable values"
+        id:   vars
+        shell: bash
+        run: |
+          set -eu
+          PRNUM="${{ github.event.pull_request.number }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"   # PR head, not merge SHA
+          SHORT="${HEAD_SHA::7}"
+          NO_PREVIEW=$(jq -r 'any((. // [])[]; .name=="no-preview")' <<< '${{ toJson(github.event.pull_request.labels) }}')
+          echo "- github.event_name=${{ github.event_name }}"
+          echo "- github.event.pull_request.number=${{ github.event.pull_request.number }}"
+          echo "- github.event.pull_request.head.sha=${{ github.event.pull_request.head.sha }}"
+          echo "- outputs.prnum=$PRNUM"
+          echo "- outputs.short=$SHORT"
+          echo "- outputs.no_preview=$NO_PREVIEW"
+          echo "prnum=$PRNUM" >> "$GITHUB_OUTPUT"
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+          echo "no_preview=$NO_PREVIEW" >> "$GITHUB_OUTPUT"
+
+  source-scan:
+    name: "Source scan"
+    needs: [ plan ]
+    permissions: { contents: read }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - run: |
+          ### Check the Helm chart lints OK
+          helm lint ./helm_deploy/provider-data-service --quiet --strict
+
+  make-image:
+    name: "Build pds-pr-${{ needs.plan.outputs.prnum }}"
+    needs: [ plan ]
+    permissions: { contents: read, id-token: write, packages: write }
+    uses: ./.github/workflows/rw-pds-build.yml
+    with:
+      itag: "pds-pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
+      mtag: "pds-pr-${{ needs.plan.outputs.prnum }}"
+    secrets: inherit
+
+  deploy-pr:
+    name: "Deploy pds-pr-${{ needs.plan.outputs.prnum }}"
+    if:   needs.plan.outputs.no_preview != 'true'
+    needs: [ plan, make-image ]
+    permissions: { contents: read, id-token: write }
+    uses: ./.github/workflows/rw-pds-deploy-pr.yml
+    with:
+      prnum:  ${{ needs.plan.outputs.prnum }}
+      target: "uat"
+      tag:    "pds-pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
+    secrets: inherit
+
+  e2etest-pr:
+    name: "E2E test pds-pr-${{ needs.plan.outputs.prnum }}"
+    needs: [ plan, deploy-pr ]
+    permissions: { contents: read, packages: read }
+    uses: ./.github/workflows/rw-pds-e2etest.yml
+    with:
+      target: "uat"
+      rel:    "pds-pr-${{ needs.plan.outputs.prnum }}"
+    secrets: inherit

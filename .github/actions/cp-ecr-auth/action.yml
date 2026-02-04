@@ -1,0 +1,39 @@
+name: "Authenticate to Amazon ECR in Cloud Platform"
+description: "Authenticate to Amazon ECR in Cloud Platform"
+inputs:
+  ecr_region:         { required: true, description: "AWS region for ECR (e.g. eu-west-2)" }
+  ecr_role_to_assume: { required: true, description: "AWS IAM role ARN to assume via OIDC for ECR" }
+outputs:
+  ecr_auth_attempted:
+    description: "Whether credentials were supplied"
+    value:       ${{ steps.guard.outputs.auth }}
+  ecr_registry:
+    description: "Amazon ECR registry URL prefix"
+    value:       ${{ steps.login_ecr.outputs.registry }}
+
+runs:
+  using: composite
+  steps:
+    - id:   guard
+      shell: bash
+      env:
+        ECR_REGION:         ${{ inputs.ecr_region }}
+        ECR_ROLE_TO_ASSUME: ${{ inputs.ecr_role_to_assume }}
+      run: |
+        if [ -n "$ECR_REGION" ] && [ -n "$ECR_ROLE_TO_ASSUME" ]; then
+          echo "auth=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Did not authenticate to ECR as AWS details were missing" >&2
+        fi
+
+    - name: "Configure AWS credentials"
+      if:   steps.guard.outputs.auth == 'true'
+      uses: aws-actions/configure-aws-credentials@v4.3.1
+      with:
+        aws-region:     ${{ inputs.ecr_region }}
+        role-to-assume: ${{ inputs.ecr_role_to_assume }}
+
+    - name: "Log in to Amazon ECR"
+      if:   steps.guard.outputs.auth == 'true'
+      id:   login_ecr
+      uses: aws-actions/amazon-ecr-login@v2.0.1

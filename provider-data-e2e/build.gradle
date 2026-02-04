@@ -1,0 +1,110 @@
+plugins {
+    id 'java'
+    id 'com.diffplug.spotless'
+}
+
+repositories {
+    mavenCentral()
+}
+
+spotless {
+    java {
+        googleJavaFormat().reorderImports(true)
+    }
+}
+
+tasks.withType(Checkstyle) {
+    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+    configProperties = [
+            "org.checkstyle.google.suppressionfilter.config":
+                    "$rootDir/config/checkstyle/suppressions.xml",
+    ]
+}
+
+dependencies {
+    // JUnit: use BOM to constrain versions for both compile & runtime tests
+    testImplementation platform('org.junit:junit-bom:6.0.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Rest Assured
+    testImplementation platform('io.rest-assured:rest-assured-bom:6.0.0')
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'io.rest-assured:json-schema-validator'
+    // Owner
+    testImplementation 'org.aeonbits.owner:owner:1.0.12'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.named("test") { enabled = false }
+
+def configureE2E = { Test t ->
+    t.useJUnitPlatform()
+    t.testClassesDirs = sourceSets.test.output.classesDirs
+    t.classpath       = sourceSets.test.runtimeClasspath
+    t.testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
+
+    t.doFirst {
+        def envName = (project.findProperty('env') as String) ?: System.getProperty('env', 'prod')
+        t.systemProperty 'env', envName
+
+        def baseUrl = System.getProperty('base.url') ?: System.getenv('BASE_URL')
+        if (baseUrl) {
+            t.systemProperty 'base.url', baseUrl
+            println "e2e override: base.url=${baseUrl}"
+        }
+
+        def token = System.getProperty('auth.token') ?: System.getenv('AUTH_TOKEN')
+        /*if (!token) {
+            throw new GradleException("No auth token provided. Use -Dauth.token=... or set AUTH_TOKEN env.")
+        }*/
+        t.systemProperty 'auth.token', token
+
+        println "E2E using env=${envName}"
+
+
+        // ✅ Added logging for classesDirs and runtimeClasspath
+        println "Test Classes Dirs: ${t.testClassesDirs.files}"
+        //println "Runtime Classpath: ${t.classpath.files}"
+
+    }
+}
+
+tasks.register("e2eMain", Test) {
+    description = "Run E2E tests (excluding @Tag('cache-end'))"
+    group = "verification"
+    configureE2E(delegate)
+
+    outputs.upToDateWhen { false }
+}
+
+tasks.register("e2eCacheEnd", Test) {
+    description = "Run E2E tests tagged @Tag('cache-end')"
+    group = "verification"
+    configureE2E(delegate)
+    // ensure it runs after e2eTest
+    mustRunAfter tasks.named("e2eMain")
+
+    onlyIf {
+        //We only want to clear or reload cache when were in local to prevent any breaking
+        def envName = (project.findProperty('env') as String) ?: System.getProperty('env', 'prod')
+        if (envName != 'local') {
+            logger.lifecycle("Skipping e2eCacheEnd because env=${envName} (runs only on 'local').")
+            return false
+        }
+        true
+    }
+    outputs.upToDateWhen { false }
+}
+
+tasks.register("e2eTest") {
+    description = "Run all E2E tests (normal first, then @Tag('cache-end'))"
+    group = "verification"
+    dependsOn "e2eMain", "e2eCacheEnd"
+}

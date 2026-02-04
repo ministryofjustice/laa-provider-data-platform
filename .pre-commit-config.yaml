@@ -1,0 +1,60 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+# This configuration integrates:
+# 1. devsecops-hooks: Secret scanning using GitLeaks
+# 2. Spotless: Code formatting (Java)
+# 3. Commit message validation: Ensures conventional commit format
+
+repos:
+  # Ministry of Justice DevSecOps hooks for secret detection
+  - repo: https://github.com/ministryofjustice/devsecops-hooks
+    rev: v1.4.1
+    hooks:
+      - id: baseline
+        stages: [commit, push]
+        # Exclude directories that are not part of the codebase
+        exclude: |
+          (?x)^(
+            build/|
+            .gradle/|
+            .idea/|
+            .git/|
+            reports/|
+            docs/|
+            gradle/
+          )
+
+  # Local hook for commit message validation
+  - repo: local
+    hooks:
+      - id: commit-msg-validation
+        name: Commit message validation
+        entry: |
+          bash -c '
+          MSG=$(head -n 1 "$1")
+          [[ "$MSG" =~ ^Merge\ branch ]] && exit 0
+          [[ "$MSG" =~ ^Revert ]] && exit 0
+          [[ "$MSG" =~ ^(feat|fix|chore|refactor|test|spike|docs|ci|infra)(\(|:|\s) ]] && exit 0
+          echo "⛔ Invalid commit message. Must start with: feat|fix|chore|refactor|test|spike|docs|ci|infra"
+          exit 1
+          ' --
+        language: system
+        stages: [commit-msg]
+        always_run: true
+
+      - id: spotless-format
+        name: Spotless Java formatting
+        entry: bash -c './gradlew spotlessApply'
+        language: system
+        stages: [commit]
+        types: [java]
+        pass_filenames: false
+
+      - id: checkstyle-staged
+        name: Checkstyle validation
+        entry: bash -c './gradlew checkstyleStaged'
+        language: system
+        stages: [commit]
+        types: [java]
+        pass_filenames: false

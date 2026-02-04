@@ -1,0 +1,64 @@
+name: "Pipeline: PDS PR closed/merged"
+
+on:
+  pull_request:
+    types: [ closed ]
+    paths: [ "provider-data-api/**", "provider-data-e2e/**", "provider-data-service/**",
+             "helm_deploy/provider-data-service/**" ]
+  workflow_dispatch:
+    inputs:
+      prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }
+      target: { type: choice, required: true, options: [ "uat" ], description: "Target environment" }
+
+concurrency:
+  group: "pipeline-pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
+  cancel-in-progress: true
+
+env:
+  PRNUM:  ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}
+  REL:    "pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
+  TARGET: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
+
+jobs:
+  plan:
+    name: "Plan"
+    permissions: { contents: read }
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Determine variable values"
+        id:   vars
+        shell: bash
+        run: |
+          set -eu
+          echo "- github.event_name=${{ github.event_name }}"
+          echo "- env.PRNUM=$PRNUM"
+          echo "- env.REL=$REL"
+          echo "- env.TARGET=$TARGET"
+
+  undeploy-pr:
+    name: "Undeploy pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }} from ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}"
+    needs: [plan]
+    permissions: { contents: read, id-token: write }
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
+      url:  https://laa-provider-data-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Authenticate with Kubernetes cluster"
+        id:   kube_auth
+        uses: ./.github/actions/cp-kube-auth
+        with:
+          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
+          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+
+      - name: "Uninstall Helm release"
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        run: |
+          set -eu
+          echo "Uninstall Helm chart - target: [${TARGET}], release: [${REL}]"
+          helm status "${REL}" -n "laa-data-provider-data-${TARGET}" >/dev/null 2>&1 && \
+              helm uninstall "${REL}" -n "laa-data-provider-data-${TARGET}" || true

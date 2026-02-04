@@ -34,7 +34,7 @@ public abstract class BaseApiTest {
     String basePath = config.basePath();
     String token = config.authToken();
 
-    if (baseUrl == null || basePath == null || token == null || token.isBlank()) {
+    if (baseUrl == null || basePath == null || token == null) {
       throw new IllegalStateException(
           "Missing required configuration: base.url, base.path, auth.token");
     }

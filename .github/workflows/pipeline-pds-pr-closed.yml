@@ -3,8 +3,7 @@ name: "Pipeline: PDS PR closed/merged"
 on:
   pull_request:
     types: [ closed ]
-    paths: [ "provider-data-api/**", "provider-data-e2e/**", "provider-data-service/**",
-             "helm_deploy/provider-data-service/**" ]
+    paths-ignore: [ "docs/**" ]
   workflow_dispatch:
     inputs:
       prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }
@@ -42,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
-      url:  https://laa-provider-data-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-platform-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@v6
 

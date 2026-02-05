@@ -3,8 +3,7 @@ name: "Pipeline: PDS PR opened/updated"
 on:
   pull_request:
     types: [ opened, reopened, synchronize, ready_for_review ]
-    paths: [ "provider-data-api/**", "provider-data-e2e/**", "provider-data-service/**",
-             "helm_deploy/provider-data-service/**"]
+    paths-ignore: [ "docs/**" ]
 
 concurrency:
   group: "pipeline-pds-pr-${{ github.event.pull_request.number }}"

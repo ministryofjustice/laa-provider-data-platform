@@ -9,7 +9,7 @@ on:
       rel:         { type: string, required: false, default: "" }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
+      application: { type: choice, required: true, options: [ "provider-data-service" ],
                      description: "Application to deploy" }
       tag:         { type: string, required: true, description: "Tag name (e.g. 'v1.4.2' or 'pds-v1.4.2')" }
       target:      { type: choice, required: true, options: [ "dev", "uat", "staging", "prod" ],
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  ${{ inputs.application == 'providers-app' && format('https://laa-provider-details-api-{0}.apps.live.cloud-platform.service.justice.gov.uk', inputs.target == 'staging' && 'preprod' || inputs.target) || format('https://laa-provider-data-{0}.apps.live.cloud-platform.service.justice.gov.uk', inputs.target) }}
+      url:  https://laa-provider-data-platform-${{ inputs.target }}.apps.live.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@v6
 
@@ -40,11 +40,6 @@ jobs:
           printf "* inputs.application=%s\n* inputs.rel=%s\n* inputs.target=%s\n" \
               "$APP" "$REL" "$TARGET"
           case "$APP" in
-            providers-app)
-              CHART=helm_deploy/providers-app
-              DEFAULT_RELEASE=providers-app
-              SECONDARY_RELEASE=pdl-2
-              ;;
             provider-data-service)
               CHART=helm_deploy/provider-data-service
               DEFAULT_RELEASE=provider-data-service

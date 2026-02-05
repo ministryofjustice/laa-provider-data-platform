@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  https://laa-provider-data-${{ inputs.target }}.apps.live.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-platform-${{ inputs.target }}.apps.live.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@v6
 

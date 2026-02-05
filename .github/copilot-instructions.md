@@ -31,6 +31,6 @@
 
 ## Code review
 
-- Prioritize issues that genuinely matter: bugs, security vulnerabilities, logic errors,
+- Prioritise issues that genuinely matter: bugs, security vulnerabilities, logic errors,
   and API breaking changes.
 - Do not comment on code formatting, that is enforced using Spotless and Checkstyle.

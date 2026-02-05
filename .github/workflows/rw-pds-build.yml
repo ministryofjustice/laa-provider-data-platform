@@ -51,10 +51,7 @@ jobs:
           # Substitute in gradle.properties `version=<itag>` (remove initial `pds-` or `pds-v` if has one)
           tmp=${ITAG#pds-}; sed -E -i.bak -e "s|^(version[[:space:]]*=[[:space:]]*).*|\1${tmp#v}|" gradle.properties \
               && rm -f gradle.properties.bak
-          ./gradlew :provider-data-api:clean :provider-data-service:clean :provider-data-e2e:clean \
-              :provider-data-api:build :provider-data-service:build :provider-data-e2e:build \
-              -x :provider-data-service:integrationTest
-          # TODO: re-enable the integration tests by removing '-x' when they can run (need a DB connection).
+          ./gradlew clean build integrationTest
 
       - name: "Publish OpenAPI specification models package (main branch)"
         if:   github.ref == 'refs/heads/main'

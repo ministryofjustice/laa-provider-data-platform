@@ -9,7 +9,7 @@ on:
       prnum:       { type: string, required: true }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
+      application: { type: choice, required: true, options: [ "provider-data-service" ],
                      description: "Application to deploy" }
       prnum:       { type: number, required: true, description: "Pull request # (e.g. '942')" }
       target:      { type: choice, required: true, options: [ "uat" ],
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  https://${{ inputs.application == 'providers-app' && format('laa-provider-details-api-pr-{0}', inputs.prnum) || format('laa-provider-data-pr-{0}', inputs.prnum) }}.apps.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@v6
 
@@ -35,15 +35,9 @@ jobs:
           printf "* inputs.application=%s\n* inputs.prnum=%s\n* inputs.tag=%s\n* inputs.target=%s\n" \
               "$APP" "${{ inputs.prnum }}" "${{ inputs.tag }}" "${{ inputs.target }}"
           case "$APP" in
-            providers-app)
-              CHART=helm_deploy/providers-app
-              PR_HOST="laa-provider-details-api-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
-              REL="pr-${{ inputs.prnum }}"
-              TAG="${{ inputs.tag || format('pr-{0}', inputs.prnum) }}"
-              ;;
             provider-data-service)
               CHART=helm_deploy/provider-data-service
-              PR_HOST="laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+              PR_HOST="laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
               REL="pds-pr-${{ inputs.prnum }}"
               TAG="${{ inputs.tag || format('pds-pr-{0}', inputs.prnum) }}"
               ;;

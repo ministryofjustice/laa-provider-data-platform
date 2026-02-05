@@ -3,8 +3,7 @@ name: "Pipeline: PDS main updated"
 on:
   push:
     branches: [ main ]
-    paths:    [ "provider-data-api/**", "provider-data-e2e/**", "provider-data-service/**",
-                "helm_deploy/provider-data-service/**" ]
+    paths-ignore: [ "docs/**" ]
   workflow_dispatch:
     inputs:
       reltype: { type: choice, required: true, options: [ "auto", "none", "patch", "minor", "major" ],

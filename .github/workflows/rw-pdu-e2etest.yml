@@ -9,7 +9,7 @@ on:
       servicePort: { type: string, required: false, default: "8080" }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
+      application: { type: choice, required: true, options: [ "provider-data-service" ],
                      description: "Application to test" }
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
                      description: "Target environment" }
@@ -42,20 +42,12 @@ jobs:
           case "$TARGET" in
             dev)     PROFILE=dev ;;
             uat)     PROFILE=uat ;;
-            staging) [ "$APP" = "providers-app" ] && PROFILE=preprod || PROFILE=staging ;;
+            staging) PROFILE=staging ;;
             prod)    PROFILE=prod ;;
             *)       exit 1 ;;
           esac
           # Determine service name and E2E project based on application
           case "$APP" in
-            providers-app)
-              if [[ -n "$REL" && "$REL" != "providers-app" ]]; then
-                SVC="${REL}-providers-app"
-              else
-                SVC="providers-app"
-              fi
-              E2E_PROJECT="providers-e2e"
-              ;;
             provider-data-service)
               if [[ -n "$REL" && "$REL" != "provider-data-service" ]]; then
                 SVC="${REL}-provider-data-service"

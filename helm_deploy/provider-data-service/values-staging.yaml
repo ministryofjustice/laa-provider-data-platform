@@ -18,17 +18,17 @@ rateLimit:
 ingressInternal:
   enabled: false
   hosts:
-    - host: "laa-provider-data-staging.internal-non-prod.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-staging.internal-non-prod.cloud-platform.service.justice.gov.uk"
 
 ingress:
   enabled: false
   hosts:
-    - host: "laa-provider-data-staging.apps.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-staging.apps.cloud-platform.service.justice.gov.uk"
   tls:
     - hosts:
-        - "laa-provider-data-staging.apps.cloud-platform.service.justice.gov.uk"
+        - "laa-provider-data-platform-staging.apps.cloud-platform.service.justice.gov.uk"
 
 ingressShared:
   enabled: false
   hosts:
-    - host: "laa-provider-data-staging.apps.live.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-staging.apps.live.cloud-platform.service.justice.gov.uk"

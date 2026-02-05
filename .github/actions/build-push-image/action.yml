@@ -4,7 +4,7 @@ inputs:
   image: { required: true, description: "Image name to publish (e.g. hostname/namespace/repository)" }
   itag:  { required: true, description: "Immutable image tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
   mtag:  { required: false, description: "Optional mutable image tag to publish (e.g. pr-123)", default: "" }
-  module_dir: { required: false, description: "Gradle submodule directory to build", default: "providers-app" }
+  module_dir: { required: false, description: "Gradle submodule directory to build", default: "provider-data-service" }
 runs:
   using: composite
   steps:

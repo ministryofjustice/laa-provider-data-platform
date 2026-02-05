@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  https://laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@v6
 
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         env:
           IMAGE:   ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
-          PR_HOST: "laa-provider-data-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+          PR_HOST: "laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
           REL:     "pds-pr-${{ inputs.prnum }}"
           TAG:     ${{ inputs.tag || format('pr-{0}', inputs.prnum) }}
           TARGET:  ${{ inputs.target }}

@@ -6,11 +6,11 @@ Defines how the service is exposed to the internet.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "provider-data-service.fullname" . }}
+  name: {{ include "provider-data-platform.fullname" . }}
   labels:
-    {{- include "provider-data-service.labels" . | nindent 4 }}
+    {{- include "provider-data-platform.labels" . | nindent 4 }}
   annotations:
-    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-service.fullname" . }}-{{ .Release.Namespace }}-green
+    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-platform.fullname" . }}-{{ .Release.Namespace }}-green
     external-dns.alpha.kubernetes.io/aws-weight: "100"
     {{- if .Values.ingress.allowlist }}
     nginx.ingress.kubernetes.io/allowlist-source-range: {{ .Values.ingress.allowlist | quote }}
@@ -37,7 +37,7 @@ spec:
     {{- range .Values.ingress.tls }}
     - hosts:
         {{- range .hosts }}
-        - {{ include "provider-data-service.hostnameWithSuffix" (dict "host" . "suffix" $.Values.hostnameSuffix) | quote }}
+        - {{ include "provider-data-platform.hostnameWithSuffix" (dict "host" . "suffix" $.Values.hostnameSuffix) | quote }}
         {{- end }}
       {{- with .secretName }}
       secretName: {{ . }}
@@ -46,14 +46,14 @@ spec:
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ include "provider-data-service.hostnameWithSuffix" (dict "host" .host "suffix" $.Values.hostnameSuffix) | quote }}
+    - host: {{ include "provider-data-platform.hostnameWithSuffix" (dict "host" .host "suffix" $.Values.hostnameSuffix) | quote }}
       http:
         paths:
           - pathType: Prefix
             path: "/"
             backend:
               service:
-                name: {{ include "provider-data-service.fullname" $ }}
+                name: {{ include "provider-data-platform.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
     {{- end }}

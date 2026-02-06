@@ -29,7 +29,7 @@ jobs:
         run: |
           printf "* inputs.prnum=%s\n* inputs.rtag=%s\n* inputs.target=%s\n" \
               "${{ inputs.prnum }}" "${{ inputs.rtag }}" "${{ inputs.target }}"
-          CHART=./helm_deploy/provider-data-service
+          CHART=./helm_deploy/provider-data-platform
           PREL=pdp-
           PR_HOST="laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
           PTAG=pdp-

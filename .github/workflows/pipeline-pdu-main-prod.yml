@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       rtag:        { type: string, required: true, description: "Registry tag to deploy (e.g. 'v1.13.0')" }
-      application: { type: choice, required: true, options: [ "provider-data-service" ],
-                     default: "provider-data-service", description: "Application to deploy" }
+      application: { type: choice, required: true, options: [ "provider-data-platform" ],
+                     default: "provider-data-platform", description: "Application to deploy" }
       skip_e2e:    { type: boolean, required: false, default: false, description: "Skip E2E tests after deployment" }
 
 jobs:

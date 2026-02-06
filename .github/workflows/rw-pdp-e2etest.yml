@@ -43,7 +43,7 @@ jobs:
             *)       exit 1 ;;
           esac
           # Determine service name
-          SVC="pdp-${REL}-provider-data-service"
+          SVC="pdp-${REL}-provider-data-platform"
           echo "Resolved profile name: [$PROFILE]"
           echo "Resolved service name: [$SVC]"
           echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"

@@ -9,7 +9,7 @@ metadata:
   name: laa-provider-data-platform-{{ .Values.prometheus.metricsQualifier }}-8813
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "provider-data-service.appLabels" . | nindent 4 }}
+    {{- include "provider-data-platform.appLabels" . | nindent 4 }}
     grafana_dashboard: laa-provider-data-platform-{{ .Values.prometheus.metricsQualifier }}-8813
 data:
   laa-provider-data-platform-{{ .Values.prometheus.metricsQualifier }}-8813.json: |
@@ -123,7 +123,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Running',pod=~'provider-data-service.*'} + 0)",
+              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Running',pod=~'pdp-stable-.*'} + 0)",
               "hide": false,
               "legendFormat": "Running",
               "range": true,
@@ -135,7 +135,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "builder",
-              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Pending',pod=~'provider-data-service.*'} + 0)",
+              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Pending',pod=~'pdp-stable-.*'} + 0)",
               "hide": false,
               "legendFormat": "Pending",
               "range": true,
@@ -147,7 +147,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Failed',pod=~'provider-data-service.*'} + 0)",
+              "expr": "sum({namespace='{{ .Release.Namespace }}',phase='Failed',pod=~'pdp-stable-.*'} + 0)",
               "hide": false,
               "legendFormat": "Failed",
               "range": true,

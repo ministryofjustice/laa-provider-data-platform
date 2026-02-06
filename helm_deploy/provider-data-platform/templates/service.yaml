@@ -5,9 +5,9 @@ Creates a Kubernetes Service to expose the application pods.
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "provider-data-service.fullname" . }}
+  name: {{ include "provider-data-platform.fullname" . }}
   labels:
-    {{- include "provider-data-service.labels" . | nindent 4 }}
+    {{- include "provider-data-platform.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -16,4 +16,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "provider-data-service.selectorLabels" . | nindent 4 }}
+    {{- include "provider-data-platform.selectorLabels" . | nindent 4 }}

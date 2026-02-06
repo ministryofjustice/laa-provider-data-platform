@@ -1,15 +1,7 @@
 spring:
-  profiles:
-    active: ${TARGET_ENVIRONMENT:local}
   application:
     name: provider-data-platform
-
-  # example database
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: 10  # Maximum connections per pod
       minimum-idle: 3        # Start with 3, grow to max under load
@@ -17,36 +9,82 @@ spring:
       connection-timeout: 30000        # 30 seconds - fail fast if pool exhausted
       max-lifetime: 1800000            # 30 minutes - refresh connections periodically
       leak-detection-threshold: 60000  # 60 seconds - detect connection leaks
-  h2:
-    console:
+  profiles:
+    active: ${TARGET_ENVIRONMENT:local}
+  threads:
+    virtual:
       enabled: true
+
   jpa:
     hibernate:
       ddl-auto: update
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
 
-# used by actuator info endpoint
 info:
   app:
     name: provider-data-platform
     description: Implements a REST API for retrieving and updating provider firm, office, contract and schedule data.
     version: 1.0.0
 
-sentry:
-  dsn: ${SENTRY_DSN:}
-  environment: ${TARGET_ENVIRONMENT:local}
-  send-default-pii: false
-  traces-sample-rate: ${SENTRY_TRACESSAMPLERATE:0.2}
-  enable-tracing: true
+logging:
+  level:
+    root: INFO
+    ch: WARN
+    io: WARN
+    jakarta: WARN
+    javax: WARN
+    net: WARN
+    org.hibernate: WARN
+    org.springframework: WARN
+    uk.gov.justice.laadata.providers: INFO
+    uk.gov.laa.springboot.auth: WARN
+  pattern:
+    console: "%gray(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%thread] [RequestId=%X{requestId}] [%highlight(%-5level)] [%cyan(%class{0}.%M:%L)] - %msg %n"
 
 management:
-  # specify actuator endpoints to enable
   endpoints:
     web:
       exposure:
-        include: health
+        include: [ health, info, prometheus ]
+  metrics:
+    enable:
+      spring:
+        security: false  # Disable meters with an ID starting with `spring.security`
+    tags:
+      application: provider-data-platform  # Used by Grafana dashboard
 
-  # show detailed health status
-  endpoint:
-    health:
-      show-details: always
+springdoc:
+  default-flat-param-object: true
+  swagger-ui:
+    display-request-duration: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    urls-primary-name: v1 - default
+  writer-with-default-pretty-printer: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "!local"
+  # Datasource credentials for all non-local profiles (no way to "unset" config for the local profile)
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+# Use structured logging for non-local profiles (no way to "unset" config for the local profile)
+logging:
+  structured:
+    ecs:
+      service:
+        environment: ${TARGET_ENVIRONMENT:unknown}
+    format:
+      console: ecs
+
+# Sentry is only needed for non-local profiles.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${TARGET_ENVIRONMENT:unknown}
+  send-default-pii: false
+  traces-sample-rate: ${SENTRY_TRACESSAMPLERATE:0.2}

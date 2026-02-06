@@ -1,4 +1,4 @@
-name: "Pipeline: PDS PR closed/merged"
+name: "Pipeline: PDP PR closed/merged"
 
 on:
   pull_request:
@@ -10,12 +10,12 @@ on:
       target: { type: choice, required: true, options: [ "uat" ], description: "Target environment" }
 
 concurrency:
-  group: "pipeline-pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
+  group: "pipeline-pdp-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
   cancel-in-progress: true
 
 env:
   PRNUM:  ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}
-  REL:    "pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
+  REL:    "pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}"
   TARGET: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
 
 jobs:
@@ -35,13 +35,11 @@ jobs:
           echo "- env.TARGET=$TARGET"
 
   undeploy-pr:
-    name: "Undeploy pds-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }} from ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}"
+    name: "Undeploy PR #${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }} from ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}"
     needs: [plan]
     permissions: { contents: read, id-token: write }
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
-      url:  https://laa-provider-data-platform-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+    environment: ${{ github.event_name == 'pull_request' && 'uat' || inputs.target }}
     steps:
       - uses: actions/checkout@v6
 
@@ -58,6 +56,6 @@ jobs:
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         run: |
           set -eu
-          echo "Uninstall Helm chart - target: [${TARGET}], release: [${REL}]"
-          helm status "${REL}" -n "laa-data-provider-data-${TARGET}" >/dev/null 2>&1 && \
-              helm uninstall "${REL}" -n "laa-data-provider-data-${TARGET}" || true
+          echo "Uninstall Helm release - target: [${TARGET}], release: [pdp-${REL}]"
+          helm status "pdp-${REL}" -n "laa-data-provider-data-${TARGET}" >/dev/null 2>&1 && \
+              helm uninstall "pdp-${REL}" -n "laa-data-provider-data-${TARGET}" || true

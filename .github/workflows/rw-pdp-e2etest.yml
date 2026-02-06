@@ -1,4 +1,4 @@
-name: "Reusable workflow: PDS end-to-end test"
+name: "Reusable workflow: PDP end-to-end test"
 
 on:
   workflow_call:
@@ -11,17 +11,17 @@ on:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
                      description: "Target environment" }
       rel:         { type: string, required: false, default: "",
-                     description: "Optional release name (e.g. 'pr-913', defaults to default release)" }
+                     description: "Optional release name (e.g. 'pr-913', defaults to stable release)" }
       servicePort: { type: number, required: false, default: 8080,
                      description: "Optional service port to forward (e.g. '8080', defaults to 8080)" }
 
 jobs:
   e2etest:
-    name: "E2E test in ${{ inputs.target }} of ${{ inputs.rel || 'provider-data-service' }}"
+    name: "E2E test in ${{ inputs.target }} of ${{ inputs.rel || 'stable' }}"
     permissions: { contents: read, packages: read }
     runs-on: ubuntu-latest
     environment: ${{ inputs.target }}
-    concurrency: e2e-${{ inputs.target }}-${{ inputs.rel || 'provider-data-service' }}
+    concurrency: rw-pdp-e2e-${{ inputs.target }}-${{ inputs.rel || 'stable' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -30,7 +30,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ inputs.target }}
-          REL:    ${{ inputs.rel || '' }}
+          REL:    ${{ inputs.rel || 'stable' }}
           SP:     ${{ inputs.servicePort }}
         run: |
           echo "Run e2e tests - target: [$TARGET], rel: [$REL], servicePort: [$SP]"
@@ -43,11 +43,7 @@ jobs:
             *)       exit 1 ;;
           esac
           # Determine service name
-          if [[ -n "$REL" && "$REL" != "provider-data-service" ]]; then
-            SVC="${REL}-provider-data-service"
-          else
-            SVC="provider-data-service"
-          fi
+          SVC="pdp-${REL}-provider-data-service"
           echo "Resolved profile name: [$PROFILE]"
           echo "Resolved service name: [$SVC]"
           echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
@@ -86,8 +82,8 @@ jobs:
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
           NS:  ${{ secrets.DPD_KUBE_NAMESPACE }}
-          SVC: ${{ steps.vars.outputs.svc }}
           SP:  ${{ inputs.servicePort }}
+          SVC: ${{ steps.vars.outputs.svc }}
         run: |
           echo "Port-forwarding svc/${SVC} on ${SP} → localhost:18080 in namespace=${NS}"
           kubectl -n "${NS}" port-forward "svc/${SVC}" 18080:"${SP}" &
@@ -112,7 +108,7 @@ jobs:
         if:   always()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-${{ inputs.target }}-${{ inputs.rel || 'provider-data-service' }}-reports
+          name: e2e-${{ inputs.target }}-${{ inputs.rel || 'stable' }}-reports
           path: |
             provider-data-e2e/build/reports/**
             provider-data-e2e/build/test-results/**

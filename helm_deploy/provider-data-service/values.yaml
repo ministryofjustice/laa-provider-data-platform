@@ -10,7 +10,7 @@ replicaCount: 3
 
 image:
   pullPolicy: IfNotPresent
-  # The Docker image and tag values will be overridden by command-line arguments (for all deployments):
+  # The Docker registry image name and tag values will be overridden by command-line arguments (for all deployments):
   repository: "registry/repository"
   tag: "latest"
 
@@ -34,7 +34,7 @@ resources:
 
 # Hostname suffix for dedicated ingress (e.g., "-1", "-2", "-pr-123")
 # Will be overridden by command-line argument for each deployment:
-releaseSuffix: ""
+hostnameSuffix: ""
 
 # Configuration for canary deployments using the shared ingress
 canary:
@@ -87,7 +87,7 @@ ingressInternal:
   hosts:
     # The host value will be overridden in the environment values file (for release deployments),
     # or by a command-line argument (for preview deployments):
-    - host: "laa-provider-data.internal-non-prod.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform.internal-non-prod.cloud-platform.service.justice.gov.uk"
 
 # Configuration for Ingress to expose the service outside the cluster.
 ingress:
@@ -103,12 +103,12 @@ ingress:
   hosts:
     # The host value will be overridden in the environment values file (for release deployments),
     # or by a command-line argument (for preview deployments):
-    - host: "laa-provider-data.apps.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform.apps.cloud-platform.service.justice.gov.uk"
   # The hosts values will be overridden in the environment values file (for release deployments),
   # or by a command-line argument (for preview deployments) [tls only needed for this ingress]:
   tls:
     - hosts:
-        - "laa-provider-data.apps.cloud-platform.service.justice.gov.uk"
+        - "laa-provider-data-platform.apps.cloud-platform.service.justice.gov.uk"
 
 # Configuration for Ingress to expose the service outside the cluster (using shared hostname).
 # The shared ingress is currently only used by release apps.
@@ -126,4 +126,4 @@ ingressShared:
   hosts:
     # The host value will be overridden in the environment values file (for release deployments),
     # or by a command-line argument (for preview deployments):
-    - host: "laa-provider-data.apps.live.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform.apps.live.cloud-platform.service.justice.gov.uk"

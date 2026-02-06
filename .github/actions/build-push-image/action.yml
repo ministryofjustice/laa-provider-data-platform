@@ -2,13 +2,13 @@ name: "Build and publish to ECR"
 description: "Build Spring Boot app and push an image to Amazon ECR with OIDC"
 inputs:
   image: { required: true, description: "Image name to publish (e.g. hostname/namespace/repository)" }
-  itag:  { required: true, description: "Immutable image tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
-  mtag:  { required: false, description: "Optional mutable image tag to publish (e.g. pr-123)", default: "" }
+  itag:  { required: true, description: "Immutable registry tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
+  mtag:  { required: false, description: "Optional mutable registry tag to publish (e.g. pr-123)", default: "" }
   module_dir: { required: false, description: "Gradle submodule directory to build", default: "provider-data-service" }
 runs:
   using: composite
   steps:
-    - name: "Build OCI image with Gradle and push immutable tag to ECR"
+    - name: "Build OCI image with Gradle and push immutable registry tag to ECR"
       shell: bash
       env:
         IMAGE: ${{ inputs.image }}
@@ -17,10 +17,10 @@ runs:
       run: |
         set -eu
         # Run bootBuildImage for the selected subproject
-        ./gradlew ":${MODULE_DIR}:bootBuildImage" --imageName="${IMAGE}:${ITAG}"
-        docker push "${IMAGE}:${ITAG}"
+        ./gradlew ":${MODULE_DIR}:bootBuildImage" --imageName="${IMAGE}:pdp-${ITAG}"
+        docker push "${IMAGE}:pdp-${ITAG}"
 
-    - name: "Add mutable alias tag and push"
+    - name: "Add mutable registry tag as alias and push"
       if:   inputs.mtag != ''
       shell: bash
       env:
@@ -29,8 +29,8 @@ runs:
         MTAG:  ${{ inputs.mtag }}
       run: |
         set -eu
-        docker tag "${IMAGE}:${ITAG}" "${IMAGE}:${MTAG}"
-        docker push "${IMAGE}:${MTAG}"
+        docker tag "${IMAGE}:pdp-${ITAG}" "${IMAGE}:pdp-${MTAG}"
+        docker push "${IMAGE}:pdp-${MTAG}"
 
     - name: "Scan rootfs dependencies with Trivy scanner"
       uses: aquasecurity/trivy-action@0.32.0
@@ -50,7 +50,7 @@ runs:
         TRIVY_SKIP_DB_UPDATE:      true
         TRIVY_SKIP_JAVA_DB_UPDATE: true
       with:
-        image-ref:      ${{ inputs.image }}:${{ inputs.itag }}
+        image-ref:      ${{ inputs.image }}:pdp-${{ inputs.itag }}
         ignore-unfixed: true
         vuln-type:      "os,library"
         format:         "table"

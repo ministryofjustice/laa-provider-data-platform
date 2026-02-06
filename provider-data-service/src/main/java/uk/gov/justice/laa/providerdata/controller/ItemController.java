@@ -22,16 +22,12 @@ public class ItemController implements ItemsApi {
 
   @Override
   public ResponseEntity<List<Item>> getItems() {
-
     log.info("Getting all items (populated manually)");
-
     Item itemValue1 =
         Item.builder().id(1L).name("Item One").description("Populated in controller").build();
-
-    Item itemValue2 = new Item().id(2L).name("Item Two").description("Populated in controller");
-
+    Item itemValue2 =
+        Item.builder().id(2L).name("Item Two").description("Populated in controller").build();
     List<Item> items = List.of(itemValue1, itemValue2);
-
     return ResponseEntity.ok(items);
   }
 
@@ -45,7 +41,6 @@ public class ItemController implements ItemsApi {
   @Override
   public ResponseEntity<Void> createItem(@RequestBody ItemRequestBody itemRequestBody) {
     log.info("Creating item {}", itemRequestBody);
-
     Long id = service.createItem(itemRequestBody);
     URI uri =
         ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id).toUri();
@@ -55,7 +50,6 @@ public class ItemController implements ItemsApi {
   @Override
   public ResponseEntity<Void> updateItem(Long id, ItemRequestBody itemRequestBody) {
     log.info("Updating item {}", id);
-
     service.updateItem(id, itemRequestBody);
     return ResponseEntity.noContent().build();
   }
@@ -63,7 +57,6 @@ public class ItemController implements ItemsApi {
   @Override
   public ResponseEntity<Void> deleteItem(Long id) {
     log.info("Deleting item {}", id);
-
     service.deleteItem(id);
     return ResponseEntity.noContent().build();
   }

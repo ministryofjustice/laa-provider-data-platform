@@ -5,7 +5,7 @@ target:
   environment: uat
 
 prometheus:
-  metricsQualifier: "pds-uat"
+  metricsQualifier: "uat"
 
 # Configuration for rate limiting.
 rateLimit:

@@ -7,7 +7,7 @@ target:
 replicaCount: 5
 
 prometheus:
-  metricsQualifier: "pds-prod"
+  metricsQualifier: "prod"
 
 # Configuration for rate limiting.
 rateLimit:

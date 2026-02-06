@@ -1,4 +1,4 @@
-name: "Pipeline: PDS PR opened/updated"
+name: "Pipeline: PDP PR opened/updated"
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
     paths-ignore: [ "docs/**" ]
 
 concurrency:
-  group: "pipeline-pds-pr-${{ github.event.pull_request.number }}"
+  group: "pipeline-pdp-pr-${{ github.event.pull_request.number }}"
   cancel-in-progress: true
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       prnum:      ${{ steps.vars.outputs.prnum }}       # pull request number (e.g. `835`)
-      short:      ${{ steps.vars.outputs.short }}       # short SHA to use in immutable tags (e.g. `0fe21ac`)
+      short:      ${{ steps.vars.outputs.short }}       # short SHA to use in immutable registry tags (e.g. `0fe21ac`)
       no_preview: ${{ steps.vars.outputs.no_preview }}  # don't deploy a preview app (e.g. `true`)
     steps:
       - name: "Determine variable values"
@@ -51,33 +51,33 @@ jobs:
           helm lint ./helm_deploy/provider-data-service --quiet --strict
 
   make-image:
-    name: "Build pds-pr-${{ needs.plan.outputs.prnum }}"
+    name: "Build PR #${{ needs.plan.outputs.prnum }}"
     needs: [ plan ]
     permissions: { contents: read, id-token: write, packages: write }
-    uses: ./.github/workflows/rw-pds-build.yml
+    uses: ./.github/workflows/rw-pdp-build.yml
     with:
-      itag: "pds-pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
-      mtag: "pds-pr-${{ needs.plan.outputs.prnum }}"
+      itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
+      mtag: "pr-${{ needs.plan.outputs.prnum }}"
     secrets: inherit
 
   deploy-pr:
-    name: "Deploy pds-pr-${{ needs.plan.outputs.prnum }}"
+    name: "Deploy PR #${{ needs.plan.outputs.prnum }}"
     if:   needs.plan.outputs.no_preview != 'true'
     needs: [ plan, make-image ]
     permissions: { contents: read, id-token: write }
-    uses: ./.github/workflows/rw-pds-deploy-pr.yml
+    uses: ./.github/workflows/rw-pdp-deploy-pr.yml
     with:
       prnum:  ${{ needs.plan.outputs.prnum }}
       target: "uat"
-      tag:    "pds-pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
+      rtag:   "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
     secrets: inherit
 
   e2etest-pr:
-    name: "E2E test pds-pr-${{ needs.plan.outputs.prnum }}"
+    name: "E2E test PR #${{ needs.plan.outputs.prnum }}"
     needs: [ plan, deploy-pr ]
     permissions: { contents: read, packages: read }
-    uses: ./.github/workflows/rw-pds-e2etest.yml
+    uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
       target: "uat"
-      rel:    "pds-pr-${{ needs.plan.outputs.prnum }}"
+      rel:    "pr-${{ needs.plan.outputs.prnum }}"
     secrets: inherit

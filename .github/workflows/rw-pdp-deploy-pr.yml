@@ -1,23 +1,20 @@
-name: "Reusable workflow: PDA (unified) deploy PR"
+name: "Reusable workflow: PDP deploy PR"
 
 on:
   workflow_call:
     inputs:
-      application: { type: string, required: true }
-      rtag:        { type: string, required: true }
-      target:      { type: string, required: true }
-      prnum:       { type: string, required: true }
+      rtag:   { type: string, required: true }
+      target: { type: string, required: true }
+      prnum:  { type: string, required: true }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "provider-data-service" ],
-                     description: "Application to deploy" }
-      prnum:       { type: number, required: true, description: "Pull request # (e.g. '942')" }
-      target:      { type: choice, required: true, options: [ "uat" ],
-                     description: "Target environment" }
+      prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }
+      target: { type: choice, required: true, options: [ "uat" ],
+                description: "Target environment" }
 
 jobs:
   deploy-pr:
-    name: "Deploy ${{ inputs.application }} registry tag ${{ inputs.rtag || format('pr-{0}', inputs.prnum) }} to ${{ inputs.target }}"
+    name: "Deploy registry tag ${{ inputs.rtag || format('pr-{0}', inputs.prnum) }} to ${{ inputs.target }}"
     permissions: { contents: read, id-token: write }
     runs-on: ubuntu-latest
     environment:
@@ -29,26 +26,16 @@ jobs:
       - name: "Determine variable values"
         id:   vars
         shell: bash
-        env:
-          APP: ${{ inputs.application }}
         run: |
-          printf "* inputs.application=%s\n* inputs.prnum=%s\n* inputs.rtag=%s\n* inputs.target=%s\n" \
-              "$APP" "${{ inputs.prnum }}" "${{ inputs.rtag }}" "${{ inputs.target }}"
-          case "$APP" in
-            provider-data-service)
-              CHART=./helm_deploy/provider-data-service
-              PREL=pdp-
-              PR_HOST="laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
-              PTAG=pdp-
-              REL="pr-${{ inputs.prnum }}"
-              RTAG="${{ inputs.rtag || format('pr-{0}', inputs.prnum) }}"
-              ;;
-            *)
-              echo "Unknown application: $APP" >&2
-              exit 1
-              ;;
-          esac
+          printf "* inputs.prnum=%s\n* inputs.rtag=%s\n* inputs.target=%s\n" \
+              "${{ inputs.prnum }}" "${{ inputs.rtag }}" "${{ inputs.target }}"
+          CHART=./helm_deploy/provider-data-service
+          PREL=pdp-
+          PR_HOST="laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk"
+          PTAG=pdp-
+          REL="pr-${{ inputs.prnum }}"
           RELEASE="${PREL}${REL}"
+          RTAG="${{ inputs.rtag || format('pr-{0}', inputs.prnum) }}"
           printf "* outputs.chart=%s\n* outputs.pr_host=%s\n* outputs.ptag=%s\n* outputs.release=%s\n* outputs.rtag=%s\n" \
               "$CHART" "$PR_HOST" "$PTAG" "$RELEASE" "$RTAG"
           echo "chart=$CHART" >> "$GITHUB_OUTPUT"

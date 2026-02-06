@@ -24,6 +24,20 @@ check.dependsOn(
         tasks.named("checkstyleTest")
 )
 
+tasks.register("checkstyleStaged", Checkstyle) {
+    group = "verification"
+    description = "Runs Checkstyle on staged files only"
+
+    def filesToCheck = project.findProperty("checkstyleFiles")
+    if (filesToCheck != null) {
+        source = files(filesToCheck.split(","))
+    } else {
+        source = sourceSets.main.allJava
+    }
+
+    classpath = sourceSets.main.compileClasspath
+}
+
 test {
     useJUnitPlatform()  // Ensures JUnit 5 tests are run by default
     finalizedBy jacocoTestReport
@@ -71,6 +85,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 }
 
 

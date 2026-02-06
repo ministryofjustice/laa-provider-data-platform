@@ -1,3 +1,9 @@
+### The application YAML property overrides for the `prod` profile.
+###
+### Note that there are other defined profiles (`local`, `dev`, `uat`, `staging`, etc. that
+### may not currently have any property overrides.
+###
 springdoc:
   swagger-ui:
+    # Disable the Swagger UI in prod.
     enabled: false

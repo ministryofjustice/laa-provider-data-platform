@@ -1,3 +1,8 @@
+### The general application properties YAML, which may be overridden in specific profiles.
+###
+### Note that this is a multi-document YAML file, with a second document (see below the
+### `---` document separator) that is for non-`local` profiles.
+###
 spring:
   application:
     name: provider-data-platform
@@ -63,6 +68,9 @@ springdoc:
   writer-with-default-pretty-printer: true
 
 ---
+### This is a multi-document YAML file. The first document (above) has general settings for all profiles.
+### This document has property overrides for when the profile is NOT `local`.
+###
 spring:
   config:
     activate:

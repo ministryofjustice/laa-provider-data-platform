@@ -3,9 +3,9 @@ name: "Pipeline: PDA (unified) deploy main to prod"
 on:
   workflow_dispatch:
     inputs:
-      tag:         { type: string, required: true, description: "Tag to deploy (e.g. 'v1.13.0')" }
-      application: { type: choice, required: true, options: [ "providers-app", "provider-data-service" ],
-                     default: "providers-app", description: "Application to deploy" }
+      rtag:        { type: string, required: true, description: "Registry tag to deploy (e.g. 'v1.13.0')" }
+      application: { type: choice, required: true, options: [ "provider-data-service" ],
+                     default: "provider-data-service", description: "Application to deploy" }
       skip_e2e:    { type: boolean, required: false, default: false, description: "Skip E2E tests after deployment" }
 
 jobs:
@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     outputs:
-      staging_tag: ${{ steps.versions.outputs.staging_tag }}
+      staging_fulltag: ${{ steps.versions.outputs.staging_fulltag }}
+      staging_rtag:    ${{ steps.versions.outputs.staging_rtag }}
     steps:
       - uses: actions/checkout@v6
 
@@ -28,7 +29,7 @@ jobs:
           kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
           kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
 
-      - name: "Get deployed image version"
+      - name: "Get deployed image registry tag"
         id:   versions
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         shell: bash
@@ -36,9 +37,11 @@ jobs:
           APP: ${{ inputs.application }}
         run: |
           set -eu
-          STAGING_TAG=$(kubectl get deploy "${APP}" -o json \
+          STAGING_FULLTAG=$(kubectl get deploy "${APP}" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
-          echo "staging_tag=${STAGING_TAG}" >> "$GITHUB_OUTPUT"
+          STAGING_RTAG="${STAGING_FULLTAG#pdp-}"
+          echo "staging_fulltag=${STAGING_FULLTAG}" >> "$GITHUB_OUTPUT"
+          echo "staging_rtag=${STAGING_RTAG}" >> "$GITHUB_OUTPUT"
 
   query-prod-version:
     name: "Query prod version"
@@ -46,7 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     outputs:
-      prod_tag: ${{ steps.versions.outputs.prod_tag }}
+      prod_fulltag: ${{ steps.versions.outputs.prod_fulltag }}
+      prod_rtag:    ${{ steps.versions.outputs.prod_rtag }}
     steps:
       - uses: actions/checkout@v6
 
@@ -59,7 +63,7 @@ jobs:
           kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
           kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
 
-      - name: "Get deployed image version"
+      - name: "Get deployed image registry tag"
         id:   versions
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         shell: bash
@@ -67,9 +71,11 @@ jobs:
           APP: ${{ inputs.application }}
         run: |
           set -eu
-          PROD_TAG=$(kubectl get deploy "${APP}" -o json \
+          PROD_FULLTAG=$(kubectl get deploy "${APP}" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
-          echo "prod_tag=${PROD_TAG}" >> "$GITHUB_OUTPUT"
+          PROD_RTAG="${PROD_FULLTAG#pdp-}"
+          echo "prod_fulltag=${PROD_FULLTAG}" >> "$GITHUB_OUTPUT"
+          echo "prod_rtag=${PROD_RTAG}" >> "$GITHUB_OUTPUT"
 
   preflight-summary:
     name: "Preflight"
@@ -82,30 +88,30 @@ jobs:
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           ### Previously-deployed versions
           
-          | Environment |                Version currently deployed                |
-          |:------------|:--------------------------------------------------------:|
-          | **staging** | `${{ needs.query-staging-version.outputs.staging_tag }}` |
-          | **prod**    |    `${{ needs.query-prod-version.outputs.prod_tag }}`    |
+          | Environment |                Version currently deployed                 |
+          |:------------|:---------------------------------------------------------:|
+          | **staging** | `${{ needs.query-staging-version.outputs.staging_rtag }}` |
+          | **prod**    |    `${{ needs.query-prod-version.outputs.prod_rtag }}`    |
           
-          Unless rolling back, the **staging** version should be similar to the tag to deploy (below) and the **prod** version (above) should be an older tag.
+          Unless rolling back, the **staging** version should be similar to the registry tag to deploy (below) and the **prod** version (above) should be an older registry tag.
           
           ### Version to be deployed
           
           | Workflow input name                 |       Requested value       |
           |:------------------------------------|:---------------------------:|
-          | **Tag to deploy**                   |     `${{ inputs.tag }}`     |
+          | **Registry tag to deploy**          |    `${{ inputs.rtag }}`     |
           | **Application to deploy**           | `${{ inputs.application }}` |
           | **Skip E2E tests after deployment** |  `${{ inputs.skip_e2e }}`   |
           
-          The image tag `${{ inputs.tag }}` will replace the previous `${{ needs.query-prod-version.outputs.prod_tag }}` version in **prod**.
+          The registry tag `pdp-${{ inputs.rtag }}` will replace the previous `${{ needs.query-prod-version.outputs.prod_fulltag }}` version in **prod**.
           
           ### Recommended manual checks
           
-          Verify that the tag to deploy and the tag to rollback both still exist in Amazon ECR:
+          Verify that the registry tags to deploy and to roll back both still exist in Amazon ECR:
           
           - Log in to [AWS Console](https://justice-cloud-platform.eu.auth0.com/samlp/mQev56oEa7mrRCKAZRxSnDSoYt6Y7r5m?connection=github&region=eu-west-2), navigate to [ECR repositories](https://eu-west-2.console.aws.amazon.com/ecr/private-registry/repositories?region=eu-west-2) and filter by `laa-data-provider-data` to locate the correct repository. 
-          - Within the repository, search for tag `${{ inputs.tag }}` and confirm that this image was recently pushed.
-          - Search also for the older rollback tag `${{ needs.query-prod-version.outputs.prod_tag }}` to confirm it has not been deleted.
+          - Within the registry, search for tag `pdp-${{ inputs.rtag }}` and confirm that this image version was recently pushed.
+          - Search also for the older rollback tag `${{ needs.query-prod-version.outputs.prod_fulltag }}` to confirm it has not been deleted.
           
           ### Next steps to proceed
           
@@ -113,7 +119,7 @@ jobs:
           
           - If the information above looks good, approve the **Deploy to prod** job when ready.
           - If the deployment completes successfully, approve the **E2E test prod** job when ready.
-          - If there are problems with the newly-deployed version, then roll back by running this pipeline workflow again with **Tag to deploy:** `${{ needs.query-prod-version.outputs.prod_tag }}`.
+          - If there are problems with the newly-deployed version, then roll back by running this pipeline workflow again with **Registry tag to deploy:** `${{ needs.query-prod-version.outputs.prod_rtag }}`.
           EOF
 
   deploy-prod:
@@ -123,7 +129,7 @@ jobs:
     uses: ./.github/workflows/rw-pdu-deploy-main.yml
     with:
       application: ${{ inputs.application }}
-      tag:         ${{ inputs.tag }}
+      rtag:        ${{ inputs.rtag }}
       target:      "prod"
     secrets: inherit
 

@@ -16,35 +16,22 @@ Includes the following subprojects:
   with an in-memory database.
 - `provider-data-e2e` - End-to-end tests to target a running system.
 
-## Build And Run Application
+## Build and run the application
 
-### Build application
-
-`./gradlew clean build`
-
-### Run integration tests
-
-`./gradlew integrationTest`
-
-### Run application
-
-`./gradlew bootRun`
-
-### Build application container
-
-`./gradlew bootBuildImage`
+- Build the application: `./gradlew clean build`
+- Run integration tests: `./gradlew integrationTest`
+- Run the application: `./gradlew bootRun`
+- Build application container: `./gradlew bootBuildImage`
+- Run end-to-end tests: `./gradlew :provider-data-e2e:e2eTest -Penv=local -Dauth.token=Dummy1`
 
 ## Application endpoints
 
 ### REST API documentation
 
-#### Swagger UI
-
-- http://localhost:8080/swagger-ui/index.html
-
-#### OpenAPI specification (JSON)
-
-- http://localhost:8080/v3/api-docs
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI specification (JSON): http://localhost:8080/v3/api-docs
+- Test create: `curl -X POST http://localhost:8081/api/v1/items -H "Content-Type: application/json" -d '{"name":"Laptop","description":"Dell XPS"}'`
+- Test retrieve: `curl http://localhost:8081/api/v1/items`
 
 ### Actuator endpoints
 

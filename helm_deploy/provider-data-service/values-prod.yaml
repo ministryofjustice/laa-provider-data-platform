@@ -7,7 +7,7 @@ target:
 replicaCount: 5
 
 prometheus:
-  metricsQualifier: "pds-prod"
+  metricsQualifier: "prod"
 
 # Configuration for rate limiting.
 rateLimit:
@@ -18,17 +18,17 @@ ingressInternal:
   enabled: false
   className: "internal"
   hosts:
-    - host: "laa-provider-data-prod.internal.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-prod.internal.cloud-platform.service.justice.gov.uk"
 
 ingress:
   enabled: false
   hosts:
-    - host: "laa-provider-data-prod.apps.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-prod.apps.cloud-platform.service.justice.gov.uk"
   tls:
     - hosts:
-        - "laa-provider-data-prod.apps.cloud-platform.service.justice.gov.uk"
+        - "laa-provider-data-platform-prod.apps.cloud-platform.service.justice.gov.uk"
 
 ingressShared:
   enabled: false
   hosts:
-    - host: "laa-provider-data-prod.apps.live.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-prod.apps.live.cloud-platform.service.justice.gov.uk"

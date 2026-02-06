@@ -7,7 +7,6 @@ plugins {
 }
 
 dependencies {
-    // Match providers-api style: interface/model library, no runtime Spring Boot
     api 'org.openapitools:jackson-databind-nullable:0.2.8'
     compileOnly "io.swagger.core.v3:swagger-annotations:2.2.42"
     compileOnly "jakarta.annotation:jakarta.annotation-api"
@@ -42,7 +41,7 @@ openApiGenerate {
     inputSpec = layout.projectDirectory.file("open-api-specification.yml").asFile.path
     outputDir = generatedDir.get().asFile.path
 
-    // Keep provider-data-api package naming (not providers-xyz)
+    // Keep provider-data-api package naming
     apiPackage     = "uk.gov.justice.laa.providerdata.api"
     invokerPackage = "uk.gov.justice.laa.providerdata.invoker"
     modelPackage   = "uk.gov.justice.laa.providerdata.model"

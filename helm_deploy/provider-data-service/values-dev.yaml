@@ -5,7 +5,7 @@ target:
   environment: "dev"
 
 prometheus:
-  metricsQualifier: "pds-dev"
+  metricsQualifier: "dev"
 
 # Configuration for rate limiting.
 rateLimit:
@@ -16,17 +16,17 @@ rateLimit:
 ingressInternal:
   enabled: false
   hosts:
-    - host: "laa-provider-data-dev.internal-non-prod.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-dev.internal-non-prod.cloud-platform.service.justice.gov.uk"
 
 ingress:
   enabled: false
   hosts:
-    - host: "laa-provider-data-dev.apps.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-dev.apps.cloud-platform.service.justice.gov.uk"
   tls:
     - hosts:
-        - "laa-provider-data-dev.apps.cloud-platform.service.justice.gov.uk"
+        - "laa-provider-data-platform-dev.apps.cloud-platform.service.justice.gov.uk"
 
 ingressShared:
   enabled: false
   hosts:
-    - host: "laa-provider-data-dev.apps.live.cloud-platform.service.justice.gov.uk"
+    - host: "laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk"

@@ -76,9 +76,9 @@ Create the name of the service account to use
 
 {{/*
 Construct hostname with release suffix for dedicated ingress.
-Takes base hostname from values and appends releaseSuffix before the domain.
-Example: "laa-provider-data-dev.apps.live.cloud-platform.service.justice.gov.uk" + "-1"
-      -> "laa-provider-data-dev-1.apps.live.cloud-platform.service.justice.gov.uk"
+Takes base hostname from values and appends hostnameSuffix before the domain.
+Example: "laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk" + "-1"
+      -> "laa-provider-data-platform-dev-1.apps.live.cloud-platform.service.justice.gov.uk"
 */}}
 {{- define "provider-data-service.hostnameWithSuffix" -}}
 {{- $baseHost := .host -}}

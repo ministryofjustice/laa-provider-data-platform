@@ -37,7 +37,7 @@ spec:
     {{- range .Values.ingress.tls }}
     - hosts:
         {{- range .hosts }}
-        - {{ include "provider-data-service.hostnameWithSuffix" (dict "host" . "suffix" $.Values.releaseSuffix) | quote }}
+        - {{ include "provider-data-service.hostnameWithSuffix" (dict "host" . "suffix" $.Values.hostnameSuffix) | quote }}
         {{- end }}
       {{- with .secretName }}
       secretName: {{ . }}
@@ -46,7 +46,7 @@ spec:
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ include "provider-data-service.hostnameWithSuffix" (dict "host" .host "suffix" $.Values.releaseSuffix) | quote }}
+    - host: {{ include "provider-data-service.hostnameWithSuffix" (dict "host" .host "suffix" $.Values.hostnameSuffix) | quote }}
       http:
         paths:
           - pathType: Prefix

@@ -17,3 +17,12 @@ subprojects {
         }
     }
 }
+
+// Aggregate task in root project that runs checkstyleStaged in all subprojects
+tasks.register("checkstyleStaged") {
+    group = "verification"
+    description = "Runs Checkstyle on staged files in all subprojects"
+
+    dependsOn ":provider-data-e2e:checkstyleStaged",
+              ":provider-data-service:checkstyleStaged"
+}

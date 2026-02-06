@@ -1,38 +1,7 @@
-spring:
-  application:
-    name: PDA V2
+# Datasource is autoconfigured by Spring Boot Docker Compose support from `compose.yaml`.
+# See **Service Connections** in https://docs.spring.io/spring-boot/reference/features/dev-services.html
+# This is also the reason that the datasource is in a separate section in `application.yml`.
 
-  # example database
-  datasource:
-    url: jdbc:postgresql://db:5432/mydb
-    driver-class-name: org.postgresql.Driver
-    username: myuser
-    password: mypassword
-  h2:
-    console:
-      enabled: true
-
-  #do not auto create db schema, use .sql scripts
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
-# used by actuator info endpoint
-info:
-  app:
-    name: PDA V2
-    description: PDA V2 Microservice application that provides a REST API.
-    version: 1.0.0
-
-management:
-  # specify actuator endpoints to enable
-  endpoints:
-    web:
-      exposure:
-        include: health
-
-  # show detailed health status
-  endpoint:
-    health:
-      show-details: always
+logging:
+  level:
+    uk.gov.justice.laadata.providers: DEBUG

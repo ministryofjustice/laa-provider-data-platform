@@ -14,7 +14,6 @@ import uk.gov.justice.laa.providerdata.repository.ItemRepository;
 @RequiredArgsConstructor
 @Service
 public class ItemService {
-
   private final ItemRepository itemRepository;
   private final ItemMapper itemMapper;
 
@@ -72,7 +71,6 @@ public class ItemService {
    */
   public void deleteItem(Long id) {
     checkIfItemExist(id);
-
     itemRepository.deleteById(id);
   }
 

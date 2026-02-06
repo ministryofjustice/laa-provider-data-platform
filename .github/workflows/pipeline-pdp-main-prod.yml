@@ -1,12 +1,10 @@
-name: "Pipeline: PDA (unified) deploy main to prod"
+name: "Pipeline: PDP deploy main to prod"
 
 on:
   workflow_dispatch:
     inputs:
-      rtag:        { type: string, required: true, description: "Registry tag to deploy (e.g. 'v1.13.0')" }
-      application: { type: choice, required: true, options: [ "provider-data-platform" ],
-                     default: "provider-data-platform", description: "Application to deploy" }
-      skip_e2e:    { type: boolean, required: false, default: false, description: "Skip E2E tests after deployment" }
+      rtag:     { type: string, required: true, description: "Registry tag to deploy (e.g. 'v1.13.0')" }
+      skip_e2e: { type: boolean, required: false, default: false, description: "Skip E2E tests after deployment" }
 
 jobs:
   query-staging-version:
@@ -33,11 +31,9 @@ jobs:
         id:   versions
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         shell: bash
-        env:
-          APP: ${{ inputs.application }}
         run: |
           set -eu
-          STAGING_FULLTAG=$(kubectl get deploy "${APP}" -o json \
+          STAGING_FULLTAG=$(kubectl get deploy "pdp-stable-provider-data-platform" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
           STAGING_RTAG="${STAGING_FULLTAG#pdp-}"
           echo "staging_fulltag=${STAGING_FULLTAG}" >> "$GITHUB_OUTPUT"
@@ -67,11 +63,9 @@ jobs:
         id:   versions
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         shell: bash
-        env:
-          APP: ${{ inputs.application }}
         run: |
           set -eu
-          PROD_FULLTAG=$(kubectl get deploy "${APP}" -o json \
+          PROD_FULLTAG=$(kubectl get deploy "pdp-stable-provider-data-platform" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
           PROD_RTAG="${PROD_FULLTAG#pdp-}"
           echo "prod_fulltag=${PROD_FULLTAG}" >> "$GITHUB_OUTPUT"
@@ -97,11 +91,10 @@ jobs:
           
           ### Version to be deployed
           
-          | Workflow input name                 |       Requested value       |
-          |:------------------------------------|:---------------------------:|
-          | **Registry tag to deploy**          |    `${{ inputs.rtag }}`     |
-          | **Application to deploy**           | `${{ inputs.application }}` |
-          | **Skip E2E tests after deployment** |  `${{ inputs.skip_e2e }}`   |
+          | Workflow input name                 |      Requested value      |
+          |:------------------------------------|:-------------------------:|
+          | **Registry tag to deploy**          |   `${{ inputs.rtag }}`    |
+          | **Skip E2E tests after deployment** | `${{ inputs.skip_e2e }}`  |
           
           The registry tag `pdp-${{ inputs.rtag }}` will replace the previous `${{ needs.query-prod-version.outputs.prod_fulltag }}` version in **prod**.
           
@@ -126,11 +119,10 @@ jobs:
     name: "Deploy to prod"
     needs: [ preflight-summary ]
     permissions: { contents: read, id-token: write }
-    uses: ./.github/workflows/rw-pdu-deploy-main.yml
+    uses: ./.github/workflows/rw-pdp-deploy-main.yml
     with:
-      application: ${{ inputs.application }}
-      rtag:        ${{ inputs.rtag }}
-      target:      "prod"
+      rtag:   ${{ inputs.rtag }}
+      target: "prod"
     secrets: inherit
 
   e2e-test-prod:
@@ -138,8 +130,7 @@ jobs:
     if:   inputs.skip_e2e != true
     needs: [ deploy-prod ]
     permissions: { contents: read, packages: read }
-    uses: ./.github/workflows/rw-pdu-e2etest.yml
+    uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
-      application: ${{ inputs.application }}
-      target:      "prod"
+      target: "prod"
     secrets: inherit

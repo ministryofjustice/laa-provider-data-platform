@@ -9,7 +9,7 @@ on:
       rel:         { type: string, required: false, default: "" }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "provider-data-service" ],
+      application: { type: choice, required: true, options: [ "provider-data-platform" ],
                      description: "Application to deploy" }
       rtag:        { type: string, required: true, description: "Registry tag name (e.g. 'v1.4.2')" }
       target:      { type: choice, required: true, options: [ "dev", "uat", "staging", "prod" ],
@@ -40,8 +40,8 @@ jobs:
           printf "* inputs.application=%s\n* inputs.rel=%s\n* inputs.target=%s\n" \
               "$APP" "$REL" "$TARGET"
           case "$APP" in
-            provider-data-service)
-              CHART=./helm_deploy/provider-data-service
+            provider-data-platform)
+              CHART=./helm_deploy/provider-data-platform
               PREL=pdp-
               PTAG=pdp-
               STABLE_RELEASE=${PREL}stable

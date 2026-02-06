@@ -1,9 +1,0 @@
-# Chart.yaml
-# Contains metadata about the Helm chart.
-
-apiVersion: v2
-name: provider-data-service
-description: "Provider Data Service: the data API for provider firms, offices, contracts and schedules"
-type: application
-version: 1.0.0
-appVersion: "0.0.0"

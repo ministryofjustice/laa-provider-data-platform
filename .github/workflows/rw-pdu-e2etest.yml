@@ -9,7 +9,7 @@ on:
       servicePort: { type: string, required: false, default: "8080" }
   workflow_dispatch:
     inputs:
-      application: { type: choice, required: true, options: [ "provider-data-service" ],
+      application: { type: choice, required: true, options: [ "provider-data-platform" ],
                      description: "Application to test" }
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
                      description: "Target environment" }
@@ -48,9 +48,9 @@ jobs:
           esac
           # Determine service name and E2E project based on application
           case "$APP" in
-            provider-data-service)
+            provider-data-platform)
               E2E_PROJECT="provider-data-e2e"
-              SVC="pdp-${REL}-provider-data-service"
+              SVC="pdp-${REL}-provider-data-platform"
               ;;
             *)
               echo "Unknown application: $APP" >&2

@@ -6,11 +6,11 @@ Defines how the service is exposed to the internal cluster (only release app).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "provider-data-service.fullname" . }}-internal
+  name: {{ include "provider-data-platform.fullname" . }}-internal
   labels:
-    {{- include "provider-data-service.labels" . | nindent 4 }}
+    {{- include "provider-data-platform.labels" . | nindent 4 }}
   annotations:
-    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-service.fullname" . }}-internal-{{ .Release.Namespace }}-green
+    external-dns.alpha.kubernetes.io/set-identifier: {{ include "provider-data-platform.fullname" . }}-internal-{{ .Release.Namespace }}-green
     external-dns.alpha.kubernetes.io/aws-weight: "100"
     {{/* We don't use an IP allowlist for the internal ingress. */}}
     {{- if .Values.rateLimit.rps }}
@@ -50,7 +50,7 @@ spec:
             path: "/"
             backend:
               service:
-                name: {{ include "provider-data-service.fullname" $ }}
+                name: {{ include "provider-data-platform.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
     {{- end }}

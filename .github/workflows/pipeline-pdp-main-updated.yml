@@ -68,7 +68,7 @@ jobs:
 
       - run: |
           ### Check the Helm chart lints OK
-          helm lint ./helm_deploy/provider-data-service --quiet --strict
+          helm lint ./helm_deploy/provider-data-platform --quiet --strict
 
   make-image:
     name: "Build ${{ needs.plan.outputs.gtag }}"

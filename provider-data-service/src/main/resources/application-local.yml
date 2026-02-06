@@ -1,7 +1,14 @@
-# Datasource is autoconfigured by Spring Boot Docker Compose support from `compose.yaml`.
-# See **Service Connections** in https://docs.spring.io/spring-boot/reference/features/dev-services.html
-# This is also the reason that the datasource is in a separate section in `application.yml`.
-
+### This application properties YAML provides specific overrides for the `local` profile.
+###
+### The datasource configuration is **deliberately omitted** so that it gets autoconfigured
+### by Spring Boot Docker Compose support from the PostgreSQL service in `compose.yaml`.
+###
+### For more details, see **Service Connections** in the Spring Boot reference documentation:
+###     https://docs.spring.io/spring-boot/reference/features/dev-services.html
+###
+### This is also the reason that the datasource for non-`local` profiles is defined in the
+### second YAML document in `application.yml`.
+###
 logging:
   level:
     uk.gov.justice.laadata.providers: DEBUG

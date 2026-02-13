@@ -1,0 +1,179 @@
+---
+title: API Reference
+weight: 4
+---
+
+# API Reference
+
+The provider details API (legacy) provides RESTful endpoints for accessing provider data.
+
+## Base URL
+
+```
+http://localhost:8080/api
+```
+
+## Authentication
+
+All requests require an API key in the Authorization header:
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+## Health Check
+
+### GET /actuator/health
+
+Returns the health status of the application.
+
+**Response:**
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP"
+    },
+    "redis": {
+      "status": "UP"
+    }
+  }
+}
+```
+
+## Endpoints
+
+### List Providers
+
+```
+GET /v1/providers
+```
+
+Returns a paginated list of providers.
+
+**Query Parameters:**
+
+- `page`: Page number (default: 0)
+- `size`: Page size (default: 20)
+- `sort`: Sort field and direction (e.g., `name,asc`)
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Provider Name",
+      "officeCount": 5
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 100
+}
+```
+
+### Get Provider by ID
+
+```
+GET /v1/providers/{id}
+```
+
+Returns a single provider by ID.
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "name": "Provider Name",
+  "officeCount": 5
+}
+```
+
+### List Offices
+
+```
+GET /v1/offices
+```
+
+Returns a paginated list of offices.
+
+**Query Parameters:**
+
+- `page`: Page number (default: 0)
+- `size`: Page size (default: 20)
+- `providerId`: Filter by provider ID
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Office Name",
+      "providerId": 1
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 50
+}
+```
+
+## Error Handling
+
+All endpoints return standardized error responses:
+
+```json
+{
+  "timestamp": "2025-01-19T10:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Invalid request parameters",
+  "path": "/api/v1/providers"
+}
+```
+
+### HTTP Status Codes
+
+- `200`: OK - Request successful
+- `400`: Bad Request - Invalid parameters
+- `401`: Unauthorized - Authentication failed
+- `403`: Forbidden - Insufficient permissions
+- `404`: Not Found - Resource not found
+- `500`: Internal Server Error - Server error
+
+## Rate Limiting
+
+The API enforces rate limiting:
+
+- **RPS**: 100 requests per second
+- **RPM**: 6000 requests per minute
+
+Rate limit information is returned in response headers:
+
+```
+X-RateLimit-Limit: 6000
+X-RateLimit-Remaining: 5999
+X-RateLimit-Reset: 1705672800
+```
+
+## Interactive API Documentation
+
+When the application is running, you can explore the API using Swagger UI:
+
+- **URL**: http://localhost:8080
+- **Swagger JSON**: http://localhost:8080/v3/api-docs
+
+## More Information
+
+For detailed implementation, see [Development](development.html).

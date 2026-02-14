@@ -13,7 +13,7 @@ allprojects {
 subprojects {
     pluginManager.withPlugin('java') {
         dependencies {
-            implementation platform('io.sentry:sentry-bom:8.31.0')
+            implementation platform('io.sentry:sentry-bom:8.32.0')
         }
     }
 }

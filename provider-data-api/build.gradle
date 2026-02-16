@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    api 'org.openapitools:jackson-databind-nullable:0.2.8'
+    api 'org.openapitools:jackson-databind-nullable:0.2.9'
     compileOnly "io.swagger.core.v3:swagger-annotations:2.2.42"
     compileOnly "jakarta.annotation:jakarta.annotation-api"
     compileOnly 'jakarta.servlet:jakarta.servlet-api'

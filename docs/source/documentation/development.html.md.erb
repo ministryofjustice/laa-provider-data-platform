@@ -1,0 +1,207 @@
+---
+title: Development
+weight: 5
+---
+
+# Development Guide
+
+## Local Development Setup
+
+### Prerequisites
+
+- Java 25
+- IntelliJ IDEA (recommended)
+- Gradle 9.3.0 (optional, as gradle-wrapper is used)
+- Docker Desktop
+- Git
+
+### IDE Setup (IntelliJ IDEA)
+
+1. **Open the project:**
+   - File → Open → Select the repository directory
+
+2. **Configure Java:**
+   - Ensure Java 25 is configured
+   - Settings → Project Structure → Project → SDK → Select Java 25
+
+3. **Enable Lombok:**
+   - Settings → Plugins → Install Lombok Plugin
+   - Settings → Compiler → Annotation Processors → Enable annotation processing
+
+4. **Link Gradle project:**
+   - Right-click on `build.gradle` → Link Gradle project
+
+5. **Configure Run Configuration:**
+   - Create a Spring Boot run configuration
+
+## Building and Testing
+
+### Build
+
+```bash
+./gradlew clean build
+```
+
+### Run Unit Tests
+
+```bash
+./gradlew test
+```
+
+### Run Integration Tests
+
+```bash
+./gradlew integrationTest
+```
+
+### Run All Tests
+
+```bash
+./gradlew clean build
+```
+
+## Code Quality
+
+### Spotless Formatting
+
+The project uses Spotless for automatic code formatting.
+
+```bash
+# Apply formatting
+./gradlew spotlessApply
+
+# Check formatting
+./gradlew spotlessCheck
+
+# Diagnose formatting issues
+./gradlew spotlessDiagnose --info
+```
+
+### Checkstyle Validation
+
+```bash
+# Run Checkstyle on main code
+./gradlew checkstyleMain
+
+# Run Checkstyle on test code
+./gradlew checkstyleTest
+
+# Run all checks
+./gradlew check
+```
+
+### Pre-commit Hooks
+
+Pre-commit hooks ensure code quality on commit:
+
+```bash
+# Setup hooks
+./scripts/setup-hooks.sh
+
+# Run all checks manually
+pre-commit run --all-files
+```
+
+## Running the Application
+
+### Using Gradle
+
+```bash
+./gradlew bootRun
+```
+
+### Using Docker
+
+```bash
+docker compose up
+```
+
+The application will start on `http://localhost:8080`
+
+## Database
+
+### Local Database
+
+The application uses in-memory Oracle databases for local development:
+
+- **CWA Database**: Automatically created on startup
+- **CCMS Database**: Automatically created on startup
+
+No manual setup is required.
+
+### Database Migrations
+
+Database migrations are handled automatically by the application on startup.
+
+## Debugging
+
+### Debug Mode in IntelliJ
+
+1. Click the Debug icon (Shift + F9)
+2. Set breakpoints in the code
+3. Step through execution
+
+### Remote Debugging
+
+To enable remote debugging, set JVM arguments:
+
+```bash
+export JAVA_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+./gradlew bootRun
+```
+
+## Common Issues
+
+### "pre-commit command not found"
+
+Install pre-commit:
+
+```bash
+pip install pre-commit
+```
+
+### "Docker daemon is not running"
+
+Start Docker Desktop and retry.
+
+### "Permission denied" on hooks
+
+Make hooks executable:
+
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+## Project Structure
+
+```
+laa-data-provider-data/
+├── providers-app/           # Main application
+│   ├── src/
+│   │   ├── main/
+│   │   ├── test/
+│   │   └── integrationTest/
+│   └── build.gradle
+├── docs/                     # Documentation
+├── helm_deploy/             # Kubernetes deployment configs
+├── scripts/                 # Utility scripts
+└── build.gradle            # Root Gradle build file
+```
+
+## Committing Code
+
+Follow conventional commit format:
+
+```bash
+git commit -m "feat: DSTEW-1234 Add new feature"
+git commit -m "fix: DSTEW-5678 Fix bug"
+git commit -m "docs: Update README"
+```
+
+Valid types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `infra`
+
+## Next Steps
+
+- See [Configuration](configuration.html) for environment setup
+- See [API Reference](api-reference.html) for endpoint documentation
+- See [Deployment](deployment.html) for production deployment

@@ -1,0 +1,107 @@
+---
+title: Configuration
+weight: 3
+---
+
+# Configuration
+
+## Environment Variables
+
+Configure the application using environment variables:
+
+### Application Settings
+
+- `TARGET_ENVIRONMENT`: Deployed environment (dev, staging, prod, local) - used for Sentry and active Spring profile
+- `SERVER_PORT`: Server port (default: 8080)
+- `SERVER_SERVLET_CONTEXT_PATH`: Context path for the application
+
+### Database Configuration
+
+- `SPRING_DATASOURCE_URL`: Database connection URL
+- `SPRING_DATASOURCE_USERNAME`: Database username
+- `SPRING_DATASOURCE_PASSWORD`: Database password
+
+### Redis Configuration
+
+- `SPRING_REDIS_HOST`: Redis server host
+- `SPRING_REDIS_PORT`: Redis server port (default: 6379)
+- `SPRING_REDIS_PASSWORD`: Redis password (if required)
+
+### Rate Limiting
+
+- `RATE_LIMIT_RPS`: Requests per second limit
+- `RATE_LIMIT_RPM`: Requests per minute limit
+
+### API Configuration
+
+- `API_KEY`: API authentication key
+- `API_TIMEOUT`: API request timeout in seconds
+
+## Application Properties
+
+### Local Development
+
+Local configuration is in `application-local.yml`:
+
+```yaml
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: laa_user
+    password: password
+  redis:
+    host: localhost
+    port: 6379
+```
+
+### Staging Environment
+
+Staging configuration is in `application-staging.yml`:
+
+```yaml
+spring:
+  profiles:
+    active: staging
+```
+
+### Production Environment
+
+Production configuration is in `application-prod.yml`:
+
+```yaml
+spring:
+  profiles:
+    active: prod
+```
+
+## Gradle Build Properties
+
+Configure GitHub package repository access in `~/.gradle/gradle.properties`:
+
+```properties
+project.ext.gitPackageUser=YOUR_GITHUB_USERNAME
+project.ext.gitPackageKey=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
+```
+
+## Rate Limiting Configuration
+
+Rate limiting is configured in the Helm values files:
+
+- `helm_deploy/providers-app/values-prod.yaml`
+- `helm_deploy/providers-app/values-staging.yaml`
+- `helm_deploy/providers-app/values-uat.yaml`
+
+Example configuration:
+
+```yaml
+rateLimit:
+  rps: "100"    # requests per second
+  rpm: "6000"   # requests per minute
+  burst: "1"    # burst size
+```
+
+## More Information
+
+See the main [README.md](https://github.com/ministryofjustice/laa-data-provider-data) for more details.

@@ -1,0 +1,62 @@
+---
+title: Getting Started
+weight: 2
+---
+
+# Getting Started
+
+## Prerequisites
+
+- Java 25 or higher
+- Gradle 9.3.0 or higher (optional, as gradle-wrapper is used)
+- Docker (optional, for containerized development)
+- Git 2.9 or later
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/ministryofjustice/laa-data-provider-data.git
+cd laa-data-provider-data
+```
+
+## Build from Source
+
+```bash
+./gradlew clean build
+```
+
+## Running the Application Locally
+
+### Using Gradle
+
+```bash
+./gradlew bootRun
+```
+
+### Using Docker
+
+```bash
+docker compose up
+```
+
+### Accessing the API
+
+Once running, browse to:
+- **Swagger UI**: http://localhost:8080
+- **Health Check**: http://localhost:8080/actuator/health
+
+## Configuration
+
+For local development, all default configurations are available in `application-local.yml`.
+
+## API Key
+
+When using Swagger or tools such as Postman, an API token is required.
+
+A dummy API key for local development is available in the `application-local.yml` file.
+
+## Next Steps
+
+- See [Configuration](documentation/configuration.html) for environment variables
+- See [API Reference](documentation/api-reference.html) for endpoint documentation
+- See [Development](documentation/development.html) for development setup

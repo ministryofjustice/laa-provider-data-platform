@@ -7,7 +7,7 @@ weight: 6
 
 ## Overview
 
-The provider details API (legacy) is deployed to Kubernetes on the Cloud Platform using Helm.
+The provider data API is deployed to Kubernetes on the Cloud Platform using Helm.
 
 ## Environments
 
@@ -28,14 +28,14 @@ The provider details API (legacy) is deployed to Kubernetes on the Cloud Platfor
 
 Deployment configurations are in `helm_deploy/`:
 
-- `providers-app/` - Main application Helm chart
+- `provider-data-platform/` - Main application Helm chart
 
 ### Helm Values
 
 Each environment has its own values file:
 
 ```
-helm_deploy/providers-app/
+helm_deploy/provider-data-platform/
 ├── values.yaml              # Default values
 ├── values-dev.yaml          # Dev environment
 ├── values-staging.yaml      # Staging environment
@@ -46,18 +46,18 @@ helm_deploy/providers-app/
 ### Deploy to Development
 
 ```bash
-helm upgrade --install providers-app \
-  helm_deploy/providers-app \
-  -f helm_deploy/providers-app/values-dev.yaml \
+helm upgrade --install pdp-provider-data-platform \
+  helm_deploy/provider-data-platform \
+  -f helm_deploy/provider-data-platform/values-dev.yaml \
   -n laa-data-provider-data-dev
 ```
 
 ### Deploy to Production
 
 ```bash
-helm upgrade --install providers-app \
-  helm_deploy/providers-app \
-  -f helm_deploy/providers-app/values-prod.yaml \
+helm upgrade --install pdp-provider-data-platform \
+  helm_deploy/provider-data-platform \
+  -f helm_deploy/provider-data-platform/values-prod.yaml \
   -n laa-data-provider-data-prod
 ```
 
@@ -119,7 +119,7 @@ GET /actuator/prometheus
 View logs in Cloud Platform:
 
 ```bash
-kubectl logs -f deployment/providers-app -n laa-data-provider-data-prod
+kubectl logs -f deployment/pdp-provider-data-platform -n laa-data-provider-data-prod
 ```
 
 ## Troubleshooting
@@ -155,7 +155,7 @@ kubectl top node
 Rollback to previous release:
 
 ```bash
-helm rollback providers-app -n laa-data-provider-data-prod
+helm rollback pdp-provider-data-platform -n laa-data-provider-data-prod
 ```
 
 ## CI/CD Integration

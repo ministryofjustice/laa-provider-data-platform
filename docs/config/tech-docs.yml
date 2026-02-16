@@ -10,6 +10,6 @@ prevent_indexing: false
 show_contribution_banner: true
 github_repo: ministryofjustice/laa-provider-data-platform
 github_branch: main
-full_service_name: Legal Aid Agency provider details API (legacy)
+full_service_name: Legal Aid Agency provider data platform API
 show_expiry: true
 show_review_banner: true

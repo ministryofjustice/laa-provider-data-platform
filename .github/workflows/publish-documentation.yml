@@ -33,9 +33,12 @@ jobs:
           sparse-checkout: |
             docs
           sparse-checkout-cone-mode: false
-
-      # The package script will use the docs directory as the build output directory
-      # and create the artifact from there. We don't need to move it.
+      # We move the docs directory to the root so it is treated as if the docs directory was
+      # the only thing in the repository.
+      - name: Move directory to root
+        run: |
+          mv docs/* .
+          rm -rf docs
 
       - name: Compile Markdown to HTML and create artifact
         # Script to deploy is not in the repo, but in this image:

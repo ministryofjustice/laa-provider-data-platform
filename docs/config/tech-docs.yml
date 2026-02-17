@@ -1,0 +1,15 @@
+host: https://ministryofjustice.github.io/laa-provider-data-platform
+show_govuk_logo: false
+service_name: LAA provider details platform (APIs)
+service_link: https://github.com/ministryofjustice/laa-provider-data-platform
+header_links:
+enable_search: true
+collapsible_nav: true
+max_toc_heading_level: 3
+prevent_indexing: false
+show_contribution_banner: true
+github_repo: ministryofjustice/laa-provider-data-platform
+github_branch: main
+full_service_name: Legal Aid Agency provider data platform API
+show_expiry: true
+show_review_banner: true

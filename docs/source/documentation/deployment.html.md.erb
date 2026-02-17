@@ -1,0 +1,181 @@
+---
+title: Deployment
+weight: 6
+---
+
+# Deployment Guide
+
+## Overview
+
+The provider data API is deployed to Kubernetes on the Cloud Platform using Helm.
+
+## Environments
+
+- **Dev**: Development environment for testing
+- **Staging**: Pre-production environment for validation
+- **UAT**: User acceptance testing
+- **Production**: Live production environment
+
+## Helm Deployment
+
+### Prerequisites
+
+- `kubectl` configured for Cloud Platform
+- Helm 3.0 or higher
+- Access to the appropriate namespace
+
+### Deployment Directories
+
+Deployment configurations are in `helm_deploy/`:
+
+- `provider-data-platform/` - Main application Helm chart
+
+### Helm Values
+
+Each environment has its own values file:
+
+```
+helm_deploy/provider-data-platform/
+├── values.yaml              # Default values
+├── values-dev.yaml          # Dev environment
+├── values-staging.yaml      # Staging environment
+├── values-uat.yaml          # UAT environment
+└── values-prod.yaml         # Production environment
+```
+
+### Deploy to Development
+
+```bash
+helm upgrade --install pdp-provider-data-platform \
+  helm_deploy/provider-data-platform \
+  -f helm_deploy/provider-data-platform/values-dev.yaml \
+  -n laa-data-provider-data-dev
+```
+
+### Deploy to Production
+
+```bash
+helm upgrade --install pdp-provider-data-platform \
+  helm_deploy/provider-data-platform \
+  -f helm_deploy/provider-data-platform/values-prod.yaml \
+  -n laa-data-provider-data-prod
+```
+
+## Configuration
+
+### Rate Limiting
+
+Rate limits are configured per environment in the values files:
+
+```yaml
+rateLimit:
+  rps: "100"    # requests per second
+  rpm: "6000"   # requests per minute
+  burst: "1"    # burst size
+```
+
+### Resource Limits
+
+Configure resource requests and limits:
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+```
+
+### Replicas
+
+Scale the application by adjusting replicas:
+
+```yaml
+replicaCount: 3
+```
+
+## Monitoring
+
+### Health Checks
+
+The application provides health checks:
+
+```
+GET /actuator/health
+```
+
+### Metrics
+
+Prometheus metrics are exposed at:
+
+```
+GET /actuator/prometheus
+```
+
+### Logs
+
+View logs in Cloud Platform:
+
+```bash
+kubectl logs -f deployment/pdp-provider-data-platform -n laa-data-provider-data-prod
+```
+
+## Troubleshooting
+
+### Pod Not Starting
+
+Check pod status:
+
+```bash
+kubectl describe pod POD_NAME -n NAMESPACE
+kubectl logs POD_NAME -n NAMESPACE
+```
+
+### Connection Issues
+
+Verify environment variables:
+
+```bash
+kubectl exec -it POD_NAME -n NAMESPACE -- env | grep SPRING
+```
+
+### Performance Issues
+
+Check resource usage:
+
+```bash
+kubectl top pod -n NAMESPACE
+kubectl top node
+```
+
+## Rollback
+
+Rollback to previous release:
+
+```bash
+helm rollback pdp-provider-data-platform -n laa-data-provider-data-prod
+```
+
+## CI/CD Integration
+
+Deployment is typically triggered by CI/CD pipelines in GitHub Actions:
+
+- Development: Automatic on merge to `main`
+- Staging: Manual trigger or scheduled
+- Production: Manual approval trigger
+
+See `.github/workflows/` for pipeline configuration.
+
+## Documentation
+
+For more information on Cloud Platform, see:
+
+- [Cloud Platform User Guide](https://user-guide.cloud-platform.service.justice.gov.uk/)
+- [Helm Documentation](https://helm.sh/docs/)
+
+## Next Steps
+
+- See [Configuration](configuration.html) for environment variables
+- See [Development](development.html) for development setup

@@ -1,0 +1,125 @@
+# End-to-End (E2E) API Tests
+
+This module contains **end-to-end (E2E) API tests** for the service.
+
+Tests are written in **Java + JUnit 5** using **REST Assured** for API validation and
+**JSON Schema Validator** for response shape checks.
+
+## ⚙️ Configuration
+
+### Environment property files
+
+Each environment has a `.properties` file under `src/test/resources/`. Example:
+
+#### `preprod.properties`
+
+```properties
+base.url=https://laa-provider-details-api-preprod.apps.live.cloud-platform.service.justice.gov.uk
+base.path=/api/v1
+```
+
+#### `prod.properties`
+
+```properties
+base.url=https://laa-provider-details-api-prod.apps.live.cloud-platform.service.justice.gov.uk
+base.path=/api/v1
+```
+
+## 🔑 Supplying the Auth Token
+
+The API requires the header `X-Authorization`.
+
+The token can be supplied in either of the following ways:
+
+1. **Java system property**
+
+   ```bash
+   ./gradlew :providers-e2e:e2eTest -Dauth.token=your-secret-token
+   ```
+
+2. **Environment variable**
+
+   ```bash
+   export AUTH_TOKEN=your-secret-token
+   ./gradlew :providers-e2e:e2eTest
+   ```
+
+If no token is provided, the test run will fail early.
+
+## ▶️ Running Tests
+
+### Default (prod environment)
+
+```bash
+./gradlew :providers-e2e:e2eTest -Dauth.token=your-secret-token
+```
+
+### Run against `preprod`
+
+```bash
+./gradlew :providers-e2e:e2eTest -Penv=preprod -Dauth.token=your-secret-token
+```
+
+### Run against `local`
+
+```bash
+./gradlew :providers-e2e:e2eTest -Penv=local -Dauth.token=Dummy1
+```
+
+### Run an individual file or test
+
+```bash
+./gradlew :providers-e2e:e2eTest --tests "uk.gov.justice.laa.e2e.ProviderFirmOfficeApiTest"
+
+./gradlew :providers-e2e:e2eTest --tests "uk.gov.justice.laa.e2e.ProviderFirmApiTest.providerFirm_shouldMatchSchema"
+```
+
+## 🧩 Cache-Related (Tagged) E2E Tests
+
+These tests validate **cache behavior** by clearing or force-reloading the application
+cache, then confirming that dependent endpoints still respond correctly.
+
+### 🧠 Purpose
+
+- **Cache Clear:** Ensures that when cache is cleared, endpoints relying on it still
+  return valid data (via database fallback).
+
+- **Cache Reload:** Confirms that once the cache is reloaded, the system becomes ready
+  and endpoints respond successfully.
+
+### 🏷️ Tagging Convention
+
+Any test class that should run *after all normal E2E tests* must be annotated with:
+
+```java
+@Tag("cache-end")
+```
+
+This tag signals Gradle to run these tests at the end of the E2E suite.
+
+It prevents interference with normal API tests and ensures the cache state is managed
+cleanly.
+
+### ▶️ Running Tagged Cache Tests
+
+Run **only** cache-related tests:
+
+```bash
+./gradlew :providers-e2e:e2eCacheEnd -Penv=local -Dauth.token=Dummy1
+```
+
+Or run **all** tests (normal + cache-tagged in order):
+
+```bash
+./gradlew :providers-e2e:e2eTest -Penv=local -Dauth.token=Dummy1
+```
+
+Tagged cache tests will automatically execute **last** in the sequence.
+
+## 📦 Gradle Notes
+
+- The `e2eTest` task is **separate** from the main `test` task.
+
+  Running `./gradlew build` will **not** execute E2E tests by default.
+
+- Use `./gradlew :providers-e2e:e2eTest` explicitly to run them.

@@ -175,15 +175,22 @@ chmod +x .git/hooks/pre-commit
 ## Project Structure
 
 ```
-laa-data-provider-data/
-├── providers-app/           # Main application
+laa-provider-data-platform/
+├── provider-data-service/   # Main service
 │   ├── src/
 │   │   ├── main/
 │   │   ├── test/
 │   │   └── integrationTest/
 │   └── build.gradle
+├── provider-data-api/       # API module
+│   ├── src/
+│   └── build.gradle
+├── provider-data-e2e/       # End-to-end tests
+│   ├── src/
+│   └── build.gradle
 ├── docs/                     # Documentation
 ├── helm_deploy/             # Kubernetes deployment configs
+├── .github/                 # GitHub Actions workflows
 ├── scripts/                 # Utility scripts
 └── build.gradle            # Root Gradle build file
 ```

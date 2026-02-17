@@ -75,7 +75,7 @@ testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 
 **Reference:**
 [spring-boot-starter-aop](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#spring-boot-starter-aop) \
-**File changed:** `providers-app/build.gradle`
+**File changed:** `provider-data-service/build.gradle`
 
 ```gradle
 // Spring Boot 4.0 renamed this starter for clarity
@@ -86,7 +86,7 @@ implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 
 **Reference:**
 [Dependency Management Removals](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#dependency-management-removals) \
-**File changed:** `providers-app/build.gradle`
+**File changed:** `provider-data-service/build.gradle`
 
 ```gradle
 // Spring Retry removed from Spring Boot 4.0 BOM - explicit version required
@@ -98,7 +98,7 @@ implementation 'org.springframework.retry:spring-retry:2.0.12'
 **References:**
 [Spring Boot Testcontainers](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#testcontainers),
 [Testcontainers 2.0.0 Release Notes](https://github.com/testcontainers/testcontainers-java/releases/tag/2.0.0) \
-**File changed:** `providers-app/build.gradle`
+**File changed:** `provider-data-service/build.gradle`
 
 Spring Boot 4.0 includes Testcontainers 2.0.3 with renamed artifact IDs.
 In Testcontainers 2.0, all modules are now prefixed with `testcontainers-`:
@@ -133,7 +133,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 [Package organisation](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#package-organization),
 [Modules](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#modules) \
 **Files:** `build.gradle`, `RedisReadinessHealthIndicator.java`, `CwaDataSourceReadinessHealthIndicator.java`
-(in `providers-app`)
+(in `provider-data-service`)
 
 Spring Boot 4.0's modularisation moved health indicator classes to a new package structure and
 requires an explicit dependency on `spring-boot-health` (not included in `spring-boot-starter-actuator`).
@@ -157,7 +157,7 @@ implementation 'org.springframework.boot:spring-boot-health'
 
 **Reason:** Jackson 3 removed the deprecated method. The newer `activateDefaultTyping()`
 provides the same functionality. \
-**File changed:** `CacheConfig.java` (in `providers-app`)
+**File changed:** `CacheConfig.java` (in `provider-data-service`)
 
 Jackson 3 deprecated `ObjectMapper.enableDefaultTyping()` in favour of `activateDefaultTyping()`.
 So removed redundant `enableDefaultTyping()` call (was already using `activateDefaultTyping()`):
@@ -175,7 +175,7 @@ objectMapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, Js
 
 **Reason:** Tests should not rely on implicit startup cache loading timing.
 Explicit cache loading makes tests more reliable and easier to understand. \
-**File changed:** `CacheServiceIntegrationTest.java` (in `providers-app`)
+**File changed:** `CacheServiceIntegrationTest.java` (in `provider-data-service`)
 
 Spring Boot 4.0 may have changed `CommandLineRunner` execution timing or cache persistence
 behaviour, causing integration tests that relied on implicit startup cache loading to become flaky.
@@ -212,7 +212,7 @@ Spring Boot 4.0 changed `ProblemDetail` JSON serialisation (Jackson 3 + RFC 7807
 
 **Reference:**
 [Kubernetes probes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#liveness-and-readiness-probes) \
-**File changed:** `providers-app/src/main/resources/application.yml`
+**File changed:** `provider-data-service/src/main/resources/application.yml`
 
 Spring Boot 4.0 enabled liveness and readiness probes by default, so the explicit configuration
 was removed:

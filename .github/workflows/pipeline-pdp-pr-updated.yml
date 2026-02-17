@@ -1,4 +1,4 @@
-name: "Pipeline: PDP PR opened/updated"
+name: "Pipeline: PR opened/updated [PDP]"
 
 on:
   pull_request:

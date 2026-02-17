@@ -1,4 +1,4 @@
-name: "Pipeline: PDP PR closed/merged"
+name: "Pipeline: PR closed/merged [PDP]"
 
 on:
   pull_request:

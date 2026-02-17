@@ -1,4 +1,4 @@
-name: "Reusable workflow: PDP build, push & publish"
+name: "Reusable workflow: Build, push & publish [PDP]"
 
 on:
   workflow_call:

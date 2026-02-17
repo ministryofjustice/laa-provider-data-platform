@@ -1,4 +1,4 @@
-name: "Pipeline: PDP main updated"
+name: "Pipeline: Branch main updated [PDP]"
 
 on:
   push:

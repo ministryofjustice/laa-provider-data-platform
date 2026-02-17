@@ -1,4 +1,4 @@
-name: "Reusable workflow: PDP deploy main"
+name: "Reusable workflow: Deploy main [PDP]"
 
 on:
   workflow_call:

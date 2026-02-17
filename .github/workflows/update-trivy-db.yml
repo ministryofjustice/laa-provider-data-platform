@@ -1,7 +1,7 @@
 # https://github.com/marketplace/actions/aqua-security-trivy
 # Note: This workflow only updates the cached Trivy DB. You should create a separate workflow for your actual Trivy scans.
 # In your scan workflow, set TRIVY_SKIP_DB_UPDATE=true and TRIVY_SKIP_JAVA_DB_UPDATE=true.
-name: Update Trivy DB
+name: "Update Trivy DB [PDP]"
 
 on:
   schedule:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Send started Slack message
         run: |
-          MESSAGE=" :github:  Started updating Trivy DB cache"
+          MESSAGE=" :github:  Started updating Trivy DB cache for PDP"
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"
 
       - name: Get current date
@@ -56,12 +56,12 @@ jobs:
 
       - name: Send successful Slack message
         run: |
-          MESSAGE=" :github-success:  Successfully updated Trivy DB cache"
+          MESSAGE=" :github-success:  Successfully updated Trivy DB cache for PDP"
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"
 
       - name: Send failure Slack message
         if:   failure()
         run: |
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          MESSAGE=" :github-failure:  Failed to update Trivy DB cache. View run log at ${RUN_URL}"
+          MESSAGE=" :github-failure:  Failed to update Trivy DB cache for PDP. View run log at ${RUN_URL}"
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"

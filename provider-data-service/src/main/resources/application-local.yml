@@ -9,6 +9,16 @@
 ### This is also the reason that the datasource for non-`local` profiles is defined in the
 ### second YAML document in `application.yml`.
 ###
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/provider_data
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
 logging:
   level:
     uk.gov.justice.laadata.providers: DEBUG

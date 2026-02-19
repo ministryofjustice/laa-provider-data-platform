@@ -34,3 +34,15 @@
 - Prioritise issues that genuinely matter: bugs, security vulnerabilities, logic errors,
   and API breaking changes.
 - Do not comment on code formatting, that is enforced using Spotless and Checkstyle.
+
+## Documentation (docs/ folder)
+
+The `docs/` folder contains a Middleman technical documentation site.
+
+- Keep documentation brief and scannable.
+- Link to authoritative sources (Cloud Platform User Guide, Spring Boot docs, etc.) rather
+  than duplicating their content.
+- Use headings consistently: `#` for page title, `##` for sections, `###` for subsections.
+- Use Markdown, and line-wrap documentation source code at 100 characters so diffs are readable.
+- Documentation files use `.html.md.erb` extension and require YAML frontmatter with
+  `title` and optionally `weight` (for ordering in navigation).

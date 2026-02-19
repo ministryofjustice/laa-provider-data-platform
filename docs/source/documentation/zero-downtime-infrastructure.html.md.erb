@@ -1,0 +1,264 @@
+---
+title: Zero-downtime infrastructure
+weight: 20
+---
+
+# Zero-downtime infrastructure
+
+This document describes the infrastructure building blocks that enable zero-downtime operations for
+the Provider Data API (legacy). These building blocks can be combined to achieve various
+zero-downtime scenarios such as cache rotation and database switchover.
+
+## Overview
+
+The Provider Data API (legacy) is designed to support zero-downtime maintenance operations through
+a combination of:
+
+1. **Dual Helm releases** (stable and canary) that can run simultaneously
+2. **Canary-weight traffic splitting** via [NGINX ingress canary annotations][nginx-canary]
+3. **Per-release [secrets][cp-secrets]** for independent database/configuration
+4. **Configurable cache key prefixes** to isolate cache namespaces
+
+These building blocks allow operators to prepare a new configuration (cache, database snapshot,
+etc.) on one release while the other continues serving production traffic, then switch traffic
+seamlessly.
+
+---
+
+## Building block 1: Dual Helm releases
+
+### How it works
+
+The Helm chart supports deploying two independent releases into the same namespace:
+
+| Release Name    | Role                   | Hostname Suffix | Data Secret             |
+|-----------------|------------------------|-----------------|-------------------------|
+| `providers-app` | **stable** (primary)   | `-1`            | `app-secrets`           |
+| `pdl-2`         | **canary** (secondary) | `-2`            | `app-secrets-secondary` |
+
+Each release creates its own:
+
+- Deployment (with separate pods)
+- Service
+- Dedicated ingress (with hostname suffix, e.g., `*-uat-1`, `*-uat-2`)
+
+Both releases also participate in the shared "PDA" ingress for traffic splitting.
+
+### Helm values configuration
+
+The `canary.role` value determines how each release participates (it is set in the `values.yaml`
+files that are deployed with the Helm chart).
+
+<details><pre><code class="language=yaml"># values.yaml excerpt
+canary:
+  # Role of this release in canary deployment:
+  # - none: No shared ingress (dedicated ingress only)
+  # - stable: Base ingress for canary split (receives [100 - canary-weight]%)
+  # - canary: Canary ingress for traffic testing (receives [canary-weight]%)
+  role: "none"
+  # Percentage of traffic to route to canary release (0-100)
+  weight: 0
+</code></pre></details>
+<br>
+
+### Deploy workflow configuration
+
+The GitHub Actions workflow `rw-pdl-deploy-main.yml` automatically determines the role based on
+the Helm release name that is to be deployed.
+
+<details><pre><code class="language-shell">if [[ "${RELEASE}" == "${DEFAULT_RELEASE}" ]]; then
+  # Primary release (providers-app)
+  RELEASE_SUFFIX="-1"
+  CANARY_ROLE="stable"
+  DATACFG_SECRET="app-secrets"
+elif [[ "${RELEASE}" == "${SECONDARY_RELEASE}" ]]; then
+  # Secondary release (pdl-2)
+  RELEASE_SUFFIX="-2"
+  CANARY_ROLE="canary"
+  DATACFG_SECRET="app-secrets-secondary"
+fi
+</code></pre></details>
+<br>
+
+### Deploying a secondary release
+
+To deploy the secondary/canary release manually, use the GitHub Actions workflow dispatch, which
+includes something like the below, and name the release as `pdl-2`
+
+<details><pre><code class="language-shell"># Via GitHub Actions workflow dispatch with rel=pdl-2
+helm upgrade --install pdl-2 helm_deploy/providers-app \
+  -f helm_deploy/providers-app/values-uat.yaml \
+  --set-string "canary.role=canary" \
+  --set-string "canary.weight=0" \
+  --set-string "releaseSuffix=-2" \
+  --set-string "secretNames.dataConfig=app-secrets-secondary" \
+  -n laa-data-provider-data-uat
+</code></pre></details>
+
+---
+
+## Building block 2: Traffic splitting with canary ingress
+
+### How it works
+
+The shared "PDA" ingress (`ingress-pda.yaml`) uses NGINX canary annotations to split traffic
+between the stable and canary releases.
+
+- The **stable** release creates the base ingress (receives `[100 - canary_weight]%`)
+- The **canary** release creates a canary ingress (receives `[canary_weight]%`)
+
+<details><pre><code class="language-yaml"># ingress-pda.yaml excerpt
+{{- if eq (.Values.canary).role "canary" }}
+nginx.ingress.kubernetes.io/canary: "true"
+nginx.ingress.kubernetes.io/canary-weight: "{{ (.Values.canary).weight }}"
+{{- end }}
+</code></pre></details>
+<br>
+
+### Switching traffic with kubectl
+
+You can change traffic distribution without redeploying by patching the canary ingress annotation:
+
+```bash
+# Send 0% to canary (all traffic to stable)
+kubectl -n laa-data-provider-data-uat patch ingress providers-app-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"0"}}}'
+
+# Send 10% to canary (for testing)
+kubectl -n laa-data-provider-data-uat patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"10"}}}'
+
+# Send 100% to canary (full switchover)
+kubectl -n laa-data-provider-data-uat patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"100"}}}'
+```
+
+---
+
+## Building block 3: Per-release secrets
+
+### How it works
+
+Each release can read database credentials and configuration from different Kubernetes secrets.
+This is configured via the `secretNames.dataConfig` Helm value:
+
+| Release                  | Secret Name             | Purpose                                   |
+|--------------------------|-------------------------|-------------------------------------------|
+| `providers-app` (stable) | `app-secrets`           | Primary database connection               |
+| `pdl-2` (canary)         | `app-secrets-secondary` | Secondary/alternative database connection |
+
+### Deployment template
+
+The `deployment.yaml` template references the secret name dynamically
+
+<details><pre><code class="language-yaml"># deployment.yaml excerpt
+env:
+  - name: CWA_DB_URL
+    valueFrom:
+      secretKeyRef:
+        name: {{ (.Values.secretNames).dataConfig }}
+        key: CWA_DB_URL
+  - name: CWA_DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: {{ (.Values.secretNames).dataConfig }}
+        key: CWA_DB_USER
+  # ... similar for CWA_DB_PASSWORD, CCMS_DB_* values
+</code></pre></details>
+<br>
+
+### Creating the secondary secret
+
+Before deploying the canary release with different database configuration, create the secondary
+secret with alternative database connection details in it. For example, using AWS Console, which
+will then synchronize to the Cloud Platform Kubernetes secret.
+
+---
+
+## Building block 4: Configurable cache key prefixes
+
+### How it works
+
+The application uses Redis for caching, with a configurable prefix on all cache keys in
+`application.yml`. This allows multiple "namespaces" of cached data to coexist in the same Redis
+instance.
+
+<details><pre><code class="language-yaml"># application.yml excerpt
+app:
+  cache:
+    prefix:
+      allowed: ",b,g,p"  # Empty string, 'b', 'g', 'p' are valid prefixes
+      key: "primary"     # Redis key storing the active prefix
+</code></pre></details>
+<br>
+
+### Cache key format
+
+Cache keys are computed by `ComputedCacheKeyPrefix`:
+
+| Active Prefix | Cache Name      | Resulting Key Pattern |
+|---------------|-----------------|-----------------------|
+| (empty)       | `ProviderFirms` | `ProviderFirms::*`    |
+| `b`           | `ProviderFirms` | `b::ProviderFirms::*` |
+| `g`           | `ProviderFirms` | `g::ProviderFirms::*` |
+
+### How the active prefix is determined
+
+1. The active prefix is stored in Redis under the key configured by `app.cache.prefix.key`
+   (default: `primary`)
+2. Each pod queries Redis every 30 seconds to refresh the cached active prefix
+3. If no value is set, the first value in `app.cache.prefix.allowed` is used as default
+
+### Admin API endpoints
+
+The application provides admin endpoints to manage cache prefixes:
+
+```bash
+# Get the currently active prefix
+curl -X GET "https://api-host/admin/cache/prefix" \
+  -H "X-Authorization: Bearer $TOKEN"
+
+# Set the active prefix (all pods will use this within 30 seconds)
+curl -X POST "https://api-host/admin/cache/prefix?prefix=b" \
+  -H "X-Authorization: Bearer $TOKEN"
+
+# Force cache reload into a specific prefix (without changing active)
+curl -X POST "https://api-host/admin/cache/force-reload?reason=manual&prefix=g" \
+  -H "X-Authorization: Bearer $TOKEN"
+
+# Clear cache for a specific prefix
+curl -X POST "https://api-host/admin/cache/clear?reason=testing&prefix=b" \
+  -H "X-Authorization: Bearer $TOKEN"
+```
+
+### Cache status
+
+Check the status of a cache namespace:
+
+```bash
+curl -X GET "https://api-host/admin/cache/status?prefix=b" \
+  -H "X-Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Summary of building blocks
+
+| Building Block     | Mechanism                                     | Controlled By               |
+|--------------------|-----------------------------------------------|-----------------------------|
+| Dual releases      | Helm release names (`providers-app`, `pdl-2`) | GitHub workflow `rel` input |
+| Traffic splitting  | NGINX canary ingress annotation               | `kubectl patch`             |
+| Per-release config | Kubernetes secrets per release        | `secretNames.dataConfig` Helm value |
+| Cache isolation    | Redis key prefix                              | Admin API or Redis directly |
+
+---
+
+## Next steps
+
+- [Zero-downtime cache rotation](zero-downtime-cache-rotation.html) - How to reload the cache
+  without service interruption
+- [Zero-downtime database switchover](zero-downtime-database-switchover.html) - How to switch
+  between database snapshots
+
+[nginx-canary]: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#canary
+[cp-secrets]: https://user-guide.cloud-platform.service.justice.gov.uk/documentation/deploying-an-app/add-secrets-to-deployment.html

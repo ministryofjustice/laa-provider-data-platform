@@ -1,0 +1,223 @@
+---
+title: Zero-downtime cache rotation
+weight: 21
+---
+
+# Zero-downtime cache rotation
+
+This guide explains how to reload the Provider Data API (legacy) cache without causing service
+downtime. This is useful when you need to refresh cached data from the database (e.g., after a data
+correction) without impacting users.
+
+## Prerequisites
+
+Before following this guide, ensure you understand the
+[zero-downtime infrastructure](zero-downtime-infrastructure.html) building blocks:
+
+- Configurable cache key prefixes
+- Admin API endpoints for cache management
+
+## Overview
+
+The cache rotation strategy uses two cache prefixes in a "blue-green" pattern:
+
+1. **Active prefix** serves live traffic (e.g., prefix `b`)
+2. **Inactive prefix** is reloaded in the background (e.g., prefix `g`)
+3. After reload completes, switch the active prefix
+4. The old prefix can then be cleared or left for rollback
+
+This ensures users always hit a fully populated cache during the rotation.
+
+---
+
+## Step-by-step: Cache rotation
+
+### Step 1: Identify current state
+
+First, determine which cache prefix is currently active:
+
+```bash
+# Get the active cache prefix
+curl -X GET "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/prefix" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Example response: `b`
+
+Also check the cache status to confirm it's healthy:
+
+```bash
+curl -X GET "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/status" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Step 2: Choose the target prefix
+
+Select an inactive prefix to load the new cache into. For example, if `b` is active, choose `g`:
+
+| Current Active | Target for Reload |
+|----------------|-------------------|
+| (empty)        | `b`               |
+| `b`            | `g`               |
+| `g`            | `b`               |
+
+For this example, we'll reload into prefix `g`.
+
+### Step 3: Reload cache into target prefix
+
+Trigger a cache reload into the target prefix:
+
+```bash
+curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/force-reload?reason=scheduled-rotation&prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+This starts a background cache load operation. The request returns immediately with a confirmation
+message.
+
+### Step 4: Monitor reload progress
+
+Wait for the cache reload to complete. Check the status periodically:
+
+```bash
+# Check status of the target prefix
+curl -X GET "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/status?prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+The status will indicate:
+- Load in progress
+- Load completed (with timestamp)
+- Load failed (with error details)
+
+### Step 5: Verify the new cache
+
+Before switching, verify the new cache is populated correctly:
+
+```bash
+# Make a test API call that hits the new cache prefix
+```
+
+### Step 6: Switch active prefix
+
+Once verified, switch the active prefix to the newly loaded cache:
+
+```bash
+curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/prefix?prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Response: `Active cache prefix set to [g]. All pods will use this prefix within 30 seconds.`
+
+### Step 7: Verify traffic is using new cache
+
+After 30 seconds, all pods will have picked up the new active prefix. Verify by:
+
+1. Checking the active prefix endpoint returns `g`
+2. Monitoring application logs for cache hits on the new prefix
+3. Checking Grafana/Prometheus metrics
+
+### Step 8: Clean up old cache (optional)
+
+Once confident the new cache is working, you can optionally clear the old prefix:
+
+```bash
+curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/clear?reason=rotation-cleanup&prefix=b" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Alternatively, leave the old cache in place for quick rollback if issues are discovered.
+
+---
+
+## Rollback procedure
+
+If issues are discovered after switching:
+
+```bash
+# Switch back to the previous prefix
+curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/prefix?prefix=b" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+All pods will revert to the old cache within 30 seconds.
+
+---
+
+## Automated cache rotation
+
+The application supports scheduled cache reloads via cron expressions in `application.yml`. However,
+as these don't currently use the cache prefix mechanism, they cause 4 - 8 minutes of downtime.
+
+<details><pre><code class="language-yaml">app:
+  cache:
+    schedule:
+      check: "0 0 7-21 * * ?"   # Check cache health hourly, 7am-9pm
+      load:  "0 35 21 * * ?"    # Reload cache daily at 21:35
+</code></pre></details>
+
+---
+
+## Cache rotation diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Redis Cache                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────────┐          ┌──────────────────┐                 │
+│  │  Prefix 'b'      │          │  Prefix 'g'      │                 │
+│  │  (ACTIVE)        │          │  (INACTIVE)      │                 │
+│  │                  │          │                  │                 │
+│  │  b::ProviderFirms│          │  g::ProviderFirms│                 │
+│  │  b::Advocates    │   ───►   │  g::Advocates    │  ◄── Reload     │
+│  │  b::...          │          │  g::...          │                 │
+│  └──────────────────┘          └──────────────────┘                 │
+│           │                             │                           │
+│           │                             │                           │
+│           ▼                             ▼                           │
+│     ┌──────────┐                 ┌──────────┐                       │
+│     │ Traffic  │   After switch  │ Traffic  │                       │
+│     │ 100%     │ ─────────────►  │ 100%     │                       │
+│     └──────────┘                 └──────────┘                       │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Troubleshooting
+
+### Cache reload takes too long or fails
+
+Check the application logs for errors:
+
+```bash
+kubectl logs -l app.kubernetes.io/name=providers-app -n laa-data-provider-data-uat | grep -i "cache"
+```
+
+Common causes:
+- Database connection issues
+- Redis connection issues
+- Insufficient memory
+- Lock contention (another reload in progress)
+
+### Pods not picking up new prefix
+
+The prefix is refreshed every 30 seconds. If pods aren't switching:
+
+1. Verify the prefix was set in Redis:
+   ```bash
+   kubectl exec -it deploy/providers-app -n laa-data-provider-data-uat -- \
+     redis-cli -h $REDIS_HOST GET primary
+   ```
+
+2. Check pod logs for prefix refresh errors
+
+---
+
+## Related documentation
+
+- [Zero-downtime infrastructure](zero-downtime-infrastructure.html) - Building blocks overview
+- [Zero-downtime database switchover](zero-downtime-database-switchover.html) - Switching between
+  database snapshots

@@ -9,7 +9,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
@@ -21,62 +20,50 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 /**
- * Startup seeding component for local development profile.
- * Populates foundation tables with sample data on application startup.
- * Uses CommandLineRunner to ensure Hibernate schema creation is complete before seeding.
+ * Startup seeding component for local development profile. Populates foundation tables with sample
+ * data on application startup. Uses CommandLineRunner to ensure Hibernate schema creation is
+ * complete before seeding.
  */
 @Slf4j
 @Component
 @Profile("local")
 public class LocalDataSeeder implements CommandLineRunner {
 
-  @Autowired
-  private ProviderRepository providerRepository;
+  @Autowired private ProviderRepository providerRepository;
 
-  @Autowired
-  private OfficeRepository officeRepository;
+  @Autowired private OfficeRepository officeRepository;
 
-  @Autowired
-  private BankAccountRepository bankAccountRepository;
+  @Autowired private BankAccountRepository bankAccountRepository;
 
-  @Autowired
-  private ContractManagerRepository contractManagerRepository;
+  @Autowired private ContractManagerRepository contractManagerRepository;
 
-  @Autowired
-  private LiaisonManagerRepository liaisonManagerRepository;
+  @Autowired private LiaisonManagerRepository liaisonManagerRepository;
 
-  @Autowired
-  private ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
+  @Autowired private ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
 
-  @Autowired
-  private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
+  @Autowired private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
 
-  @Autowired
-  private ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  @Autowired private ProviderOfficeLinkRepository providerOfficeLinkRepository;
 
-  @Autowired
-  private ProviderParentLinkRepository providerParentLinkRepository;
+  @Autowired private ProviderParentLinkRepository providerParentLinkRepository;
 
-  @Autowired
-  private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
+  @Autowired private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
 
-  @Autowired
-  private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Autowired private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   @Override
   @Transactional

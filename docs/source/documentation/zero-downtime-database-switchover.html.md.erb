@@ -1,0 +1,343 @@
+---
+title: Zero-downtime database switchover
+weight: 22
+---
+
+# Zero-downtime database switchover
+
+This guide explains how to switch the Provider Data API (legacy) between different database
+snapshots without causing service downtime. This is useful when:
+
+- Migrating to a new database snapshot with updated data
+- Switching between database versions for testing
+- Recovering from a problematic database update by reverting to a previous snapshot
+
+## Prerequisites
+
+Before following this guide, ensure you understand the
+[zero-downtime infrastructure](zero-downtime-infrastructure.html) building blocks:
+
+- Dual Helm releases (stable and canary)
+- Traffic splitting with canary ingress
+- Per-release Kubernetes secrets
+- Configurable cache key prefixes
+
+## Overview
+
+The database switchover strategy uses two Helm releases, each configured with:
+
+1. **Its own database connection** (via separate Kubernetes secrets)
+2. **Its own cache prefix** (to prevent cache data mismatch)
+
+The process:
+
+1. Deploy the canary release pointing to the new database
+2. Load the canary's cache from the new database
+3. Gradually shift traffic to the canary release
+4. Once verified, update the stable release to use the new database
+5. Reload the stable cache and switch traffic back
+
+---
+
+## Architecture
+
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│                       Kubernetes Namespace                            │
+│                                                                       │
+│   ┌─────────────────────────┐        ┌─────────────────────────┐      │
+│   │  Helm Release:          │        │  Helm Release:          │      │
+│   │  providers-app (stable) │        │  pdl-2 (canary)         │      │
+│   │                         │        │                         │      │
+│   │  Secret: app-secrets    │        │  Secret: app-secrets-   │      │
+│   │  Cache prefix: b        │        │          secondary      │      │
+│   │                         │        │  Cache prefix: g        │      │
+│   └───────────┬─────────────┘        └───────────┬─────────────┘      │
+│               │                                  │                    │
+│               │                                  │                    │
+│               ▼                                  ▼                    │
+│   ┌─────────────────────────┐        ┌─────────────────────────┐      │
+│   │  CWA Database           │        │  CWA Database           │      │
+│   │  (Snapshot v1)          │        │  (Snapshot v2)          │      │
+│   └─────────────────────────┘        └─────────────────────────┘      │
+│                                                                       │
+│   ┌─────────────────────────────────────────────────────────────┐     │
+│   │                    Shared Redis Cache                       │     │
+│   │  ┌─────────────┐                      ┌─────────────┐       │     │
+│   │  │ b::*        │                      │ g::*        │       │     │
+│   │  │ (stable)    │                      │ (canary)    │       │     │
+│   │  └─────────────┘                      └─────────────┘       │     │
+│   └─────────────────────────────────────────────────────────────┘     │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Step-by-step: Database switchover
+
+### Step 1: Check the new database snapshot is available
+
+Ensure the new database snapshot is available and accessible. For example, connect to it using
+DataGrip and a Kubernetes port-forwarding pod.
+
+### Step 2: Create the secondary secret
+
+Create a Kubernetes secret with connection details for the new database. For example, using AWS
+Console, which will then synchronize to the Cloud Platform Kubernetes secret.
+
+### Step 3: Deploy the canary release
+
+Deploy the canary release pointing to the new database using the `rw-pdl-deploy-main.yml` GitHub
+Actions workflow. The canary release starts with 0% traffic.
+
+<details><pre><code class="language-shell"># Via GitHub Actions workflow dispatch
+# Workflow: rw-pdl-deploy-main.yml
+# Inputs:
+#   target: uat
+#   tag: v1.2.3 (same version as stable)
+#   rel: pdl-2
+
+helm upgrade --install pdl-2 helm_deploy/providers-app \
+  -f helm_deploy/providers-app/values-uat.yaml \
+  --set-string "image.tag=v1.2.3" \
+  --set-string "canary.role=canary" \
+  --set-string "canary.weight=0" \
+  --set-string "releaseSuffix=-2" \
+  --set-string "secretNames.dataConfig=app-secrets-secondary" \
+  -n laa-data-provider-data-uat
+</code></pre></details>
+<br>
+
+### Step 4: Verify canary deployment
+
+Check that the canary pods are running and healthy:
+
+```bash
+# Check pods
+kubectl get pods -l app.kubernetes.io/instance=pdl-2 -n laa-data-provider-data-uat
+
+# Check health endpoint via dedicated ingress
+curl -s "https://laa-provider-details-api-uat-2.apps.live.cloud-platform.service.justice.gov.uk/actuator/health"
+```
+
+### Step 5: Load cache for canary
+
+The canary release should use a different cache prefix to avoid mixing cached data from different
+databases.
+
+**Option A: Configure canary to use a specific prefix**
+
+Ensure the canary's environment or configuration sets a specific cache prefix. For example, using
+AWS Console, which will then synchronize to the Cloud Platform Kubernetes secret, and then the
+deployment will map this to an environment variable consumed by the `application.yml`.
+
+**Option B: Use admin endpoint to load specific prefix**
+
+Load the cache into a specific prefix via the canary's dedicated ingress:
+
+```bash
+# Load cache into prefix 'g' via canary's dedicated ingress
+curl -X POST "https://laa-provider-details-api-uat-2.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/force-reload?reason=db-switchover&prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Monitor the cache load status:
+
+```bash
+curl -X GET "https://laa-provider-details-api-uat-2.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/status?prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Step 6: Test via Canary's Dedicated Ingress
+
+Before shifting traffic, test the canary directly:
+
+```bash
+# Test API endpoints via dedicated canary ingress (bypasses traffic split)
+curl "https://laa-provider-details-api-uat-2.apps.live.cloud-platform.service.justice.gov.uk/v1/providers/firms/12345" \
+  -H "X-Authorization: Bearer $TOKEN"
+```
+
+### Step 7: Gradually shift traffic to canary
+
+Once confident, start shifting traffic:
+
+```bash
+# 10% to canary
+kubectl patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"10"}}}' \
+  -n laa-data-provider-data-uat
+
+# Monitor error rates, response times in Grafana
+# If OK, increase to 50%
+kubectl patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"50"}}}' \
+  -n laa-data-provider-data-uat
+
+# If still OK, increase to 100%
+kubectl patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"100"}}}' \
+  -n laa-data-provider-data-uat
+```
+
+At 100%, all traffic goes to the canary (new database).
+
+### Step 8: Update stable release
+
+Once the canary is serving all traffic successfully, update the stable release to use the new
+database:
+
+1. Update the primary secret with new database details:
+
+   ```bash
+   kubectl patch secret app-secrets \
+     -p '{"stringData":{"CWA_DB_URL":"jdbc:oracle:thin:@//new-cwa-host:1521/CWADB"}}' \
+     -n laa-data-provider-data-uat
+   ```
+
+2. Restart the stable deployment to pick up the new secret:
+
+   ```bash
+   kubectl rollout restart deployment/providers-app -n laa-data-provider-data-uat
+   ```
+
+3. Load the stable's cache with data from the new database:
+
+   ```bash
+   curl -X POST "https://laa-provider-details-api-uat-1.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/force-reload?reason=db-switchover&prefix=b" \
+     -H "X-Authorization: Bearer $ADMIN_TOKEN"
+   ```
+
+### Step 9: Switch traffic back to stable
+
+Once the stable release is updated and its cache is loaded:
+
+```bash
+# Switch traffic back to stable (0% to canary)
+kubectl patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"0"}}}' \
+  -n laa-data-provider-data-uat
+```
+
+### Step 10: Clean up
+
+Optionally remove or scale down the canary release:
+
+```bash
+# Option A: Scale down canary to 0 replicas
+kubectl scale deployment pdl-2 --replicas=0 -n laa-data-provider-data-uat
+
+# Option B: Uninstall canary release entirely
+helm uninstall pdl-2 -n laa-data-provider-data-uat
+
+# Clean up old cache prefix if no longer needed
+curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/clear?reason=cleanup&prefix=g" \
+  -H "X-Authorization: Bearer $ADMIN_TOKEN"
+```
+
+---
+
+## Rollback procedure
+
+If issues are discovered after switching to the new database:
+
+### Quick rollback (traffic switch)
+
+If the canary is still running and still has traffic:
+
+```bash
+# Send all traffic back to stable (which still has old database)
+kubectl patch ingress pdl-2-pda \
+  -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/canary-weight":"0"}}}' \
+  -n laa-data-provider-data-uat
+```
+
+### Full rollback (revert database)
+
+If the stable release has already been updated:
+
+1. Revert the stable secret to the old database:
+
+   ```bash
+   kubectl patch secret app-secrets \
+     -p '{"stringData":{"CWA_DB_URL":"jdbc:oracle:thin:@//old-cwa-host:1521/CWADB"}}' \
+     -n laa-data-provider-data-uat
+   ```
+
+2. Restart stable and reload cache
+
+   ```bash
+   kubectl rollout restart deployment/providers-app -n laa-data-provider-data-uat
+   
+   # Wait for pods to be ready, then reload cache
+   curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/force-reload?reason=rollback&prefix=b" \
+     -H "X-Authorization: Bearer $ADMIN_TOKEN"
+   ```
+
+---
+
+## Checklist
+
+Use this checklist when performing a database switchover:
+
+- [ ] New database snapshot is available and tested
+- [ ] `app-secrets-secondary` created/updated with new connection details
+- [ ] Canary release (`pdl-2`) deployed with `canary.weight=0`
+- [ ] Canary pods are healthy (`/actuator/health` returns UP)
+- [ ] Canary cache loaded for appropriate prefix
+- [ ] Canary tested via dedicated ingress (`*-uat-2`)
+- [ ] Traffic gradually shifted (10% → 50% → 100%)
+- [ ] Monitoring shows no increase in errors or latency
+- [ ] Stable release updated with new database connection
+- [ ] Stable cache reloaded
+- [ ] Traffic switched back to stable
+- [ ] Canary scaled down or uninstalled
+- [ ] Old cache prefix cleaned up
+
+---
+
+## Troubleshooting
+
+### Canary pods failing to start
+
+Check the pod events and logs:
+
+```bash
+kubectl describe pod -l app.kubernetes.io/instance=pdl-2 -n laa-data-provider-data-uat
+kubectl logs -l app.kubernetes.io/instance=pdl-2 -n laa-data-provider-data-uat
+```
+
+Common causes:
+- Database connection string incorrect
+- Database credentials wrong
+- Network/firewall blocking database access
+
+### Cache load fails on canary
+
+The canary connects to a different database, so cache load errors may indicate database issues:
+
+```bash
+kubectl logs -l app.kubernetes.io/instance=pdl-2 -n laa-data-provider-data-uat | grep -i "error\|exception"
+```
+
+### Traffic not shifting
+
+Verify the ingress annotations:
+
+```bash
+kubectl get ingress pdl-2-pda -o yaml -n laa-data-provider-data-uat | grep -A5 annotations
+```
+
+Ensure:
+- `nginx.ingress.kubernetes.io/canary: "true"` is present
+- `nginx.ingress.kubernetes.io/canary-weight` has the expected value
+
+---
+
+## Related documentation
+
+- [Zero-downtime infrastructure](zero-downtime-infrastructure.html) - Building blocks overview
+- [Zero-downtime cache rotation](zero-downtime-cache-rotation.html) - Cache rotation without
+  database change
+- [Deployment guide](deployment.html) - General deployment procedures

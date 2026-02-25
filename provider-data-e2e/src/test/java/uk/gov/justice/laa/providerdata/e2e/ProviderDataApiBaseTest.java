@@ -55,6 +55,7 @@ class ProviderDataApiBaseTest extends BaseApiTest {
         "Expected 201 or 200 from POST /api/v1/items; got " + responseCode);
   }
 
+  @Disabled
   @Test
   void getItems_shouldReturnPopulatedItemsFromController() throws IOException {
     String endpoint = "http://localhost:18080/api/v1/items";

@@ -38,7 +38,7 @@ tasks.named('checkstyleMain', Checkstyle) {
 
 openApiGenerate {
     generatorName = "spring"
-    inputSpec = layout.projectDirectory.file("open-api-specification.yml").asFile.path
+    inputSpec = layout.projectDirectory.file("laa-data-pda.yml").asFile.path
     outputDir = generatedDir.get().asFile.path
 
     // Keep provider-data-api package naming
@@ -47,17 +47,21 @@ openApiGenerate {
     modelPackage   = "uk.gov.justice.laa.providerdata.model"
 
     configOptions = [
-            generateBuilders    : "true",
-            interfaceOnly       : "true", // interfaces only
-            serializableModel   : "true",
-            skipDefaultInterface: "true",
-            useJakartaEe        : "true",
-            useSpringBoot3      : "true",
-            useTags             : "true",
+            generateBuilders     : "true",
+            interfaceOnly        : "true", // interfaces only
+            serializableModel    : "true",
+            skipDefaultInterface : "true",
+            useJakartaEe         : "true",
+            useSpringBoot3       : "true",
+            useTags              : "true",
+            hideGenerationTimestamp: "true",
     ]
 }
 
-tasks.named('compileJava') { dependsOn tasks.named('openApiGenerate') }
+tasks.named('compileJava') {
+    dependsOn tasks.named('openApiGenerate')
+    options.compilerArgs.addAll(['-Xlint:-deprecation', '-Xlint:-removal'])
+}
 
 plugins.withId('org.springframework.boot') {
     tasks.named('bootJar')        { enabled = false }

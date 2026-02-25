@@ -1,0 +1,3157 @@
+openapi: 3.0.3
+info:
+  title: Provider API
+  version: 1.0.0
+  description: API for managing legal service providers, including solicitors, chambers, and advocates.
+
+paths:
+  /provider-events:
+    get:
+      summary: Retrieve a list of event headers
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderEvents
+      tags:
+        - Events
+      description: |
+        Provides capability to view all events that have been emitted by the microservice.
+
+        Use cases:
+        1) Search event header history
+        2) Identify event GUID for a given correlationId
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - name: eventType
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/EventTypeV2"
+          description: Filter by event type (multi)
+        - name: correlationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by correlation Id
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+      responses:
+        "200":
+          description: List of events matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/EventHeaderV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-events/{eventGUID}:
+    get:
+      summary: Retrieve event by GUID
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getEventByGUID
+      tags:
+        - Events
+      description: |
+        Retieve full event details by GUID.
+
+        Use cases:
+        1) Retrieve details necessary for connectors to downstream systems
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - name: eventGUID
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Filter by event GUID
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/EventV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-contact-managers:
+    get:
+      summary: Retrieve a list of contract managers
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderContactManagers
+      tags:
+        - Contract Managers
+      description: |
+        Retrieve a list of contract managers. 
+
+        These are employee records in CWA and potentially we need to get this information from SiLAS.
+
+        Contract managers are required for assigning contracts and schedules to a provider firm in CWA.
+
+        Use cases:
+        1) List available contract managers to get the GUID before assigning them to an office
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - name: contractManagerId
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by contract manager ID (multi)
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Fuzzy search by contract manager name (searches both first and last names)
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ContractManagerV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms:
+    post:
+      summary: Create a provider firm
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: createProviderFirm
+      tags:
+        - Provider Firms
+      description: |
+        Create a provider firm (e.g., legal service provider, chambers, advocates).
+
+        Each provider must include a name, type, and other type specific data. 
+
+        The request body should contain either `legalServicesProvider`, `chambers` or `practitioner`
+        elemnt depending on the type.
+
+        `practitioner` is further sub divided into `Advocate` or `Barrister`.
+
+        Each entity will have its own specific schema and data requirement for a complete record.
+
+        Use cases:
+        1) Create a complete record for a provider firm
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderCreateV2"
+      responses:
+        "201":
+          description: Provider created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+    get:
+      summary: Retrieve providers with optional filters
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirms
+      tags:
+        - Provider Firms
+      description: |
+        Use cases:
+        1) Browse provider data
+        2) Search for specific provider(s) that match criteria
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - name: providerFirmGUID
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by provider firm GUID (multi)
+        - name: providerFirmNumber
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by provider firm number (multi)
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by provider name
+        - name: activeStatus
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - All
+              - Active
+              - ContingentLiability
+              - ActiveOrContingentLiability
+          description: Filter by provider number
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/ProviderFirmTypeV2"
+          description: Filter by provider type (multi)
+        - name: accountNumber
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by office account number (multi)
+        - name: practitionerRollNumber
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by Barrister roll number or Advocate SRA (multi)
+        - name: parentFirmGUID
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by parent firm GUID (multi)
+        - name: parentFirmNumber
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by parent firm number (multi)
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProviderV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}:
+    get:
+      summary: Retrieve provider details by GUID
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmByGUIDorFirmNumber
+      tags:
+        - Provider Firms
+      description: |
+        Retrieve basic provider details. Use sub resources to retrieve other information.
+
+        Use cases:
+        1) Retrieve provider firm details when GUID or firm number is available
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProviderV2"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+    patch:
+      summary: Update provider firm details
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: updateProviderFirm
+      tags:
+        - Provider Firms
+      description: |
+        Use cases: 
+        1) Updating firm name
+        2) Updating Legal Service Provider's basic details
+        3) Changing head office of a Legal Service Provider basic.
+        4) Updating Barrister's or Advocate's basic details
+        5) Changing parent firm of a Barrister or an Advocate. 
+           Note that changing parent chamber should also re-link office details and 
+           liason manager. There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderPatchV2"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details:
+    get:
+      summary: Retrieve a list of provider bank accounts with optional filters
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmBankAccounts
+      tags:
+        - Provider Firm Bank Accounts
+      description: |
+        Retrieve bank account details for a given provider. 
+
+        For `Legal Service Provider` firm type the response returns LSP specific bank accounts only.
+
+        For `Advocate` firm type the response returns all bank accounts for all Advocates and Barristers assigned to this advocate's chambers.    
+
+        Note that bank account details are created only via creating or updating office details using the `payment` element.
+
+        Use cases:
+        1) Retrieve the list of bank accounts available for office assignment. Use `GUID` in office payment PATCH operation to set alternative bank account details.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - name: bankAccountNumber
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Partial text search by bank account number
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/BankAccountV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/bank-details:
+    get:
+      summary: Retrieve a list of provider's office bank accounts with optional filters
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOfficeBankAccounts
+      tags:
+        - Provider Firm Bank Accounts
+      description: |
+        Retrieve bank account details for a given provider's office. 
+
+        Note that bank account details are created only via creating or updating office details using the `payment` element.
+
+        Use cases:
+        1) Retrieve the list of bank accounts assigned to office. Use `GUID` in office payment PATCH operation to set alternative bank account details.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - name: bankAccountNumber
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Partial text search by bank account number
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OfficeBankAccountV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices:
+    post:
+      summary: Create an office for a Legal Service Provider firm
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: createProviderFirmOffice
+      tags:
+        - Provider Firm Offices
+      description: |
+        Create new office details used by given provider firm. Only applicable for `firmType=Legal Service Provider`.
+
+        Use cases:
+        1) Create additional office details for Legal Service Provider firm
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LSPOfficeCreateV2"
+      responses:
+        "201":
+          description: Office created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                      officeGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      officeCode:
+                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+    get:
+      summary: Retrieve a list of provider offices with optional filters
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOffices
+      tags:
+        - Provider Firm Offices
+      description: |
+        Retrieve office details for a given provider. Use this endpoint when you have `providerFirmGUID`.
+
+        When you do not have `providerFirmGUID` but only `officeGUID` or `officeCode` - use `/provider-firms-offices?officeGUID=12345&allProviderOffices=true`
+
+        Use cases:
+        1) Browse all offices belonging to a Legal Service Provider firm
+        2) Show details of the Chambers office
+        3) Show details of the Advocate's office (which is the Chambers office they are currently assigned to)
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OfficeV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms-offices:
+    get:
+      summary: Retrieve a list of provider offices with optional filters
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getOffices
+      tags:
+        - Provider Firm Offices
+      description: |
+        Retrieve office details when you do not have `providerFirmGUID` or `FirmNumber`. 
+
+        Use cases:
+        1) Browse all active offices
+        2) Browse all offices of a specific provider using when only `officeGUID` or `officeCode` is known.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - name: officeGUID
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by provider office GUID (multi)
+        - name: officeCode
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by provider office code (multi)
+        - name: allProviderOffices
+          in: query
+          schema:
+            type: boolean
+          description: use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for the provider that the office with specified guid belongs to
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
+      responses:
+        "200":
+          description: List of providers matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OfficeV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}:
+    get:
+      summary: Retrieve provider office details by GUID
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOfficeByGUID
+      tags:
+        - Provider Firm Offices
+      description: |
+        Retrieve provider office details.
+
+        Use cases:
+        1) Retrieve office details by GUID or office code
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/OfficeV2"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+    patch:
+      summary: Update provider office details
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: updateProviderFirmOffice
+      tags:
+        - Provider Firm Offices
+      description: |
+        Update provider office details.
+
+        Note that `firmType=Advocate` can't patch Chamber office details.
+
+        Use cases:
+        1) Deactivating office details by setting `activeDateTo`. 
+          Note that if the office is a head office of Legal Service Provider firm, `activeDateTo` should 
+          be set on all other offices which are not yet de-activated.
+          Similarly if the office is a Chambers' office , `activeDateTo` should 
+          be set on all Advocate/Barrister offices which are not yet de-activated.
+        2) Holding payments using `paymentHeldFlag`
+        3) Updating office details
+        4) Setting `intervened` flag
+        5) Creating or assigning different bank details using `payment.bankAccountDetails`
+        6) Setting `debtRecoveryFlag` for LSP/Advocate. Can only be set to true if the firm office is still active. 
+           If office is made inactive this flag should be reset to false.
+        7) Setting `falseBalanceFlag` for LSP/Advocate. Can only be set to true if the firm office is inactive. 
+           If office is made active this flag should be reset to false.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfficePatchV2"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                      officeGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      officeCode:
+                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/liaison-managers:
+    post:
+      summary: Create a liaison manager for office. Creating new manager end-dates all other managers.
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: createProviderFirmOfficeLiaisonManager
+      tags:
+        - Provider Firm Offices Liaison Managers
+      description: |
+        Create new liaison manager for an office. There can be only one active liason manager and all firm types
+        are able to have liason manager independently set at the office level. 
+
+        Use cases:
+        1) Create a new Liason manager entry specific to given LSP office.
+        2) Choose to use LSP's head office liason manager for given LSP office.
+        3) Create a new Liason manager entry specific to Chambers office.
+        3) Create a new Liason manager entry specific to Advocate/Barrister for a given Chambers office.
+        4) Choose to use Chambers' office liason manager for given Advocate/Barrister.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfficeLiaisonManagerCreateOrLinkV2"
+      responses:
+        "201":
+          description: Office created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                      officeGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      officeCode:
+                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+                      liaisonManagerGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+    get:
+      summary: Retrieve liaison managers for a given office office
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOfficeLiaisonManagers
+      tags:
+        - Provider Firm Offices Liaison Managers
+      description: |
+        Retrieve provider office liaison managers.
+
+        Use cases:
+        1) Show full list of liason managers including currently active and assigned in the past.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LiaisonManagerV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
+    post:
+      summary: Assign a liaison manager for office. Assigning a new manager end-dates all other managers.
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: createProviderFirmOfficeContractManager
+      tags:
+        - Provider Firm Offices Contract Managers
+      description: |
+        Assigning a new contract manager for an office.
+
+        There should be only a maximum of one assignment (MVP scope).
+
+        Applicable only for LSP's. 
+
+        Note that in CWA there are currently fake contract manager entries assigned as it is a mandatory field. 
+        In addition business users used some of these entries to mark debt recovery and false balance flags. 
+        This is no longer necessary in the new model.
+
+        Use cases:
+        1) Assign new contract managers to a given office.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractManagerProviderPatchV2"
+      responses:
+        "201":
+          description: Office created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                      officeGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      officeCode:
+                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+                      contractManagerId:
+                        type: string
+                        description: Unique identifier of the assigned contract manager
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+    get:
+      summary: Retrieve contract managers for a given office office
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOfficeContractManagers
+      tags:
+        - Provider Firm Offices Contract Managers
+      description: |
+        Retrieve provider office contract managers. Applicable only for LSP's.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: "#/components/parameters/OfficeGUIDorCode"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OfficeContractManagerV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
+    get:
+      summary: Retrieve practitioners for a given chamber office
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getProviderFirmOfficePractitioners
+      tags:
+        - Chamber Office Practitioners
+      description: |
+        Retrieve chamber office practitioners.
+
+        Note that to create new practitioner you need to create new provider firm of type `Barrister` or `Advocate`.
+
+        To re-assign Advocate/Barrister to a different Chamber, use the PATCH `/provider-firms?providerFirmGUIDorFirmNumber=ABC` to change parent firms. 
+
+        Use cases:
+        1) List all Advocates and Barristers assigned to given Chamber.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+      responses:
+        "200":
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OfficePractitionerV2"
+                      metadata:
+                        $ref: "#/components/schemas/PaginatedSearchV2"
+                      links:
+                        $ref: "#/components/schemas/LinksV2"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    AzureAD:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
+          scopes:
+            api://<client-id>/access_as_user: Access the API as an authenticated user
+
+  schemas:
+    BaseEntityGUIDV2:
+      type: string
+      format: guid
+      description: "GUID is the primary key for entity"
+      example: "ABCD-DEFG-1234-5678"
+
+    BaseEntityV2:
+      type: object
+      required:
+        - guid
+        - version
+        - createdBy
+        - createdTimestamp
+        - lastUpdatedBy
+        - lastUpdatedTimestamp
+      properties:
+        guid:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        version:
+          type: number
+          description: "Record version (for audit and event concurrency)"
+          example: "12"
+        createdBy:
+          type: string
+          description: "User ID from the auth token which resulted in creating this record"
+          example: "john.smith.42"
+        createdTimestamp:
+          type: string
+          format: date-time
+          example: "2025-09-25T09:30:00Z"
+        lastUpdatedBy:
+          type: string
+          description: "User ID from the auth token which resulted in updating this record last"
+          example: "john.doe.24"
+        lastUpdatedTimestamp:
+          type: string
+          format: date-time
+          example: "2025-09-26T12:30:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              type: string
+              example: "P00XX"
+
+    BadRequestError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              type: string
+              example: "P00XX"
+
+    ForbiddenError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              type: string
+              example: "P00XX"
+
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              type: string
+              example: "P00NF"
+
+    InternalServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              type: string
+              example: "P00SE"
+
+    ProviderFirmNumberV2:
+      type: string
+      description: |
+        Unique provider firm identifier. CWA ref: PO_VENDOR_CONTACTS.SEGMENT1 
+
+        `TODO: check which one to use, SiLAS uses segment1` but all V1 endpoints use VENDOR_ID as path variable???.       
+        `TODO: is this the same as account number? CWA ref, is it segment 1?`
+        `TODO: do we need ccmsFirmId?? xxccms_provider_offices_v.providerfirm_id`
+        `TODO: check rules for generating these numbers and check what sequence number to start from at go live`
+      example: "3856"
+
+    ProviderFirmTypeV2:
+      type: string
+      enum:
+        - Legal Services Provider
+        - Chambers
+        - Advocate
+      description: |
+        Type of the provider firm. Baristers are entered as Advocates. 
+
+        CWA ref: PO_VENDORS.ATTRIBUTE4. 
+
+        `TODO: check if these are all valid types.`
+
+    ProviderFirmNameV2:
+      type: string
+      description: |
+        Name of the provider firm. 
+
+        CWA ref: PO_VENDORS.VENDOR_NAME
+      example: "Legal Services Co."
+
+    ProviderCreateV2:
+      allOf:
+        - $ref: "#/components/schemas/ProviderCreateBaseV2"
+        - oneOf:
+            - $ref: "#/components/schemas/ProviderCreateLSPV2"
+            - $ref: "#/components/schemas/ProviderCreateChambersV2"
+            - $ref: "#/components/schemas/ProviderCreatePractitionerV2"
+
+    ProviderCreateBaseV2:
+      type: object
+      required:
+        - firmType
+        - name
+      properties:
+        firmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+        name:
+          $ref: "#/components/schemas/ProviderFirmNameV2"
+
+    ProviderCreateLSPV2:
+      type: object
+      required:
+        - legalServicesProvider
+      properties:
+        legalServicesProvider:
+          allOf:
+            - $ref: "#/components/schemas/LSPDetailsCreateV2"
+            - $ref: "#/components/schemas/LSPHeadOfficeCreateV2"
+      description: |
+        Create provider of `firmType=Legal Services Provider`
+
+    ProviderCreateChambersV2:
+      type: object
+      required:
+        - chambers
+      properties:
+        chambers:
+          allOf:
+            - $ref: "#/components/schemas/ChambersHeadOfficeCreateV2"
+      description: |
+        Create provider of `firmType=Chambers`
+
+    ProviderCreatePractitionerV2:
+      type: object
+      required:
+        - practitioner
+      properties:
+        practitioner:
+          allOf:
+            - $ref: "#/components/schemas/PractitionerDetailsCreateV2"
+            - $ref: "#/components/schemas/PractitionerHeadOfficeCreateV2"
+      description: |
+        Create provider of `firmType=Advocate`. Office is linked to the 
+        parent Chambers office.
+
+    ProviderV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: "#/components/schemas/ProviderBaseV2"
+        - oneOf:
+            - $ref: "#/components/schemas/ProviderLSPV2"
+            - $ref: "#/components/schemas/ProviderChambersV2"
+            - $ref: "#/components/schemas/ProviderPractitionerV2"
+
+    ProviderBaseV2:
+      type: object
+      required:
+        - firmNumber
+        - firmType
+        - name
+      properties:
+        firmNumber:
+          $ref: "#/components/schemas/ProviderFirmNumberV2"
+        firmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+        name:
+          $ref: "#/components/schemas/ProviderFirmNameV2"
+
+    ProviderLSPV2:
+      type: object
+      required:
+        - legalServicesProvider
+      properties:
+        legalServicesProvider:
+          $ref: "#/components/schemas/LSPDetailsV2"
+      description: |
+        Provider of `firmType=Legal Services Provider`
+
+    ProviderChambersV2:
+      type: object
+      required:
+        - chambers
+      properties:
+        chambers:
+          $ref: "#/components/schemas/ChamberDetailsV2"
+      description: |
+        Provider of `firmType=Chambers`
+
+    ProviderPractitionerV2:
+      type: object
+      required:
+        - practitioner
+      properties:
+        practitioner:
+          $ref: "#/components/schemas/PractitionerDetailsV2"
+      description: |
+        Provider of `firmType=Advocate`
+
+    ProviderPatchV2:
+      allOf:
+        - $ref: "#/components/schemas/ProviderPatchBaseV2"
+        - oneOf:
+            - $ref: "#/components/schemas/ProviderPatchLSPV2"
+            - $ref: "#/components/schemas/ProviderPatchChambersV2"
+            - $ref: "#/components/schemas/ProviderPatchPractitionerV2"
+
+    ProviderPatchBaseV2:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/ProviderFirmNameV2"
+
+    ProviderPatchLSPV2:
+      type: object
+      properties:
+        legalServicesProvider:
+          $ref: "#/components/schemas/LSPDetailsPatchV2"
+      description: |
+        Update provider of `firmType=Legal Services Provider`
+
+    ProviderPatchChambersV2:
+      type: object
+      description: |
+        Update provider of `firmType=Chambers`
+
+    ProviderPatchPractitionerV2:
+      type: object
+      properties:
+        practitioner:
+          $ref: "#/components/schemas/PractitionerDetailsPatchV2"
+      description: |
+        Update provider of `firmType=Advocate`
+
+    LSPDetailsConstitutionalStatusV2:
+      type: string
+      enum:
+        - Partnership
+        - Limited company
+        - Sole practitioner
+        - Limited Liability Partnership (LLP)
+        - Charity
+        - Government Funded Organisation
+      description: |
+        N/A for Firm type Advocate or Chambers. 
+
+        For Legal Services provider, options are: `TODO: check the enum values`
+          - Partnership, 
+          - Limited Company, 
+          - Sole Practitioner, 
+          - LLAP, `TODO: check why in MAPD documentation it is Limited Liability Partnership (LLP)`
+          - Charity, 
+          - Government Funded Organisation.
+
+        When constitutional status is set to 'Charity' `notForProfitOrganisationFlag` must be set to true.
+
+        CWA ref: PO_VENDORS.ATTRIBUTE1.
+
+    LSPDetailsNotForProfitOrganisationFlagV2:
+      type: boolean
+      description: |
+        `TODO: check if this flag is true for LSP with constitutionalStatus=Charity ???`
+
+        CWA ref: PO_VENDORS.ATTRIBUTE3.
+
+    LSPDetailsIndemnityReceivedDateV2:
+      type: string
+      format: date
+      description: |
+        `TODO: Need better description of this field`
+
+        CWA ref: PO_VENDORS.ATTRIBUTE2.
+
+    LSPDetailsCompaniesHouseNumberV2:
+      type: string
+      description: |
+        `TODO: Need better description of this field`
+
+        WARNING: same field is used for Advocates for bar council roll number. 
+
+        CWA ref: PO_VENDORS.ATTRIBUTE11
+      example: "`TODO: provide example`"
+
+    LSPDetailsCreateV2:
+      type: object
+      required:
+        - constitutionalStatus
+      properties:
+        constitutionalStatus:
+          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+        indemnityReceivedDate:
+          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+        companiesHouseNumber:
+          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
+
+    LSPDetailsV2:
+      type: object
+      required:
+        - constitutionalStatus
+        - notForProfitOrganisationFlag
+        - indemnityReceivedDate
+        - companiesHouseNumber
+        - headOffice
+      properties:
+        constitutionalStatus:
+          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+        notForProfitOrganisationFlag:
+          $ref: "#/components/schemas/LSPDetailsNotForProfitOrganisationFlagV2"
+        indemnityReceivedDate:
+          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+        companiesHouseNumber:
+          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
+        headOffice:
+          $ref: "#/components/schemas/LSPHeadOfficeDetailsV2"
+
+    LSPDetailsPatchV2:
+      type: object
+      properties:
+        constitutionalStatus:
+          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+        indemnityReceivedDate:
+          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+        companiesHouseNumber:
+          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
+        headOffice:
+          $ref: "#/components/schemas/LSPHeadOfficeDetailsPatchV2"
+
+    ChamberDetailsV2:
+      type: object
+      required:
+        - office
+      properties:
+        office:
+          $ref: "#/components/schemas/ChambersOfficeCoreDetailsV2"
+
+    PractitionerDetailsParentUpdateV2:
+      oneOf:
+        - type: object
+          required:
+            - parentGuid
+          properties:
+            parentGuid:
+              $ref: "#/components/schemas/BaseEntityGUIDV2"
+        - type: object
+          required:
+            - parentFirmNumber
+          properties:
+            parentFirmNumber:
+              $ref: "#/components/schemas/ProviderFirmNumberV2"
+
+    PractitionerDetailsParentV2:
+      type: object
+      required:
+        - parentGuid
+        - parentFirmNumber
+        - parentFirmType
+      properties:
+        parentGuid:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        parentFirmNumber:
+          $ref: "#/components/schemas/ProviderFirmNumberV2"
+        parentFirmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+
+    PractitionerDetailsAdvocateTypeV2:
+      type: string
+      enum:
+        - Advocate
+        - Barrister
+      description: |
+        Advocate sub type can be Advocate or Barrister. 
+
+        Derived from advocateSolicitor flag in CWA.
+        If advocateSolicitor=Y -> Advocate, 
+        if advocateSolicitor=N -> Barrister
+
+        CWA ref: PO_VENDORS.ATTRIBUTE9. 
+
+        `TODO: Need better description of this field, any business rules?`
+
+    PractitionerDetailsAdvocateLevelV2:
+      type: string
+      enum:
+        - Junior
+        - KC
+      description: |
+        Advocate level. 
+
+        WARNING: Same field as Barrister level in CWA
+
+        CWA ref: PO_VENDORS.ATTRIBUTE10. 
+
+        `TODO: Need better description of this field, any business rules?`
+
+    PractitionerDetailsBarristerLevelV2:
+      type: string
+      enum:
+        - Junior
+        - KC
+      description: |
+        Advocate level. 
+
+        WARNING: Same field as Advocate level in CWA
+
+        CWA ref: PO_VENDORS.ATTRIBUTE10. 
+
+        `TODO: Need better description of this field, any business rules?`
+
+    PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2:
+      type: string
+      description: |
+        Bar Council or Solicitors Regulation Authority roll number. 
+
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Company house number). 
+
+        `TODO: Need better description of this field, any business rules?`
+      example: "`TODO: provide example`"
+
+    PractitionerDetailsBarCouncilRollNumberV2:
+      type: string
+      description: |
+        Bar Council or Solicitors Regulation Authority roll number. 
+
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Company house number). 
+
+        `TODO: Need better description of this field, any business rules?`
+      example: "`TODO: provide example`"
+
+    PractitionerDetailsAdvocateDetailsV2:
+      type: object
+      required:
+        - advocateLevel
+        - solicitorRegulationAuthorityRollNumber
+      properties:
+        advocateLevel:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateLevelV2"
+        solicitorRegulationAuthorityRollNumber:
+          $ref: "#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2"
+
+    PractitionerDetailsBarristerDetailsV2:
+      type: object
+      required:
+        - barristerLevel
+        - barCouncilRollNumber
+      properties:
+        barristerLevel:
+          $ref: "#/components/schemas/PractitionerDetailsBarristerLevelV2"
+        barCouncilRollNumber:
+          $ref: "#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2"
+
+    PractitionerDetailsCreateV2:
+      allOf:
+        - $ref: "#/components/schemas/PractitionerDetailsCreateBaseV2"
+        - oneOf:
+            - $ref: "#/components/schemas/PractitionerDetailsCreateAdvocateV2"
+            - $ref: "#/components/schemas/PractitionerDetailsCreateBarristerV2"
+
+    PractitionerDetailsCreateBaseV2:
+      type: object
+      required:
+        - parentFirms
+        - advocateType
+      properties:
+        parentFirms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PractitionerDetailsParentUpdateV2"
+        advocateType:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateTypeV2"
+
+    PractitionerDetailsCreateAdvocateV2:
+      type: object
+      required:
+        - advocate
+      properties:
+        advocate:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateDetailsV2"
+      description: |
+        Applicable only for `advocateType=Advocate`
+
+    PractitionerDetailsCreateBarristerV2:
+      type: object
+      required:
+        - barrister
+      properties:
+        barrister:
+          $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
+      description: |
+        Applicable only for `advocateType=Barrister`
+
+    PractitionerDetailsV2:
+      allOf:
+        - $ref: "#/components/schemas/PractitionerDetailsBaseV2"
+        - oneOf:
+            - $ref: "#/components/schemas/PractitionerDetailsAdvocateV2"
+            - $ref: "#/components/schemas/PractitionerDetailsBarristerV2"
+
+    PractitionerDetailsBaseV2:
+      type: object
+      required:
+        - parentFirms
+        - advocateType
+        - office
+      properties:
+        parentFirms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PractitionerDetailsParentV2"
+        advocateType:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateTypeV2"
+        office:
+          $ref: "#/components/schemas/PractitionerOfficeCoreDetailsV2"
+
+    PractitionerDetailsAdvocateV2:
+      type: object
+      required:
+        - advocate
+      properties:
+        advocate:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateDetailsV2"
+
+    PractitionerDetailsBarristerV2:
+      type: object
+      required:
+        - barrister
+      properties:
+        barrister:
+          $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
+
+    PractitionerDetailsPatchV2:
+      allOf:
+        - $ref: "#/components/schemas/PractitionerDetailsPatchBaseV2"
+        - type: object
+          properties:
+            liaisonManager:
+              $ref: "#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2"
+        - oneOf:
+            - $ref: "#/components/schemas/PractitionerDetailsPatchAdvocateDetailsV2"
+            - $ref: "#/components/schemas/PractitionerDetailsPatchBarristerDetailsV2"
+
+    PractitionerDetailsPatchBaseV2:
+      type: object
+      properties:
+        parentFirms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PractitionerDetailsParentUpdateV2"
+
+    PractitionerDetailsPatchAdvocateDetailsV2:
+      type: object
+      properties:
+        advocateLevel:
+          $ref: "#/components/schemas/PractitionerDetailsAdvocateLevelV2"
+        solicitorRegulationAuthorityRollNumber:
+          $ref: "#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2"
+
+    PractitionerDetailsPatchBarristerDetailsV2:
+      type: object
+      properties:
+        barristerLevel:
+          $ref: "#/components/schemas/PractitionerDetailsBarristerLevelV2"
+        barCouncilRollNumber:
+          $ref: "#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2"
+
+    LSPHeadOfficeCreateV2:
+      type: object
+      required:
+        - address
+        - payment
+        - liaisonManager
+      properties:
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationCreateV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsCreateV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXCreateV2"
+        liaisonManager:
+          $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        contractManager:
+          $ref: "#/components/schemas/ContractManagerProviderLinkV2"
+
+    LSPHeadOfficeDetailsV2:
+      type: object
+      required:
+        - officeGUID
+        - accountNumber
+        - activeDateTo
+      properties:
+        officeGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+
+    LSPHeadOfficeDetailsPatchV2:
+      type: object
+      properties:
+        officeGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+
+    ChambersHeadOfficeCreateV2:
+      type: object
+      required:
+        - address
+        - liaisonManager
+      properties:
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXCreateV2"
+        liaisonManager:
+          $ref: "#/components/schemas/LiaisonManagerCreateV2"
+
+    PractitionerHeadOfficeCreateV2:
+      type: object
+      required:
+        - payment
+        - liaisonManager
+      properties:
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationCreateV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsCreateV2"
+        liaisonManager:
+          $ref: "#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2"
+
+    LSPOfficeCreateV2:
+      type: object
+      required:
+        - address
+        - payment
+        - liaisonManager
+      properties:
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationCreateV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsCreateOrLinkV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXCreateV2"
+        liaisonManager:
+          $ref: "#/components/schemas/LSPOfficeLiaisonManagerCreateOrLinkV2"
+        contractManager:
+          $ref: "#/components/schemas/ContractManagerProviderLinkV2"
+
+    OfficeAccountNumberV2:
+      type: string
+      description: |
+        Unique provider office identifier. 
+
+        CWA ref: PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE
+      example: "0Q731M"
+
+    OfficeActiveDateToV2:
+      type: string
+      format: date
+      description: |
+        End date of activity. 
+
+        When activeDateTo is set on the head office for LSP all child offices that do not have activeDateTo set should be updated 
+        to the same value (i.e. deactivating head office deactivates all active child offices).
+
+        When activeDateTo is set on the Chambers' office all assigned advocates/barristers that do not have activeDateTo set should 
+        be updated to the same value (i.e. deactivating chambners office deactivates all active advocate/barrister offices).
+
+        When activeDateTo is set on an LSP office or an Advocate/Barrister office `debtRecoveryFlag` should be set to false.
+
+        When activeDateTo is unset (office made active) on an LSP office or an Advocate/Barrister office `falseBalanceFlag` should be set to false.
+
+        CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
+
+    DebtRecoveryFlagV2:
+      type: boolean
+      description: |
+        Can only be set to true if the firm office is still active. 
+        If office is made inactive this flag should be reset to false.
+
+        CWA ref: via fake contract manager.
+
+    FalseBalanceFlagV2:
+      type: boolean
+      description: |
+        Can only be set to true if the firm office is inactive. 
+        If office is made active this flag should be reset to false.
+
+        CWA ref: via fake contract manager.
+
+    OfficeV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - oneOf:
+            - $ref: "#/components/schemas/LSPOfficeDetailsV2"
+            - $ref: "#/components/schemas/ChambersOfficeDetailsV2"
+            - $ref: "#/components/schemas/AdvocateOfficeDetailsV2"
+
+    LSPOfficeDetailsV2:
+      type: object
+      required:
+        - firmType
+        - accountNumber
+        - debtRecoveryFlag
+        - falseBalanceFlag
+        - intervened
+        - address
+        - payment
+      properties:
+        firmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        debtRecoveryFlag:
+          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+        falseBalanceFlag:
+          $ref: "#/components/schemas/FalseBalanceFlagV2"
+        intervened:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXV2"
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsV2"
+
+    ChambersOfficeDetailsV2:
+      type: object
+      required:
+        - firmType
+        - accountNumber
+        - address
+      properties:
+        firmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXV2"
+
+    AdvocateOfficeDetailsV2:
+      type: object
+      required:
+        - firmType
+        - accountNumber
+        - debtRecoveryFlag
+        - falseBalanceFlag
+        - intervened
+        - address
+        - payment
+      properties:
+        firmType:
+          $ref: "#/components/schemas/ProviderFirmTypeV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        debtRecoveryFlag:
+          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+        falseBalanceFlag:
+          $ref: "#/components/schemas/FalseBalanceFlagV2"
+        intervened:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXV2"
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsV2"
+
+    OfficePatchV2:
+      oneOf:
+        - $ref: "#/components/schemas/LSPOfficePatchV2"
+        - $ref: "#/components/schemas/ChambersOfficePatchV2"
+        - $ref: "#/components/schemas/AdvocateOfficePatchV2"
+
+    LSPOfficePatchV2:
+      type: object
+      properties:
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        debtRecoveryFlag:
+          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+        falseBalanceFlag:
+          $ref: "#/components/schemas/FalseBalanceFlagV2"
+        intervened:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXPatchV2"
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
+
+    ChambersOfficePatchV2:
+      type: object
+      properties:
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXPatchV2"
+
+    AdvocateOfficePatchV2:
+      type: object
+      properties:
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        debtRecoveryFlag:
+          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+        falseBalanceFlag:
+          $ref: "#/components/schemas/FalseBalanceFlagV2"
+        intervened:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
+
+    ChambersOfficeCoreDetailsV2:
+      type: object
+      required:
+        - officeGUID
+        - accountNumber
+        - activeDateTo
+      properties:
+        officeGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+
+    PractitionerOfficeCoreDetailsV2:
+      type: object
+      required:
+        - officeGUID
+        - accountNumber
+        - activeDateTo
+      properties:
+        officeGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        accountNumber:
+          $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+
+    IntervenedOfficeDetailsIntervenedFlagV2:
+      type: boolean
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE11 (this is an enum in CWA "Y"/"N"). 
+
+        `TODO: Need better description of this field, any business rules?`
+
+    IntervenedOfficeDetailsIntervenedChangeDateV2:
+      type: string
+      format: date
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE12. 
+
+        `TODO: Need better description of this field, any business rules?`
+
+    IntervenedOfficeDetailsV2:
+      type: object
+      required:
+        - intervenedFlag
+      properties:
+        intervenedFlag:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2"
+        intervenedChangeDate:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2"
+
+    IntervenedOfficeDetailsPatchV2:
+      type: object
+      required:
+        - intervenedFlag
+      properties:
+        intervenedFlag:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2"
+        intervenedChangeDate:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2"
+
+    OfficeAddressV2:
+      type: object
+      required:
+        - line1
+        - townOrCity
+        - postcode
+      properties:
+        line1:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1. 
+
+            `TODO: find out what address info is stored in this attribute`'
+          example: "OLD COUNTY COURT"
+        line2:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2. 
+
+            `TODO: find out what address info is stored in this attribute`
+          example: "56 WESTGATE ROAD"
+        line3:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE3. 
+
+            `TODO: find out what address info is stored in this attribute`
+        line4:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE4. 
+
+            `TODO: find out what address info is stored in this attribute`
+        townOrCity:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.CITY. 
+
+            `TODO: any business rules for verifying data?`
+          example: "NEWCASTLE-UPON-TYNE"
+        county:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.COUNTY. 
+
+            `TODO: any business rules for verifying data?`
+        postcode:
+          type: string
+          description: |
+            CWA ref: PO_VENDOR_SITES_ALL.ZIP. 
+
+            `TODO: any business rules for verifying data?`
+          example: "NE1 5XU"
+
+    OfficePhoneV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE. 
+
+        `TODO: any business rules for verifying data? do we need it as a separate field?`
+      example: "0121 232 1111"
+
+    OfficeEmailAddressV2:
+      type: string
+      format: email
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.EMAIL_ADDRESS
+
+    OfficeWebsiteV2:
+      type: string
+      format: uri
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.URL
+      example: "www.abc.com"
+
+    DXdxNumberV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE6. 
+
+        `TODO: need better description of this field`
+
+    DXdxCentreV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE7. 
+
+        `TODO: need better description of this field`
+
+    DXCreateV2:
+      type: object
+      required:
+        - dxNumber
+        - dxCentre
+      properties:
+        dxNumber:
+          $ref: "#/components/schemas/DXdxNumberV2"
+        dxCentre:
+          $ref: "#/components/schemas/DXdxCentreV2"
+
+    DXV2:
+      type: object
+      required:
+        - dxNumber
+        - dxCentre
+      properties:
+        dxNumber:
+          $ref: "#/components/schemas/DXdxNumberV2"
+        dxCentre:
+          $ref: "#/components/schemas/DXdxCentreV2"
+
+    DXPatchV2:
+      type: object
+      required:
+        - dxNumber
+        - dxCentre
+      properties:
+        dxNumber:
+          $ref: "#/components/schemas/DXdxNumberV2"
+        dxCentre:
+          $ref: "#/components/schemas/DXdxCentreV2"
+
+    VATRegistrationVatNumberV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.VAT_REGISTRATION_NUM
+      example: "476628407"
+
+    VATRegistrationCreateV2:
+      type: object
+      required:
+        - vatNumber
+      properties:
+        vatNumber:
+          $ref: "#/components/schemas/VATRegistrationVatNumberV2"
+
+    VATRegistrationV2:
+      type: object
+      required:
+        - vatNumber
+      properties:
+        vatNumber:
+          $ref: "#/components/schemas/VATRegistrationVatNumberV2"
+
+    PaymentDetailsPaymentMethodV2:
+      type: string
+      enum:
+        - CHECK
+        - EFT
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD. 
+
+        `TODO: check the enum values. Any business rules?`
+
+    PaymentDetailsPaymentHeldFlagV2:
+      type: boolean
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.HOLD_ALL_PAYMENTS_FLAG (this is an enum in CWA "Y"/"N"). 
+
+        `TODO: check the enum values. Any business rules?`
+
+    PaymentDetailsPaymentHeldReasonV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.HOLD_REASON. 
+
+        `TODO: check if this is mandatory when paymentHeldFlag=Y`
+      example: "Under investigation"
+
+    PaymentDetailsCreateV2:
+      type: object
+      required:
+        - paymentMethod
+      properties:
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+        bankAccountDetails:
+          $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
+
+    PaymentDetailsCreateOrLinkV2:
+      type: object
+      required:
+        - paymentMethod
+      properties:
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+        bankAccountDetails:
+          oneOf:
+            - $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
+            - $ref: "#/components/schemas/BankAccountProviderOfficeLinkV2"
+
+    PaymentDetailsV2:
+      type: object
+      required:
+        - paymentMethod
+        - paymentHeldFlag
+      properties:
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+        paymentHeldFlag:
+          $ref: "#/components/schemas/PaymentDetailsPaymentHeldFlagV2"
+        paymentHeldReason:
+          $ref: "#/components/schemas/PaymentDetailsPaymentHeldReasonV2"
+
+    PaymentDetailsPatchOrLinkV2:
+      type: object
+      required:
+        - paymentMethod
+        - paymentHeldFlag
+      properties:
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+        paymentHeldFlag:
+          $ref: "#/components/schemas/PaymentDetailsPaymentHeldFlagV2"
+        paymentHeldReason:
+          $ref: "#/components/schemas/PaymentDetailsPaymentHeldReasonV2"
+        bankAccountDetails:
+          oneOf:
+            - $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
+            - $ref: "#/components/schemas/BankAccountProviderOfficeLinkV2"
+
+    BankAccountAccountNameV2:
+      type: string
+      description: |
+        CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NAME
+      example: "ABC co (UK) LLP CLIENT A/C 1"
+
+    BankAccountSortCodeV2:
+      type: string
+      description: |
+        CWA ref: AP_BANK_BRANCHES.BANK_NUM
+      example: "601111"
+
+    BankAccountAccountNumberV2:
+      type: string
+      description: |
+        CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NUM
+      example: "06805333"
+
+    BankAccountActiveDateFromV2:
+      type: string
+      format: date
+      description: |
+        CWA ref: AP_BANK_ACCOUNT_USES_ALL.START_DATE
+
+    BankAccountActiveDateToV2:
+      type: string
+      format: date
+      description: |
+        CWA ref: AP_BANK_ACCOUNT_USES_ALL.END_DATE
+
+    BankAccountPrimaryFlagV2:
+      type: boolean
+      description: |
+        Marks currently active bank account details for given provider office.
+        Bank account details which are not primary are considered historical 
+        selections.
+
+        If this flag is set to true and there is an 'old' bank details record
+        that was marked as primary, then the 'old' record should be set to
+        old.primary=false and old.activeDateTo=new.activeDateFrom.
+
+        CWA ref: AP_BANK_ACCOUNT_USES_ALL.PRIMARY_FLAG.
+
+    BankAccountProviderOfficeCreateV2:
+      type: object
+      required:
+        - accountName
+        - sortCode
+        - accountNumber
+      properties:
+        accountName:
+          $ref: "#/components/schemas/BankAccountAccountNameV2"
+        sortCode:
+          $ref: "#/components/schemas/BankAccountSortCodeV2"
+        accountNumber:
+          $ref: "#/components/schemas/BankAccountAccountNumberV2"
+        activeDateFrom:
+          $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+      description: |
+        Only applicable for `paymentMethod=EFT`.
+
+        `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
+        Record that previously had primary flag set must be updated so that activeDateTo is set to new primary
+        record's activeDateFrom and primary flag is set to false.
+
+    BankAccountProviderOfficeLinkV2:
+      type: object
+      required:
+        - accountName
+        - sortCode
+        - accountNumber
+      properties:
+        bankAccountGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+        activeDateFrom:
+          $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+      description: |
+        Only applicable for `paymentMethod=EFT`.
+
+        `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
+        Record that previously had primary flag set must be updated so that activeDateTo is set to new primary
+        record's activeDateFrom and primary flag is set to false. 
+
+        `bankAccountGUID` can be obtained using `GET /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details`
+
+    BankAccountV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - accountName
+            - sortCode
+            - accountNumber
+          properties:
+            accountName:
+              $ref: "#/components/schemas/BankAccountAccountNameV2"
+            sortCode:
+              $ref: "#/components/schemas/BankAccountSortCodeV2"
+            accountNumber:
+              $ref: "#/components/schemas/BankAccountAccountNumberV2"
+
+    OfficeBankAccountV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - accountName
+            - sortCode
+            - accountNumber
+            - activeDateFrom
+            - activeDateTo
+            - primaryFlag
+          properties:
+            accountName:
+              $ref: "#/components/schemas/BankAccountAccountNameV2"
+            sortCode:
+              $ref: "#/components/schemas/BankAccountSortCodeV2"
+            accountNumber:
+              $ref: "#/components/schemas/BankAccountAccountNumberV2"
+            activeDateFrom:
+              $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+            activeDateTo:
+              $ref: "#/components/schemas/BankAccountActiveDateToV2"
+            primaryFlag:
+              $ref: "#/components/schemas/BankAccountPrimaryFlagV2"
+
+    LiaisonManagerFirstNameV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.FIRST_NAME
+      example: "John"
+
+    LiaisonManagerLastNameV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.LAST_NAME
+      example: "Smith"
+
+    LiaisonManagerEmailAddressV2:
+      type: string
+      format: email
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.EMAIL_ADDRESS
+      example: "john.smith@example.com"
+
+    LiaisonManagerPhoneV2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.AREA_CODE + PO_VENDOR_CONTACTS.PHONE. 
+
+        `TODO: any business rules for verifying data? do we need it as a separate field?`
+      example: "0121 232 1111"
+
+    LiaisonManagerActiveDateFromV2:
+      type: string
+      format: date
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.CREATION_DATE
+
+    LiaisonManagerActiveDateToV2:
+      type: string
+      format: date
+      description: |
+        CWA ref: PO_VENDOR_CONTACTS.INACTIVE_DATE
+
+    OfficeLiaisonManagerCreateOrLinkV2:
+      oneOf:
+        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+
+    LSPOfficeLiaisonManagerCreateOrLinkV2:
+      oneOf:
+        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
+
+    ChambersOfficeLiaisonManagerCreateV2:
+      allOf:
+        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+
+    AdvocateOfficeLiaisonManagerCreateOrLinkV2:
+      oneOf:
+        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+
+    LiaisonManagerCreateV2:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - emailAddress
+        - telephoneNumber
+      properties:
+        firstName:
+          $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+        lastName:
+          $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+        emailAddress:
+          $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+        activeDateFrom:
+          $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
+      description: |
+        activeDateFrom by default is set to today's date. Previously 'active' liason manager
+        assignment activeDateTo's value should be set to activeDateFrom's date minus one day of the new assignment.
+
+    LiaisonManagerLinkHeadOfficeV2:
+      type: object
+      required:
+        - useHeadOfficeLiaisonManager
+      properties:
+        useHeadOfficeLiaisonManager:
+          type: boolean
+          description: |
+            Setting this flag to true interlinks Liason manager record from the head office (or Chambers)
+      description: |
+        Applicable only for LSP offices. Inicates that new Liason manager assignment should be to the Liason manager that 
+        is currently specificed at the head office. This update only links the data (no duplicate is created).
+
+    LiaisonManagerLinkChambersV2:
+      type: object
+      required:
+        - useChambersLiaisonManager
+      properties:
+        useChambersLiaisonManager:
+          type: boolean
+          description: |
+            Setting this flag to true interlinks Liason manager record from the head office (or Chambers)
+      description: |
+        Applicable only for Advocate/Barrister. Inicates that new Liason manager assignment should be to the Liason manager that 
+        is currently specificed at the Chambers' office. This update only links the data (no duplicate is created).
+
+    LiaisonManagerLinkedFlagV2:
+      type: boolean
+      description: |
+        Indicates whether this liason manager entry is specific to given provider or is linked.
+
+        If the office is LSP and this flag is set to true it indicates that `useHeadOfficeLiaisonManager` option was used to create this entry.
+
+        If the office is Advocate/Barrister and this flag is set to true it indicates that `useChambersLiaisonManager` option was used to create this entry.
+
+        Note that if this attribute is set to true then updates at the pareent entity should cascade to create new linked assignment.
+
+    LiaisonManagerV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - firstName
+            - lastName
+            - emailAddress
+            - telephoneNumber
+            - activeDateFrom
+            - linkedFlag
+          properties:
+            firstName:
+              $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+            lastName:
+              $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+            emailAddress:
+              $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+            telephoneNumber:
+              $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+            activeDateFrom:
+              $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
+            activeDateTo:
+              $ref: "#/components/schemas/LiaisonManagerActiveDateToV2"
+            linkedFlag:
+              $ref: "#/components/schemas/LiaisonManagerLinkedFlagV2"
+
+    OfficeLiaisonManagerPatchV2:
+      type: object
+      properties:
+        liaisonManagerGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+
+    ContractManagerProviderLinkV2:
+      type: object
+      properties:
+        contractManagerGuid:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+
+    ContractManagerProviderPatchV2:
+      type: object
+      properties:
+        contractManagerGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+
+    OfficePractitionerV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: "#/components/schemas/ProviderBaseV2"
+        - $ref: "#/components/schemas/ProviderPractitionerV2"
+
+    ContractManagerContractManagerIdV2:
+      type: string
+      example: "`TODO: provide example`"
+      description: |
+        CWA ref: PER_ALL_PEOPLE_F.PERSON_ID (for provider firms' offices ID is stored in PO_VENDOR_SITES_ALL.ATTRIBUTE4)
+
+    ContractManagerFirstNameV2:
+      type: string
+      example: "John"
+      description: |
+        CWA ref: PER_ALL_PEOPLE_F.FIRST_NAME
+
+    ContractManagerLastNameV2:
+      type: string
+      example: "Smith"
+      description: |
+        CWA ref: PER_ALL_PEOPLE_F.LAST_NAME
+
+    ContractManagerEmailAddressV2:
+      type: string
+      format: email
+      description: |
+        CWA ref: PER_ALL_PEOPLE_F.EMAIL_ADDRESS
+      example: "john.smith@example.com"
+
+    ContractManagerV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - contractManagerId
+            - firstName
+            - lastName
+          properties:
+            contractManagerId:
+              $ref: "#/components/schemas/ContractManagerContractManagerIdV2"
+            firstName:
+              $ref: "#/components/schemas/ContractManagerFirstNameV2"
+            lastName:
+              $ref: "#/components/schemas/ContractManagerLastNameV2"
+            email:
+              $ref: "#/components/schemas/ContractManagerEmailAddressV2"
+
+    OfficeContractManagerV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - contractManagerId
+            - firstName
+            - lastName
+          properties:
+            contractManagerId:
+              $ref: "#/components/schemas/ContractManagerContractManagerIdV2"
+            firstName:
+              $ref: "#/components/schemas/ContractManagerFirstNameV2"
+            lastName:
+              $ref: "#/components/schemas/ContractManagerLastNameV2"
+            email:
+              $ref: "#/components/schemas/ContractManagerEmailAddressV2"
+
+    PaginatedSearchV2:
+      type: object
+      required:
+        - searchCriteria
+        - pagination
+      properties:
+        searchCriteria:
+          $ref: "#/components/schemas/SearchCriteriaV2"
+        pagination:
+          $ref: "#/components/schemas/PaginationV2"
+        sort:
+          $ref: "#/components/schemas/SortV2"
+
+    SearchCriteriaV2:
+      type: object
+      properties:
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchCriterionV2"
+
+    SearchCriterionV2:
+      type: object
+      properties:
+        filter:
+          type: string
+          example: "guid"
+          description: "Filter key"
+        values:
+          type: array
+          items:
+            type: string
+            example: "ABCD-EFGH-1234-5678"
+            description: "Filter value(s) used for this search"
+
+    PaginationV2:
+      type: object
+      properties:
+        currentPage:
+          type: number
+          example: 2
+          description: "Page index denoting the current page index for response, starting from 0"
+        pageSize:
+          type: number
+          example: 10
+          description: "Page size used for this search"
+        totalPages:
+          type: number
+          example: 5
+          description: "Total number of pages"
+        totalItems:
+          type: number
+          example: 123
+          description: "Total number of records for given search request"
+
+    SortV2:
+      type: object
+      properties:
+        field:
+          type: string
+          example: "sortByOption"
+        direction:
+          type: string
+          enum: [asc, desc]
+          example: "asc"
+
+    LinksV2:
+      type: object
+      properties:
+        self:
+          type: string
+          example: "/example?page=2&pageSize=10"
+          format: uri
+        next:
+          type: string
+          example: "/example?page=3&pageSize=10"
+          format: uri
+        prev:
+          type: string
+          example: "/example?page=1&pageSize=10"
+          format: uri
+        first:
+          type: string
+          example: "/example?page=1&pageSize=10"
+          format: uri
+        last:
+          type: string
+          example: "/example?page=5&pageSize=10"
+          format: uri
+
+    ProviderFirmChangedSnapshotEventV2Payload:
+      type: object
+      properties:
+        providerFirm:
+          $ref: "#/components/schemas/ProviderV2"
+        bankDetails:
+          type: array
+          items:
+            $ref: "#/components/schemas/BankAccountV2"
+        offices:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/OfficeV2"
+              - type: object
+                required:
+                  - liaisonManagers
+                  - contractManagers
+                properties:
+                  liasonManagers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LiaisonManagerV2"
+                  contractManagers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContractManagerV2"
+                  officeBankDetails:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OfficeBankAccountV2"
+
+    EventTypeV2:
+      type: string
+      enum:
+        - ProviderFirmChangedSnapshotEvent
+
+    EventSourceV2:
+      type: string
+      enum:
+        - apiV2
+
+    EventHeaderV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          properties:
+            eventSource:
+              $ref: "#/components/schemas/EventSourceV2"
+            eventType:
+              $ref: "#/components/schemas/EventTypeV2"
+            correlationId:
+              type: string
+            traceId:
+              type: string
+
+    EventV2:
+      type: object
+      required:
+        - eventHeader
+        - eventPayload
+      properties:
+        eventHeader:
+          $ref: "#/components/schemas/EventHeaderV2"
+        eventPayload:
+          oneOf:
+            - $ref: "#/components/schemas/ProviderFirmChangedSnapshotEventV2Payload"
+
+  parameters:
+    XCorrelationId:
+      name: x-correlation-id
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Correlation ID for tracing requests
+    TraceParentHeader:
+      name: transparent
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+      description: >
+        W3C Trace Context header used for distributed tracing.
+        Format: 00-<trace-id>-<span-id>-<trace-flags>.
+        Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0
+    ProviderFirmGUIDorFirmNumber:
+      name: providerFirmGUIDorFirmNumber
+      in: path
+      required: true
+      schema:
+        type: string
+      description: >
+        Provider Firm GUID (primary key) or Firm ID a.k.a Account Number (unique key).
+    OfficeGUIDorCode:
+      name: officeGUIDorCode
+      in: path
+      required: true
+      schema:
+        type: string
+      description: >
+        Office GUID (primary key) or Office code (unique key).
+    BankAccountDetailGUID:
+      name: bankAccountDetailGUID
+      in: path
+      required: true
+      schema:
+        type: string
+      description: >
+        Bank account details GUID (primary key).
+
+    QPageNumber:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: number
+      description: Page index for given request (start from 0, default is 0)
+
+    QPageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: number
+      description: Page size for given request (default is 100)
+
+security:
+  - bearerAuth: []

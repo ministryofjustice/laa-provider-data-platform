@@ -5,11 +5,11 @@ import java.util.UUID;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreateChambers;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreateLsp;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreatePractitioner;
-import uk.gov.justice.laa.providerdata.entity.ProviderFirmEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
 /**
- * Utility class responsible for constructing {@link ProviderFirmEntity} instances from various
- * provider creation request models.
+ * Utility class responsible for constructing {@link ProviderEntity} instances from various provider
+ * creation request models.
  *
  * <p>This mapper centralises logic for populating core entity fields such as GUID generation,
  * versioning, timestamps, and user audit information.
@@ -23,15 +23,15 @@ public final class ProviderFirmCreateMapper {
   private ProviderFirmCreateMapper() {}
 
   /**
-   * Creates a new {@link ProviderFirmEntity} from a Legal Services Provider (LSP) creation request.
+   * Creates a new {@link ProviderEntity} from a Legal Services Provider (LSP) creation request.
    *
    * @param req the LSP provider creation request containing base provider details
    * @param userId the identifier of the user creating the entity
-   * @return a populated {@link ProviderFirmEntity} representing the LSP
+   * @return a populated {@link ProviderEntity} representing the LSP
    */
-  public static ProviderFirmEntity fromLsp(ProviderCreateLsp req, String userId) {
+  public static ProviderEntity fromLsp(ProviderCreateLsp req, String userId) {
     var base = req.base();
-    return ProviderFirmEntity.builder()
+    return ProviderEntity.builder()
         .guid(UUID.randomUUID())
         .version(1L)
         .createdBy(userId)
@@ -45,15 +45,15 @@ public final class ProviderFirmCreateMapper {
   }
 
   /**
-   * Creates a new {@link ProviderFirmEntity} from a Chambers creation request.
+   * Creates a new {@link ProviderEntity} from a Chambers creation request.
    *
    * @param req the Chambers provider creation request containing base provider details
    * @param userId the identifier of the user creating the entity
-   * @return a populated {@link ProviderFirmEntity} representing the Chambers
+   * @return a populated {@link ProviderEntity} representing the Chambers
    */
-  public static ProviderFirmEntity fromChambers(ProviderCreateChambers req, String userId) {
+  public static ProviderEntity fromChambers(ProviderCreateChambers req, String userId) {
     var base = req.base();
-    return ProviderFirmEntity.builder()
+    return ProviderEntity.builder()
         .guid(UUID.randomUUID())
         .version(1L)
         .createdBy(userId)
@@ -67,18 +67,18 @@ public final class ProviderFirmCreateMapper {
   }
 
   /**
-   * Creates a new {@link ProviderFirmEntity} from a Practitioner creation request.
+   * Creates a new {@link ProviderEntity} from a Practitioner creation request.
    *
    * <p>Firm type is set to "Advocate" by default but can be adjusted depending on your domain rules
    * (e.g., distinguishing Barristers vs Advocates).
    *
    * @param req the practitioner provider creation request containing base provider details
    * @param userId the identifier of the user creating the entity
-   * @return a populated {@link ProviderFirmEntity} representing the practitioner
+   * @return a populated {@link ProviderEntity} representing the practitioner
    */
-  public static ProviderFirmEntity fromPractitioner(ProviderCreatePractitioner req, String userId) {
+  public static ProviderEntity fromPractitioner(ProviderCreatePractitioner req, String userId) {
     var base = req.base();
-    return ProviderFirmEntity.builder()
+    return ProviderEntity.builder()
         .guid(UUID.randomUUID())
         .version(1L)
         .createdBy(userId)

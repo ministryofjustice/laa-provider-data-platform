@@ -8,21 +8,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import uk.gov.justice.laa.providerdata.entity.ProviderFirmEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class ProviderFirmRepositoryTest {
 
-  @Autowired private ProviderFirmRepository repository;
+  @Autowired private ProviderRepository repository;
 
   @Test
   void save_and_findByFirmNumber_roundTrips() {
     UUID guid = UUID.randomUUID();
 
-    ProviderFirmEntity saved =
+    ProviderEntity saved =
         repository.save(
-            ProviderFirmEntity.builder()
+            ProviderEntity.builder()
                 .guid(guid)
                 .version(1L)
                 .createdBy("test.user")

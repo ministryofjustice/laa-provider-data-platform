@@ -3,7 +3,7 @@ title: Deployment
 weight: 6
 ---
 
-# Deployment Guide
+# Deployment guide
 
 ## Overview
 
@@ -12,11 +12,11 @@ The provider details API (legacy) is deployed to Kubernetes on the Cloud Platfor
 ## Environments
 
 - **Dev**: Development environment for testing
-- **Staging**: Pre-production environment for validation
 - **UAT**: User acceptance testing
+- **Staging**: Pre-production environment for validation
 - **Production**: Live production environment
 
-## Helm Deployment
+## Helm deployment
 
 ### Prerequisites
 
@@ -24,13 +24,13 @@ The provider details API (legacy) is deployed to Kubernetes on the Cloud Platfor
 - Helm 3.0 or higher
 - Access to the appropriate namespace
 
-### Deployment Directories
+### Deployment directories
 
 Deployment configurations are in `helm_deploy/`:
 
 - `providers-app/` - Main application Helm chart
 
-### Helm Values
+### Helm values
 
 Each environment has its own values file:
 
@@ -45,11 +45,13 @@ helm_deploy/providers-app/
 
 ### Deploy
 
-**Do NOT deploy manually**. Use the GitHub Actions workflows to deploy a tagged image.
+**Do NOT deploy or roll back manually**.
+Use the GitHub Actions workflows to deploy a tagged image.
+Roll back by re-deploying an older tag.
 
 ## Configuration
 
-### Rate Limiting
+### Rate limiting
 
 Rate limits are configured per environment in the values files:
 
@@ -60,7 +62,7 @@ rateLimit:
   burst: "1"    # burst size
 ```
 
-### Resource Limits
+### Resource limits
 
 Configure resource requests and limits:
 
@@ -84,7 +86,7 @@ replicaCount: 3
 
 ## Monitoring
 
-### Health Checks
+### Health checks
 
 The application provides health checks:
 
@@ -110,7 +112,7 @@ kubectl logs -f deployment/providers-app -n laa-data-provider-data-prod
 
 ## Troubleshooting
 
-### Pod Not Starting
+### Pod not starting
 
 Check pod status:
 
@@ -119,7 +121,7 @@ kubectl describe pod POD_NAME -n NAMESPACE
 kubectl logs POD_NAME -n NAMESPACE
 ```
 
-### Connection Issues
+### Connection issues
 
 Verify environment variables:
 
@@ -127,7 +129,7 @@ Verify environment variables:
 kubectl exec -it POD_NAME -n NAMESPACE -- env | grep SPRING
 ```
 
-### Performance Issues
+### Performance issues
 
 Check resource usage:
 
@@ -136,11 +138,7 @@ kubectl top pod -n NAMESPACE
 kubectl top node
 ```
 
-## Rollback
-
-**Do NOT roll back manually**. Use the GitHub Actions workflows to deploy a previous tagged image.
-
-## CI/CD Integration
+## CI/CD integration
 
 Deployment is typically triggered by CI/CD pipelines in GitHub Actions:
 
@@ -157,7 +155,7 @@ For more information on Cloud Platform, see:
 - [Cloud Platform User Guide](https://user-guide.cloud-platform.service.justice.gov.uk/)
 - [Helm Documentation](https://helm.sh/docs/)
 
-## Next Steps
+## Next steps
 
 - See [Configuration](configuration.html) for environment variables
 - See [Development](development.html) for development setup

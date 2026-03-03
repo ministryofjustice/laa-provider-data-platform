@@ -5,87 +5,49 @@ weight: 3
 
 # Configuration
 
-## Environment Variables
+## Environment variables
 
-Configure the application using environment variables:
+Configure the application using environment variables.
+In the Cloud Platform, these variables are provided by the Kubernetes deployment resource,
+generally populated from secrets.
 
-### Application Settings
+### Application settings
 
 - `TARGET_ENVIRONMENT`: Deployed environment (dev, staging, prod, local) - used for Sentry and active Spring profile
-- `SERVER_PORT`: Server port (default: 8080)
-- `SERVER_SERVLET_CONTEXT_PATH`: Context path for the application
 
-### Database Configuration
+### Database configuration
 
-- `SPRING_DATASOURCE_URL`: Database connection URL
-- `SPRING_DATASOURCE_USERNAME`: Database username
-- `SPRING_DATASOURCE_PASSWORD`: Database password
+- `CCMS_DB_URL`: Database connection URL
+- `CCMS_DB_USER`: Database username
+- `CCMS_DB_PASSWORD`: Database password
+- `CWA_DB_URL`: Database connection URL
+- `CWA_DB_USER`: Database username
+- `CWA_DB_PASSWORD`: Database password
 
-### Redis Configuration
+### Redis configuration
 
-- `SPRING_REDIS_HOST`: Redis server host
-- `SPRING_REDIS_PORT`: Redis server port (default: 6379)
-- `SPRING_REDIS_PASSWORD`: Redis password (if required)
+- `REDIS_ENDPOINT`: Redis server host and port (6379)
+- `REDIS_PASSWORD`: Redis password
 
-### Rate Limiting
+## Application properties
 
-- `RATE_LIMIT_RPS`: Requests per second limit
-- `RATE_LIMIT_RPM`: Requests per minute limit
+### Local development
 
-### API Configuration
+For local development, the Spring Boot `local` profile is activated.
+So, some configuration overrides for local development are in `application-local.yml`.
 
-- `API_KEY`: API authentication key
-- `API_TIMEOUT`: API request timeout in seconds
+## Gradle build properties
 
-## Application Properties
-
-### Local Development
-
-Local configuration is in `application-local.yml`:
-
-```yaml
-spring:
-  profiles:
-    active: local
-  datasource:
-    url: jdbc:oracle:thin:@localhost:1521:xe
-    username: laa_user
-    password: password
-  redis:
-    host: localhost
-    port: 6379
-```
-
-### Staging Environment
-
-Staging configuration is in `application-staging.yml`:
-
-```yaml
-spring:
-  profiles:
-    active: staging
-```
-
-### Production Environment
-
-Production configuration is in `application-prod.yml`:
-
-```yaml
-spring:
-  profiles:
-    active: prod
-```
-
-## Gradle Build Properties
-
-Configure GitHub package repository access in `~/.gradle/gradle.properties`:
+Configure GitHub package repository access in `~/.gradle/gradle.properties` to allow
+authenticated access to the GitHub Package Registry which contains the LAA Spring Boot
+Gradle plugin.
 
 ```properties
 project.ext.gitPackageUser=YOUR_GITHUB_USERNAME
 project.ext.gitPackageKey=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
 ```
 
-## Rate Limiting Configuration
+## Rate limiting configuration
 
 Rate limiting is configured in the Helm values files:
 
@@ -102,6 +64,6 @@ rateLimit:
   burst: "1"    # burst size
 ```
 
-## More Information
+## More information
 
 See the main [README.md](https://github.com/ministryofjustice/laa-data-provider-data) for more details.

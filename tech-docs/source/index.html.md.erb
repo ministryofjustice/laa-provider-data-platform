@@ -17,16 +17,23 @@ title: LAA provider data APIs documentation
   </div>
 </div>
 
+# Provider data APIs
+
 ## Who is this documentation for?
 
 This is technical documentation for Digital teams at the Ministry of Justice who use or develop
 LAA provider data APIs and related services.
 
-The term **provider data APIs** [aka PDA] is a generic way of referring to either or both of:
-* the **provider details API (legacy)** [aka PDA (legacy)], which is an immutable API that just
-  wraps read-only queries of the Oracle CWA data
-* the **provider data API (persistent)** [aka PDA (persistent)], which is a new system, designed for
-  MAPD, which has its own database layer and endpoints to create, update and query provider data
+## What is this documentation about?
+
+The terminology **provider data APIs** - also known as **PDA** - refers to:
+
+* **[provider details API (legacy)](#provider-details-api-legacy)** - also known as
+  **PDA (legacy)** - is an immutable API with endpoints that wrap read-only queries against the
+  CWA Oracle database
+* **[provider data API (persistent)](#provider-data-api-persistent)** - also known as
+  **PDA (persistent)** - is a service with its own database layer and endpoints to allow MAPD to
+  create, update and delete provider data
 
 ---
 

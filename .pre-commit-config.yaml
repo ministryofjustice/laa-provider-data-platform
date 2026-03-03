@@ -21,7 +21,7 @@ repos:
             .idea/|
             .git/|
             reports/|
-            docs/|
+            tech-docs/|
             gradle/
           )
 

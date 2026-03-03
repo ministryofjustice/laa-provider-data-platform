@@ -35,9 +35,9 @@
   and API breaking changes.
 - Do not comment on code formatting, that is enforced using Spotless and Checkstyle.
 
-## Documentation (docs/ folder)
+## Documentation (tech-docs/ folder)
 
-The `docs/` folder contains a Middleman technical documentation site.
+The `tech-docs/` folder contains a Middleman technical documentation site.
 
 - Keep documentation brief and scannable.
 - Link to authoritative sources (Cloud Platform User Guide, Spring Boot docs, etc.) rather

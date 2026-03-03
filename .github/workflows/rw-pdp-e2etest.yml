@@ -1,4 +1,4 @@
-name: "Reusable workflow: End-to-end test [PDP]"
+name: "Reusable workflow: End-to-end test"
 
 on:
   workflow_call:

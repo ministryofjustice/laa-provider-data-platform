@@ -1,9 +1,9 @@
-name: "Pipeline: PR closed/merged [PDP]"
+name: "Pipeline: PR closed/merged"
 
 on:
   pull_request:
     types: [ closed ]
-    paths-ignore: [ "docs/**" ]
+    paths-ignore: [ "tech-docs/**" ]
   workflow_dispatch:
     inputs:
       prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }

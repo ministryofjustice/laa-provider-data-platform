@@ -1,9 +1,9 @@
-name: "Pipeline: PR opened/updated [PDP]"
+name: "Pipeline: PR opened/updated"
 
 on:
   pull_request:
     types: [ opened, reopened, synchronize, ready_for_review ]
-    paths-ignore: [ "docs/**" ]
+    paths-ignore: [ "tech-docs/**" ]
 
 concurrency:
   group: "pipeline-pdp-pr-${{ github.event.pull_request.number }}"

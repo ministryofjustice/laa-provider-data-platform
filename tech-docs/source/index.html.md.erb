@@ -1,0 +1,63 @@
+---
+title: LAA provider data APIs documentation
+---
+
+<div class="app-masthead">
+  <div class="app-width-container">
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-full-from-desktop">
+        <p class="govuk-heading-xl app-masthead__title">
+          LAA provider data APIs documentation
+        </p>
+        <p class="app-masthead__description">
+          Technical documentation for LAA provider data APIs and services
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+## Who is this documentation for?
+
+This is technical documentation for Digital teams at the Ministry of Justice who use or develop
+LAA provider data APIs and related services.
+
+The term **provider data APIs** [aka PDA] is a generic way of referring to either or both of:
+* the **provider details API (legacy)** [aka PDA (legacy)], which is an immutable API that just
+  wraps read-only queries of the Oracle CWA data
+* the **provider data API (persistent)** [aka PDA (persistent)], which is a new system, designed for
+  MAPD, which has its own database layer and endpoints to create, update and query provider data
+
+---
+
+## Provider details API (legacy)
+
+The **provider details API (legacy)** is a read-only REST API that retrieves provider data from
+CWA Oracle database snapshots. It is deployed to Cloud Platform and serves live traffic.
+
+- [PDA (legacy) documentation](pdl-docs/index.html) - Getting started, configuration, deployment
+  and operations
+
+Source: [laa-data-provider-data](https://github.com/ministryofjustice/laa-data-provider-data)
+(private repository)
+
+---
+
+## Provider data API (persistent)
+
+The **provider data API (persistent)** implements a REST API for retrieving and updating provider
+firm and office data (and, later on, contract and schedule data). It is under active development.
+
+- [PDA (persistent) documentation](pdp-docs/index.html) - Getting started and CI/CD workflows
+
+Source: [laa-provider-data-platform](https://github.com/ministryofjustice/laa-provider-data-platform)
+
+---
+
+## Contributing
+
+If there's something missing, please either let us know and we'll add a new article, or if you're
+comfortable writing one yourself, PRs will be gratefully received.
+
+The "GitHub" link at the top right of this page will take you to the repository for this
+documentation.

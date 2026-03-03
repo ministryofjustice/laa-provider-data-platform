@@ -20,6 +20,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderFirmEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
@@ -29,6 +30,7 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderBankAccountLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
@@ -44,6 +46,8 @@ import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 public class LocalDataSeeder implements CommandLineRunner {
 
   @Autowired private ProviderRepository providerRepository;
+
+  @Autowired private ProviderFirmRepository providerFirmRepository;
 
   @Autowired private OfficeRepository officeRepository;
 
@@ -73,6 +77,7 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     seedBankAccounts();
     seedProviders();
+    seedProviderFirms();
     seedOffices();
     seedContractManagers();
     seedLiaisonManagers();
@@ -152,6 +157,55 @@ public class LocalDataSeeder implements CommandLineRunner {
     providerRepository.save(provider1);
     providerRepository.save(provider2);
     log.info("Seeded {} Provider records", 2);
+  }
+
+  private void seedProviderFirms() {
+    log.info("Seeding ProviderFirms table");
+
+    ProviderFirmEntity firm1 =
+        ProviderFirmEntity.builder()
+            .guid(UUID.randomUUID())
+            .version(1L)
+            .createdBy("SYSTEM")
+            .createdTimestamp(OffsetDateTime.now())
+            .lastUpdatedBy("SYSTEM")
+            .lastUpdatedTimestamp(OffsetDateTime.now())
+            .firmNumber("PF001")
+            .firmType("Legal Services Provider")
+            .name("Seeded Provider Firm (LSP)")
+            .build();
+
+    ProviderFirmEntity firm2 =
+        ProviderFirmEntity.builder()
+            .guid(UUID.randomUUID())
+            .version(1L)
+            .createdBy("SYSTEM")
+            .createdTimestamp(OffsetDateTime.now())
+            .lastUpdatedBy("SYSTEM")
+            .lastUpdatedTimestamp(OffsetDateTime.now())
+            .firmNumber("PF002")
+            .firmType("Chambers")
+            .name("Seeded Provider Firm (Chambers)")
+            .build();
+
+    ProviderFirmEntity firm3 =
+        ProviderFirmEntity.builder()
+            .guid(UUID.randomUUID())
+            .version(1L)
+            .createdBy("SYSTEM")
+            .createdTimestamp(OffsetDateTime.now())
+            .lastUpdatedBy("SYSTEM")
+            .lastUpdatedTimestamp(OffsetDateTime.now())
+            .firmNumber("PF003")
+            .firmType("Advocate")
+            .name("Seeded Provider Firm (Practitioner)")
+            .build();
+
+    providerFirmRepository.save(firm1);
+    providerFirmRepository.save(firm2);
+    providerFirmRepository.save(firm3);
+
+    log.info("Seeded {} ProviderFirm records", 3);
   }
 
   private void seedOffices() {

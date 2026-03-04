@@ -12,6 +12,19 @@ The technical documentation is built from the Markdown files in `/tech-docs/sour
 `/tech-docs/source/pdp-docs`. To modify the published documentation just modify those files,
 once your changes have been merged into the `main` branch they will be published.
 
+### Adding new pages
+
+New pages must include a `source_url` field in their YAML frontmatter pointing to their location
+in this repository. This is required because the tech-docs build runs from a temporary directory,
+and without it the "View source" link on each page will be incorrect.
+
+```yaml
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/my-new-page.html.md.erb
+title: My new page
+---
+```
+
 ## How to build the technical documentation locally
 
 The makefile contains the commands to spin up a Docker container with the documentation

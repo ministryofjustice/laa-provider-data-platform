@@ -34,24 +34,17 @@ jobs:
             tech-docs
           sparse-checkout-cone-mode: false
 
-      # We move the tech-docs directory to the root so it is treated as if the
-      # tech-docs directory was the only thing in the repository.
-      - name: "Move directory to root"
-        run: |
-          mv tech-docs/* .
-          rm -rf tech-docs
-
       - name: "Compile Markdown to HTML and create artifact"
         # Script to deploy is not in the repo, but in this image:
         # `ministryofjustice/tech-docs-github-pages-publisher:v6.0.1`
         run: |
-          /usr/local/bin/package
+          cd tech-docs && /usr/local/bin/package
 
       - name: "Upload artifact to be published"
         uses: actions/upload-artifact@v6
         with:
           name: github-pages
-          path: artifact.tar
+          path: tech-docs/artifact.tar
           retention-days: 1
           overwrite: true
 
@@ -91,4 +84,4 @@ jobs:
             --skip https://ministryofjustice.github.io/laa-provider-data-platform/images/ \
             --skip javascripts/govuk_frontend.js \
             --skip 'http://localhost:.*' \
-            --skip 'https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/source/.*\.md\.erb'
+            --skip 'https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/.*\.md\.erb'

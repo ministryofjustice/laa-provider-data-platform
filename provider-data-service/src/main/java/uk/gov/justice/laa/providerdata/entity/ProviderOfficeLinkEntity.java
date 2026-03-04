@@ -5,6 +5,8 @@ import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
@@ -36,6 +38,7 @@ import lombok.NoArgsConstructor;
 public class ProviderOfficeLinkEntity {
 
   @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
   @Column(name = "GUID", columnDefinition = "UUID")
   private UUID guid;
 

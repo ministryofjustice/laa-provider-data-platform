@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
@@ -10,6 +12,7 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /** Office entity representing a provider's office location. */
@@ -17,12 +20,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 @Entity
 @Table(name = "OFFICE")
 public class OfficeEntity {
 
   @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
   @Column(name = "GUID", columnDefinition = "UUID")
+  @EqualsAndHashCode.Exclude
   private UUID guid;
 
   @Column(name = "VERSION")

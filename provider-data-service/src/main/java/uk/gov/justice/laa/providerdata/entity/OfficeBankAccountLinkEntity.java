@@ -3,6 +3,8 @@ package uk.gov.justice.laa.providerdata.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -29,6 +31,7 @@ import lombok.NoArgsConstructor;
 public class OfficeBankAccountLinkEntity {
 
   @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
   @Column(name = "GUID", columnDefinition = "UUID")
   private UUID guid;
 

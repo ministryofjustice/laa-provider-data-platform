@@ -2,12 +2,9 @@ package uk.gov.justice.laa.providerdata.config;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
@@ -39,8 +36,8 @@ import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
  * complete before seeding.
  */
 @Slf4j
-@Component
-@Profile("local")
+// @Component
+// @Profile("local")
 public class LocalDataSeeder implements CommandLineRunner {
 
   @Autowired private ProviderRepository providerRepository;
@@ -91,7 +88,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     BankAccountEntity account1 =
         BankAccountEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -104,7 +100,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     BankAccountEntity account2 =
         BankAccountEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -125,7 +120,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     ProviderEntity provider1 =
         ProviderEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -138,7 +132,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     ProviderEntity provider2 =
         ProviderEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -159,7 +152,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     OfficeEntity office1 =
         OfficeEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -178,7 +170,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     OfficeEntity office2 =
         OfficeEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -202,7 +193,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     ContractManagerEntity manager1 =
         ContractManagerEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -215,7 +205,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     ContractManagerEntity manager2 =
         ContractManagerEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -236,7 +225,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     LiaisonManagerEntity liaison1 =
         LiaisonManagerEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -250,7 +238,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     LiaisonManagerEntity liaison2 =
         LiaisonManagerEntity.builder()
-            .guid(UUID.randomUUID())
             .version(1L)
             .createdBy("SYSTEM")
             .createdTimestamp(OffsetDateTime.now())
@@ -276,7 +263,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (!providers.isEmpty() && !bankAccounts.isEmpty()) {
       ProviderBankAccountLinkEntity link1 =
           ProviderBankAccountLinkEntity.builder()
-              .guid(UUID.randomUUID())
               .version(1L)
               .createdBy("SYSTEM")
               .createdTimestamp(OffsetDateTime.now())
@@ -300,7 +286,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (providers.size() >= 2 && offices.size() >= 2) {
       // LSP Provider office link
       LspProviderOfficeLinkEntity lspLink = new LspProviderOfficeLinkEntity();
-      lspLink.setGuid(UUID.randomUUID());
       lspLink.setVersion(1L);
       lspLink.setCreatedBy("SYSTEM");
       lspLink.setCreatedTimestamp(OffsetDateTime.now());
@@ -321,7 +306,6 @@ public class LocalDataSeeder implements CommandLineRunner {
 
       // Chamber Provider office link
       ChamberProviderOfficeLinkEntity chamberLink = new ChamberProviderOfficeLinkEntity();
-      chamberLink.setGuid(UUID.randomUUID());
       chamberLink.setVersion(1L);
       chamberLink.setCreatedBy("SYSTEM");
       chamberLink.setCreatedTimestamp(OffsetDateTime.now());
@@ -348,7 +332,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (providers.size() >= 2) {
       ProviderParentLinkEntity parentLink =
           ProviderParentLinkEntity.builder()
-              .guid(UUID.randomUUID())
               .version(1L)
               .createdBy("SYSTEM")
               .createdTimestamp(OffsetDateTime.now())
@@ -372,7 +355,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (!providerOfficeLinks.isEmpty() && !bankAccounts.isEmpty()) {
       OfficeBankAccountLinkEntity link =
           OfficeBankAccountLinkEntity.builder()
-              .guid(UUID.randomUUID())
               .version(1L)
               .createdBy("SYSTEM")
               .createdTimestamp(OffsetDateTime.now())
@@ -398,7 +380,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (!offices.isEmpty() && !contractManagers.isEmpty()) {
       OfficeContractManagerLinkEntity link =
           OfficeContractManagerLinkEntity.builder()
-              .guid(UUID.randomUUID())
               .version(1L)
               .createdBy("SYSTEM")
               .createdTimestamp(OffsetDateTime.now())
@@ -422,7 +403,6 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (!offices.isEmpty() && !liaisonManagers.isEmpty()) {
       OfficeLiaisonManagerLinkEntity link =
           OfficeLiaisonManagerLinkEntity.builder()
-              .guid(UUID.randomUUID())
               .version(1L)
               .createdBy("SYSTEM")
               .createdTimestamp(OffsetDateTime.now())

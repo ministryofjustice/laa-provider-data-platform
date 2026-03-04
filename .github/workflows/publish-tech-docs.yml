@@ -41,7 +41,7 @@ jobs:
           cd tech-docs && /usr/local/bin/package
 
       - name: "Upload artifact to be published"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: github-pages
           path: tech-docs/artifact.tar
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Download a Build Artifact from build"
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: github-pages
           path: github-pages

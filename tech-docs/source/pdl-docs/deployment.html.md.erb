@@ -1,22 +1,23 @@
 ---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/deployment.html.md.erb
 title: Deployment
 weight: 6
 ---
 
-# Deployment Guide
+# Deployment guide
 
 ## Overview
 
-The provider data API is deployed to Kubernetes on the Cloud Platform using Helm.
+The provider details API (legacy) is deployed to Kubernetes on the Cloud Platform using Helm.
 
 ## Environments
 
 - **Dev**: Development environment for testing
-- **Staging**: Pre-production environment for validation
 - **UAT**: User acceptance testing
+- **Staging**: Pre-production environment for validation
 - **Production**: Live production environment
 
-## Helm Deployment
+## Helm deployment
 
 ### Prerequisites
 
@@ -24,18 +25,18 @@ The provider data API is deployed to Kubernetes on the Cloud Platform using Helm
 - Helm 3.0 or higher
 - Access to the appropriate namespace
 
-### Deployment Directories
+### Deployment directories
 
 Deployment configurations are in `helm_deploy/`:
 
-- `provider-data-platform/` - Main application Helm chart
+- `providers-app/` - Main application Helm chart
 
-### Helm Values
+### Helm values
 
 Each environment has its own values file:
 
 ```
-helm_deploy/provider-data-platform/
+helm_deploy/providers-app/
 ├── values.yaml              # Default values
 ├── values-dev.yaml          # Dev environment
 ├── values-staging.yaml      # Staging environment
@@ -43,27 +44,15 @@ helm_deploy/provider-data-platform/
 └── values-prod.yaml         # Production environment
 ```
 
-### Deploy to Development
+### Deploy
 
-```bash
-helm upgrade --install pdp-provider-data-platform \
-  helm_deploy/provider-data-platform \
-  -f helm_deploy/provider-data-platform/values-dev.yaml \
-  -n laa-data-provider-data-dev
-```
-
-### Deploy to Production
-
-```bash
-helm upgrade --install pdp-provider-data-platform \
-  helm_deploy/provider-data-platform \
-  -f helm_deploy/provider-data-platform/values-prod.yaml \
-  -n laa-data-provider-data-prod
-```
+**Do NOT deploy or roll back manually**.
+Use the GitHub Actions workflows to deploy a tagged image.
+Roll back by re-deploying an older tag.
 
 ## Configuration
 
-### Rate Limiting
+### Rate limiting
 
 Rate limits are configured per environment in the values files:
 
@@ -74,7 +63,7 @@ rateLimit:
   burst: "1"    # burst size
 ```
 
-### Resource Limits
+### Resource limits
 
 Configure resource requests and limits:
 
@@ -98,7 +87,7 @@ replicaCount: 3
 
 ## Monitoring
 
-### Health Checks
+### Health checks
 
 The application provides health checks:
 
@@ -119,12 +108,12 @@ GET /actuator/prometheus
 View logs in Cloud Platform:
 
 ```bash
-kubectl logs -f deployment/pdp-provider-data-platform -n laa-data-provider-data-prod
+kubectl logs -f deployment/providers-app -n laa-data-provider-data-prod
 ```
 
 ## Troubleshooting
 
-### Pod Not Starting
+### Pod not starting
 
 Check pod status:
 
@@ -133,7 +122,7 @@ kubectl describe pod POD_NAME -n NAMESPACE
 kubectl logs POD_NAME -n NAMESPACE
 ```
 
-### Connection Issues
+### Connection issues
 
 Verify environment variables:
 
@@ -141,7 +130,7 @@ Verify environment variables:
 kubectl exec -it POD_NAME -n NAMESPACE -- env | grep SPRING
 ```
 
-### Performance Issues
+### Performance issues
 
 Check resource usage:
 
@@ -150,15 +139,7 @@ kubectl top pod -n NAMESPACE
 kubectl top node
 ```
 
-## Rollback
-
-Rollback to previous release:
-
-```bash
-helm rollback pdp-provider-data-platform -n laa-data-provider-data-prod
-```
-
-## CI/CD Integration
+## CI/CD integration
 
 Deployment is typically triggered by CI/CD pipelines in GitHub Actions:
 
@@ -175,7 +156,7 @@ For more information on Cloud Platform, see:
 - [Cloud Platform User Guide](https://user-guide.cloud-platform.service.justice.gov.uk/)
 - [Helm Documentation](https://helm.sh/docs/)
 
-## Next Steps
+## Next steps
 
 - See [Configuration](configuration.html) for environment variables
 - See [Development](development.html) for development setup

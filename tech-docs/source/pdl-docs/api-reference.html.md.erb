@@ -1,0 +1,63 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/api-reference.html.md.erb
+title: API reference
+weight: 4
+---
+
+# API reference
+
+The provider details API (legacy) provides RESTful endpoints for accessing provider data.
+
+The primary documentation for the REST endpoints is the Swagger UI - which is available at each of
+the following PDA (legacy) environment URLs:
+
+- PDA (legacy)
+  **[dev](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
+  environment
+- PDA (legacy)
+  **[uat](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
+  environment
+- PDA (legacy)
+  **[preprod](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
+  environment
+- PDA (legacy) **prod** environment (no Swagger UI)
+
+## Health check
+
+### GET /actuator/health
+
+Returns the health status of the application.
+
+**Response:**
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP"
+    },
+    "redis": {
+      "status": "UP"
+    }
+  }
+}
+```
+
+## Rate limiting
+
+The API enforces rate limiting:
+
+- **RPS**: 100 requests per second
+- **RPM**: 6000 requests per minute
+
+Rate limiting is handled by the Cloud Platform ingress.
+
+## Operational hours
+
+The PDA (legacy) environments are dependent on connectivity to the ECP environment, so PDA's
+operational hours are similar to ECP's. The service is available 07:00 until 21:30.
+
+## More information
+
+For detailed implementation, see [Development](development.html).

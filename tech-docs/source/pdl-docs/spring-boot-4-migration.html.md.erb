@@ -1,4 +1,13 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/spring-boot-4-migration.html.md.erb
+title: Spring Boot 4.0 migration
+weight: 50
+---
+
 # Spring Boot 4.0 migration
+
+This document describes the historical changes made to migrate the provider details API (legacy)
+from Spring Boot 3.5 to Spring Boot 4.0.
 
 ## Changes summary
 
@@ -27,7 +36,7 @@ dependencies have been updated subsequently).
 ### LAA plugin version (4 files)
 
 **Reference:**
--[LAA Spring Boot Common release notes](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0) \
+[LAA Spring Boot Common release notes](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0) \
 **Files changed:** `**/build.gradle`
 
 ```gradle
@@ -75,7 +84,7 @@ testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 
 **Reference:**
 [spring-boot-starter-aop](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#spring-boot-starter-aop) \
-**File changed:** `provider-data-service/build.gradle`
+**File changed:** `providers-app/build.gradle`
 
 ```gradle
 // Spring Boot 4.0 renamed this starter for clarity
@@ -86,7 +95,7 @@ implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 
 **Reference:**
 [Dependency Management Removals](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#dependency-management-removals) \
-**File changed:** `provider-data-service/build.gradle`
+**File changed:** `providers-app/build.gradle`
 
 ```gradle
 // Spring Retry removed from Spring Boot 4.0 BOM - explicit version required
@@ -98,7 +107,7 @@ implementation 'org.springframework.retry:spring-retry:2.0.12'
 **References:**
 [Spring Boot Testcontainers](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#testcontainers),
 [Testcontainers 2.0.0 Release Notes](https://github.com/testcontainers/testcontainers-java/releases/tag/2.0.0) \
-**File changed:** `provider-data-service/build.gradle`
+**File changed:** `providers-app/build.gradle`
 
 Spring Boot 4.0 includes Testcontainers 2.0.3 with renamed artifact IDs.
 In Testcontainers 2.0, all modules are now prefixed with `testcontainers-`:
@@ -133,7 +142,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 [Package organisation](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#package-organization),
 [Modules](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#modules) \
 **Files:** `build.gradle`, `RedisReadinessHealthIndicator.java`, `CwaDataSourceReadinessHealthIndicator.java`
-(in `provider-data-service`)
+(in `providers-app`)
 
 Spring Boot 4.0's modularisation moved health indicator classes to a new package structure and
 requires an explicit dependency on `spring-boot-health` (not included in `spring-boot-starter-actuator`).
@@ -157,7 +166,7 @@ implementation 'org.springframework.boot:spring-boot-health'
 
 **Reason:** Jackson 3 removed the deprecated method. The newer `activateDefaultTyping()`
 provides the same functionality. \
-**File changed:** `CacheConfig.java` (in `provider-data-service`)
+**File changed:** `CacheConfig.java` (in `providers-app`)
 
 Jackson 3 deprecated `ObjectMapper.enableDefaultTyping()` in favour of `activateDefaultTyping()`.
 So removed redundant `enableDefaultTyping()` call (was already using `activateDefaultTyping()`):
@@ -175,7 +184,7 @@ objectMapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, Js
 
 **Reason:** Tests should not rely on implicit startup cache loading timing.
 Explicit cache loading makes tests more reliable and easier to understand. \
-**File changed:** `CacheServiceIntegrationTest.java` (in `provider-data-service`)
+**File changed:** `CacheServiceIntegrationTest.java` (in `providers-app`)
 
 Spring Boot 4.0 may have changed `CommandLineRunner` execution timing or cache persistence
 behaviour, causing integration tests that relied on implicit startup cache loading to become flaky.
@@ -212,7 +221,7 @@ Spring Boot 4.0 changed `ProblemDetail` JSON serialisation (Jackson 3 + RFC 7807
 
 **Reference:**
 [Kubernetes probes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#liveness-and-readiness-probes) \
-**File changed:** `provider-data-service/src/main/resources/application.yml`
+**File changed:** `providers-app/src/main/resources/application.yml`
 
 Spring Boot 4.0 enabled liveness and readiness probes by default, so the explicit configuration
 was removed:
@@ -250,9 +259,12 @@ code and OpenAPI-generated classes use Jackson 2 (`com.fasterxml.jackson.*`). Bo
 safely without requiring code changes at the time of migration.
 
 - Jackson annotations remain in `com.fasterxml.jackson.annotation.*` even in Jackson 3
-- Java 8 time types (`java.time.*`) are built into Jackson 3 core (no separate `jackson-datatype-jsr310` needed)
-- Custom `ObjectMapper` instances (e.g., for Redis, config parsing, tests) use Jackson 2 and work correctly
-- The `com.fasterxml.jackson.*` (Jackson 2) → `tools.jackson.*` (Jackson 3) migration can happen gradually
+- Java 8 time types (`java.time.*`) are built into Jackson 3 core (no separate
+  `jackson-datatype-jsr310` needed)
+- Custom `ObjectMapper` instances (e.g., for Redis, config parsing, tests) use Jackson 2 and work
+  correctly
+- The `com.fasterxml.jackson.*` (Jackson 2) → `tools.jackson.*` (Jackson 3) migration can happen
+  gradually
 
 ### OpenAPI generator config
 
@@ -277,7 +289,8 @@ Spring Boot 4.0's minimum requirements of Java 17+ and Gradle 8.14+, so no chang
 **Reference:**
 [Upgrading testing features](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#upgrading-testing-features)
 
-The test code structure (use of annotations and test patterns) was already Spring Boot 4.0 compliant:
+The test code structure (use of annotations and test patterns) was already Spring Boot 4.0
+compliant:
 
 - Integration tests already used `@AutoConfigureMockMvc` annotation
 - Unit tests used `@WebMvcTest` annotation and `@MockitoBean`
@@ -288,7 +301,8 @@ However, the annotation **imports** required updating (see test annotation packa
 
 ## References
 
-- [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide) (official guide)
+- [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
+  (official guide)
 - [LAA Spring Boot Common v2.0.0](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0)
 - [SpringDoc OpenAPI compatibility](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot)
 - [OpenAPI Generator 7.18.0](https://github.com/OpenAPITools/openapi-generator/releases/tag/v7.18.0)

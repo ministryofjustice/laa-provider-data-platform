@@ -1,9 +1,9 @@
-name: "Pipeline: Branch main updated [PDP]"
+name: "Pipeline: Branch main updated"
 
 on:
   push:
     branches: [ main ]
-    paths-ignore: [ "docs/**" ]
+    paths-ignore: [ "tech-docs/**" ]
   workflow_dispatch:
     inputs:
       reltype: { type: choice, required: true, options: [ "auto", "none", "patch", "minor", "major" ],

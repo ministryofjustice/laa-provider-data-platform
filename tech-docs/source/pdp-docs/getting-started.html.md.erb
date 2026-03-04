@@ -1,0 +1,78 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/getting-started.html.md.erb
+title: Getting started
+weight: 20
+---
+
+# Getting started with provider data API (persistent)
+
+This guide covers setting up and running the provider data API (persistent) locally.
+
+## Prerequisites
+
+- Java 25 or later
+- Gradle (recommend using the included Gradle wrapper)
+
+## Clone the repository
+
+```bash
+git clone https://github.com/ministryofjustice/laa-provider-data-platform.git
+cd laa-provider-data-platform
+```
+
+## Build from source
+
+Build the application:
+
+```bash
+./gradlew clean build
+```
+
+Run integration tests:
+
+```bash
+./gradlew integrationTest
+```
+
+## Run the application
+
+Start the application locally:
+
+```bash
+./gradlew bootRun
+```
+
+## Application endpoints
+
+### REST API documentation
+
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI specification (JSON): [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+### Actuator endpoints
+
+- [http://localhost:8080/actuator](http://localhost:8080/actuator)
+- [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health)
+
+## Run end-to-end tests
+
+```bash
+./gradlew :provider-data-e2e:e2eTest -Penv=local -Dauth.token=Dummy1
+```
+
+## Build container image
+
+```bash
+./gradlew bootBuildImage
+```
+
+## Libraries used
+
+- [Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/index.html) -
+  Application monitoring endpoints
+- [Spring Boot Web](https://docs.spring.io/spring-boot/reference/web/index.html) - REST API
+  implementation
+- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/reference/jpa.html) - Database access
+  abstraction
+- [Springdoc OpenAPI](https://springdoc.org/) - OpenAPI documentation generation
+- [MapStruct](https://mapstruct.org/) - Object mapping between DTOs and entities

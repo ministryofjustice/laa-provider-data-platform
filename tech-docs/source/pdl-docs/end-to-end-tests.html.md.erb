@@ -1,4 +1,4 @@
-# End-to-End (E2E) API Tests
+# End-to-end (E2E) API tests
 
 This module contains **end-to-end (E2E) API tests** for the service.
 
@@ -25,7 +25,7 @@ base.url=https://laa-provider-details-api-prod.apps.live.cloud-platform.service.
 base.path=/api/v1
 ```
 
-## 🔑 Supplying the Auth Token
+## 🔑 Supplying the auth token
 
 The API requires the header `X-Authorization`.
 
@@ -46,7 +46,7 @@ The token can be supplied in either of the following ways:
 
 If no token is provided, the test run will fail early.
 
-## ▶️ Running Tests
+## ▶️ Running tests
 
 ### Default (prod environment)
 
@@ -74,7 +74,7 @@ If no token is provided, the test run will fail early.
 ./gradlew :providers-e2e:e2eTest --tests "uk.gov.justice.laa.e2e.ProviderFirmApiTest.providerFirm_shouldMatchSchema"
 ```
 
-## 🧩 Cache-Related (Tagged) E2E Tests
+## 🧩 Cache-related (tagged) E2E tests
 
 These tests validate **cache behavior** by clearing or force-reloading the application
 cache, then confirming that dependent endpoints still respond correctly.
@@ -87,7 +87,7 @@ cache, then confirming that dependent endpoints still respond correctly.
 - **Cache Reload:** Confirms that once the cache is reloaded, the system becomes ready
   and endpoints respond successfully.
 
-### 🏷️ Tagging Convention
+### 🏷️ Tagging convention
 
 Any test class that should run *after all normal E2E tests* must be annotated with:
 
@@ -100,7 +100,7 @@ This tag signals Gradle to run these tests at the end of the E2E suite.
 It prevents interference with normal API tests and ensures the cache state is managed
 cleanly.
 
-### ▶️ Running Tagged Cache Tests
+### ▶️ Running tagged cache tests
 
 Run **only** cache-related tests:
 
@@ -116,7 +116,7 @@ Or run **all** tests (normal + cache-tagged in order):
 
 Tagged cache tests will automatically execute **last** in the sequence.
 
-## 📦 Gradle Notes
+## 📦 Gradle notes
 
 - The `e2eTest` task is **separate** from the main `test` task.
 

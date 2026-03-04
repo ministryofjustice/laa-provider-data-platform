@@ -1,4 +1,4 @@
-name: "Pipeline: Branch main to prod [PDP]"
+name: "Pipeline: Branch main to prod"
 
 on:
   workflow_dispatch:

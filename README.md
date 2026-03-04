@@ -4,7 +4,8 @@
 
 ## Overview
 
-The **provider data platform** implements a REST API for retrieving and updating provider firm, office, contract and schedule data.
+The **provider data API (persistent)** implements a REST API for retrieving and updating provider
+firm and office (and, later on, contract and schedule) data.
 
 ### Project structure
 
@@ -55,23 +56,6 @@ for the following plugins:
 
 You can find more information regarding the setup and usage of the Gradle plugin in
 [laa-spring-boot-common](https://github.com/ministryofjustice/laa-spring-boot-common).
-
-### Remaining setup
-
-<details>
-<summary>Click here for more details of these tasks</summary>
-
-1. Ensure that this repository has been added to the
-   [Legal Aid Agency Snyk](https://app.snyk.io/org/legal-aid-agency) organisation.
-2. Update `build.gradle` in the project root directory as follows:
-   ```
-   subprojects {
-       group = 'uk.gov.justice.laa.{application-name}'
-   }
-   ```
-3. Ensure the GitHub workflows are working
-4. Move the techdocs across (as simple `topic.md` files)
-</details>
 
 ### Libraries used
 

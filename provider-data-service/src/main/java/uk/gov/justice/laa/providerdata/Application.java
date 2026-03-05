@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /** Entry point for the Spring Boot microservice application. */
 @SpringBootApplication
-public class ProviderDataServiceApplication {
+public class Application {
 
   /**
    * The application main method.
@@ -13,6 +13,6 @@ public class ProviderDataServiceApplication {
    * @param args the application arguments.
    */
   public static void main(String[] args) {
-    SpringApplication.run(ProviderDataServiceApplication.class, args);
+    SpringApplication.run(Application.class, args);
   }
 }

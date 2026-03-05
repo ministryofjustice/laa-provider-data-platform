@@ -27,38 +27,38 @@ LAA provider data APIs and related services.
 
 ## What is this documentation about?
 
-The terminology **provider data APIs** - also known as **PDA** - refers to:
+The generic term **provider data APIs** - also sometimes abbreviated as **PDA** - can refer to:
 
-* **[provider details API (legacy)](#provider-details-api-legacy)** - also known as
-  **PDA (legacy)** - is an immutable API with endpoints that wrap read-only queries against the
-  CWA Oracle database
-* **[provider data API (persistent)](#provider-data-api-persistent)** - also known as
-  **PDA (persistent)** - is a service with its own database layer and endpoints to allow MAPD to
-  create, update and delete provider data
+* The **[provider details API (legacy)](#provider-details-api-legacy)** exposes data about
+  provider firms, offices, contracts and schedules from CWA
+* The **[provider data API (persistent)](#provider-data-api-persistent)**  will own data about
+  provider firms and offices (and, later on, contracts and schedules)
 
 ---
 
 ## Provider details API (legacy)
 
-The **provider details API (legacy)** is a read-only REST API that retrieves provider data from
-CWA Oracle database snapshots. It is deployed to Cloud Platform and serves live traffic.
+The **[provider details API (legacy)](pdl-docs/)** exposes data about provider firms, offices,
+contracts and schedules from CWA.
 
-- [PDA (legacy) documentation](pdl-docs/index.html) - Getting started, configuration, deployment
-  and operations
+Most data is currently sourced from the CWA database (a few entities are augmented with a CCMS ID,
+sourced from the CCMS database), so it follows ECP operational hours.
 
-Source: [laa-data-provider-data](https://github.com/ministryofjustice/laa-data-provider-data)
-(private repository)
+Also known as **[PDA (legacy)](pdl-docs/)**, the API is a collection of read-only REST endpoints
+that retrieve provider data from CWA Oracle EBS database snapshots. It is deployed to the MoJ Cloud
+Platform and serves live traffic to a variety of consumer LAA services.
 
 ---
 
 ## Provider data API (persistent)
 
-The **provider data API (persistent)** implements a REST API for retrieving and updating provider
-firm and office data (and, later on, contract and schedule data). It is under active development.
+The **[provider data API (persistent)](pdp-docs/)** will own data about provider firms and offices
+(and, later on, contracts and schedules).
 
-- [PDA (persistent) documentation](pdp-docs/index.html) - Getting started and CI/CD workflows
-
-Source: [laa-provider-data-platform](https://github.com/ministryofjustice/laa-provider-data-platform)
+Also known as **[PDA (persistent)](pdp-docs/)**, the service has its own data store, and a
+collection of REST endpoints for creating, retrieving and updating provider firm and office data
+from that data store (which will initially be synchronized to CWA). It is under active development
+and its primary initial consumer will be the **Manage a provider's data** service.
 
 ---
 

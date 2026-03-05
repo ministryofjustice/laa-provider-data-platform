@@ -5,8 +5,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles("test") // ✅ Forces H2 config
-class ProviderDataServiceTests {
+@ActiveProfiles("test")
+class ApplicationTests {
 
   @Test
   void contextLoads() {

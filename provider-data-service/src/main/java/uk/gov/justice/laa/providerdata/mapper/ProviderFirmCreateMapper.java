@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreateChambers;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreateLsp;
 import uk.gov.justice.laa.providerdata.api.model.ProviderCreatePractitioner;
@@ -26,18 +24,11 @@ public final class ProviderFirmCreateMapper {
    * Creates a new {@link ProviderEntity} from a Legal Services Provider (LSP) creation request.
    *
    * @param req the LSP provider creation request containing base provider details
-   * @param userId the identifier of the user creating the entity
    * @return a populated {@link ProviderEntity} representing the LSP
    */
-  public static ProviderEntity fromLsp(ProviderCreateLsp req, String userId) {
+  public static ProviderEntity fromLsp(ProviderCreateLsp req) {
     var base = req.base();
     return ProviderEntity.builder()
-        .guid(UUID.randomUUID())
-        .version(1L)
-        .createdBy(userId)
-        .createdTimestamp(OffsetDateTime.now())
-        .lastUpdatedBy(userId)
-        .lastUpdatedTimestamp(OffsetDateTime.now())
         .firmNumber(base.firmNumber())
         .firmType("Legal Services Provider")
         .name(base.name())
@@ -48,18 +39,11 @@ public final class ProviderFirmCreateMapper {
    * Creates a new {@link ProviderEntity} from a Chambers creation request.
    *
    * @param req the Chambers provider creation request containing base provider details
-   * @param userId the identifier of the user creating the entity
    * @return a populated {@link ProviderEntity} representing the Chambers
    */
-  public static ProviderEntity fromChambers(ProviderCreateChambers req, String userId) {
+  public static ProviderEntity fromChambers(ProviderCreateChambers req) {
     var base = req.base();
     return ProviderEntity.builder()
-        .guid(UUID.randomUUID())
-        .version(1L)
-        .createdBy(userId)
-        .createdTimestamp(OffsetDateTime.now())
-        .lastUpdatedBy(userId)
-        .lastUpdatedTimestamp(OffsetDateTime.now())
         .firmNumber(base.firmNumber())
         .firmType("Chambers")
         .name(base.name())
@@ -73,18 +57,11 @@ public final class ProviderFirmCreateMapper {
    * (e.g., distinguishing Barristers vs Advocates).
    *
    * @param req the practitioner provider creation request containing base provider details
-   * @param userId the identifier of the user creating the entity
    * @return a populated {@link ProviderEntity} representing the practitioner
    */
-  public static ProviderEntity fromPractitioner(ProviderCreatePractitioner req, String userId) {
+  public static ProviderEntity fromPractitioner(ProviderCreatePractitioner req) {
     var base = req.base();
     return ProviderEntity.builder()
-        .guid(UUID.randomUUID())
-        .version(1L)
-        .createdBy(userId)
-        .createdTimestamp(OffsetDateTime.now())
-        .lastUpdatedBy(userId)
-        .lastUpdatedTimestamp(OffsetDateTime.now())
         .firmNumber(base.firmNumber())
         .firmType("Advocate") // or "Barrister"/"Advocate" depending on your request shape
         .name(base.name())

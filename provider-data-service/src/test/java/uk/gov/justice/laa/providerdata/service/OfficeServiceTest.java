@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,11 +19,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
@@ -30,6 +37,8 @@ class OfficeServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  @Mock private LiaisonManagerRepository liaisonManagerRepository;
+  @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   @InjectMocks private OfficeService service;
 
@@ -104,6 +113,129 @@ class OfficeServiceTest {
   }
 
   // --- getLspOffices ---
+
+  @Test
+  void createLspOffice_withNewLiaisonManager_savesLmAndLink() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    UUID officeGuid = UUID.randomUUID();
+    OfficeEntity savedOffice = new OfficeEntity();
+    savedOffice.setGuid(officeGuid);
+
+    UUID lmGuid = UUID.randomUUID();
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(savedOffice);
+    when(liaisonManagerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LiaisonManagerEntity lm = inv.getArgument(0);
+              lm.setGuid(lmGuid);
+              return lm;
+            });
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var lmTemplate = LiaisonManagerEntity.builder().firstName("Jane").lastName("Smith").build();
+    var lmLink = new OfficeLiaisonManagerLinkEntity();
+    lmLink.setActiveDateFrom(LocalDate.of(2024, 1, 1));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        lmTemplate,
+        lmLink,
+        false);
+
+    verify(liaisonManagerRepository).save(lmTemplate);
+    assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
+    assertThat(lmLink.getOffice().getGuid()).isEqualTo(officeGuid);
+    verify(officeLiaisonManagerLinkRepository).save(lmLink);
+  }
+
+  @Test
+  void createLspOffice_withLinkToHeadOfficeLiaisonManager_linksExistingLm() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    UUID headOfficeGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    OfficeEntity savedOffice = new OfficeEntity();
+    savedOffice.setGuid(officeGuid);
+
+    OfficeEntity headOffice = new OfficeEntity();
+    headOffice.setGuid(headOfficeGuid);
+
+    LspProviderOfficeLinkEntity headOfficeLink = new LspProviderOfficeLinkEntity();
+    headOfficeLink.setOffice(headOffice);
+    headOfficeLink.setHeadOfficeFlag(Boolean.TRUE);
+
+    LiaisonManagerEntity existingLm =
+        LiaisonManagerEntity.builder().firstName("Bob").lastName("Jones").build();
+
+    OfficeLiaisonManagerLinkEntity headOfficeLmLink = new OfficeLiaisonManagerLinkEntity();
+    headOfficeLmLink.setLiaisonManager(existingLm);
+    headOfficeLmLink.setOffice(headOffice);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(savedOffice);
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice))
+        .thenReturn(List.of(headOfficeLmLink));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        true);
+
+    verify(liaisonManagerRepository, never()).save(any());
+    verify(officeLiaisonManagerLinkRepository).save(any(OfficeLiaisonManagerLinkEntity.class));
+  }
+
+  @Test
+  void createLspOffice_withLinkToHeadOffice_throwsWhenNoActiveManagerFound() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID headOfficeGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    OfficeEntity savedOffice = new OfficeEntity();
+    savedOffice.setGuid(UUID.randomUUID());
+
+    OfficeEntity headOffice = new OfficeEntity();
+    headOffice.setGuid(headOfficeGuid);
+
+    LspProviderOfficeLinkEntity headOfficeLink = new LspProviderOfficeLinkEntity();
+    headOfficeLink.setOffice(headOffice);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(savedOffice);
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice))
+        .thenReturn(List.of());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    providerGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    true))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("No active liaison manager found");
+  }
 
   @Test
   void getLspOffices_byGuid_returnsPageFromRepository() {

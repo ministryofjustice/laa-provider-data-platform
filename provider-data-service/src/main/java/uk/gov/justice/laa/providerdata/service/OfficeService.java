@@ -1,17 +1,24 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
@@ -23,6 +30,8 @@ public class OfficeService {
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  private final LiaisonManagerRepository liaisonManagerRepository;
+  private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   /**
    * Inject dependencies.
@@ -30,33 +39,49 @@ public class OfficeService {
    * @param providerRepository to find firms.
    * @param officeRepository to save offices.
    * @param lspProviderOfficeLinkRepository to save and query LSP office links.
+   * @param liaisonManagerRepository to save liaison manager entities.
+   * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
    */
   public OfficeService(
       ProviderRepository providerRepository,
       OfficeRepository officeRepository,
-      LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository) {
+      LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
+    this.liaisonManagerRepository = liaisonManagerRepository;
+    this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
   }
 
   /**
-   * Creates a new office for an LSP provider firm and links it to the provider.
+   * Creates a new office for an LSP provider firm, links it to the provider, and optionally creates
+   * or links a liaison manager.
    *
-   * <p>The caller is responsible for mapping the API request into {@code officeTemplate} and {@code
-   * linkTemplate} before calling this method. The service sets {@code provider}, {@code office},
-   * and {@code accountNumber} on the link before persisting.
+   * <p>If {@code lmTemplate} and {@code lmLinkTemplate} are non-null, a new liaison manager is
+   * created for the office. If {@code linkToHeadOfficeLiaisonManager} is {@code true}, the existing
+   * active liaison manager from the provider's head office is linked to the new office instead. At
+   * most one of these two options should be active per call.
    *
    * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
    * @param officeTemplate unpersisted office entity with address and contact fields populated
    * @param linkTemplate unpersisted link entity with payment and VAT fields populated
+   * @param lmTemplate liaison manager entity to create, or {@code null}
+   * @param lmLinkTemplate LM link template with activeDateFrom set, or {@code null}
+   * @param linkToHeadOfficeLiaisonManager if {@code true}, link the head office's active LM to this
+   *     office
    * @return identifiers for the created provider, office, and link
-   * @throws ItemNotFoundException if no provider matches the given identifier
+   * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
+   *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found
    */
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
       OfficeEntity officeTemplate,
-      LspProviderOfficeLinkEntity linkTemplate) {
+      LspProviderOfficeLinkEntity linkTemplate,
+      @Nullable LiaisonManagerEntity lmTemplate,
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      boolean linkToHeadOfficeLiaisonManager) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
 
@@ -68,8 +93,34 @@ public class OfficeService {
     linkTemplate.setAccountNumber(accountNumber);
     lspProviderOfficeLinkRepository.save(linkTemplate);
 
+    if (lmTemplate != null && lmLinkTemplate != null) {
+      LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
+      lmLinkTemplate.setLiaisonManager(savedLm);
+      lmLinkTemplate.setOffice(savedOffice);
+      officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
+    } else if (linkToHeadOfficeLiaisonManager) {
+      linkHeadOfficeLiaisonManager(provider, savedOffice);
+    }
+
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), savedOffice.getGuid(), accountNumber);
+  }
+
+  /**
+   * Convenience overload that creates an LSP office with no liaison manager.
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeTemplate unpersisted office entity with address and contact fields populated
+   * @param linkTemplate unpersisted link entity with payment and VAT fields populated
+   * @return identifiers for the created provider, office, and link
+   * @throws ItemNotFoundException if no provider matches the given identifier
+   */
+  public OfficeCreationResult createLspOffice(
+      String providerFirmGUIDorFirmNumber,
+      OfficeEntity officeTemplate,
+      LspProviderOfficeLinkEntity linkTemplate) {
+    return createLspOffice(
+        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false);
   }
 
   /**
@@ -139,5 +190,32 @@ public class OfficeService {
 
   private static String generateAccountNumber() {
     return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.UK);
+  }
+
+  private void linkHeadOfficeLiaisonManager(ProviderEntity provider, OfficeEntity newOffice) {
+    LspProviderOfficeLinkEntity headOfficeLink =
+        lspProviderOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(provider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        "Head office not found for provider: " + provider.getGuid()));
+
+    OfficeEntity headOffice = headOfficeLink.getOffice();
+    List<OfficeLiaisonManagerLinkEntity> activeLmLinks =
+        officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice);
+
+    if (activeLmLinks.isEmpty()) {
+      throw new ItemNotFoundException(
+          "No active liaison manager found on head office for provider: " + provider.getGuid());
+    }
+
+    LiaisonManagerEntity headOfficeLm = activeLmLinks.getFirst().getLiaisonManager();
+    OfficeLiaisonManagerLinkEntity link = new OfficeLiaisonManagerLinkEntity();
+    link.setLiaisonManager(headOfficeLm);
+    link.setOffice(newOffice);
+    link.setActiveDateFrom(LocalDate.now());
+    link.setLinkedFlag(Boolean.TRUE);
+    officeLiaisonManagerLinkRepository.save(link);
   }
 }

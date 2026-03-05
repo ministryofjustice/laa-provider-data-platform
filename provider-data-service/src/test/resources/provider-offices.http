@@ -1,17 +1,14 @@
 ### 1a. Create a Legal Services Provider firm
-# The GUID from the response is captured for use in office creation requests below.
-# Note: fields beyond base.firmNumber and base.name are currently accepted but not yet persisted
-# by the controller — they are included here to match the intended spec shape (ProviderCreateLSPV2).
+# firmType and name are top-level fields in ProviderCreateV2.
+# legalServicesProvider contains head office details — address, payment, and liaisonManager
+# are required; the head office is created atomically with the provider.
 POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
 {
+  "firmType": "Legal Services Provider",
+  "name": "Westgate Legal Services LLP",
   "legalServicesProvider": {
-    "base": {
-      "firmType": "Legal Services Provider",
-      "firmNumber": "0A999B",
-      "name": "Westgate Legal Services LLP"
-    },
     "constitutionalStatus": "Limited Liability Partnership (LLP)",
     "indemnityReceivedDate": "2024-04-01",
     "companiesHouseNumber": "OC123456",
@@ -43,28 +40,26 @@ Content-Type: application/json
       "firstName": "Alice",
       "lastName": "Patel",
       "emailAddress": "a.patel@westgatelegal.example",
-      "telephoneNumber": "0191 498 0101"
+      "telephoneNumber": "0191 498 0101",
+      "activeDateFrom": "2024-04-01"
     }
   }
 }
 
 > {%
-  client.global.set("providerFirmGUID", response.body.data.providerFirmGuid);
+  client.global.set("providerFirmGUID", response.body.data.providerFirmGUID);
 %}
 
 ### 1b. Create a Chambers firm
-# Note: fields beyond base.firmNumber and base.name are currently accepted but not yet persisted
-# by the controller — they are included here to match the intended spec shape (ProviderCreateChambersV2).
+# chambers contains head office details — address and liaisonManager are required.
+# The head office is created atomically with the provider.
 POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
 {
+  "firmType": "Chambers",
+  "name": "Northgate Chambers",
   "chambers": {
-    "base": {
-      "firmType": "Chambers",
-      "firmNumber": "0B111C",
-      "name": "Northgate Chambers"
-    },
     "address": {
       "line1": "2 Temple Row",
       "line2": "City Centre",
@@ -82,24 +77,21 @@ Content-Type: application/json
       "firstName": "Robert",
       "lastName": "Clarke",
       "emailAddress": "r.clarke@northgatechambers.example",
-      "telephoneNumber": "0121 496 0101"
+      "telephoneNumber": "0121 496 0101",
+      "activeDateFrom": "2024-04-01"
     }
   }
 }
 
 ### 1c. Create a Practitioner firm — Advocate
-# Note: fields beyond base.firmNumber and base.name are currently accepted but not yet persisted
-# by the controller — they are included here to match the intended spec shape (ProviderCreatePractitionerV2).
+# Practitioners have no head office; only the provider record is created.
 POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
 {
+  "firmType": "Advocate",
+  "name": "J. Smith Advocate",
   "practitioner": {
-    "base": {
-      "firmType": "Advocate",
-      "firmNumber": "0C222D",
-      "name": "J. Smith Advocate"
-    },
     "advocateType": "Advocate",
     "parentFirms": [
       { "parentFirmNumber": "0B111C" }
@@ -127,12 +119,9 @@ POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
 {
+  "firmType": "Advocate",
+  "name": "T. Jones Barrister",
   "practitioner": {
-    "base": {
-      "firmType": "Advocate",
-      "firmNumber": "0D333E",
-      "name": "T. Jones Barrister"
-    },
     "advocateType": "Barrister",
     "parentFirms": [
       { "parentFirmNumber": "0B111C" }
@@ -212,7 +201,8 @@ Content-Type: application/json
     "firstName": "Jane",
     "lastName": "Smith",
     "emailAddress": "jane.smith@example.com",
-    "telephoneNumber": "07700 900123"
+    "telephoneNumber": "07700 900123",
+    "activeDateFrom": "2024-04-01"
   }
 }
 
@@ -227,3 +217,10 @@ GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGU
 
 ### 4b. Get a single office by account number
 GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeCode}}
+
+### 5. Get a provider firm by GUID
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}
+
+### 5b. Get a provider firm by firm number
+GET http://localhost:8080/provider-firms/LSP-ABCD1234
+

@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -73,18 +72,9 @@ public class ProviderFirmController {
   }
 
   private ProviderEntity mapOneOfToProviderEntity(ProviderFirmCreateRequest request) {
-    String userId = "SYSTEM";
-    OffsetDateTime now = OffsetDateTime.now();
-
     if (request.legalServicesProvider() != null) {
       var base = request.legalServicesProvider().base();
       return ProviderEntity.builder()
-          .guid(UUID.randomUUID())
-          .version(1L)
-          .createdBy(userId)
-          .createdTimestamp(now)
-          .lastUpdatedBy(userId)
-          .lastUpdatedTimestamp(now)
           .firmNumber(base.firmNumber())
           .firmType("Legal Services Provider")
           .name(base.name())
@@ -94,12 +84,6 @@ public class ProviderFirmController {
     if (request.chambers() != null) {
       var base = request.chambers().base();
       return ProviderEntity.builder()
-          .guid(UUID.randomUUID())
-          .version(1L)
-          .createdBy(userId)
-          .createdTimestamp(now)
-          .lastUpdatedBy(userId)
-          .lastUpdatedTimestamp(now)
           .firmNumber(base.firmNumber())
           .firmType("Chambers")
           .name(base.name())
@@ -109,12 +93,6 @@ public class ProviderFirmController {
     if (request.practitioner() != null) {
       var base = request.practitioner().base();
       return ProviderEntity.builder()
-          .guid(UUID.randomUUID())
-          .version(1L)
-          .createdBy(userId)
-          .createdTimestamp(now)
-          .lastUpdatedBy(userId)
-          .lastUpdatedTimestamp(now)
           .firmNumber(base.firmNumber())
           .firmType("Advocate")
           .name(base.name())

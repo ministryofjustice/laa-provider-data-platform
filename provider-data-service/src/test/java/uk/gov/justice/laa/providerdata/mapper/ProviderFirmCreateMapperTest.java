@@ -12,11 +12,11 @@ class ProviderFirmCreateMapperTest {
   void fromLsp_setsFirmTypeAndName() {
     var req = new ProviderCreateLsp(new ProviderCreateBase("PF999", "My LSP"));
 
-    var entity = ProviderFirmCreateMapper.fromLsp(req, "tester");
+    var entity = ProviderFirmCreateMapper.fromLsp(req);
 
     assertThat(entity.getFirmType()).isEqualTo("Legal Services Provider");
     assertThat(entity.getFirmNumber()).isEqualTo("PF999");
     assertThat(entity.getName()).isEqualTo("My LSP");
-    assertThat(entity.getGuid()).isNotNull();
+    assertThat(entity.getGuid()).isNull(); // GUID is assigned by JPA on save
   }
 }

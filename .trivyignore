@@ -1,2 +1,3 @@
 ### DC @2026-03-02 - Jackson 2.20.2, 3.0.4; fixed in 2.21.1, 3.1.0
 GHSA-72hv-8253-57qq  # jackson-core: Number Length Constraint Bypass in Async Parser leads to potential DoS... (HIGH)
+CVE-2026-29062       # jackson-core has Nesting Depth Constraint Bypass in `UTF8DataInputJsonParser` potentially allowing Resource Exhaustion...

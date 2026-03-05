@@ -1,107 +1,90 @@
 package uk.gov.justice.laa.providerdata.exception;
 
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.ObjectError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.providerdata.model.ErrorResponseError;
+import uk.gov.justice.laa.providerdata.model.InternalServerErrorError;
+import uk.gov.justice.laa.providerdata.model.NotFoundErrorError;
 
-/** The global exception handler for all exceptions. */
+/**
+ * Handles application-specific exceptions and enriches all RFC 7807 ProblemDetail responses with
+ * the {@code error.errorCode} extension field required by the API spec.
+ *
+ * <p>Spring MVC exceptions (e.g. {@link
+ * org.springframework.web.bind.MethodArgumentNotValidException}, {@link
+ * org.springframework.web.method.annotation.HandlerMethodValidationException}) are handled by the
+ * parent {@link ResponseEntityExceptionHandler}; {@link #handleExceptionInternal} intercepts those
+ * responses to add the extension field.
+ */
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-  /**
-   * The handler for ItemNotFoundException.
-   *
-   * @param exception the exception
-   * @return the response status with error message
-   */
+  private static final String ERROR_PROPERTY = "error";
+
+  @Override
+  protected ResponseEntity<Object> handleExceptionInternal(
+      Exception ex,
+      @Nullable Object body,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest request) {
+    ResponseEntity<Object> response =
+        super.handleExceptionInternal(ex, body, headers, status, request);
+    if (response.getBody() instanceof ProblemDetail pd) {
+      pd.setProperty(ERROR_PROPERTY, errorFor(status));
+    }
+    return response;
+  }
+
   @ExceptionHandler(ItemNotFoundException.class)
-  public ResponseEntity<String> handleItemNotFound(ItemNotFoundException exception) {
-    return ResponseEntity.status(NOT_FOUND).body(exception.getMessage());
+  public ProblemDetail handleItemNotFound(ItemNotFoundException ex) {
+    return problemDetail(HttpStatus.NOT_FOUND, ex.getMessage());
   }
 
-  /**
-   * Handles validation failures for request bodies annotated with {@code @Valid @RequestBody}.
-   *
-   * <p>This exception is raised when Spring MVC successfully deserialises the JSON payload but Bean
-   * Validation fails (e.g. custom constraints such as enforcing {@code oneOf} semantics).
-   *
-   * @param ex the validation exception thrown by Spring MVC when request body validation fails
-   * @return an RFC 7807 {@link ProblemDetail} containing validation messages
-   */
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ProblemDetail handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-    String messages =
-        ex.getBindingResult().getAllErrors().stream()
-            .map(ObjectError::getDefaultMessage)
-            .collect(Collectors.joining("; "));
-
-    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-    pd.setTitle("Bad Request");
-    pd.setDetail(messages.isBlank() ? "Validation failed." : messages);
-    return pd;
-  }
-
-  /**
-   * Handles method-level validation failures raised by Spring (e.g. {@code @RequestParam},
-   * {@code @PathVariable}, etc).
-   *
-   * @param ex the method validation exception produced by Spring
-   * @return an RFC 7807 {@link ProblemDetail} containing validation messages
-   */
-  @ExceptionHandler(HandlerMethodValidationException.class)
-  public ProblemDetail handleHandlerMethodValidation(HandlerMethodValidationException ex) {
-    String messages =
-        ex.getAllErrors().stream()
-            .map(
-                err -> {
-                  if (err instanceof DefaultMessageSourceResolvable dmsr) {
-                    return dmsr.getDefaultMessage();
-                  }
-                  return err.toString();
-                })
-            .collect(Collectors.joining("; "));
-
-    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-    pd.setTitle("Bad Request");
-    pd.setDetail(messages.isBlank() ? "Validation failed." : messages);
-    return pd;
-  }
-
-  /**
-   * Handles {@link IllegalArgumentException} raised by application logic.
-   *
-   * @param ex the illegal argument exception thrown by application code
-   * @return an RFC 7807 {@link ProblemDetail} describing the error
-   */
   @ExceptionHandler(IllegalArgumentException.class)
   public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
-    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-    pd.setTitle("Bad Request");
-    pd.setDetail(ex.getMessage());
+    return problemDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+  }
+
+  /**
+   * Handle the unexpected exceptions that aren't handled specifically.
+   *
+   * @param exception Exception that hasn't matched a more specific handler.
+   * @return ProblemDetail for Internal Server Error.
+   */
+  @ExceptionHandler(Exception.class)
+  public ProblemDetail handleGenericException(Exception exception) {
+    String message = "An unexpected application error has occurred.";
+    log.error(message, exception);
+    return problemDetail(HttpStatus.INTERNAL_SERVER_ERROR, message);
+  }
+
+  private static ProblemDetail problemDetail(HttpStatus status, String detail) {
+    ProblemDetail pd = ProblemDetail.forStatus(status);
+    pd.setDetail(detail);
+    pd.setProperty(ERROR_PROPERTY, errorFor(status));
     return pd;
   }
 
   /**
-   * The handler for Exception.
-   *
-   * @param exception the exception
-   * @return the response status with error message
+   * Returns the spec-defined {@code error} extension object for the given status. The error code
+   * values correspond to the examples in the {@code laa-data-pda.yml} OpenAPI spec.
    */
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<String> handleGenericException(Exception exception) {
-    String logMessage = "An unexpected application error has occurred.";
-    log.error(logMessage, exception);
-    return ResponseEntity.internalServerError().body(logMessage);
+  private static Object errorFor(HttpStatusCode status) {
+    return switch (status.value()) {
+      case 404 -> new NotFoundErrorError().errorCode("P00NF");
+      case 500 -> new InternalServerErrorError().errorCode("P00SE");
+      default -> new ErrorResponseError().errorCode("P00XX");
+    };
   }
 }

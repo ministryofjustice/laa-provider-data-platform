@@ -1,2 +1,0 @@
-# Ensure tech-docs files are counted as Markdown in repository language statistics
-*.html.md.erb linguist-language=Markdown

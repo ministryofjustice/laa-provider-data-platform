@@ -32,8 +32,9 @@ public record OfficeLiaisonManagerPostRequest(
    *
    * @return {@code true} if exactly one operation is provided; otherwise {@code false}.
    */
-  @AssertTrue(
-          message = "Exactly one of create, linkHeadOffice, linkChambers must be provided")
+  // spotless:off
+  @AssertTrue(message = "Exactly one of create, linkHeadOffice, linkChambers must be provided")
+  // spotless:on
   public boolean isExactlyOneProvided() {
     int count = 0;
 

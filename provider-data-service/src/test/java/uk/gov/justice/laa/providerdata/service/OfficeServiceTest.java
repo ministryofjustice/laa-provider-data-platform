@@ -3,8 +3,10 @@ package uk.gov.justice.laa.providerdata.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -12,16 +14,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
-import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
-import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
-import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
-import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
-import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
-import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,13 +29,12 @@ class OfficeServiceTest {
 
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
-  @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
-  @Mock private OfficeMapper mapper;
+  @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
 
   @InjectMocks private OfficeService service;
 
   @Test
-  void createLspOffice_lookupByGuid_returnsPopulatedResponse() {
+  void createLspOffice_lookupByGuid_returnsPopulatedResult() {
     UUID providerGuid = UUID.randomUUID();
     UUID officeGuid = UUID.randomUUID();
 
@@ -46,20 +45,20 @@ class OfficeServiceTest {
     savedOffice.setGuid(officeGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
-    when(mapper.toOfficeEntity(any())).thenReturn(new OfficeEntity());
     when(officeRepository.save(any())).thenReturn(savedOffice);
-    when(mapper.toLinkEntity(any(), any(), any(), any())).thenReturn(null);
 
-    var response = service.createLspOffice(providerGuid.toString(), minimalRequest());
+    OfficeCreationResult result =
+        service.createLspOffice(
+            providerGuid.toString(), new OfficeEntity(), new LspProviderOfficeLinkEntity());
 
-    assertThat(response.getData().getProviderFirmGUID()).isEqualTo(providerGuid.toString());
-    assertThat(response.getData().getProviderFirmNumber()).isEqualTo("FRM001");
-    assertThat(response.getData().getOfficeGUID()).isEqualTo(officeGuid.toString());
-    assertThat(response.getData().getOfficeCode()).isNotBlank();
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThat(result.firmNumber()).isEqualTo("FRM001");
+    assertThat(result.officeGUID()).isEqualTo(officeGuid);
+    assertThat(result.accountNumber()).isNotBlank();
   }
 
   @Test
-  void createLspOffice_lookupByFirmNumber_returnsPopulatedResponse() {
+  void createLspOffice_lookupByFirmNumber_returnsPopulatedResult() {
     UUID providerGuid = UUID.randomUUID();
     UUID officeGuid = UUID.randomUUID();
 
@@ -70,14 +69,13 @@ class OfficeServiceTest {
     savedOffice.setGuid(officeGuid);
 
     when(providerRepository.findByFirmNumber("FRM999")).thenReturn(Optional.of(provider));
-    when(mapper.toOfficeEntity(any())).thenReturn(new OfficeEntity());
     when(officeRepository.save(any())).thenReturn(savedOffice);
-    when(mapper.toLinkEntity(any(), any(), any(), any())).thenReturn(null);
 
-    var response = service.createLspOffice("FRM999", minimalRequest());
+    OfficeCreationResult result =
+        service.createLspOffice("FRM999", new OfficeEntity(), new LspProviderOfficeLinkEntity());
 
-    assertThat(response.getData().getProviderFirmNumber()).isEqualTo("FRM999");
-    assertThat(response.getData().getOfficeGUID()).isEqualTo(officeGuid.toString());
+    assertThat(result.firmNumber()).isEqualTo("FRM999");
+    assertThat(result.officeGUID()).isEqualTo(officeGuid);
   }
 
   @Test
@@ -85,7 +83,10 @@ class OfficeServiceTest {
     UUID unknownGuid = UUID.randomUUID();
     when(providerRepository.findById(unknownGuid)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.createLspOffice(unknownGuid.toString(), minimalRequest()))
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    unknownGuid.toString(), new OfficeEntity(), new LspProviderOfficeLinkEntity()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining(unknownGuid.toString());
   }
@@ -94,15 +95,101 @@ class OfficeServiceTest {
   void createLspOffice_throwsWhenFirmNumberNotFound() {
     when(providerRepository.findByFirmNumber("UNKNOWN")).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.createLspOffice("UNKNOWN", minimalRequest()))
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    "UNKNOWN", new OfficeEntity(), new LspProviderOfficeLinkEntity()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("UNKNOWN");
   }
 
-  private static LSPOfficeCreateV2 minimalRequest() {
-    return new LSPOfficeCreateV2(
-        new PaymentDetailsCreateOrLinkV2().paymentMethod(PaymentDetailsPaymentMethodV2.EFT),
-        new OfficeAddressV2().line1("1 Test Street").townOrCity("London").postcode("SW1A 1AA"),
-        null);
+  // --- getLspOffices ---
+
+  @Test
+  void getLspOffices_byGuid_returnsPageFromRepository() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLink();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(lspProviderOfficeLinkRepository.findByProvider(eq(provider), any()))
+        .thenReturn(new PageImpl<>(List.of(link), PageRequest.of(0, 20), 1));
+
+    var result = service.getLspOffices(providerGuid.toString(), 0, 20);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    assertThat(result.getContent()).containsExactly(link);
+  }
+
+  @Test
+  void getLspOffices_throwsWhenProviderNotFound() {
+    when(providerRepository.findByFirmNumber("UNKNOWN")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getLspOffices("UNKNOWN", 0, 20))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("UNKNOWN");
+  }
+
+  // --- getLspOffice ---
+
+  @Test
+  void getLspOffice_byOfficeGuid_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLink();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(lspProviderOfficeLinkRepository.findByProviderAndOffice_Guid(provider, officeGuid))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getLspOffice(providerGuid.toString(), officeGuid.toString())).isSameAs(link);
+  }
+
+  @Test
+  void getLspOffice_byAccountNumber_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLink();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(provider, "ABC123"))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getLspOffice(providerGuid.toString(), "ABC123")).isSameAs(link);
+  }
+
+  @Test
+  void getLspOffice_throwsWhenOfficeNotFound() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(lspProviderOfficeLinkRepository.findByProviderAndOffice_Guid(provider, officeGuid))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getLspOffice(providerGuid.toString(), officeGuid.toString()))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining(officeGuid.toString());
+  }
+
+  private static LspProviderOfficeLinkEntity lspLink() {
+    OfficeEntity office = new OfficeEntity();
+    office.setGuid(UUID.randomUUID());
+    office.setVersion(1L);
+
+    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    link.setOffice(office);
+    link.setAccountNumber("ABC123");
+    link.setFirmType("Legal Services Provider");
+    return link;
   }
 }

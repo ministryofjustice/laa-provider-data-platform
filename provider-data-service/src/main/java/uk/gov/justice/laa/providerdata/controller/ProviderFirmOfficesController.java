@@ -2,16 +2,27 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
+import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
+import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeByGUID200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
+import uk.gov.justice.laa.providerdata.model.PaginationV2;
+import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
+import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
+import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
 
 /**
  * REST controller implementing the Provider Firm Offices API.
@@ -21,10 +32,14 @@ import uk.gov.justice.laa.providerdata.service.OfficeService;
 @RestController
 public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
-  private final OfficeService officeService;
+  private static final int DEFAULT_PAGE_SIZE = 100;
 
-  public ProviderFirmOfficesController(OfficeService officeService) {
+  private final OfficeService officeService;
+  private final OfficeMapper officeMapper;
+
+  public ProviderFirmOfficesController(OfficeService officeService, OfficeMapper officeMapper) {
     this.officeService = officeService;
+    this.officeMapper = officeMapper;
   }
 
   @Override
@@ -33,8 +48,20 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       LSPOfficeCreateV2 lspOfficeCreateV2,
       String correlationId,
       String transparent) {
+    OfficeCreationResult result =
+        officeService.createLspOffice(
+            providerFirmGUIDorFirmNumber,
+            officeMapper.toOfficeEntity(lspOfficeCreateV2),
+            officeMapper.toLinkTemplate(lspOfficeCreateV2));
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(officeService.createLspOffice(providerFirmGUIDorFirmNumber, lspOfficeCreateV2));
+        .body(
+            new CreateProviderFirmOffice201Response()
+                .data(
+                    new CreateProviderFirmOffice201ResponseData()
+                        .providerFirmGUID(result.providerGUID().toString())
+                        .providerFirmNumber(result.firmNumber())
+                        .officeGUID(result.officeGUID().toString())
+                        .officeCode(result.accountNumber())));
   }
 
   @Override
@@ -55,7 +82,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String officeGUIDorCode,
       String correlationId,
       String transparent) {
-    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    LspProviderOfficeLinkEntity link =
+        officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+    return ResponseEntity.ok(
+        new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toLspOfficeV2(link)));
   }
 
   @Override
@@ -65,7 +95,39 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String transparent,
       BigDecimal page,
       BigDecimal pageSize) {
-    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    int pageIndex = page != null ? page.intValue() : 0;
+    int size = pageSize != null ? pageSize.intValue() : DEFAULT_PAGE_SIZE;
+
+    if (pageIndex < 0) {
+      throw new IllegalArgumentException("page must not be negative");
+    }
+    if (size < 1) {
+      throw new IllegalArgumentException("pageSize must be at least 1");
+    }
+
+    Page<LspProviderOfficeLinkEntity> linkPage =
+        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageIndex, size);
+
+    List<OfficeV2> offices =
+        linkPage.getContent().stream().map(officeMapper::toLspOfficeV2).toList();
+
+    PaginationV2 pagination =
+        new PaginationV2()
+            .currentPage(BigDecimal.valueOf(linkPage.getNumber()))
+            .pageSize(BigDecimal.valueOf(linkPage.getSize()))
+            .totalPages(BigDecimal.valueOf(linkPage.getTotalPages()))
+            .totalItems(BigDecimal.valueOf(linkPage.getTotalElements()));
+
+    PaginatedSearchV2 metadata =
+        new PaginatedSearchV2().searchCriteria(new SearchCriteriaV2()).pagination(pagination);
+
+    return ResponseEntity.ok(
+        new GetProviderFirmOffices200Response()
+            .data(
+                new GetProviderFirmOffices200ResponseData()
+                    .content(offices)
+                    .metadata(metadata)
+                    .links(PageLinksBuilder.build(pageIndex, size, linkPage.getTotalPages()))));
   }
 
   @Override

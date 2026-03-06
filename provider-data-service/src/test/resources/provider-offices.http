@@ -153,7 +153,7 @@ Content-Type: application/json
   }
 }
 
-### 2. Create an office — use head office liaison manager, EFT payment
+### 2a. Create an office — use head office liaison manager, EFT payment
 POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
 Content-Type: application/json
 
@@ -187,7 +187,12 @@ Content-Type: application/json
   }
 }
 
-### 2a. Create an office — new liaison manager, cheque payment
+> {%
+  client.global.set("officeGUID", response.body.data.officeGUID);
+  client.global.set("officeCode", response.body.data.officeCode);
+%}
+
+### 2b. Create an office — new liaison manager, cheque payment
 POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
 Content-Type: application/json
 
@@ -210,3 +215,15 @@ Content-Type: application/json
     "telephoneNumber": "07700 900123"
   }
 }
+
+### 3a. List offices for a provider
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
+
+### 3b. List offices — paginated
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices?page=0&pageSize=10
+
+### 4a. Get a single office by GUID
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+
+### 4b. Get a single office by account number
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeCode}}

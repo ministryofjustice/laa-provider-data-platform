@@ -1,11 +1,24 @@
 package uk.gov.justice.laa.providerdata.repository;
 
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 
 /** Repository for ProviderOfficeLink entity. */
 @Repository
 public interface ProviderOfficeLinkRepository
-    extends JpaRepository<ProviderOfficeLinkEntity, UUID> {}
+    extends JpaRepository<ProviderOfficeLinkEntity, UUID> {
+
+  Page<ProviderOfficeLinkEntity> findByProvider(ProviderEntity provider, Pageable pageable);
+
+  Optional<ProviderOfficeLinkEntity> findByProviderAndOffice_Guid(
+      ProviderEntity provider, UUID officeGUID);
+
+  Optional<ProviderOfficeLinkEntity> findByProviderAndAccountNumber(
+      ProviderEntity provider, String accountNumber);
+}

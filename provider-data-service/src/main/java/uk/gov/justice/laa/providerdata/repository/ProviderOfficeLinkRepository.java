@@ -21,4 +21,10 @@ public interface ProviderOfficeLinkRepository
 
   Optional<ProviderOfficeLinkEntity> findByProviderAndAccountNumber(
       ProviderEntity provider, String accountNumber);
+
+  Optional<ProviderOfficeLinkEntity> findByProvider_GuidAndOffice_Guid(
+      UUID providerGuid, UUID officeGuid);
+
+  Optional<ProviderOfficeLinkEntity> findByProvider_GuidAndAccountNumber(
+      UUID providerGuid, String accountNumber);
 }

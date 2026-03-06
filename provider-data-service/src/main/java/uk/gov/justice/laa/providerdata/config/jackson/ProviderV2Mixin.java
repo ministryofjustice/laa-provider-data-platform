@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.config;
+package uk.gov.justice.laa.providerdata.config.jackson;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.boot.jackson.JacksonMixin;

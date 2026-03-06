@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.config;
+package uk.gov.justice.laa.providerdata.config.jackson;
 
 import org.springframework.boot.jackson.JacksonComponent;
 import tools.jackson.core.JacksonException;

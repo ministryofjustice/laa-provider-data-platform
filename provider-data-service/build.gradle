@@ -8,10 +8,6 @@ spotless {
     java {
         googleJavaFormat()
         formatAnnotations()
-
-        // Exclude this specific file from Spotless
-        targetExclude 'src/main/java/uk/gov/justice/laa/providerdata/api/model/OfficeLiaisonManagerPostRequest.java'
-
     }
 }
 

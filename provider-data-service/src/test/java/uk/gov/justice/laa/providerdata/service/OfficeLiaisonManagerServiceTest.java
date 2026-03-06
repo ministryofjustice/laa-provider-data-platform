@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import uk.gov.justice.laa.providerdata.api.model.LiaisonManagerCreate;
-import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerPostRequest;
+import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerCreateRequest;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -64,7 +64,7 @@ class OfficeLiaisonManagerServiceTest {
     providerOfficeLinkRepository.save(link);
 
     var request =
-        new OfficeLiaisonManagerPostRequest(
+        new OfficeLiaisonManagerCreateRequest(
             new LiaisonManagerCreate("Alice", "Jones", "alice@example.com", "0123456789"),
             null,
             null);

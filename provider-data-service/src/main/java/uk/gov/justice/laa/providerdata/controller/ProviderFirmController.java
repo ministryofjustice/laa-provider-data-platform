@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -97,11 +98,15 @@ public class ProviderFirmController {
       produces = "application/json")
   public ResponseEntity<GetProviderFirmByGUIDorFirmNumber200Response> getProviderFirm(
       @PathVariable String providerFirmGUIDorFirmNumber) {
+    ProviderEntity provider = providerFirmService.getProvider(providerFirmGUIDorFirmNumber);
     return ResponseEntity.ok(
         new GetProviderFirmByGUIDorFirmNumber200Response()
             .data(
                 providerFirmMapper.toProviderV2(
-                    providerFirmService.getProvider(providerFirmGUIDorFirmNumber))));
+                    provider,
+                    providerFirmService.getLspHeadOffice(provider).orElse(null),
+                    providerFirmService.getChambersHeadOffice(provider).orElse(null),
+                    providerFirmService.getParentLinks(provider))));
   }
 
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {
@@ -111,7 +116,7 @@ public class ProviderFirmController {
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lsp.getLiaisonManager());
       return providerFirmCreationService.createLspFirm(
           ProviderEntity.builder()
-              .firmType("Legal Services Provider")
+              .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
               .name(request.getName())
               .build(),
           officeMapper.toOfficeEntity(lsp),
@@ -124,14 +129,14 @@ public class ProviderFirmController {
       LiaisonManagerEntity lmEntity = lmEntity(chambers.getLiaisonManager());
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(chambers.getLiaisonManager());
       return providerFirmCreationService.createChambersFirm(
-          ProviderEntity.builder().firmType("Chambers").name(request.getName()).build(),
+          ProviderEntity.builder().firmType(FirmType.CHAMBERS).name(request.getName()).build(),
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
           lmLink);
     }
     return providerFirmCreationService.createPractitionerFirm(
-        ProviderEntity.builder().firmType("Advocate").name(request.getName()).build());
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name(request.getName()).build());
   }
 
   private LiaisonManagerEntity lmEntity(LiaisonManagerCreateV2 dto) {

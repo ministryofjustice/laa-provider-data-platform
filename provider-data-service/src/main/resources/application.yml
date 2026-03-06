@@ -5,7 +5,7 @@
 ###
 spring:
   application:
-    name: provider-data-platform
+    name: PDA (persistent)
   datasource:
     hikari:
       maximum-pool-size: 10  # Maximum connections per pod
@@ -27,9 +27,8 @@ spring:
 
 info:
   app:
-    name: provider-data-platform
-    description: Implements a REST API for retrieving and updating provider firm, office, contract and schedule data.
-    version: 1.0.0
+    name: PDA (persistent)
+    description: "The provider data API (persistent) will own data about provider firms and offices (and, later on, contracts and schedules)"
 
 logging:
   level:

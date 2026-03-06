@@ -6,6 +6,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -163,10 +164,10 @@ public class ProviderCreationService {
     if (firmType == null) {
       return "PF";
     }
-    return switch (firmType.trim().toLowerCase(Locale.UK)) {
-      case "legal services provider" -> "LSP";
-      case "chambers" -> "CH";
-      case "advocate" -> "ADV";
+    return switch (firmType) {
+      case FirmType.LEGAL_SERVICES_PROVIDER -> "LSP";
+      case FirmType.CHAMBERS -> "CH";
+      case FirmType.ADVOCATE -> "ADV";
       default -> "PF";
     };
   }

@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -181,7 +183,10 @@ class ProviderFirmControllerTest {
             .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
             .name("My LSP");
     when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
-    when(providerFirmMapper.toProviderV2(entity)).thenReturn(providerV2);
+    when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
+    when(providerFirmService.getChambersHeadOffice(entity)).thenReturn(Optional.empty());
+    when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
+    when(providerFirmMapper.toProviderV2(entity, null, null, List.of())).thenReturn(providerV2);
 
     mockMvc
         .perform(get("/provider-firms/{guid}", guid))

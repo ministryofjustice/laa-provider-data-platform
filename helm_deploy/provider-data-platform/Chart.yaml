@@ -2,7 +2,7 @@
 # Contains metadata about the Helm chart.
 
 apiVersion: v2
-name: provider-data-platform
+name: PDA (persistent)
 description: "The provider data API (persistent) will own data about provider firms and offices (and, later on, contracts and schedules)"
 type: application
 version: 1.0.0

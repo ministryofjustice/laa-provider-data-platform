@@ -1,9 +1,11 @@
 package uk.gov.justice.laa.providerdata.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
 /**
  * Repository for {@link ChamberProviderOfficeLinkEntity}.
@@ -13,4 +15,8 @@ import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
  */
 @Repository
 public interface ChamberProviderOfficeLinkRepository
-    extends JpaRepository<ChamberProviderOfficeLinkEntity, UUID> {}
+    extends JpaRepository<ChamberProviderOfficeLinkEntity, UUID> {
+
+  Optional<ChamberProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(
+      ProviderEntity provider);
+}

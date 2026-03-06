@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -63,7 +64,10 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createLspFirm(
-            ProviderEntity.builder().firmType("Legal Services Provider").name("My LSP").build(),
+            ProviderEntity.builder()
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+                .name("My LSP")
+                .build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
@@ -113,7 +117,10 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createLspFirm(
-            ProviderEntity.builder().firmType("Legal Services Provider").name("My LSP").build(),
+            ProviderEntity.builder()
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+                .name("My LSP")
+                .build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             new LspProviderOfficeLinkEntity(),
             lmTemplate,
@@ -153,7 +160,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createChambersFirm(
-            ProviderEntity.builder().firmType("Chambers").name("My Chambers").build(),
+            ProviderEntity.builder().firmType(FirmType.CHAMBERS).name("My Chambers").build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
@@ -179,7 +186,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            ProviderEntity.builder().firmType("Advocate").name("A. Barrister").build());
+            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Barrister").build());
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("ADV-");

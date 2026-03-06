@@ -26,4 +26,7 @@ public interface LspProviderOfficeLinkRepository
 
   Optional<LspProviderOfficeLinkEntity> findByProviderAndAccountNumber(
       ProviderEntity provider, String accountNumber);
+
+  Optional<LspProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(
+      ProviderEntity provider);
 }

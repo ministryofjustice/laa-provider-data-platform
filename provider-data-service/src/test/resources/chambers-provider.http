@@ -1,0 +1,43 @@
+### 1. Create a Chambers firm
+# chambers contains head office details — address and liaisonManager are required.
+# The head office is created atomically with the provider.
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Chambers",
+  "name": "Northgate Chambers",
+  "chambers": {
+    "address": {
+      "line1": "2 Temple Row",
+      "line2": "City Centre",
+      "townOrCity": "Birmingham",
+      "postcode": "B2 5LG"
+    },
+    "telephoneNumber": "0121 496 0100",
+    "emailAddress": "clerks@northgatechambers.example",
+    "website": "www.northgatechambers.example",
+    "dxDetails": {
+      "dxNumber": "DX 13009",
+      "dxCentre": "Birmingham"
+    },
+    "liaisonManager": {
+      "firstName": "Robert",
+      "lastName": "Clarke",
+      "emailAddress": "r.clarke@northgatechambers.example",
+      "telephoneNumber": "0121 496 0101",
+      "activeDateFrom": "2024-04-01"
+    }
+  }
+}
+
+> {%
+  client.global.set("chambersGUID", response.body.data.providerFirmGUID);
+  client.global.set("chambersFirmNumber", response.body.data.providerFirmNumber);
+%}
+
+### 2. Get the Chambers firm by GUID
+GET http://localhost:8080/provider-firms/{{chambersGUID}}
+
+### 3. Get the Chambers firm by firm number
+GET http://localhost:8080/provider-firms/{{chambersFirmNumber}}

@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -34,7 +35,7 @@ class LspProviderOfficeLinkRepositoryTest {
         providerRepository.save(
             ProviderEntity.builder()
                 .firmNumber("FRM-LSP-REPO-TEST")
-                .firmType("Legal Services Provider")
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("LSP Repo Test Firm")
                 .build());
 

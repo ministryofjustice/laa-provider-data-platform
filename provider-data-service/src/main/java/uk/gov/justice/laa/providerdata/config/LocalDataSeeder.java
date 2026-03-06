@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
@@ -112,14 +113,14 @@ public class LocalDataSeeder implements CommandLineRunner {
     ProviderEntity provider1 =
         ProviderEntity.builder()
             .firmNumber("FRM001")
-            .firmType("Legal Services Provider")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Test Legal Services Provider Ltd")
             .build();
 
     ProviderEntity provider2 =
         ProviderEntity.builder()
             .firmNumber("FRM002")
-            .firmType("Chambers")
+            .firmType(FirmType.CHAMBERS)
             .name("Test Chambers")
             .build();
 

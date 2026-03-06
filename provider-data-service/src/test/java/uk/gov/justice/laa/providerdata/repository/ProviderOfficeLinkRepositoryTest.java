@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -33,7 +34,7 @@ class ProviderOfficeLinkRepositoryTest {
         providerRepository.save(
             ProviderEntity.builder()
                 .firmNumber("FRM-LINK-TEST")
-                .firmType("Legal Services Provider")
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("Link Test Firm")
                 .build());
 
@@ -86,7 +87,7 @@ class ProviderOfficeLinkRepositoryTest {
         providerRepository.save(
             ProviderEntity.builder()
                 .firmNumber("FRM-OTHER")
-                .firmType("Legal Services Provider")
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("Other Firm")
                 .build());
 

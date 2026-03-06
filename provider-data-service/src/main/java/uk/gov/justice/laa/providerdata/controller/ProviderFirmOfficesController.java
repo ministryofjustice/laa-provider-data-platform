@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -15,6 +17,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeByGUID200Respo
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
 import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
@@ -48,11 +51,27 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       LSPOfficeCreateV2 lspOfficeCreateV2,
       String correlationId,
       String transparent) {
+
+    LiaisonManagerEntity lmEntity = null;
+    OfficeLiaisonManagerLinkEntity lmLinkTemplate = null;
+    boolean linkToHeadOffice = false;
+
+    if (lspOfficeCreateV2.getLiaisonManager() instanceof LiaisonManagerCreateV2 lmCreate) {
+      lmEntity = officeMapper.toLiaisonManagerEntity(lmCreate);
+      lmLinkTemplate = officeMapper.toLiaisonManagerLinkTemplate(lmCreate);
+    } else if (lspOfficeCreateV2.getLiaisonManager() != null) {
+      // LiaisonManagerLinkHeadOfficeV2: link to head office's active liaison manager
+      linkToHeadOffice = true;
+    }
+
     OfficeCreationResult result =
         officeService.createLspOffice(
             providerFirmGUIDorFirmNumber,
             officeMapper.toOfficeEntity(lspOfficeCreateV2),
-            officeMapper.toLinkTemplate(lspOfficeCreateV2));
+            officeMapper.toLinkTemplate(lspOfficeCreateV2),
+            lmEntity,
+            lmLinkTemplate,
+            linkToHeadOffice);
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()

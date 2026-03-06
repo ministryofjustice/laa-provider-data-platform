@@ -1,0 +1,69 @@
+### 1a. Create a Practitioner firm — Advocate
+# Practitioners have no head office; only the provider record is created.
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Advocate",
+  "name": "J. Smith Advocate",
+  "practitioner": {
+    "advocateType": "Advocate",
+    "parentFirms": [
+      { "parentFirmNumber": "0B111C" }
+    ],
+    "advocate": {
+      "advocateLevel": "Junior",
+      "solicitorRegulationAuthorityRollNumber": "SRA123456"
+    },
+    "payment": {
+      "paymentMethod": "EFT",
+      "bankAccountDetails": {
+        "accountName": "J Smith Client Account",
+        "sortCode": "200000",
+        "accountNumber": "55779911"
+      }
+    },
+    "liaisonManager": {
+      "useChambersLiaisonManager": true
+    }
+  }
+}
+
+> {%
+  client.global.set("advocateGUID", response.body.data.providerFirmGUID);
+  client.global.set("advocateFirmNumber", response.body.data.providerFirmNumber);
+%}
+
+### 1b. Create a Practitioner firm — Barrister
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Advocate",
+  "name": "T. Jones Barrister",
+  "practitioner": {
+    "advocateType": "Barrister",
+    "parentFirms": [
+      { "parentFirmNumber": "0B111C" }
+    ],
+    "barrister": {
+      "barristerLevel": "KC",
+      "barCouncilRollNumber": "BC78901"
+    },
+    "payment": {
+      "paymentMethod": "CHECK"
+    },
+    "liaisonManager": {
+      "firstName": "Tom",
+      "lastName": "Jones",
+      "emailAddress": "t.jones@example.com",
+      "telephoneNumber": "07700 900456"
+    }
+  }
+}
+
+### 2. Get the Advocate firm by GUID
+GET http://localhost:8080/provider-firms/{{advocateGUID}}
+
+### 3. Get the Advocate firm by firm number
+GET http://localhost:8080/provider-firms/{{advocateFirmNumber}}

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
 @SpringBootTest
@@ -20,7 +21,7 @@ class ProviderFirmRepositoryTest {
         repository.save(
             ProviderEntity.builder()
                 .firmNumber("F12345")
-                .firmType("Legal Services Provider")
+                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("Test Firm")
                 .build());
 
@@ -29,6 +30,6 @@ class ProviderFirmRepositoryTest {
     var reloaded = repository.findByFirmNumber("F12345");
     assertThat(reloaded).isPresent();
     assertThat(reloaded.get().getName()).isEqualTo("Test Firm");
-    assertThat(reloaded.get().getFirmType()).isEqualTo("Legal Services Provider");
+    assertThat(reloaded.get().getFirmType()).isEqualTo(FirmType.LEGAL_SERVICES_PROVIDER);
   }
 }

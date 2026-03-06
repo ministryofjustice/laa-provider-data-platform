@@ -9,16 +9,23 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.springframework.lang.Nullable;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.DXV2;
 import uk.gov.justice.laa.providerdata.model.IntervenedOfficeDetailsV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsV2;
+import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.VATRegistrationV2;
 
@@ -46,6 +53,45 @@ public interface OfficeMapper {
   OfficeEntity toOfficeEntity(LSPOfficeCreateV2 request);
 
   /**
+   * Maps an LSP head office creation request to an {@link OfficeEntity}.
+   *
+   * <p>Used when creating a new LSP provider firm; the head office is created atomically with the
+   * provider.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "addressLine1", source = "address.line1")
+  @Mapping(target = "addressLine2", source = "address.line2")
+  @Mapping(target = "addressLine3", source = "address.line3")
+  @Mapping(target = "addressLine4", source = "address.line4")
+  @Mapping(target = "addressTownOrCity", source = "address.townOrCity")
+  @Mapping(target = "addressCounty", source = "address.county")
+  @Mapping(target = "addressPostCode", source = "address.postcode")
+  @Mapping(target = "telephoneNumber", source = "telephoneNumber")
+  @Mapping(target = "emailAddress", source = "emailAddress")
+  @Mapping(target = "dxDetailsNumber", source = "dxDetails.dxNumber")
+  @Mapping(target = "dxDetailsCentre", source = "dxDetails.dxCentre")
+  OfficeEntity toOfficeEntity(ProviderCreateLSPV2LegalServicesProvider request);
+
+  /**
+   * Maps a Chambers head office creation request to an {@link OfficeEntity}.
+   *
+   * <p>Used when creating a new Chambers provider firm.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "addressLine1", source = "address.line1")
+  @Mapping(target = "addressLine2", source = "address.line2")
+  @Mapping(target = "addressLine3", source = "address.line3")
+  @Mapping(target = "addressLine4", source = "address.line4")
+  @Mapping(target = "addressTownOrCity", source = "address.townOrCity")
+  @Mapping(target = "addressCounty", source = "address.county")
+  @Mapping(target = "addressPostCode", source = "address.postcode")
+  @Mapping(target = "telephoneNumber", source = "telephoneNumber")
+  @Mapping(target = "emailAddress", source = "emailAddress")
+  @Mapping(target = "dxDetailsNumber", source = "dxDetails.dxNumber")
+  @Mapping(target = "dxDetailsCentre", source = "dxDetails.dxCentre")
+  OfficeEntity toOfficeEntity(ChambersHeadOfficeCreateV2 request);
+
+  /**
    * Maps an LSP office creation request to a partially-populated {@link
    * LspProviderOfficeLinkEntity}. The caller must set {@code provider}, {@code office}, and {@code
    * accountNumber} before persisting.
@@ -56,6 +102,56 @@ public interface OfficeMapper {
   @Mapping(target = "vatRegistrationNumber", source = "vatRegistration.vatNumber")
   @Mapping(target = "paymentMethod", source = "payment", qualifiedByName = "paymentMethodValue")
   LspProviderOfficeLinkEntity toLinkTemplate(LSPOfficeCreateV2 request);
+
+  /**
+   * Maps an LSP head office creation request to a partially-populated {@link
+   * LspProviderOfficeLinkEntity} with {@code headOfficeFlag = true}.
+   *
+   * <p>The caller must set {@code provider}, {@code office}, and {@code accountNumber} before
+   * persisting.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "headOfficeFlag", expression = "java(Boolean.TRUE)")
+  @Mapping(target = "website", source = "website", qualifiedByName = "uriToString")
+  @Mapping(target = "vatRegistrationNumber", source = "vatRegistration.vatNumber")
+  @Mapping(
+      target = "paymentMethod",
+      source = "payment",
+      qualifiedByName = "paymentMethodValueFromCreate")
+  LspProviderOfficeLinkEntity toHeadOfficeLinkTemplate(
+      ProviderCreateLSPV2LegalServicesProvider request);
+
+  /**
+   * Maps a Chambers head office creation request to a partially-populated {@link
+   * ChamberProviderOfficeLinkEntity} with {@code headOfficeFlag = true}.
+   *
+   * <p>The caller must set {@code provider}, {@code office}, and {@code accountNumber} before
+   * persisting.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "headOfficeFlag", expression = "java(Boolean.TRUE)")
+  @Mapping(target = "website", source = "website", qualifiedByName = "uriToString")
+  ChamberProviderOfficeLinkEntity toChambersHeadOfficeLinkTemplate(
+      ChambersHeadOfficeCreateV2 request);
+
+  /** Maps a {@link LiaisonManagerCreateV2} request to a {@link LiaisonManagerEntity}. */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "firstName", source = "firstName")
+  @Mapping(target = "lastName", source = "lastName")
+  @Mapping(target = "emailAddress", source = "emailAddress")
+  @Mapping(target = "telephoneNumber", source = "telephoneNumber")
+  LiaisonManagerEntity toLiaisonManagerEntity(LiaisonManagerCreateV2 request);
+
+  /**
+   * Maps a {@link LiaisonManagerCreateV2} request to a partially-populated {@link
+   * OfficeLiaisonManagerLinkEntity} template.
+   *
+   * <p>The caller must set {@code liaisonManager} and {@code office} before persisting.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "activeDateFrom", source = "activeDateFrom")
+  @Mapping(target = "linkedFlag", expression = "java(Boolean.FALSE)")
+  OfficeLiaisonManagerLinkEntity toLiaisonManagerLinkTemplate(LiaisonManagerCreateV2 request);
 
   /** Maps the address fields of an {@link OfficeEntity} to an {@link OfficeAddressV2} DTO. */
   @BeanMapping(ignoreByDefault = true)
@@ -159,6 +255,14 @@ public interface OfficeMapper {
   /** Maps a {@link PaymentDetailsCreateOrLinkV2} to its string value for persistence. */
   @Named("paymentMethodValue")
   default @Nullable String paymentMethodValue(@Nullable PaymentDetailsCreateOrLinkV2 payment) {
+    return payment != null && payment.getPaymentMethod() != null
+        ? payment.getPaymentMethod().getValue()
+        : null;
+  }
+
+  /** Maps a {@link PaymentDetailsCreateV2} to its string value for persistence. */
+  @Named("paymentMethodValueFromCreate")
+  default @Nullable String paymentMethodValueFromCreate(@Nullable PaymentDetailsCreateV2 payment) {
     return payment != null && payment.getPaymentMethod() != null
         ? payment.getPaymentMethod().getValue()
         : null;

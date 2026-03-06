@@ -8,11 +8,16 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 
 class OfficeMapperTest {
@@ -173,6 +178,92 @@ class OfficeMapperTest {
     LspProviderOfficeLinkEntity link = linkWith(office);
 
     assertThat(mapper.toLspOfficeV2(link).getVersion()).isNull();
+  }
+
+  @Test
+  void toOfficeEntity_lspHeadOffice_mapsAddressFields() {
+    var lsp = new ProviderCreateLSPV2LegalServicesProvider();
+    lsp.address(new OfficeAddressV2().line1("1 Test St").townOrCity("London").postcode("SW1A 1AA"));
+
+    OfficeEntity result = mapper.toOfficeEntity(lsp);
+
+    assertThat(result.getAddressLine1()).isEqualTo("1 Test St");
+    assertThat(result.getAddressTownOrCity()).isEqualTo("London");
+    assertThat(result.getAddressPostCode()).isEqualTo("SW1A 1AA");
+  }
+
+  @Test
+  void toHeadOfficeLinkTemplate_lsp_setsHeadOfficeFlagTrue() {
+    var lsp = new ProviderCreateLSPV2LegalServicesProvider();
+
+    LspProviderOfficeLinkEntity result = mapper.toHeadOfficeLinkTemplate(lsp);
+
+    assertThat(result.getHeadOfficeFlag()).isTrue();
+  }
+
+  @Test
+  void toHeadOfficeLinkTemplate_lsp_mapsPaymentMethod() {
+    var lsp = new ProviderCreateLSPV2LegalServicesProvider();
+    lsp.payment(new PaymentDetailsCreateV2().paymentMethod(PaymentDetailsPaymentMethodV2.EFT));
+
+    LspProviderOfficeLinkEntity result = mapper.toHeadOfficeLinkTemplate(lsp);
+
+    assertThat(result.getPaymentMethod()).isEqualTo("EFT");
+  }
+
+  @Test
+  void toOfficeEntity_chambersHeadOffice_mapsAddressFields() {
+    var chambers = new ChambersHeadOfficeCreateV2();
+    chambers.address(
+        new OfficeAddressV2().line1("2 Chambers Row").townOrCity("London").postcode("EC1A 1BB"));
+
+    OfficeEntity result = mapper.toOfficeEntity(chambers);
+
+    assertThat(result.getAddressLine1()).isEqualTo("2 Chambers Row");
+    assertThat(result.getAddressTownOrCity()).isEqualTo("London");
+  }
+
+  @Test
+  void toChambersHeadOfficeLinkTemplate_setsHeadOfficeFlagTrue() {
+    var chambers = new ChambersHeadOfficeCreateV2();
+
+    ChamberProviderOfficeLinkEntity result = mapper.toChambersHeadOfficeLinkTemplate(chambers);
+
+    assertThat(result.getHeadOfficeFlag()).isTrue();
+  }
+
+  @Test
+  void toLiaisonManagerEntity_mapsAllFields() {
+    var dto =
+        new uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2()
+            .firstName("Jane")
+            .lastName("Smith")
+            .emailAddress("jane@example.com")
+            .telephoneNumber("01234567890")
+            .activeDateFrom(LocalDate.of(2024, 1, 1));
+
+    var result = mapper.toLiaisonManagerEntity(dto);
+
+    assertThat(result.getFirstName()).isEqualTo("Jane");
+    assertThat(result.getLastName()).isEqualTo("Smith");
+    assertThat(result.getEmailAddress()).isEqualTo("jane@example.com");
+    assertThat(result.getTelephoneNumber()).isEqualTo("01234567890");
+  }
+
+  @Test
+  void toLiaisonManagerLinkTemplate_mapsActiveDateFromAndSetsLinkedFlagFalse() {
+    var dto =
+        new uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2()
+            .firstName("Jane")
+            .lastName("Smith")
+            .activeDateFrom(LocalDate.of(2024, 6, 15));
+
+    var result = mapper.toLiaisonManagerLinkTemplate(dto);
+
+    assertThat(result.getActiveDateFrom()).isEqualTo(LocalDate.of(2024, 6, 15));
+    assertThat(result.getLinkedFlag()).isFalse();
+    assertThat(result.getLiaisonManager()).isNull();
+    assertThat(result.getOffice()).isNull();
   }
 
   private static OfficeEntity officeWithGuid() {

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.model.LiaisonManagersResponse;
-import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerPostRequest;
+import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerCreateRequest;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 
 /** java doc. */
@@ -30,7 +30,7 @@ public class ProviderFirmOfficesLiaisonManagersController {
   public ResponseEntity<LiaisonManagersResponse> postOfficeLiaisonManagers(
       @PathVariable String providerFirmGUIDorFirmNumber,
       @PathVariable String officeGUIDorCode,
-      @Valid @RequestBody OfficeLiaisonManagerPostRequest request) {
+      @Valid @RequestBody OfficeLiaisonManagerCreateRequest request) {
 
     var managers =
         service.postOfficeLiaisonManager(providerFirmGUIDorFirmNumber, officeGUIDorCode, request);

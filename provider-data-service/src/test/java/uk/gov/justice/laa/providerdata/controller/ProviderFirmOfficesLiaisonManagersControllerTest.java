@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerPostRequest;
+import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerCreateRequest;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
@@ -93,7 +93,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
 
     given(
             service.postOfficeLiaisonManager(
-                eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerPostRequest.class)))
+                eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateRequest.class)))
         .willReturn(List.of(lm));
 
     // Valid "create" request (camelCase keys)
@@ -130,6 +130,6 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     // Verify delegation to the service with route variables preserved
     verify(service)
         .postOfficeLiaisonManager(
-            eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerPostRequest.class));
+            eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateRequest.class));
   }
 }

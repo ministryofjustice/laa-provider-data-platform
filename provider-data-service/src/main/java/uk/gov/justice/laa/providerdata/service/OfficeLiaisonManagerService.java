@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerPostRequest;
+import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerCreateRequest;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -42,7 +42,7 @@ public class OfficeLiaisonManagerService {
   public List<LiaisonManagerEntity> postOfficeLiaisonManager(
       String providerFirmGuidOrNumber,
       String officeGuidOrCode,
-      OfficeLiaisonManagerPostRequest request) {
+      OfficeLiaisonManagerCreateRequest request) {
 
     var provider =
         parseUuid(providerFirmGuidOrNumber)
@@ -101,7 +101,7 @@ public class OfficeLiaisonManagerService {
   }
 
   private LiaisonManagerEntity resolveOrCreateLiaisonManager(
-      OfficeLiaisonManagerPostRequest request, OffsetDateTime now) {
+      OfficeLiaisonManagerCreateRequest request, OffsetDateTime now) {
 
     if (request.create() != null) {
       LiaisonManagerEntity entity = new LiaisonManagerEntity();

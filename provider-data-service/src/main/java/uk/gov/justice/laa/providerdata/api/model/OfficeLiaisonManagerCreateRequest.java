@@ -18,7 +18,7 @@ import jakarta.validation.constraints.AssertTrue;
  * #isExactlyOneProvided()} method enforces this at validation time.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record OfficeLiaisonManagerPostRequest(
+public record OfficeLiaisonManagerCreateRequest(
     LiaisonManagerCreate create,
     LiaisonManagerLinkHeadOffice linkHeadOffice,
     LiaisonManagerLinkChambers linkChambers) {

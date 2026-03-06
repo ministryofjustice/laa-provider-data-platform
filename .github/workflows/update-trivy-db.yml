@@ -49,7 +49,7 @@ jobs:
           rm javadb.tar.gz
 
       - name: "Save the Trivy DB to a GitHub cache"
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ${{ github.workspace }}/.cache/trivy
           key: cache-trivy-${{ steps.date.outputs.date }}

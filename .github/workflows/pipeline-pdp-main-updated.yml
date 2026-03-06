@@ -18,7 +18,7 @@ jobs:
       reltype: ${{ steps.vars.outputs.reltype }}  # type of release (or none)
       gtag:    ${{ steps.vars.outputs.gtag }}     # name of the Git tag to create
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0    # } ensure that previous Git tags are included
           fetch-tags: true  # }
@@ -64,7 +64,7 @@ jobs:
     permissions: { contents: read }
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - run: |
           ### Check the Helm chart lints OK
@@ -86,7 +86,7 @@ jobs:
     permissions: { contents: write }
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: "Create Git tag"
         env:

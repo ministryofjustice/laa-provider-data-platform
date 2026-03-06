@@ -2,6 +2,7 @@ plugins {
     id 'io.freefair.lombok'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id 'com.diffplug.spotless'
+    id 'maven-publish'
 }
 
 spotless {
@@ -88,6 +89,16 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            // This is what other services will use to import your models
+            artifactId = 'provider-data-service'
+        }
+    }
 }
 
 

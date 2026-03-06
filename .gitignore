@@ -18,6 +18,8 @@ env
 *.txt
 *.xlsx
 *.zip
+### Let these through as they're intentional ###
+!**/src/main/resources/banner.txt
 
 ### Gradle ###
 .gradle/

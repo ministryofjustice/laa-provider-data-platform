@@ -57,7 +57,8 @@ GET http://localhost:8080/provider-firms/{{providerFirmGUID}}
 ### 3. Get the provider firm by firm number
 GET http://localhost:8080/provider-firms/{{providerFirmNumber}}
 
-### 4a. Create an office — link head office liaison manager, EFT payment
+### 4a. Create an office — link head office liaison manager, EFT payment (create new bank account)
+# Uses a distinct account number from step 1 so bank-account filtering in steps 7b/8b is meaningful.
 POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
 Content-Type: application/json
 
@@ -77,9 +78,9 @@ Content-Type: application/json
   "payment": {
     "paymentMethod": "EFT",
     "bankAccountDetails": {
-      "accountName": "Westgate Legal LLP Client A/C",
+      "accountName": "Westgate Legal LLP Office A/C",
       "sortCode": "601111",
-      "accountNumber": "06805333"
+      "accountNumber": "07916244"
     }
   },
   "dxDetails": {
@@ -121,6 +122,10 @@ Content-Type: application/json
   }
 }
 
+> {%
+  client.global.set("officeCheckGUID", response.body.data.officeGUID);
+%}
+
 ### 5a. List offices for the provider
 GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
 
@@ -132,3 +137,51 @@ GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGU
 
 ### 6b. Get a single office by account number
 GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeCode}}
+
+### 7a. List all bank accounts for the provider firm
+# After steps 1 and 4a, two bank accounts exist: one from the head office (06805333),
+# one from step 4a (07916244).
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/bank-details
+
+> {%
+  client.global.set("bankAccountGUID", response.body.data.content[0].guid);
+%}
+
+### 7b. List bank accounts — filtered by partial account number (matches only the head office account)
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/bank-details?bankAccountNumber=0680
+
+### 7c. List bank accounts — paginated
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/bank-details?page=0&pageSize=1
+
+### 8a. List bank accounts for the EFT office (step 4a) — expects one account
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}/bank-details
+
+### 8b. List bank accounts — filtered (matches the office account number)
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}/bank-details?bankAccountNumber=0791
+
+### 8c. List bank accounts for the cheque office (step 4b) — expects empty list
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeCheckGUID}}/bank-details
+
+### 9. Create an office — link an existing bank account by GUID (requires bankAccountGUID from step 7a)
+POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
+Content-Type: application/json
+
+{
+  "address": {
+    "line1": "5 Broad Street",
+    "townOrCity": "Bristol",
+    "postcode": "BS1 2EL"
+  },
+  "telephoneNumber": "0117 496 0100",
+  "emailAddress": "bristol@example.com",
+  "payment": {
+    "paymentMethod": "EFT",
+    "bankAccountDetails": {
+      "type": "link",
+      "bankAccountGUID": "{{bankAccountGUID}}"
+    }
+  },
+  "liaisonManager": {
+    "useHeadOfficeLiaisonManager": true
+  }
+}

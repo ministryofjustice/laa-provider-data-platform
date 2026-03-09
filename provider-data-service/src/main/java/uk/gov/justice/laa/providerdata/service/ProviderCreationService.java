@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
@@ -12,6 +13,10 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
@@ -34,6 +39,8 @@ public class ProviderCreationService {
   private final ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  private final BankDetailsService bankDetailsService;
+  private final BankAccountMapper bankAccountMapper;
 
   /**
    * Inject dependencies.
@@ -44,6 +51,8 @@ public class ProviderCreationService {
    * @param chamberProviderOfficeLinkRepository to save Chambers office links
    * @param liaisonManagerRepository to save liaison manager entities
    * @param officeLiaisonManagerLinkRepository to save office liaison manager links
+   * @param bankDetailsService to create and link bank accounts
+   * @param bankAccountMapper to map bank account request DTOs to entities
    */
   public ProviderCreationService(
       ProviderRepository providerRepository,
@@ -51,18 +60,22 @@ public class ProviderCreationService {
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
       ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
-      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository) {
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      BankDetailsService bankDetailsService,
+      BankAccountMapper bankAccountMapper) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
+    this.bankDetailsService = bankDetailsService;
+    this.bankAccountMapper = bankAccountMapper;
   }
 
   /**
    * Creates a new Legal Services Provider firm with its head office, and optionally a liaison
-   * manager for that office.
+   * manager for that office and a bank account.
    *
    * @param providerTemplate partially-populated provider entity (firmType and name set)
    * @param officeTemplate partially-populated office entity (address and contact fields set)
@@ -71,6 +84,7 @@ public class ProviderCreationService {
    * @param lmTemplate liaison manager entity to create, or {@code null} if none
    * @param lmLinkTemplate partially-populated LM link template with activeDateFrom set, or {@code
    *     null} if none
+   * @param payment payment details from the request, or {@code null}
    * @return identifiers for the created provider and head office
    */
   @Transactional
@@ -79,7 +93,8 @@ public class ProviderCreationService {
       OfficeEntity officeTemplate,
       LspProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
-      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      @Nullable PaymentDetailsCreateV2 payment) {
 
     providerTemplate.setFirmNumber(generateFirmNumber(providerTemplate.getFirmType()));
     ProviderEntity savedProvider = providerRepository.save(providerTemplate);
@@ -90,9 +105,11 @@ public class ProviderCreationService {
     linkTemplate.setProvider(savedProvider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
-    lspProviderOfficeLinkRepository.save(linkTemplate);
+    LspProviderOfficeLinkEntity savedLink = lspProviderOfficeLinkRepository.save(linkTemplate);
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedOffice);
+
+    persistBankDetailsFromCreate(payment, savedProvider, savedLink);
 
     return new ProviderCreationResult(
         savedProvider.getGuid(),
@@ -187,5 +204,20 @@ public class ProviderCreationService {
     lmLinkTemplate.setLiaisonManager(savedLm);
     lmLinkTemplate.setOffice(savedOffice);
     officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
+  }
+
+  private void persistBankDetailsFromCreate(
+      @Nullable PaymentDetailsCreateV2 payment,
+      ProviderEntity provider,
+      LspProviderOfficeLinkEntity officeLink) {
+    if (payment == null
+        || !PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
+        || payment.getBankAccountDetails() == null) {
+      return;
+    }
+    BankAccountProviderOfficeCreateV2 create =
+        (BankAccountProviderOfficeCreateV2) payment.getBankAccountDetails();
+    BankAccountEntity template = bankAccountMapper.toBankAccountEntity(create);
+    bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
   }
 }

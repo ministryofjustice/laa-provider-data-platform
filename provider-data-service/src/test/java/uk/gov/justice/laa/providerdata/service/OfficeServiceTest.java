@@ -19,12 +19,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
@@ -39,6 +45,8 @@ class OfficeServiceTest {
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Mock private BankDetailsService bankDetailsService;
+  @Mock private BankAccountMapper bankAccountMapper;
 
   @InjectMocks private OfficeService service;
 
@@ -146,7 +154,8 @@ class OfficeServiceTest {
         new LspProviderOfficeLinkEntity(),
         lmTemplate,
         lmLink,
-        false);
+        false,
+        null);
 
     verify(liaisonManagerRepository).save(lmTemplate);
     assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
@@ -194,7 +203,8 @@ class OfficeServiceTest {
         new LspProviderOfficeLinkEntity(),
         null,
         null,
-        true);
+        true,
+        null);
 
     verify(liaisonManagerRepository, never()).save(any());
     verify(officeLiaisonManagerLinkRepository).save(any(OfficeLiaisonManagerLinkEntity.class));
@@ -232,7 +242,8 @@ class OfficeServiceTest {
                     new LspProviderOfficeLinkEntity(),
                     null,
                     null,
-                    true))
+                    true,
+                    null))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("No active liaison manager found");
   }
@@ -323,5 +334,107 @@ class OfficeServiceTest {
     link.setAccountNumber("ABC123");
     link.setFirmType("Legal Services Provider");
     return link;
+  }
+
+  // --- bank details wiring ---
+
+  @Test
+  void createLspOffice_withEftCreatePayment_persistsBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+
+    var linkTemplate = new LspProviderOfficeLinkEntity();
+    when(lspProviderOfficeLinkRepository.save(linkTemplate)).thenReturn(linkTemplate);
+
+    var createDetails = new BankAccountProviderOfficeCreateV2("Test Bank", "12-34-56", "87654321");
+    var accountTemplate = new BankAccountEntity();
+    when(bankAccountMapper.toBankAccountEntity(createDetails)).thenReturn(accountTemplate);
+
+    var payment =
+        new PaymentDetailsCreateOrLinkV2(PaymentDetailsPaymentMethodV2.EFT)
+            .bankAccountDetails(createDetails);
+
+    service.createLspOffice(
+        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+
+    verify(bankDetailsService)
+        .createAndLink(accountTemplate, provider, linkTemplate, createDetails.getActiveDateFrom());
+  }
+
+  @Test
+  void createLspOffice_withEftLinkPayment_linksExistingBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+
+    var linkTemplate = new LspProviderOfficeLinkEntity();
+    when(lspProviderOfficeLinkRepository.save(linkTemplate)).thenReturn(linkTemplate);
+
+    UUID bankGuid = UUID.randomUUID();
+    var linkDetails = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankGuid.toString());
+    var payment =
+        new PaymentDetailsCreateOrLinkV2(PaymentDetailsPaymentMethodV2.EFT)
+            .bankAccountDetails(linkDetails);
+
+    service.createLspOffice(
+        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+
+    verify(bankDetailsService).linkExisting(bankGuid, provider, linkTemplate, null);
+    verify(bankAccountMapper, never()).toBankAccountEntity(any());
+  }
+
+  @Test
+  void createLspOffice_withCheckPayment_doesNotPersistBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var payment = new PaymentDetailsCreateOrLinkV2(PaymentDetailsPaymentMethodV2.CHECK);
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        payment);
+
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  @Test
+  void createLspOffice_withNullPayment_doesNotPersistBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        null);
+
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
   }
 }

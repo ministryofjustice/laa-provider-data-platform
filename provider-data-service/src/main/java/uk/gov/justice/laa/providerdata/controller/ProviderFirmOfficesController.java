@@ -49,7 +49,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<CreateProviderFirmOffice201Response> createProviderFirmOffice(
       String providerFirmGUIDorFirmNumber,
       LSPOfficeCreateV2 lspOfficeCreateV2,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
 
     LiaisonManagerEntity lmEntity = null;
@@ -71,7 +71,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             officeMapper.toLinkTemplate(lspOfficeCreateV2),
             lmEntity,
             lmLinkTemplate,
-            linkToHeadOffice);
+            linkToHeadOffice,
+            lspOfficeCreateV2.getPayment());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()
@@ -85,7 +86,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getOffices(
-      String correlationId,
+      String xCorrelationId,
       String transparent,
       List<String> officeGUID,
       List<String> officeCode,
@@ -99,7 +100,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<GetProviderFirmOfficeByGUID200Response> getProviderFirmOfficeByGUID(
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
     LspProviderOfficeLinkEntity link =
         officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
@@ -110,7 +111,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getProviderFirmOffices(
       String providerFirmGUIDorFirmNumber,
-      String correlationId,
+      String xCorrelationId,
       String transparent,
       BigDecimal page,
       BigDecimal pageSize) {
@@ -154,7 +155,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       OfficePatchV2 officePatchV2,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }

@@ -1,3 +1,10 @@
+// Declare Spotless at the root with apply false so that the plugin is resolved by a single
+// class loader. Without this, applying it independently in sibling subprojects causes a
+// SpotlessTaskService conflict at configuration time.
+plugins {
+    id 'com.diffplug.spotless' apply false
+}
+
 allprojects {
     afterEvaluate {
         pluginManager.withPlugin('java') {

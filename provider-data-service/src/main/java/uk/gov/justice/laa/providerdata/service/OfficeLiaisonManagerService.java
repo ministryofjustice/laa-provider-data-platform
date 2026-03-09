@@ -1,16 +1,20 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.api.model.OfficeLiaisonManagerCreateRequest;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
+import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
@@ -38,11 +42,19 @@ public class OfficeLiaisonManagerService {
   }
 
   /** java doc. */
+  public record OfficeLiaisonManagerOperationResult(
+      UUID providerFirmGuid,
+      String providerFirmNumber,
+      UUID officeGuid,
+      String officeCode,
+      UUID liaisonManagerGuid) {}
+
+  /** java doc. */
   @Transactional
-  public List<LiaisonManagerEntity> postOfficeLiaisonManager(
+  public OfficeLiaisonManagerOperationResult postOfficeLiaisonManager(
       String providerFirmGuidOrNumber,
       String officeGuidOrCode,
-      OfficeLiaisonManagerCreateRequest request) {
+      OfficeLiaisonManagerCreateOrLinkV2 request) {
 
     var provider =
         parseUuid(providerFirmGuidOrNumber)
@@ -91,41 +103,89 @@ public class OfficeLiaisonManagerService {
 
     officeLiaisonManagerLinkRepository.save(newLink);
 
-    // Return current active liaison managers for the office (content only).
-    return officeLiaisonManagerLinkRepository
-        .findByOffice_Guid(providerOfficeLink.getOffice().getGuid())
-        .stream()
-        .filter(l -> l.getActiveDateTo() == null || l.getActiveDateTo().isAfter(today))
-        .map(OfficeLiaisonManagerLinkEntity::getLiaisonManager)
-        .toList();
+    return new OfficeLiaisonManagerOperationResult(
+        provider.getGuid(),
+        provider.getFirmNumber(),
+        providerOfficeLink.getOffice().getGuid(),
+        providerOfficeLink.getAccountNumber(),
+        liaisonManager.getGuid());
   }
 
   private LiaisonManagerEntity resolveOrCreateLiaisonManager(
-      OfficeLiaisonManagerCreateRequest request, OffsetDateTime now) {
+      OfficeLiaisonManagerCreateOrLinkV2 request, OffsetDateTime now) {
 
-    if (request.create() != null) {
+    if (request instanceof LiaisonManagerCreateV2 create) {
       LiaisonManagerEntity entity = new LiaisonManagerEntity();
-      entity.setFirstName(request.create().firstName());
-      entity.setLastName(request.create().lastName());
-      entity.setEmailAddress(request.create().emailAddress());
-      entity.setTelephoneNumber(request.create().telephoneNumber());
+      entity.setFirstName(create.getFirstName());
+      entity.setLastName(create.getLastName());
+      entity.setEmailAddress(create.getEmailAddress());
+      entity.setTelephoneNumber(create.getTelephoneNumber());
       return liaisonManagerRepository.save(entity);
     }
 
-    if (request.linkHeadOffice() != null) {
+    if (request instanceof LiaisonManagerLinkHeadOfficeV2 linkHeadOffice) {
+      UUID guid = extractLiaisonManagerGuid(linkHeadOffice);
       return liaisonManagerRepository
-          .findById(request.linkHeadOffice().liaisonManagerGuid())
+          .findById(guid)
           .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found"));
     }
 
-    if (request.linkChambers() != null) {
+    if (request instanceof LiaisonManagerLinkChambersV2 linkChambers) {
+      UUID guid = extractLiaisonManagerGuid(linkChambers);
       return liaisonManagerRepository
-          .findById(request.linkChambers().liaisonManagerGuid())
+          .findById(guid)
           .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found"));
     }
 
+    throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
+  }
+
+  private static UUID extractLiaisonManagerGuid(Object dto) {
+    for (String methodName :
+        new String[] {
+          "getLiaisonManagerGUID",
+          "getLiaisonManagerGuid",
+          "liaisonManagerGUID",
+          "liaisonManagerGuid"
+        }) {
+      UUID viaMethod = tryInvokeUuidGetter(dto, methodName);
+      if (viaMethod != null) {
+        return viaMethod;
+      }
+      UUID viaField = tryReadUuidField(dto, methodName);
+      if (viaField != null) {
+        return viaField;
+      }
+    }
     throw new IllegalArgumentException(
-        "Exactly one of create, linkHeadOffice, linkChambers must be provided");
+        "Could not extract liaison manager GUID from " + dto.getClass().getName());
+  }
+
+  private static UUID tryInvokeUuidGetter(Object dto, String methodName) {
+    try {
+      Method m = dto.getClass().getMethod(methodName);
+      Object v = m.invoke(dto);
+      return (UUID) v;
+    } catch (NoSuchMethodException ignored) {
+      return null;
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Failed calling " + methodName + " on " + dto.getClass().getName(), e);
+    }
+  }
+
+  private static UUID tryReadUuidField(Object dto, String fieldName) {
+    try {
+      Field f = dto.getClass().getDeclaredField(fieldName);
+      f.setAccessible(true);
+      Object v = f.get(dto);
+      return (UUID) v;
+    } catch (NoSuchFieldException ignored) {
+      return null;
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Failed reading field " + fieldName + " on " + dto.getClass().getName(), e);
+    }
   }
 
   private static Optional<UUID> parseUuid(String value) {

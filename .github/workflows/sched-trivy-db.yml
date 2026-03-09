@@ -1,16 +1,16 @@
 # https://github.com/marketplace/actions/aqua-security-trivy
 # Note: This workflow only updates the cached Trivy DB. You should create a separate workflow for your actual Trivy scans.
 # In your scan workflow, set TRIVY_SKIP_DB_UPDATE=true and TRIVY_SKIP_JAVA_DB_UPDATE=true.
-name: "Update Trivy DB"
+name: "Scheduled: Trivy DB update"
 
 on:
   schedule:
-    - cron: '17 1 * * *'  # Run daily at 01:17 UTC
+    - cron: '18 3 * * *'  # Run daily at 03:18 UTC
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  update-trivy-db:
-    name: "Update Trivy DB"
+  trivy-db:
+    name: "Trivy DB update"
     permissions: { contents: read }
     runs-on: ubuntu-latest
     steps:
@@ -55,6 +55,7 @@ jobs:
           key: cache-trivy-${{ steps.date.outputs.date }}
 
       - name: "Send successful Slack message"
+        if:   success()
         run: |
           MESSAGE=" :github-success:  Successfully updated Trivy DB cache for PDA (persistent)"
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK }}"

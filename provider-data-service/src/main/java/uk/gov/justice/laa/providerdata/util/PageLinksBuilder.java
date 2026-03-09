@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.util;
 
 import java.net.URI;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.gov.justice.laa.providerdata.model.LinksV2;
@@ -26,13 +27,14 @@ public final class PageLinksBuilder {
   /**
    * Builds pagination links for the given page position.
    *
-   * @param page zero-based current page index
-   * @param pageSize number of items per page
+   * @param pageable the current page request
    * @param totalPages total number of pages returned by the query
    * @return a {@link LinksV2} with {@code self}, {@code first}, {@code last}, and (where
    *     applicable) {@code prev} and {@code next} links
    */
-  public static LinksV2 build(int page, int pageSize, int totalPages) {
+  public static LinksV2 build(Pageable pageable, int totalPages) {
+    int page = pageable.getPageNumber();
+    int pageSize = pageable.getPageSize();
     UriComponentsBuilder base =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .replaceQueryParam("page")

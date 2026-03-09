@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -147,18 +147,17 @@ public class OfficeService {
   /**
    * Returns a paginated page of LSP offices for the given provider.
    *
-   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
-   * @param page zero-based page index
-   * @param pageSize number of items per page
-   * @return page of {@link LspProviderOfficeLinkEntity} for the provider
-   * @throws ItemNotFoundException if no provider matches the given identifier
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider.
+   * @param pageable the page being requested.
+   * @return page of {@link LspProviderOfficeLinkEntity} for the provider.
+   * @throws ItemNotFoundException if no provider matches the given identifier.
    */
   @Transactional(readOnly = true)
   public Page<LspProviderOfficeLinkEntity> getLspOffices(
-      String providerFirmGUIDorFirmNumber, int page, int pageSize) {
+      String providerFirmGUIDorFirmNumber, Pageable pageable) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
-    return lspProviderOfficeLinkRepository.findByProvider(provider, PageRequest.of(page, pageSize));
+    return lspProviderOfficeLinkRepository.findByProvider(provider, pageable);
   }
 
   /**

@@ -26,6 +26,7 @@ import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
  * REST controller implementing the Provider Firm Offices API.
@@ -34,8 +35,6 @@ import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
  */
 @RestController
 public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
-
-  private static final int DEFAULT_PAGE_SIZE = 100;
 
   private final OfficeService officeService;
   private final OfficeMapper officeMapper;
@@ -115,18 +114,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String transparent,
       BigDecimal page,
       BigDecimal pageSize) {
-    int pageIndex = page != null ? page.intValue() : 0;
-    int size = pageSize != null ? pageSize.intValue() : DEFAULT_PAGE_SIZE;
-
-    if (pageIndex < 0) {
-      throw new IllegalArgumentException("page must not be negative");
-    }
-    if (size < 1) {
-      throw new IllegalArgumentException("pageSize must be at least 1");
-    }
+    var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<LspProviderOfficeLinkEntity> linkPage =
-        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageIndex, size);
+        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageParams);
 
     List<OfficeV2> offices =
         linkPage.getContent().stream().map(officeMapper::toLspOfficeV2).toList();
@@ -147,7 +138,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageIndex, size, linkPage.getTotalPages()))));
+                    .links(PageLinksBuilder.build(pageParams, linkPage.getTotalPages()))));
   }
 
   @Override

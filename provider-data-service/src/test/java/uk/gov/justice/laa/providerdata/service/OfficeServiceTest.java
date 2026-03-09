@@ -260,7 +260,7 @@ class OfficeServiceTest {
     when(lspProviderOfficeLinkRepository.findByProvider(eq(provider), any()))
         .thenReturn(new PageImpl<>(List.of(link), PageRequest.of(0, 20), 1));
 
-    var result = service.getLspOffices(providerGuid.toString(), 0, 20);
+    var result = service.getLspOffices(providerGuid.toString(), PageRequest.of(0, 20));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent()).containsExactly(link);
@@ -270,7 +270,7 @@ class OfficeServiceTest {
   void getLspOffices_throwsWhenProviderNotFound() {
     when(providerRepository.findByFirmNumber("UNKNOWN")).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.getLspOffices("UNKNOWN", 0, 20))
+    assertThatThrownBy(() -> service.getLspOffices("UNKNOWN", PageRequest.of(0, 20)))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("UNKNOWN");
   }

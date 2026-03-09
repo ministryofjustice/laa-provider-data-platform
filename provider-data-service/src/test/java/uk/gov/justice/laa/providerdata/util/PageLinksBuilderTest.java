@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +32,7 @@ class PageLinksBuilderTest {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int pageSize,
         @RequestParam int totalPages) {
-      captured = PageLinksBuilder.build(page, pageSize, totalPages);
+      captured = PageLinksBuilder.build(PageRequest.of(page, pageSize), totalPages);
       return "ok";
     }
   }

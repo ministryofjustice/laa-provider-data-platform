@@ -3,7 +3,6 @@ package uk.gov.justice.laa.providerdata.controller;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,12 +26,11 @@ import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /** REST controller for provider firm bank account retrieval. */
 @RestController
 public class ProviderFirmBankAccountsController implements ProviderFirmBankAccountsApi {
-
-  private static final int DEFAULT_PAGE_SIZE = 100;
 
   private final ProviderService providerService;
   private final OfficeService officeService;
@@ -67,15 +65,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
       @Nullable BigDecimal page,
       @Nullable BigDecimal pageSize) {
 
-    int pageIndex = page != null ? page.intValue() : 0;
-    int size = pageSize != null ? pageSize.intValue() : DEFAULT_PAGE_SIZE;
-
-    if (pageIndex < 0) {
-      throw new IllegalArgumentException("page must not be negative");
-    }
-    if (size < 1) {
-      throw new IllegalArgumentException("pageSize must be at least 1");
-    }
+    var pageParams = PageParamValidator.resolve(page, pageSize);
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 
@@ -85,8 +75,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
     }
 
     Page<ProviderBankAccountLinkEntity> linkPage =
-        bankDetailsService.getProviderBankAccounts(
-            provider, bankAccountNumber, PageRequest.of(pageIndex, size));
+        bankDetailsService.getProviderBankAccounts(provider, bankAccountNumber, pageParams);
 
     List<BankAccountV2> accounts =
         linkPage.getContent().stream().map(bankAccountMapper::toBankAccountV2).toList();
@@ -107,7 +96,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmBankAccounts200ResponseData()
                     .content(accounts)
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageIndex, size, linkPage.getTotalPages()))));
+                    .links(PageLinksBuilder.build(pageParams, linkPage.getTotalPages()))));
   }
 
   @Override
@@ -121,22 +110,13 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
           @Nullable BigDecimal page,
           @Nullable BigDecimal pageSize) {
 
-    int pageIndex = page != null ? page.intValue() : 0;
-    int size = pageSize != null ? pageSize.intValue() : DEFAULT_PAGE_SIZE;
-
-    if (pageIndex < 0) {
-      throw new IllegalArgumentException("page must not be negative");
-    }
-    if (size < 1) {
-      throw new IllegalArgumentException("pageSize must be at least 1");
-    }
+    var pageParams = PageParamValidator.resolve(page, pageSize);
 
     LspProviderOfficeLinkEntity officeLink =
         officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
 
     Page<OfficeBankAccountLinkEntity> linkPage =
-        bankDetailsService.getOfficeBankAccounts(
-            officeLink, bankAccountNumber, PageRequest.of(pageIndex, size));
+        bankDetailsService.getOfficeBankAccounts(officeLink, bankAccountNumber, pageParams);
 
     List<OfficeBankAccountV2> accounts =
         linkPage.getContent().stream().map(bankAccountMapper::toOfficeBankAccountV2).toList();
@@ -157,6 +137,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmOfficeBankAccounts200ResponseData()
                     .content(accounts)
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageIndex, size, linkPage.getTotalPages()))));
+                    .links(PageLinksBuilder.build(pageParams, linkPage.getTotalPages()))));
   }
 }

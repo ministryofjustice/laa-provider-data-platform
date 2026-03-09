@@ -27,4 +27,6 @@ public interface ProviderOfficeLinkRepository
 
   Optional<ProviderOfficeLinkEntity> findByProvider_GuidAndAccountNumber(
       UUID providerGuid, String accountNumber);
+
+  Optional<ProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(ProviderEntity provider);
 }

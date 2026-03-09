@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.providerdata.service;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -9,7 +7,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
@@ -20,9 +20,12 @@ import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkReposi
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
-/** java doc. */
+/** Service responsible for Office Liaison Manager operations. */
 @Service
 public class OfficeLiaisonManagerService {
+
+  private static final String FIRM_TYPE_LSP = "Legal Services Provider";
+  private static final String FIRM_TYPE_CHAMBERS = "Chambers";
 
   private final ProviderRepository providerRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
@@ -56,7 +59,7 @@ public class OfficeLiaisonManagerService {
       String officeGuidOrCode,
       OfficeLiaisonManagerCreateOrLinkV2 request) {
 
-    var provider =
+    ProviderEntity provider =
         parseUuid(providerFirmGuidOrNumber)
             .flatMap(providerRepository::findById)
             .orElseGet(
@@ -81,6 +84,12 @@ public class OfficeLiaisonManagerService {
     LocalDate today = LocalDate.now();
     OffsetDateTime now = OffsetDateTime.now();
 
+    // IMPORTANT:
+    // Resolve the liaison manager BEFORE end-dating existing links.
+    // This prevents linkHeadOffice/linkChambers from failing when the target office is the same
+    // as the source office (e.g. calling linkHeadOffice on the head office itself).
+    LiaisonManagerEntity liaisonManager = resolveOrCreateLiaisonManager(provider, request, now);
+
     // End-date existing office liaison manager links (MVP behaviour).
     var existingLinks =
         officeLiaisonManagerLinkRepository.findByOffice_Guid(
@@ -91,8 +100,6 @@ public class OfficeLiaisonManagerService {
         link.setActiveDateTo(today);
       }
     }
-
-    LiaisonManagerEntity liaisonManager = resolveOrCreateLiaisonManager(request, now);
 
     OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
     newLink.setOffice(providerOfficeLink.getOffice());
@@ -112,7 +119,7 @@ public class OfficeLiaisonManagerService {
   }
 
   private LiaisonManagerEntity resolveOrCreateLiaisonManager(
-      OfficeLiaisonManagerCreateOrLinkV2 request, OffsetDateTime now) {
+      ProviderEntity provider, OfficeLiaisonManagerCreateOrLinkV2 request, OffsetDateTime now) {
 
     if (request instanceof LiaisonManagerCreateV2 create) {
       LiaisonManagerEntity entity = new LiaisonManagerEntity();
@@ -124,68 +131,50 @@ public class OfficeLiaisonManagerService {
     }
 
     if (request instanceof LiaisonManagerLinkHeadOfficeV2 linkHeadOffice) {
-      UUID guid = extractLiaisonManagerGuid(linkHeadOffice);
-      return liaisonManagerRepository
-          .findById(guid)
-          .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found"));
+      if (!Boolean.TRUE.equals(linkHeadOffice.getUseHeadOfficeLiaisonManager())) {
+        throw new IllegalArgumentException("useHeadOfficeLiaisonManager must be true");
+      }
+      if (!FIRM_TYPE_LSP.equals(provider.getFirmType())) {
+        throw new IllegalArgumentException(
+            "linkHeadOffice is only applicable for firmType=" + FIRM_TYPE_LSP);
+      }
+      OfficeEntity headOffice = resolveHeadOfficeOffice(provider, "Head office");
+      return resolveActiveLiaisonManagerForOffice(headOffice);
     }
 
     if (request instanceof LiaisonManagerLinkChambersV2 linkChambers) {
-      UUID guid = extractLiaisonManagerGuid(linkChambers);
-      return liaisonManagerRepository
-          .findById(guid)
-          .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found"));
+      if (!Boolean.TRUE.equals(linkChambers.getUseChambersLiaisonManager())) {
+        throw new IllegalArgumentException("useChambersLiaisonManager must be true");
+      }
+      if (!FIRM_TYPE_CHAMBERS.equals(provider.getFirmType())) {
+        throw new IllegalArgumentException(
+            "linkChambers currently supports firmType=" + FIRM_TYPE_CHAMBERS);
+      }
+      OfficeEntity chambersOffice = resolveHeadOfficeOffice(provider, "Chambers head office");
+      return resolveActiveLiaisonManagerForOffice(chambersOffice);
     }
 
     throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
   }
 
-  private static UUID extractLiaisonManagerGuid(Object dto) {
-    for (String methodName :
-        new String[] {
-          "getLiaisonManagerGUID",
-          "getLiaisonManagerGuid",
-          "liaisonManagerGUID",
-          "liaisonManagerGuid"
-        }) {
-      UUID viaMethod = tryInvokeUuidGetter(dto, methodName);
-      if (viaMethod != null) {
-        return viaMethod;
-      }
-      UUID viaField = tryReadUuidField(dto, methodName);
-      if (viaField != null) {
-        return viaField;
-      }
-    }
-    throw new IllegalArgumentException(
-        "Could not extract liaison manager GUID from " + dto.getClass().getName());
+  private OfficeEntity resolveHeadOfficeOffice(ProviderEntity provider, String description) {
+    var headOfficeLink =
+        providerOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(provider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        description + " not found for provider: " + provider.getGuid()));
+    return headOfficeLink.getOffice();
   }
 
-  private static UUID tryInvokeUuidGetter(Object dto, String methodName) {
-    try {
-      Method m = dto.getClass().getMethod(methodName);
-      Object v = m.invoke(dto);
-      return (UUID) v;
-    } catch (NoSuchMethodException ignored) {
-      return null;
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-          "Failed calling " + methodName + " on " + dto.getClass().getName(), e);
+  private LiaisonManagerEntity resolveActiveLiaisonManagerForOffice(OfficeEntity office) {
+    var activeLinks = officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(office);
+    if (activeLinks.isEmpty()) {
+      throw new ItemNotFoundException(
+          "No active liaison manager found for office: " + office.getGuid());
     }
-  }
-
-  private static UUID tryReadUuidField(Object dto, String fieldName) {
-    try {
-      Field f = dto.getClass().getDeclaredField(fieldName);
-      f.setAccessible(true);
-      Object v = f.get(dto);
-      return (UUID) v;
-    } catch (NoSuchFieldException ignored) {
-      return null;
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-          "Failed reading field " + fieldName + " on " + dto.getClass().getName(), e);
-    }
+    return activeLinks.getFirst().getLiaisonManager();
   }
 
   private static Optional<UUID> parseUuid(String value) {

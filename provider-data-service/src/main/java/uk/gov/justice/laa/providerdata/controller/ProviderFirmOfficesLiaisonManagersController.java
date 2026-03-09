@@ -14,7 +14,7 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 
-/** java doc. */
+/** REST controller for provider firm office liaison manager operations. */
 @RestController
 public class ProviderFirmOfficesLiaisonManagersController {
 
@@ -78,9 +78,7 @@ public class ProviderFirmOfficesLiaisonManagersController {
       return;
     }
 
-    throw new IllegalArgumentException(
-        "Request must be exactly one of: LiaisonManagerCreateV2, LiaisonManagerLinkHeadOfficeV2, "
-            + "LiaisonManagerLinkChambersV2");
+    throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
   }
 
   private static boolean isBlank(String s) {

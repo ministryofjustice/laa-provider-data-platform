@@ -35,8 +35,7 @@ import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 /**
  * Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}.
  *
- * <p>Uses {@code MockMvcBuilders.standaloneSetup} to avoid loading the full Spring context,
- * matching the pattern used in {@link ProviderFirmOfficesControllerTest}.
+ * <p>Uses {@code MockMvcBuilders.standaloneSetup} to avoid loading the full Spring context.
  */
 class ProviderFirmOfficesLiaisonManagersControllerTest {
 
@@ -44,11 +43,13 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   private OfficeLiaisonManagerService service;
 
   @BeforeEach
+  @SuppressWarnings("removal")
   void setUp() {
     service = mock(OfficeLiaisonManagerService.class);
 
     ObjectMapper objectMapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
+
     module.addDeserializer(
         OfficeLiaisonManagerCreateOrLinkV2.class,
         new StdDeserializer<>(OfficeLiaisonManagerCreateOrLinkV2.class) {
@@ -58,20 +59,31 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             try {
               JsonNode node = p.readValueAsTree();
 
-              Class<? extends OfficeLiaisonManagerCreateOrLinkV2> targetType =
-                  node.has("useHeadOfficeLiaisonManager")
-                      ? LiaisonManagerLinkHeadOfficeV2.class
-                      : node.has("useChambersLiaisonManager")
-                          ? LiaisonManagerLinkChambersV2.class
-                          : LiaisonManagerCreateV2.class;
+              JsonNode createNode = node.get("create");
+              if (createNode != null && !createNode.isNull()) {
+                return ctx.readTreeAsValue(createNode, LiaisonManagerCreateV2.class);
+              }
 
-              return ctx.readTreeAsValue(node, targetType);
+              JsonNode linkHeadOfficeNode = node.get("linkHeadOffice");
+              if (linkHeadOfficeNode != null && !linkHeadOfficeNode.isNull()) {
+                return ctx.readTreeAsValue(
+                    linkHeadOfficeNode, LiaisonManagerLinkHeadOfficeV2.class);
+              }
+
+              JsonNode linkChambersNode = node.get("linkChambers");
+              if (linkChambersNode != null && !linkChambersNode.isNull()) {
+                return ctx.readTreeAsValue(linkChambersNode, LiaisonManagerLinkChambersV2.class);
+              }
+
+              throw new IllegalArgumentException(
+                  "Exactly one of create, linkHeadOffice, linkChambers must be provided");
             } catch (IOException e) {
               throw new com.fasterxml.jackson.core.JsonParseException(
                   p, "Failed to deserialize OfficeLiaisonManagerCreateOrLinkV2", e);
             }
           }
         });
+
     objectMapper.registerModule(module);
 
     mockMvc =
@@ -96,15 +108,13 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   }
 
   @Test
-  void postOfficeLiaisonManagers_returnsBadRequest_whenCreateIsMissingRequiredFields()
-      throws Exception {
+  void postOfficeLiaisonManagers_returnsBadRequest_whenExactlyOneNotProvided() throws Exception {
     String invalidJson =
         """
                     {
-                      "firstName": null,
-                      "lastName": null,
-                      "emailAddress": null,
-                      "telephoneNumber": null
+                      "create": null,
+                      "linkHeadOffice": null,
+                      "linkChambers": null
                     }
                     """;
 
@@ -136,10 +146,12 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     String validJson =
         """
                     {
-                      "firstName": "Alice",
-                      "lastName": "Jones",
-                      "emailAddress": "alice@example.com",
-                      "telephoneNumber": "0123456789"
+                      "create": {
+                        "firstName": "Alice",
+                        "lastName": "Jones",
+                        "emailAddress": "alice@example.com",
+                        "telephoneNumber": "0123456789"
+                      }
                     }
                     """;
 

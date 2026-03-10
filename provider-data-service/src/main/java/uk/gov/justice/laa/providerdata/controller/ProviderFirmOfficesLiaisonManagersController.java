@@ -33,9 +33,9 @@ public class ProviderFirmOfficesLiaisonManagersController {
   /**
    * Retrieves liaison managers associated with a provider firm office.
    *
-   * <p>This endpoint resolves the provider using {@code providerFirmGUIDorFirmNumber},
-   * then resolves the office using {@code officeGUIDorCode}. It returns the
-   * liaison managers linked to that office as content only.
+   * <p>This endpoint resolves the provider using {@code providerFirmGUIDorFirmNumber}, then
+   * resolves the office using {@code officeGUIDorCode}. It returns the liaison managers linked to
+   * that office as content only.
    *
    * <p>The service layer returns a list of {@link
    * uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity} records for the resolved office.
@@ -79,8 +79,8 @@ public class ProviderFirmOfficesLiaisonManagersController {
   /**
    * Creates or links a liaison manager for a provider firm office.
    *
-   * <p>The provider is resolved using {@code providerFirmGUIDorFirmNumber}.
-   * The office is resolved using {@code officeGUIDorCode}.
+   * <p>The provider is resolved using {@code providerFirmGUIDorFirmNumber}. The office is resolved
+   * using {@code officeGUIDorCode}.
    *
    * <p>The request body is represented by the OpenAPI-generated {@link
    * uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2} one-of interface and

@@ -14,4 +14,6 @@ public interface OfficeLiaisonManagerLinkRepository
 
   /** Returns all active (no end date) liaison manager links for the given office. */
   List<OfficeLiaisonManagerLinkEntity> findByOfficeAndActiveDateToIsNull(OfficeEntity office);
+
+  List<OfficeLiaisonManagerLinkEntity> findByOffice_Guid(UUID officeGuid);
 }

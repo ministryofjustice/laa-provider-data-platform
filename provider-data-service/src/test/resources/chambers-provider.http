@@ -41,3 +41,7 @@ GET http://localhost:8080/provider-firms/{{chambersGUID}}
 
 ### 3. Get the Chambers firm by firm number
 GET http://localhost:8080/provider-firms/{{chambersFirmNumber}}
+
+### 4. Get bank-details for a Chambers firm — should return 400 Bad Request
+# Bank account details are not available for Chambers providers; use the Advocate firm endpoints.
+GET http://localhost:8080/provider-firms/{{chambersGUID}}/bank-details

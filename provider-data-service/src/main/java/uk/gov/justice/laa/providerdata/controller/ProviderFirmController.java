@@ -122,7 +122,8 @@ public class ProviderFirmController {
           officeMapper.toOfficeEntity(lsp),
           officeMapper.toHeadOfficeLinkTemplate(lsp),
           lmEntity,
-          lmLink);
+          lmLink,
+          lsp.getPayment());
     }
     if (request.getChambers() != null) {
       ChambersHeadOfficeCreateV2 chambers = request.getChambers();

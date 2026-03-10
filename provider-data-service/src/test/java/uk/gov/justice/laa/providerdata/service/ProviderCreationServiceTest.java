@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
@@ -20,6 +23,10 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
@@ -36,6 +43,8 @@ class ProviderCreationServiceTest {
   @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Mock private BankDetailsService bankDetailsService;
+  @Mock private BankAccountMapper bankAccountMapper;
 
   @InjectMocks private ProviderCreationService service;
 
@@ -70,6 +79,7 @@ class ProviderCreationServiceTest {
                 .build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
+            null,
             null,
             null);
 
@@ -124,7 +134,8 @@ class ProviderCreationServiceTest {
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             new LspProviderOfficeLinkEntity(),
             lmTemplate,
-            lmLink);
+            lmLink,
+            null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     verify(liaisonManagerRepository).save(lmTemplate);
@@ -192,5 +203,68 @@ class ProviderCreationServiceTest {
     assertThat(result.firmNumber()).startsWith("ADV-");
     assertThat(result.headOfficeGUID()).isNull();
     assertThat(result.headOfficeAccountNumber()).isNull();
+  }
+
+  // --- bank details wiring ---
+
+  @Test
+  void createLspFirm_withEftPayment_persistsBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity e = inv.getArgument(0);
+              e.setGuid(providerGuid);
+              return e;
+            });
+    when(officeRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              OfficeEntity e = inv.getArgument(0);
+              e.setGuid(officeGuid);
+              return e;
+            });
+
+    var linkTemplate = new LspProviderOfficeLinkEntity();
+    when(lspProviderOfficeLinkRepository.save(linkTemplate)).thenReturn(linkTemplate);
+
+    var createDetails = new BankAccountProviderOfficeCreateV2("Test Bank", "12-34-56", "87654321");
+    var accountTemplate = new BankAccountEntity();
+    when(bankAccountMapper.toBankAccountEntity(createDetails)).thenReturn(accountTemplate);
+
+    var payment =
+        new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.EFT)
+            .bankAccountDetails(createDetails);
+
+    service.createLspFirm(
+        ProviderEntity.builder().firmType(FirmType.LEGAL_SERVICES_PROVIDER).name("My LSP").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        linkTemplate,
+        null,
+        null,
+        payment);
+
+    verify(bankDetailsService)
+        .createAndLink(eq(accountTemplate), any(), eq(linkTemplate), isNull());
+  }
+
+  @Test
+  void createLspFirm_withCheckPayment_doesNotPersistBankAccount() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
+
+    service.createLspFirm(
+        ProviderEntity.builder().firmType(FirmType.LEGAL_SERVICES_PROVIDER).name("My LSP").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        payment);
+
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
   }
 }

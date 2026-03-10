@@ -13,4 +13,6 @@ public interface ProviderParentLinkRepository
     extends JpaRepository<ProviderParentLinkEntity, UUID> {
 
   List<ProviderParentLinkEntity> findByProvider(ProviderEntity provider);
+
+  List<ProviderParentLinkEntity> findByParent(ProviderEntity parent);
 }

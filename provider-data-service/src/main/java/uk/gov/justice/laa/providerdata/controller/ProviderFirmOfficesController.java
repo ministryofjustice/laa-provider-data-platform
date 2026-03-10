@@ -26,6 +26,7 @@ import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
  * REST controller implementing the Provider Firm Offices API.
@@ -34,8 +35,6 @@ import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
  */
 @RestController
 public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
-
-  private static final int DEFAULT_PAGE_SIZE = 100;
 
   private final OfficeService officeService;
   private final OfficeMapper officeMapper;
@@ -49,7 +48,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<CreateProviderFirmOffice201Response> createProviderFirmOffice(
       String providerFirmGUIDorFirmNumber,
       LSPOfficeCreateV2 lspOfficeCreateV2,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
 
     LiaisonManagerEntity lmEntity = null;
@@ -71,7 +70,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             officeMapper.toLinkTemplate(lspOfficeCreateV2),
             lmEntity,
             lmLinkTemplate,
-            linkToHeadOffice);
+            linkToHeadOffice,
+            lspOfficeCreateV2.getPayment());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()
@@ -85,7 +85,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getOffices(
-      String correlationId,
+      String xCorrelationId,
       String transparent,
       List<String> officeGUID,
       List<String> officeCode,
@@ -99,7 +99,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<GetProviderFirmOfficeByGUID200Response> getProviderFirmOfficeByGUID(
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
     LspProviderOfficeLinkEntity link =
         officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
@@ -110,22 +110,14 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getProviderFirmOffices(
       String providerFirmGUIDorFirmNumber,
-      String correlationId,
+      String xCorrelationId,
       String transparent,
       BigDecimal page,
       BigDecimal pageSize) {
-    int pageIndex = page != null ? page.intValue() : 0;
-    int size = pageSize != null ? pageSize.intValue() : DEFAULT_PAGE_SIZE;
-
-    if (pageIndex < 0) {
-      throw new IllegalArgumentException("page must not be negative");
-    }
-    if (size < 1) {
-      throw new IllegalArgumentException("pageSize must be at least 1");
-    }
+    var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<LspProviderOfficeLinkEntity> linkPage =
-        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageIndex, size);
+        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageParams);
 
     List<OfficeV2> offices =
         linkPage.getContent().stream().map(officeMapper::toLspOfficeV2).toList();
@@ -146,7 +138,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageIndex, size, linkPage.getTotalPages()))));
+                    .links(PageLinksBuilder.build(pageParams, linkPage.getTotalPages()))));
   }
 
   @Override
@@ -154,7 +146,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       OfficePatchV2 officePatchV2,
-      String correlationId,
+      String xCorrelationId,
       String transparent) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }

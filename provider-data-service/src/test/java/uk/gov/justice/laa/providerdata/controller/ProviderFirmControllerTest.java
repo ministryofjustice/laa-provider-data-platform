@@ -56,7 +56,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any(), any()))
         .thenReturn(new ProviderCreationResult(guid, "LSP-ABCD1234", UUID.randomUUID(), "ACC001"));
 
     mockMvc

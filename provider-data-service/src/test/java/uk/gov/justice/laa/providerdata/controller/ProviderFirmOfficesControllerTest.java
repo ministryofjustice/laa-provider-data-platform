@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -93,14 +94,14 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOffices_returnsOk() throws Exception {
-    when(officeService.getLspOffices("FRM001", 0, 100)).thenReturn(Page.empty());
+    when(officeService.getLspOffices("FRM001", PageRequest.of(0, 100))).thenReturn(Page.empty());
 
     mockMvc.perform(get("/provider-firms/{id}/offices", "FRM001")).andExpect(status().isOk());
   }
 
   @Test
   void getProviderFirmOffices_returnsNotFound_whenProviderMissing() throws Exception {
-    when(officeService.getLspOffices("UNKNOWN", 0, 100))
+    when(officeService.getLspOffices("UNKNOWN", PageRequest.of(0, 100)))
         .thenThrow(new ItemNotFoundException("Provider not found: UNKNOWN"));
 
     mockMvc

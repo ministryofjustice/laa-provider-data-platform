@@ -16,4 +16,6 @@ public interface OfficeLiaisonManagerLinkRepository
   List<OfficeLiaisonManagerLinkEntity> findByOfficeAndActiveDateToIsNull(OfficeEntity office);
 
   List<OfficeLiaisonManagerLinkEntity> findByOffice_Guid(UUID officeGuid);
+
+  List<OfficeLiaisonManagerLinkEntity> findByOffice_GuidOrderByActiveDateFromDesc(UUID officeGuid);
 }

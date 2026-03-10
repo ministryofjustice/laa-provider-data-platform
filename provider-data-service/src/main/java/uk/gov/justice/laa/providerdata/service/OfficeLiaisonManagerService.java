@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -52,7 +53,43 @@ public class OfficeLiaisonManagerService {
       String officeCode,
       UUID liaisonManagerGuid) {}
 
-  /** java doc. */
+  /**
+   * GET content-only: return liaison managers linked to a provider office (including historical).
+   */
+  @Transactional(readOnly = true)
+  public List<LiaisonManagerEntity> getOfficeLiaisonManagers(
+      String providerFirmGuidOrNumber, String officeGuidOrCode) {
+
+    ProviderEntity provider =
+        parseUuid(providerFirmGuidOrNumber)
+            .flatMap(providerRepository::findById)
+            .orElseGet(
+                () ->
+                    providerRepository
+                        .findByFirmNumber(providerFirmGuidOrNumber)
+                        .orElseThrow(() -> new ItemNotFoundException("Provider not found")));
+
+    var providerOfficeLink =
+        parseUuid(officeGuidOrCode)
+            .flatMap(
+                officeGuid ->
+                    providerOfficeLinkRepository.findByProvider_GuidAndOffice_Guid(
+                        provider.getGuid(), officeGuid))
+            .orElseGet(
+                () ->
+                    providerOfficeLinkRepository
+                        .findByProvider_GuidAndAccountNumber(provider.getGuid(), officeGuidOrCode)
+                        .orElseThrow(
+                            () -> new ItemNotFoundException("Office not found for provider")));
+
+    return officeLiaisonManagerLinkRepository
+        .findByOffice_GuidOrderByActiveDateFromDesc(providerOfficeLink.getOffice().getGuid())
+        .stream()
+        .map(OfficeLiaisonManagerLinkEntity::getLiaisonManager)
+        .toList();
+  }
+
+  /** POST create/link liaison manager (end-dates existing links for target office). */
   @Transactional
   public OfficeLiaisonManagerOperationResult postOfficeLiaisonManager(
       String providerFirmGuidOrNumber,

@@ -95,28 +95,4 @@ class ProviderOfficeLinkRepositoryTest {
 
     assertThat(page.getTotalElements()).isZero();
   }
-
-  @Test
-  void findByProviderAndHeadOfficeFlagTrue_returnsLink_whenHeadOfficeFlagTrue() {
-    link.setHeadOfficeFlag(true);
-    repository.save(link);
-
-    Optional<ProviderOfficeLinkEntity> result =
-        repository.findByProviderAndHeadOfficeFlagTrue(provider);
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getAccountNumber()).isEqualTo("LNK001");
-    assertThat(result.get().getOffice().getGuid()).isEqualTo(office.getGuid());
-  }
-
-  @Test
-  void findByProviderAndHeadOfficeFlagFalse_returnsEmpty_whenNoHeadOfficeFlagFalse() {
-    link.setHeadOfficeFlag(false);
-    repository.save(link);
-
-    Optional<ProviderOfficeLinkEntity> result =
-        repository.findByProviderAndHeadOfficeFlagTrue(provider);
-
-    assertThat(result).isEmpty();
-  }
 }

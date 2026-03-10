@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +28,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
+import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
@@ -47,6 +52,9 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   void setUp() {
     service = mock(OfficeLiaisonManagerService.class);
 
+    // Custom ObjectMapper for POST request binding:
+    // the controller accepts OfficeLiaisonManagerCreateOrLinkV2 (oneOf interface),
+    // so standalone MockMvc needs a converter that can deserialize the wrapper payload.
     ObjectMapper objectMapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
 
@@ -91,6 +99,68 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
+  }
+
+  @Test
+  void getOfficeLiaisonManagers_returns200_withContentOnly() throws Exception {
+    LiaisonManagerEntity lm1 = new LiaisonManagerEntity();
+    lm1.setGuid(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
+    lm1.setFirstName("Alice");
+    lm1.setLastName("Jones");
+    lm1.setEmailAddress("alice@example.com");
+    lm1.setTelephoneNumber("0123456789");
+
+    LiaisonManagerEntity lm2 = new LiaisonManagerEntity();
+    lm2.setGuid(UUID.fromString("11111111-2222-3333-4444-555555555555"));
+    lm2.setFirstName("Bob");
+    lm2.setLastName("Smith");
+    lm2.setEmailAddress("bob@example.com");
+    lm2.setTelephoneNumber("0987654321");
+
+    when(service.getOfficeLiaisonManagers("FRM001", "ACC001")).thenReturn(List.of(lm1, lm2));
+
+    mockMvc
+        .perform(
+            get(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "FRM001",
+                    "ACC001")
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.data.content").isArray())
+        .andExpect(jsonPath("$.data.content[0].guid").value("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"))
+        .andExpect(jsonPath("$.data.content[0].firstName").value("Alice"))
+        .andExpect(jsonPath("$.data.content[0].lastName").value("Jones"))
+        .andExpect(jsonPath("$.data.content[0].emailAddress").value("alice@example.com"))
+        .andExpect(jsonPath("$.data.content[0].telephoneNumber").value("0123456789"))
+        .andExpect(jsonPath("$.data.content[1].guid").value("11111111-2222-3333-4444-555555555555"))
+        .andExpect(jsonPath("$.data.content[1].firstName").value("Bob"))
+        .andExpect(jsonPath("$.data.content[1].lastName").value("Smith"))
+        .andExpect(jsonPath("$.data.content[1].emailAddress").value("bob@example.com"))
+        .andExpect(jsonPath("$.data.content[1].telephoneNumber").value("0987654321"));
+
+    verify(service).getOfficeLiaisonManagers("FRM001", "ACC001");
+  }
+
+  @Test
+  void getOfficeLiaisonManagers_returns404_whenServiceThrowsNotFound() throws Exception {
+    when(service.getOfficeLiaisonManagers("FRM404", "ACC404"))
+        .thenThrow(new ItemNotFoundException("Office not found for provider"));
+
+    mockMvc
+        .perform(
+            get(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "FRM404",
+                    "ACC404")
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.detail").value("Office not found for provider"));
+
+    verify(service).getOfficeLiaisonManagers("FRM404", "ACC404");
   }
 
   @Test

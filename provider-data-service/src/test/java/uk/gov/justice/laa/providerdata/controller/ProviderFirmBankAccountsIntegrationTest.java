@@ -170,7 +170,9 @@ class ProviderFirmBankAccountsIntegrationTest {
   }
 
   @Test
-  void getProviderFirmBankAccounts_returnsBadRequest_whenProviderIsChambers() throws Exception {
+  void getProviderFirmBankAccounts_returnsOk_withEmptyList_whenProviderIsChambers()
+      throws Exception {
+    // Create a Chambers firm — bank account is linked to the Chambers itself.
     String createChambersResponse =
         mockMvc
             .perform(
@@ -211,8 +213,12 @@ class ProviderFirmBankAccountsIntegrationTest {
 
     String chambersGuid = JsonPath.read(createChambersResponse, "$.data.providerFirmGUID");
 
+    // No Advocates are linked to this Chambers, so the response is empty — but 200, not 400.
     mockMvc
         .perform(get("/provider-firms/{id}/bank-details", chambersGuid))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content").isArray())
+        .andExpect(jsonPath("$.data.content.length()").value(0))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0));
   }
 }

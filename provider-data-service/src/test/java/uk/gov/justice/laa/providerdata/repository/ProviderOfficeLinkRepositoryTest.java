@@ -110,7 +110,7 @@ class ProviderOfficeLinkRepositoryTest {
   }
 
   @Test
-  void findByProviderAndHeadOfficeFlagTrue_returnsEmpty_whenNoHeadOfficeFlagTrue() {
+  void findByProviderAndHeadOfficeFlagFalse_returnsEmpty_whenNoHeadOfficeFlagFalse() {
     link.setHeadOfficeFlag(false);
     repository.save(link);
 

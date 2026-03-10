@@ -52,9 +52,6 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   void setUp() {
     service = mock(OfficeLiaisonManagerService.class);
 
-    // Custom ObjectMapper for POST request binding:
-    // the controller accepts OfficeLiaisonManagerCreateOrLinkV2 (oneOf interface),
-    // so standalone MockMvc needs a converter that can deserialize the wrapper payload.
     ObjectMapper objectMapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
 

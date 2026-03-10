@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmBankAccountsApi;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
@@ -68,11 +67,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
-
-    if (FirmType.CHAMBERS.equals(provider.getFirmType())) {
-      throw new IllegalArgumentException(
-          "Bank account details are not available for Chambers providers");
-    }
 
     Page<ProviderBankAccountLinkEntity> linkPage =
         bankDetailsService.getProviderBankAccounts(provider, bankAccountNumber, pageParams);

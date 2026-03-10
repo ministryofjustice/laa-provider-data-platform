@@ -555,9 +555,11 @@ paths:
       description: |
         Retrieve bank account details for a given provider. 
 
-        For `Legal Service Provider` firm type the response returns LSP specific bank accounts only.
+        For `Legal Service Provider` or `Advocate` firm type the response returns bank accounts
+        associated with that provider only.
 
-        For `Advocate` firm type the response returns all bank accounts for all Advocates and Barristers assigned to this advocate's chambers.    
+        For `Chambers` firm type the response returns bank accounts for all Advocates in that
+        Chambers.
 
         Note that bank account details are created only via creating or updating office details using the `payment` element.
 

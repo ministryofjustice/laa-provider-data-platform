@@ -180,30 +180,45 @@ class BankDetailsServiceTest {
   }
 
   @Test
-  void getProviderBankAccounts_advocate_resolvesChambersAndQueriesAllPractitioners() {
+  void getProviderBankAccounts_advocate_queriesJustTheAdvocate() {
     ProviderEntity advocate = providerEntity(FirmType.ADVOCATE);
-    ProviderEntity chambers = providerEntity(FirmType.CHAMBERS);
-    ProviderEntity sibling = providerEntity(FirmType.ADVOCATE);
-
-    ProviderParentLinkEntity parentLink = new ProviderParentLinkEntity();
-    parentLink.setProvider(advocate);
-    parentLink.setParent(chambers);
-
-    ProviderParentLinkEntity siblingLink = new ProviderParentLinkEntity();
-    siblingLink.setProvider(sibling);
-
     var pageable = PageRequest.of(0, 10);
     var page = new PageImpl<ProviderBankAccountLinkEntity>(List.of());
 
-    when(providerParentLinkRepository.findByProvider(advocate)).thenReturn(List.of(parentLink));
-    when(providerParentLinkRepository.findByParent(chambers)).thenReturn(List.of(siblingLink));
-    when(providerBankAccountLinkRepository.findByProviderIn(List.of(sibling), pageable))
+    when(providerBankAccountLinkRepository.findByProviderIn(List.of(advocate), pageable))
         .thenReturn(page);
 
     var result = service.getProviderBankAccounts(advocate, null, pageable);
 
     assertThat(result).isEqualTo(page);
-    verify(providerBankAccountLinkRepository).findByProviderIn(List.of(sibling), pageable);
+    verify(providerBankAccountLinkRepository).findByProviderIn(List.of(advocate), pageable);
+  }
+
+  @Test
+  void getProviderBankAccounts_chambers_queriesAllPractitioners() {
+    ProviderEntity chambers = providerEntity(FirmType.CHAMBERS);
+    ProviderEntity advocate1 = providerEntity(FirmType.ADVOCATE);
+    ProviderEntity advocate2 = providerEntity(FirmType.ADVOCATE);
+
+    ProviderParentLinkEntity link1 = new ProviderParentLinkEntity();
+    link1.setProvider(advocate1);
+
+    ProviderParentLinkEntity link2 = new ProviderParentLinkEntity();
+    link2.setProvider(advocate2);
+
+    var pageable = PageRequest.of(0, 10);
+    var page = new PageImpl<ProviderBankAccountLinkEntity>(List.of());
+
+    when(providerParentLinkRepository.findByParent(chambers)).thenReturn(List.of(link1, link2));
+    when(providerBankAccountLinkRepository.findByProviderIn(
+            List.of(advocate1, advocate2), pageable))
+        .thenReturn(page);
+
+    var result = service.getProviderBankAccounts(chambers, null, pageable);
+
+    assertThat(result).isEqualTo(page);
+    verify(providerBankAccountLinkRepository)
+        .findByProviderIn(List.of(advocate1, advocate2), pageable);
   }
 
   // --- getOfficeBankAccounts ---

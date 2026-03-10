@@ -112,9 +112,8 @@ public class BankDetailsService {
   /**
    * Returns a paginated page of bank accounts linked to the given provider.
    *
-   * <p>For {@code firmType=Advocate}, resolves the parent Chambers and returns accounts for all
-   * practitioners in that Chambers. For all other firm types, returns accounts for the provider
-   * directly.
+   * <p>For {@code firmType=Chambers}, resolves all member Advocates and returns their combined
+   * accounts. For all other firm types, returns accounts for the provider directly.
    *
    * @param provider the provider whose bank accounts to retrieve
    * @param accountNumberFilter optional partial match on account number (case-insensitive)
@@ -160,24 +159,16 @@ public class BankDetailsService {
   /**
    * Resolves the set of providers whose bank accounts should be returned for a given provider.
    *
-   * <p>For Advocates, this is all practitioners linked to the same Chambers. For all other firm
-   * types, this is just the provider itself.
+   * <p>For Chambers, this is all practitioners linked to that Chambers. For all other firm types,
+   * this is just the provider itself.
    */
   private Collection<ProviderEntity> resolveProviderScope(ProviderEntity provider) {
-    if (!FirmType.ADVOCATE.equals(provider.getFirmType())) {
+    if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
       return List.of(provider);
     }
 
-    // Find the parent Chambers for this Advocate.
-    ProviderEntity chambers =
-        providerParentLinkRepository.findByProvider(provider).stream()
-            .map(link -> link.getParent())
-            .filter(p -> FirmType.CHAMBERS.equals(p.getFirmType()))
-            .findFirst()
-            .orElse(provider); // fall back to just this provider if no Chambers found
-
-    // Return all practitioners belonging to that Chambers.
-    return providerParentLinkRepository.findByParent(chambers).stream()
+    // Return all practitioners belonging to this Chambers.
+    return providerParentLinkRepository.findByParent(provider).stream()
         .map(link -> link.getProvider())
         .toList();
   }

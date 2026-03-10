@@ -154,13 +154,16 @@ class ProviderFirmBankAccountsControllerTest {
   }
 
   @Test
-  void getProviderFirmBankAccounts_returnsBadRequest_whenProviderIsChambers() throws Exception {
+  void getProviderFirmBankAccounts_returnsOk_whenProviderIsChambers() throws Exception {
     UUID guid = UUID.randomUUID();
     when(providerService.getProvider(guid.toString()))
         .thenReturn(ProviderEntity.builder().firmType(FirmType.CHAMBERS).build());
+    when(bankDetailsService.getProviderBankAccounts(any(), isNull(), any()))
+        .thenReturn(Page.empty());
 
     mockMvc
         .perform(get("/provider-firms/{id}/bank-details", guid))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content").isArray());
   }
 }

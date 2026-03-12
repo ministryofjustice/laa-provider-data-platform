@@ -12,15 +12,8 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManage
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
 
 /**
- * REST controller implementing the contract manager assignment endpoints defined in {@link
+ * REST controller implementing the contract manager endpoints defined in {@link
  * ProviderFirmOfficesContractManagersApi}.
- *
- * <p>This controller currently supports the MVP workflow for assigning a contract manager to an
- * office. The API accepts GUIDs as string inputs, validates them, and delegates the assignment
- * logic to {@link OfficeContractManagerAssignmentService}.
- *
- * <p>Lookup or enrichment of additional provider or office metadata is intentionally not
- * implemented for MVP behaviour.
  */
 @RestController
 public class ProviderFirmOfficeContractManagersController

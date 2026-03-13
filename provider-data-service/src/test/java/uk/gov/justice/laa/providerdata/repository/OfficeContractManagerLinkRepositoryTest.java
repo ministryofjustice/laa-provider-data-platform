@@ -50,7 +50,7 @@ class OfficeContractManagerLinkRepositoryTest {
     service.assign(officeGuid, cm.getGuid());
 
     // Assert
-    var links = linkRepository.findAllByOfficeGuid(officeGuid);
+    var links = linkRepository.findByOfficeGuid(officeGuid);
     assertThat(links).hasSize(1);
     assertThat(links.get(0).getContractManager().getContractManagerId()).isEqualTo("CM-001");
   }

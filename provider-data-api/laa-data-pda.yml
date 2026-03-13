@@ -99,7 +99,7 @@ paths:
       tags:
         - Events
       description: |
-        Retieve full event details by GUID.
+        Retrieve full event details by GUID.
 
         Use cases:
         1) Retrieve details necessary for connectors to downstream systems
@@ -143,14 +143,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
 
-  /provider-contact-managers:
+  /provider-contract-managers:
     get:
       summary: Retrieve a list of contract managers
       security:
         - bearerAuth: []
         - AzureAD:
             - api://<client-id>/access_as_user
-      operationId: getProviderContactManagers
+      operationId: getProviderContractManagers
       tags:
         - Contract Managers
       description: |
@@ -246,7 +246,7 @@ paths:
         Each provider must include a name, type, and other type specific data. 
 
         The request body should contain either `legalServicesProvider`, `chambers` or `practitioner`
-        elemnt depending on the type.
+        element depending on the type.
 
         `practitioner` is further sub divided into `Advocate` or `Barrister`.
 
@@ -495,7 +495,7 @@ paths:
         4) Updating Barrister's or Advocate's basic details
         5) Changing parent firm of a Barrister or an Advocate. 
            Note that changing parent chamber should also re-link office details and 
-           liason manager. There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
+           liaison manager. There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1053,15 +1053,15 @@ paths:
       tags:
         - Provider Firm Offices Liaison Managers
       description: |
-        Create new liaison manager for an office. There can be only one active liason manager and all firm types
-        are able to have liason manager independently set at the office level. 
+        Create new liaison manager for an office. There can be only one active liaison manager and all firm types
+        are able to have liaison manager independently set at the office level. 
 
         Use cases:
-        1) Create a new Liason manager entry specific to given LSP office.
-        2) Choose to use LSP's head office liason manager for given LSP office.
-        3) Create a new Liason manager entry specific to Chambers office.
-        3) Create a new Liason manager entry specific to Advocate/Barrister for a given Chambers office.
-        4) Choose to use Chambers' office liason manager for given Advocate/Barrister.
+        1) Create a new Liaison manager entry specific to given LSP office.
+        2) Choose to use LSP's head office liaison manager for given LSP office.
+        3) Create a new Liaison manager entry specific to Chambers office.
+        3) Create a new Liaison manager entry specific to Advocate/Barrister for a given Chambers office.
+        4) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1117,7 +1117,7 @@ paths:
                 $ref: "#/components/schemas/InternalServerError"
 
     get:
-      summary: Retrieve liaison managers for a given office office
+      summary: Retrieve liaison managers for a given office
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1129,7 +1129,7 @@ paths:
         Retrieve provider office liaison managers.
 
         Use cases:
-        1) Show full list of liason managers including currently active and assigned in the past.
+        1) Show full list of liaison managers including currently active and assigned in the past.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1175,7 +1175,7 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
     post:
-      summary: Assign a liaison manager for office. Assigning a new manager end-dates all other managers.
+      summary: Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1195,7 +1195,7 @@ paths:
         This is no longer necessary in the new model.
 
         Use cases:
-        1) Assign new contract managers to a given office.
+        1) Assign new contract manager to a given office.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1252,7 +1252,7 @@ paths:
                 $ref: "#/components/schemas/InternalServerError"
 
     get:
-      summary: Retrieve contract managers for a given office office
+      summary: Retrieve contract managers for a given office
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1490,7 +1490,7 @@ components:
         - Chambers
         - Advocate
       description: |
-        Type of the provider firm. Baristers are entered as Advocates. 
+        Type of the provider firm. Barristers are entered as Advocates.
 
         CWA ref: PO_VENDORS.ATTRIBUTE4. 
 
@@ -2008,7 +2008,6 @@ components:
       required:
         - officeGUID
         - accountNumber
-        - activeDateTo
       properties:
         officeGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
@@ -2101,7 +2100,7 @@ components:
         to the same value (i.e. deactivating head office deactivates all active child offices).
 
         When activeDateTo is set on the Chambers' office all assigned advocates/barristers that do not have activeDateTo set should 
-        be updated to the same value (i.e. deactivating chambners office deactivates all active advocate/barrister offices).
+        be updated to the same value (i.e. deactivating chambers office deactivates all active advocate/barrister offices).
 
         When activeDateTo is set on an LSP office or an Advocate/Barrister office `debtRecoveryFlag` should be set to false.
 
@@ -2302,7 +2301,6 @@ components:
       required:
         - officeGUID
         - accountNumber
-        - activeDateTo
       properties:
         officeGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
@@ -2316,7 +2314,6 @@ components:
       required:
         - officeGUID
         - accountNumber
-        - activeDateTo
       properties:
         officeGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
@@ -2785,7 +2782,7 @@ components:
         activeDateFrom:
           $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
       description: |
-        activeDateFrom by default is set to today's date. Previously 'active' liason manager
+        activeDateFrom by default is set to today's date. Previously 'active' liaison manager
         assignment activeDateTo's value should be set to activeDateFrom's date minus one day of the new assignment.
 
     LiaisonManagerLinkHeadOfficeV2:
@@ -2796,10 +2793,10 @@ components:
         useHeadOfficeLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks Liason manager record from the head office (or Chambers)
+            Setting this flag to true interlinks Liaison manager record from the head office (or Chambers)
       description: |
-        Applicable only for LSP offices. Inicates that new Liason manager assignment should be to the Liason manager that 
-        is currently specificed at the head office. This update only links the data (no duplicate is created).
+        Applicable only for LSP offices. Indicates that new Liaison manager assignment should be to the Liaison manager that 
+        is currently specified at the head office. This update only links the data (no duplicate is created).
 
     LiaisonManagerLinkChambersV2:
       type: object
@@ -2809,21 +2806,21 @@ components:
         useChambersLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks Liason manager record from the head office (or Chambers)
+            Setting this flag to true interlinks Liaison manager record from the head office (or Chambers)
       description: |
-        Applicable only for Advocate/Barrister. Inicates that new Liason manager assignment should be to the Liason manager that 
-        is currently specificed at the Chambers' office. This update only links the data (no duplicate is created).
+        Applicable only for Advocate/Barrister. Indicates that new Liaison manager assignment should be to the Liaison manager that 
+        is currently specified at the Chambers' office. This update only links the data (no duplicate is created).
 
     LiaisonManagerLinkedFlagV2:
       type: boolean
       description: |
-        Indicates whether this liason manager entry is specific to given provider or is linked.
+        Indicates whether this liaison manager entry is specific to given provider or is linked.
 
         If the office is LSP and this flag is set to true it indicates that `useHeadOfficeLiaisonManager` option was used to create this entry.
 
         If the office is Advocate/Barrister and this flag is set to true it indicates that `useChambersLiaisonManager` option was used to create this entry.
 
-        Note that if this attribute is set to true then updates at the pareent entity should cascade to create new linked assignment.
+        Note that if this attribute is set to true then updates at the parent entity should cascade to create new linked assignment.
 
     LiaisonManagerV2:
       allOf:
@@ -3046,7 +3043,7 @@ components:
                   - liaisonManagers
                   - contractManagers
                 properties:
-                  liasonManagers:
+                  liaisonManagers:
                     type: array
                     items:
                       $ref: "#/components/schemas/LiaisonManagerV2"
@@ -3104,7 +3101,7 @@ components:
         type: string
       description: Correlation ID for tracing requests
     TraceParentHeader:
-      name: transparent
+      name: traceparent
       in: header
       required: false
       schema:

@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,15 @@ public interface OfficeBankAccountLinkRepository
   Page<OfficeBankAccountLinkEntity>
       findByProviderOfficeLinkAndBankAccount_AccountNumberContainingIgnoreCase(
           ProviderOfficeLinkEntity officeLink, String accountNumber, Pageable pageable);
+
+  Page<OfficeBankAccountLinkEntity> findByProviderOfficeLinkIn(
+      Collection<ProviderOfficeLinkEntity> officeLinks, Pageable pageable);
+
+  Page<OfficeBankAccountLinkEntity>
+      findByProviderOfficeLinkInAndBankAccount_AccountNumberContainingIgnoreCase(
+          Collection<ProviderOfficeLinkEntity> officeLinks,
+          String accountNumber,
+          Pageable pageable);
 
   Optional<OfficeBankAccountLinkEntity> findByProviderOfficeLinkAndPrimaryFlagTrue(
       ProviderOfficeLinkEntity officeLink);

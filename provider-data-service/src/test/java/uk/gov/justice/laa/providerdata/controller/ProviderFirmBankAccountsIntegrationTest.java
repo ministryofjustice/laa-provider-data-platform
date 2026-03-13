@@ -170,9 +170,9 @@ class ProviderFirmBankAccountsIntegrationTest {
   }
 
   @Test
-  void getProviderFirmBankAccounts_returnsOk_withEmptyList_whenProviderIsChambers()
+  void getProviderFirmBankAccounts_returnsOk_withAdvocateBankAccounts_whenProviderIsChambers()
       throws Exception {
-    // Create a Chambers firm — bank account is linked to the Chambers itself.
+    // Create Chambers — its own bank account is NOT returned by the new logic.
     String createChambersResponse =
         mockMvc
             .perform(
@@ -212,13 +212,113 @@ class ProviderFirmBankAccountsIntegrationTest {
             .getContentAsString();
 
     String chambersGuid = JsonPath.read(createChambersResponse, "$.data.providerFirmGUID");
+    String chambersFirmNumber = JsonPath.read(createChambersResponse, "$.data.providerFirmNumber");
 
-    // No Advocates are linked to this Chambers, so the response is empty — but 200, not 400.
+    // Create an Advocate linked to that Chambers with an EFT bank account.
+    String createAdvocateResponse =
+        mockMvc
+            .perform(
+                post("/provider-firms")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                    {
+                      "firmType": "Advocate",
+                      "name": "A. Test Advocate",
+                      "practitioner": {
+                        "advocateType": "Advocate",
+                        "parentFirms": [
+                          { "parentFirmNumber": "%s" }
+                        ],
+                        "advocate": {
+                          "advocateLevel": "Junior",
+                          "solicitorRegulationAuthorityRollNumber": "SRA999999"
+                        },
+                        "payment": {
+                          "paymentMethod": "EFT",
+                          "bankAccountDetails": {
+                            "accountName": "Advocate Account",
+                            "sortCode": "99-88-77",
+                            "accountNumber": "44444444"
+                          }
+                        },
+                        "liaisonManager": {
+                          "firstName": "Alice",
+                          "lastName": "Test",
+                          "emailAddress": "a.test@example.com",
+                          "telephoneNumber": "07700900002"
+                        }
+                      }
+                    }
+                    """
+                            .formatted(chambersFirmNumber)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    String advocateGuid = JsonPath.read(createAdvocateResponse, "$.data.providerFirmGUID");
+
+    // Look up the Advocate's office (which is the Chambers office they were linked to).
+    String listOfficesResponse =
+        mockMvc
+            .perform(get("/provider-firms/{id}/offices", advocateGuid))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    String advocateOfficeCode =
+        JsonPath.read(listOfficesResponse, "$.data.content[0].accountNumber");
+
+    // GET bank-details for Chambers — returns the Advocate's account, not the Chambers' own.
     mockMvc
         .perform(get("/provider-firms/{id}/bank-details", chambersGuid))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
-        .andExpect(jsonPath("$.data.content.length()").value(0))
-        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0));
+        .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].accountNumber").value("44444444"))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
+
+    // GET bank-details at the Advocate's office level — returns the Advocate's own bank account.
+    mockMvc
+        .perform(
+            get(
+                "/provider-firms/{id}/offices/{officeId}/bank-details",
+                advocateGuid,
+                advocateOfficeCode))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].accountNumber").value("44444444"))
+        .andExpect(jsonPath("$.data.content[0].primaryFlag").value(true))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
+
+    // GET bank-details at the Chambers office level — returns accounts for all member Advocates.
+    // The officeId here is the ChamberProviderOfficeLinkEntity accountNumber, not the OfficeEntity
+    // GUID.
+    String listChambersOfficesResponse =
+        mockMvc
+            .perform(get("/provider-firms/{id}/offices", chambersGuid))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    String chambersOfficeCode =
+        JsonPath.read(listChambersOfficesResponse, "$.data.content[0].accountNumber");
+
+    mockMvc
+        .perform(
+            get(
+                "/provider-firms/{id}/offices/{officeId}/bank-details",
+                chambersGuid,
+                chambersOfficeCode))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].accountNumber").value("44444444"))
+        .andExpect(jsonPath("$.data.content[0].primaryFlag").value(true))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
   }
 }

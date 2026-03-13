@@ -102,7 +102,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_practitioner_returns201() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createPractitionerFirm(any()))
+    when(providerFirmCreationService.createPractitionerFirm(any(), any(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-ABCD1234"));
 
     mockMvc
@@ -185,8 +185,10 @@ class ProviderFirmControllerTest {
     when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
     when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
     when(providerFirmService.getChambersHeadOffice(entity)).thenReturn(Optional.empty());
+    when(providerFirmService.getAdvocateOfficeLink(entity)).thenReturn(Optional.empty());
     when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
-    when(providerFirmMapper.toProviderV2(entity, null, null, List.of())).thenReturn(providerV2);
+    when(providerFirmMapper.toProviderV2(entity, null, null, null, List.of()))
+        .thenReturn(providerV2);
 
     mockMvc
         .perform(get("/provider-firms/{guid}", guid))

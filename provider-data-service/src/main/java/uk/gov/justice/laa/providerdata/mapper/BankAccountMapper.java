@@ -68,4 +68,25 @@ public interface BankAccountMapper {
         .activeDateTo(link.getActiveDateTo())
         .primaryFlag(link.getPrimaryFlag());
   }
+
+  /**
+   * Maps a {@link ProviderBankAccountLinkEntity} to an {@link OfficeBankAccountV2} response DTO.
+   *
+   * <p>Used when returning Advocate bank accounts in the context of a Chambers office query.
+   * Office-level fields ({@code activeDateFrom}, {@code activeDateTo}, {@code primaryFlag}) are not
+   * applicable to Advocate accounts and will be {@code null}.
+   */
+  default OfficeBankAccountV2 toOfficeBankAccountV2(ProviderBankAccountLinkEntity link) {
+    BankAccountEntity account = link.getBankAccount();
+    return new OfficeBankAccountV2()
+        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
+        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .createdBy(account.getCreatedBy())
+        .createdTimestamp(account.getCreatedTimestamp())
+        .lastUpdatedBy(account.getLastUpdatedBy())
+        .lastUpdatedTimestamp(account.getLastUpdatedTimestamp())
+        .accountName(account.getAccountName())
+        .sortCode(account.getSortCode())
+        .accountNumber(account.getAccountNumber());
+  }
 }

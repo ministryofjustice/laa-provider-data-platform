@@ -8,6 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.springframework.lang.Nullable;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -20,6 +21,7 @@ import uk.gov.justice.laa.providerdata.model.LSPDetailsV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerOfficeCoreDetailsV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 
@@ -32,7 +34,7 @@ public interface ProviderMapper {
    *
    * <p>Detail sub-objects ({@code legalServicesProvider}, {@code chambers}, {@code practitioner})
    * are populated separately via {@link #toProviderV2(ProviderEntity, LspProviderOfficeLinkEntity,
-   * ChamberProviderOfficeLinkEntity, List)}.
+   * ChamberProviderOfficeLinkEntity, AdvocateProviderOfficeLinkEntity, List)}.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
   @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
@@ -50,6 +52,7 @@ public interface ProviderMapper {
    * @param entity the provider entity
    * @param lspHeadOffice the LSP head office link, or {@code null}
    * @param chambersHeadOffice the Chambers head office link, or {@code null}
+   * @param advocateOfficeLink the Advocate office link, or {@code null}
    * @param parentLinks the parent firm links (for Advocates), or an empty list
    * @return the populated response DTO
    */
@@ -57,6 +60,7 @@ public interface ProviderMapper {
       ProviderEntity entity,
       @Nullable LspProviderOfficeLinkEntity lspHeadOffice,
       @Nullable ChamberProviderOfficeLinkEntity chambersHeadOffice,
+      @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
       List<ProviderParentLinkEntity> parentLinks) {
     ProviderV2 result = toProviderV2(entity);
     if (lspHeadOffice != null) {
@@ -72,7 +76,12 @@ public interface ProviderMapper {
       result.setChambers(new ChamberDetailsV2());
     }
     if (!parentLinks.isEmpty()) {
-      result.setPractitioner(new PractitionerDetailsV2().parentFirms(toParentFirms(parentLinks)));
+      PractitionerDetailsV2 practitioner =
+          new PractitionerDetailsV2().parentFirms(toParentFirms(parentLinks));
+      if (advocateOfficeLink != null) {
+        practitioner.office(toPractitionerOfficeDetails(advocateOfficeLink));
+      }
+      result.setPractitioner(practitioner);
     } else if (FirmType.ADVOCATE.equals(entity.getFirmType())) {
       result.setPractitioner(new PractitionerDetailsV2());
     }
@@ -82,7 +91,7 @@ public interface ProviderMapper {
   /** Maps an LSP head office link to an {@link LSPHeadOfficeDetailsV2}. */
   default LSPHeadOfficeDetailsV2 toHeadOfficeDetails(ProviderOfficeLinkEntity link) {
     return new LSPHeadOfficeDetailsV2()
-        .officeGUID(link.getOffice().getGuid().toString())
+        .officeGUID(link.getGuid().toString())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -90,7 +99,16 @@ public interface ProviderMapper {
   /** Maps a Chambers head office link to a {@link ChambersOfficeCoreDetailsV2}. */
   default ChambersOfficeCoreDetailsV2 toChambersOfficeDetails(ProviderOfficeLinkEntity link) {
     return new ChambersOfficeCoreDetailsV2()
-        .officeGUID(link.getOffice().getGuid().toString())
+        .officeGUID(link.getGuid().toString())
+        .accountNumber(link.getAccountNumber())
+        .activeDateTo(link.getActiveDateTo());
+  }
+
+  /** Maps an Advocate office link to a {@link PractitionerOfficeCoreDetailsV2}. */
+  default PractitionerOfficeCoreDetailsV2 toPractitionerOfficeDetails(
+      ProviderOfficeLinkEntity link) {
+    return new PractitionerOfficeCoreDetailsV2()
+        .officeGUID(link.getGuid().toString())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }

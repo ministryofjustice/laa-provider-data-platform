@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -9,12 +10,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -23,15 +27,23 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,8 +53,11 @@ class ProviderCreationServiceTest {
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
+  @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
@@ -197,12 +212,195 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Barrister").build());
+            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Barrister").build(),
+            null,
+            null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("ADV-");
     assertThat(result.headOfficeGUID()).isNull();
     assertThat(result.headOfficeAccountNumber()).isNull();
+  }
+
+  @Test
+  void createPractitionerFirm_withParentFirmByNumber_savesParentLink() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID parentGuid = UUID.randomUUID();
+    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    parent.setGuid(parentGuid);
+    OfficeEntity parentOffice = new OfficeEntity();
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity e = inv.getArgument(0);
+              e.setGuid(providerGuid);
+              return e;
+            });
+    when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createPractitionerFirm(
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
+        null);
+
+    verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
+    verify(advocateProviderOfficeLinkRepository).save(any(AdvocateProviderOfficeLinkEntity.class));
+  }
+
+  @Test
+  void createPractitionerFirm_withParentFirmByGuid_savesParentLink() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID parentGuid = UUID.randomUUID();
+    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    parent.setGuid(parentGuid);
+    OfficeEntity parentOffice = new OfficeEntity();
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity e = inv.getArgument(0);
+              e.setGuid(providerGuid);
+              return e;
+            });
+    when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createPractitionerFirm(
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid.toString())),
+        null);
+
+    verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
+    verify(advocateProviderOfficeLinkRepository).save(any(AdvocateProviderOfficeLinkEntity.class));
+  }
+
+  @Test
+  void createPractitionerFirm_withParentFirm_returnsOfficeFieldsFromCreatedLink() {
+    UUID parentGuid = UUID.randomUUID();
+    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    parent.setGuid(parentGuid);
+    UUID chambersOfficeGuid = UUID.randomUUID();
+    OfficeEntity parentOffice = new OfficeEntity();
+    parentOffice.setGuid(chambersOfficeGuid);
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+    UUID providerGuid = UUID.randomUUID();
+
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity e = inv.getArgument(0);
+              e.setGuid(providerGuid);
+              return e;
+            });
+    when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var result =
+        service.createPractitionerFirm(
+            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+            List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
+            null);
+
+    assertThat(result.headOfficeGUID()).isEqualTo(chambersOfficeGuid);
+    assertThat(result.headOfficeAccountNumber()).isNotBlank();
+  }
+
+  @Test
+  void createPractitionerFirm_throwsNotFound_whenParentHasNoHeadOffice() {
+    UUID parentGuid = UUID.randomUUID();
+    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    parent.setGuid(parentGuid);
+
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.findByFirmNumber("CH-NO-OFFICE")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createPractitionerFirm(
+                    ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A.").build(),
+                    List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-NO-OFFICE")),
+                    null))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("no head office");
+  }
+
+  @Test
+  void createPractitionerFirm_withParentFirmByNumber_throwsNotFound_whenParentMissing() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.findByFirmNumber("UNKNOWN")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createPractitionerFirm(
+                    ProviderEntity.builder()
+                        .firmType(FirmType.ADVOCATE)
+                        .name("A. Advocate")
+                        .build(),
+                    List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN")),
+                    null))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("UNKNOWN");
+  }
+
+  @Test
+  void createPractitionerFirm_withEftPayment_persistsBankAccount() {
+    UUID providerGuid = UUID.randomUUID();
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity e = inv.getArgument(0);
+              e.setGuid(providerGuid);
+              return e;
+            });
+
+    var createDetails =
+        new BankAccountProviderOfficeCreateV2("Advocate Account", "12-34-56", "87654321");
+    var accountTemplate = new BankAccountEntity();
+    when(bankAccountMapper.toBankAccountEntity(createDetails)).thenReturn(accountTemplate);
+
+    var payment =
+        new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.EFT)
+            .bankAccountDetails(createDetails);
+
+    service.createPractitionerFirm(
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        null,
+        payment);
+
+    verify(bankDetailsService).createAndLinkToProvider(eq(accountTemplate), any());
+  }
+
+  @Test
+  void createPractitionerFirm_withCheckPayment_doesNotPersistBankAccount() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
+
+    service.createPractitionerFirm(
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        null,
+        payment);
+
+    verify(bankDetailsService, never()).createAndLinkToProvider(any(), any());
   }
 
   // --- bank details wiring ---

@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -78,21 +79,22 @@ class ProviderMapperTest {
             .build();
     entity.setGuid(UUID.randomUUID());
 
-    UUID officeGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
     OfficeEntity office = new OfficeEntity();
-    office.setGuid(officeGuid);
+    office.setGuid(UUID.randomUUID());
 
     LspProviderOfficeLinkEntity headOffice = new LspProviderOfficeLinkEntity();
+    headOffice.setGuid(officeLinkGuid);
     headOffice.setOffice(office);
     headOffice.setAccountNumber("ACC001");
     headOffice.setActiveDateTo(LocalDate.of(2025, 12, 31));
 
-    ProviderV2 result = mapper.toProviderV2(entity, headOffice, null, List.of());
+    ProviderV2 result = mapper.toProviderV2(entity, headOffice, null, null, List.of());
 
     assertThat(result.getLegalServicesProvider()).isNotNull();
     assertThat(result.getLegalServicesProvider().getHeadOffice()).isNotNull();
     assertThat(result.getLegalServicesProvider().getHeadOffice().getOfficeGUID())
-        .isEqualTo(officeGuid.toString());
+        .isEqualTo(officeLinkGuid.toString());
     assertThat(result.getLegalServicesProvider().getHeadOffice().getAccountNumber())
         .isEqualTo("ACC001");
     assertThat(result.getLegalServicesProvider().getHeadOffice().getActiveDateTo())
@@ -111,19 +113,21 @@ class ProviderMapperTest {
             .build();
     entity.setGuid(UUID.randomUUID());
 
-    UUID officeGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
     OfficeEntity office = new OfficeEntity();
-    office.setGuid(officeGuid);
+    office.setGuid(UUID.randomUUID());
 
     ChamberProviderOfficeLinkEntity headOffice = new ChamberProviderOfficeLinkEntity();
+    headOffice.setGuid(officeLinkGuid);
     headOffice.setOffice(office);
     headOffice.setAccountNumber("CH001");
 
-    ProviderV2 result = mapper.toProviderV2(entity, null, headOffice, List.of());
+    ProviderV2 result = mapper.toProviderV2(entity, null, headOffice, null, List.of());
 
     assertThat(result.getChambers()).isNotNull();
     assertThat(result.getChambers().getOffice()).isNotNull();
-    assertThat(result.getChambers().getOffice().getOfficeGUID()).isEqualTo(officeGuid.toString());
+    assertThat(result.getChambers().getOffice().getOfficeGUID())
+        .isEqualTo(officeLinkGuid.toString());
     assertThat(result.getChambers().getOffice().getAccountNumber()).isEqualTo("CH001");
     assertThat(result.getLegalServicesProvider()).isNull();
     assertThat(result.getPractitioner()).isNull();
@@ -160,7 +164,7 @@ class ProviderMapperTest {
             ProviderParentLinkEntity.builder().provider(entity).parent(parentChambers).build(),
             ProviderParentLinkEntity.builder().provider(entity).parent(parentLsp).build());
 
-    ProviderV2 result = mapper.toProviderV2(entity, null, null, parentLinks);
+    ProviderV2 result = mapper.toProviderV2(entity, null, null, null, parentLinks);
 
     assertThat(result.getPractitioner()).isNotNull();
     assertThat(result.getPractitioner().getParentFirms()).hasSize(2);
@@ -172,6 +176,7 @@ class ProviderMapperTest {
         .isEqualTo(ProviderFirmTypeV2.CHAMBERS);
     assertThat(result.getPractitioner().getParentFirms().get(1).getParentFirmType())
         .isEqualTo(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER);
+    assertThat(result.getPractitioner().getOffice()).isNull();
     assertThat(result.getLegalServicesProvider()).isNull();
     assertThat(result.getChambers()).isNull();
   }
@@ -186,7 +191,7 @@ class ProviderMapperTest {
             .build();
     entity.setGuid(UUID.randomUUID());
 
-    ProviderV2 result = mapper.toProviderV2(entity, null, null, List.of());
+    ProviderV2 result = mapper.toProviderV2(entity, null, null, null, List.of());
 
     assertThat(result.getLegalServicesProvider()).isNotNull();
     assertThat(result.getChambers()).isNull();
@@ -204,10 +209,39 @@ class ProviderMapperTest {
             .build();
     entity.setGuid(UUID.randomUUID());
 
-    ProviderV2 result = mapper.toProviderV2(entity, null, null, List.of());
+    ProviderV2 result = mapper.toProviderV2(entity, null, null, null, List.of());
 
     assertThat(result.getPractitioner()).isNotNull();
     assertThat(result.getLegalServicesProvider()).isNull();
     assertThat(result.getChambers()).isNull();
+  }
+
+  @Test
+  void toProviderV2_advocateWithOfficeLink_populatesOffice() {
+    ProviderEntity entity =
+        ProviderEntity.builder()
+            .firmNumber("ADV-P0001")
+            .firmType(FirmType.ADVOCATE)
+            .name("J. Smith")
+            .build();
+    entity.setGuid(UUID.randomUUID());
+
+    UUID officeLinkGuid = UUID.randomUUID();
+    AdvocateProviderOfficeLinkEntity officeLink = new AdvocateProviderOfficeLinkEntity();
+    officeLink.setGuid(officeLinkGuid);
+    officeLink.setAccountNumber("ADV001");
+
+    ProviderEntity parentChambers =
+        ProviderEntity.builder().firmNumber("CH-001").firmType(FirmType.CHAMBERS).build();
+    parentChambers.setGuid(UUID.randomUUID());
+    List<ProviderParentLinkEntity> parentLinks =
+        List.of(ProviderParentLinkEntity.builder().provider(entity).parent(parentChambers).build());
+
+    ProviderV2 result = mapper.toProviderV2(entity, null, null, officeLink, parentLinks);
+
+    assertThat(result.getPractitioner().getOffice()).isNotNull();
+    assertThat(result.getPractitioner().getOffice().getOfficeGUID())
+        .isEqualTo(officeLinkGuid.toString());
+    assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ADV001");
   }
 }

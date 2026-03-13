@@ -71,11 +71,8 @@ class OfficeMapperTest {
 
   @Test
   void toLspOfficeV2_mapsAllFields() {
-    UUID officeGuid = UUID.randomUUID();
-    OffsetDateTime now = OffsetDateTime.now();
-
     OfficeEntity office = new OfficeEntity();
-    office.setGuid(officeGuid);
+    OffsetDateTime now = OffsetDateTime.now();
     office.setVersion(3L);
     office.setCreatedBy("user1");
     office.setCreatedTimestamp(now);
@@ -94,6 +91,8 @@ class OfficeMapperTest {
     office.setDxDetailsCentre("London");
 
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    UUID officeLinkGuid = UUID.randomUUID();
+    link.setGuid(officeLinkGuid);
     link.setOffice(office);
     link.setAccountNumber("ABC123");
     link.setFirmType("Legal Services Provider");
@@ -110,7 +109,7 @@ class OfficeMapperTest {
 
     OfficeV2 result = mapper.toLspOfficeV2(link);
 
-    assertThat(result.getGuid()).isEqualTo(officeGuid.toString());
+    assertThat(result.getGuid()).isEqualTo(officeLinkGuid.toString());
     assertThat(result.getVersion()).isEqualTo(BigDecimal.valueOf(3L));
     assertThat(result.getCreatedBy()).isEqualTo("user1");
     assertThat(result.getCreatedTimestamp()).isEqualTo(now);
@@ -278,6 +277,7 @@ class OfficeMapperTest {
 
   private static LspProviderOfficeLinkEntity linkWith(OfficeEntity office) {
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    link.setGuid(UUID.randomUUID());
     link.setOffice(office);
     link.setAccountNumber("TST001");
     link.setFirmType("Legal Services Provider");

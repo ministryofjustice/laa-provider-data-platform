@@ -16,6 +16,8 @@ public interface ProviderOfficeLinkRepository
 
   Page<ProviderOfficeLinkEntity> findByProvider(ProviderEntity provider, Pageable pageable);
 
+  Optional<ProviderOfficeLinkEntity> findByProviderAndGuid(ProviderEntity provider, UUID guid);
+
   Optional<ProviderOfficeLinkEntity> findByProviderAndOffice_Guid(
       ProviderEntity provider, UUID officeGUID);
 

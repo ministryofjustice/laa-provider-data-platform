@@ -21,6 +21,8 @@ public interface LspProviderOfficeLinkRepository
 
   Page<LspProviderOfficeLinkEntity> findByProvider(ProviderEntity provider, Pageable pageable);
 
+  Optional<LspProviderOfficeLinkEntity> findByProviderAndGuid(ProviderEntity provider, UUID guid);
+
   Optional<LspProviderOfficeLinkEntity> findByProviderAndOffice_Guid(
       ProviderEntity provider, UUID officeGuid);
 

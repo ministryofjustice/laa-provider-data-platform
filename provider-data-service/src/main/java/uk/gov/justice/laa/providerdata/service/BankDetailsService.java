@@ -10,12 +10,14 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderBankAccountLinkRepository;
@@ -35,6 +37,7 @@ public class BankDetailsService {
   private final ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
   private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
+  private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
 
   /**
    * Inject dependencies.
@@ -43,16 +46,19 @@ public class BankDetailsService {
    * @param providerBankAccountLinkRepository to save and query provider-bank account links
    * @param officeBankAccountLinkRepository to save and query office-bank account links
    * @param providerParentLinkRepository to resolve chambers membership for Advocate providers
+   * @param advocateProviderOfficeLinkRepository to find Advocate office links by office
    */
   public BankDetailsService(
       BankAccountRepository bankAccountRepository,
       ProviderBankAccountLinkRepository providerBankAccountLinkRepository,
       OfficeBankAccountLinkRepository officeBankAccountLinkRepository,
-      ProviderParentLinkRepository providerParentLinkRepository) {
+      ProviderParentLinkRepository providerParentLinkRepository,
+      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository) {
     this.bankAccountRepository = bankAccountRepository;
     this.providerBankAccountLinkRepository = providerBankAccountLinkRepository;
     this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
+    this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
   }
 
   /**
@@ -110,6 +116,19 @@ public class BankDetailsService {
   }
 
   /**
+   * Saves a new bank account and links it to the given provider only (no office link).
+   *
+   * <p>Used for Practitioners, who have no office of their own.
+   *
+   * @param accountTemplate unpersisted bank account entity with account fields populated
+   * @param provider the provider to link the account to
+   */
+  public void createAndLinkToProvider(BankAccountEntity accountTemplate, ProviderEntity provider) {
+    BankAccountEntity savedAccount = bankAccountRepository.save(accountTemplate);
+    linkToProvider(savedAccount, provider);
+  }
+
+  /**
    * Returns a paginated page of bank accounts linked to the given provider.
    *
    * <p>For {@code firmType=Chambers}, resolves all member Advocates and returns their combined
@@ -137,6 +156,10 @@ public class BankDetailsService {
   /**
    * Returns a paginated page of bank accounts linked to the given office link.
    *
+   * <p>For a {@link ChamberProviderOfficeLinkEntity}, returns bank accounts across all {@link
+   * AdvocateProviderOfficeLinkEntity} rows that point to the same office, since Advocates store
+   * their bank accounts against their own office link rather than the Chambers link.
+   *
    * @param officeLink the office link whose bank accounts to retrieve
    * @param accountNumberFilter optional partial match on account number (case-insensitive)
    * @param pageable pagination parameters
@@ -148,12 +171,30 @@ public class BankDetailsService {
       @Nullable String accountNumberFilter,
       Pageable pageable) {
 
+    Collection<ProviderOfficeLinkEntity> links = resolveOfficeLinkScope(officeLink);
+
     if (accountNumberFilter != null && !accountNumberFilter.isBlank()) {
       return officeBankAccountLinkRepository
-          .findByProviderOfficeLinkAndBankAccount_AccountNumberContainingIgnoreCase(
-              officeLink, accountNumberFilter, pageable);
+          .findByProviderOfficeLinkInAndBankAccount_AccountNumberContainingIgnoreCase(
+              links, accountNumberFilter, pageable);
     }
-    return officeBankAccountLinkRepository.findByProviderOfficeLink(officeLink, pageable);
+    return officeBankAccountLinkRepository.findByProviderOfficeLinkIn(links, pageable);
+  }
+
+  /**
+   * Resolves the set of office links whose bank accounts should be returned for a given link.
+   *
+   * <p>For a Chambers office link, returns all Advocate office links pointing to the same office,
+   * since Advocates store their bank accounts against their own {@link
+   * AdvocateProviderOfficeLinkEntity} rather than the Chambers link. For all other firm types,
+   * returns just the supplied link.
+   */
+  private Collection<ProviderOfficeLinkEntity> resolveOfficeLinkScope(
+      ProviderOfficeLinkEntity officeLink) {
+    if (!(officeLink instanceof ChamberProviderOfficeLinkEntity)) {
+      return List.of(officeLink);
+    }
+    return List.copyOf(advocateProviderOfficeLinkRepository.findByOffice(officeLink.getOffice()));
   }
 
   /**
@@ -184,13 +225,25 @@ public class BankDetailsService {
 
   private OfficeBankAccountLinkEntity saveOfficeBankAccountLink(
       BankAccountEntity account, ProviderOfficeLinkEntity officeLink, LocalDate activeDateFrom) {
-    OfficeBankAccountLinkEntity officeLink1 =
+    LocalDate resolvedFrom = activeDateFrom != null ? activeDateFrom : LocalDate.now();
+
+    // End-date the existing primary record before making the new one primary.
+    officeBankAccountLinkRepository
+        .findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink)
+        .ifPresent(
+            existing -> {
+              existing.setPrimaryFlag(Boolean.FALSE);
+              existing.setActiveDateTo(resolvedFrom);
+              officeBankAccountLinkRepository.save(existing);
+            });
+
+    OfficeBankAccountLinkEntity newLink =
         OfficeBankAccountLinkEntity.builder()
             .bankAccount(account)
             .providerOfficeLink(officeLink)
             .primaryFlag(Boolean.TRUE)
-            .activeDateFrom(activeDateFrom != null ? activeDateFrom : LocalDate.now())
+            .activeDateFrom(resolvedFrom)
             .build();
-    return officeBankAccountLinkRepository.save(officeLink1);
+    return officeBankAccountLinkRepository.save(newLink);
   }
 }

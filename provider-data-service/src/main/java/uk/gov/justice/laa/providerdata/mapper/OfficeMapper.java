@@ -9,11 +9,13 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.springframework.lang.Nullable;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.DXV2;
 import uk.gov.justice.laa.providerdata.model.IntervenedOfficeDetailsV2;
@@ -194,13 +196,13 @@ public interface OfficeMapper {
   default OfficeV2 toLspOfficeV2(LspProviderOfficeLinkEntity link) {
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
-        .guid(office.getGuid().toString())
+        .guid(link.getGuid().toString())
         .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
         .createdBy(office.getCreatedBy())
         .createdTimestamp(office.getCreatedTimestamp())
         .lastUpdatedBy(office.getLastUpdatedBy())
         .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
-        .firmType(ProviderFirmTypeV2.fromValue(link.getFirmType()))
+        .firmType(firmTypeFromEntity(link))
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo())
         .debtRecoveryFlag(link.getDebtRecoveryFlag())
@@ -213,6 +215,57 @@ public interface OfficeMapper {
         .vatRegistration(toVatRegistration(link))
         .payment(toPayment(link))
         .intervened(toIntervened(link));
+  }
+
+  /**
+   * Maps a {@link ProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO using only the
+   * fields present on the base entity. LSP-specific fields (VAT, payment details, intervention,
+   * debt/false-balance flags) are omitted; for those, use {@link #toLspOfficeV2}.
+   *
+   * @param link any provider-office link entity (with eagerly-loaded {@code office})
+   * @return the populated response DTO
+   */
+  default OfficeV2 toOfficeV2(ProviderOfficeLinkEntity link) {
+    if (link instanceof LspProviderOfficeLinkEntity lspLink) {
+      return toLspOfficeV2(lspLink);
+    }
+    OfficeEntity office = link.getOffice();
+    return new OfficeV2()
+        .guid(link.getGuid().toString())
+        .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
+        .createdBy(office.getCreatedBy())
+        .createdTimestamp(office.getCreatedTimestamp())
+        .lastUpdatedBy(office.getLastUpdatedBy())
+        .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
+        .firmType(firmTypeFromEntity(link))
+        .accountNumber(link.getAccountNumber())
+        .activeDateTo(link.getActiveDateTo())
+        .address(toAddress(office))
+        .telephoneNumber(office.getTelephoneNumber())
+        .emailAddress(office.getEmailAddress())
+        .website(stringToUri(link.getWebsite()))
+        .dxDetails(toDxDetails(office));
+  }
+
+  /**
+   * Derives {@link ProviderFirmTypeV2} from the entity's class hierarchy, falling back to the
+   * {@code firmType} discriminator column only when the class is not a known subtype.
+   *
+   * <p>The {@code firmType} column is {@code insertable=false, updatable=false}, so within the same
+   * Hibernate session as the INSERT it reads as {@code null} from the first-level cache. Deriving
+   * the type from the class avoids that issue.
+   */
+  default ProviderFirmTypeV2 firmTypeFromEntity(ProviderOfficeLinkEntity link) {
+    if (link instanceof LspProviderOfficeLinkEntity) {
+      return ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER;
+    }
+    if (link instanceof ChamberProviderOfficeLinkEntity) {
+      return ProviderFirmTypeV2.CHAMBERS;
+    }
+    if (link instanceof AdvocateProviderOfficeLinkEntity) {
+      return ProviderFirmTypeV2.ADVOCATE;
+    }
+    return ProviderFirmTypeV2.fromValue(link.getFirmType());
   }
 
   /** Returns a {@link DXV2} only when at least one DX field is non-null; otherwise {@code null}. */

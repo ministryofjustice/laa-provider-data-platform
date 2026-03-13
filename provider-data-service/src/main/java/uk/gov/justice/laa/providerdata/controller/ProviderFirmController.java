@@ -106,6 +106,7 @@ public class ProviderFirmController {
                     provider,
                     providerFirmService.getLspHeadOffice(provider).orElse(null),
                     providerFirmService.getChambersHeadOffice(provider).orElse(null),
+                    providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
                     providerFirmService.getParentLinks(provider))));
   }
 
@@ -137,7 +138,9 @@ public class ProviderFirmController {
           lmLink);
     }
     return providerFirmCreationService.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name(request.getName()).build());
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name(request.getName()).build(),
+        request.getPractitioner().getParentFirms(),
+        request.getPractitioner().getPayment());
   }
 
   private LiaisonManagerEntity lmEntity(LiaisonManagerCreateV2 dto) {

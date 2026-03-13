@@ -64,6 +64,15 @@ class ProviderOfficeLinkRepositoryTest {
   }
 
   @Test
+  void findByProviderAndGuid_returnsLink() {
+    Optional<ProviderOfficeLinkEntity> result =
+        repository.findByProviderAndGuid(provider, link.getGuid());
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getAccountNumber()).isEqualTo("LNK001");
+  }
+
+  @Test
   void findByProviderAndOffice_Guid_returnsLink() {
     Optional<ProviderOfficeLinkEntity> result =
         repository.findByProviderAndOffice_Guid(provider, office.getGuid());

@@ -143,14 +143,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
 
-  /provider-contact-managers:
+  /provider-contract-managers:
     get:
       summary: Retrieve a list of contract managers
       security:
         - bearerAuth: []
         - AzureAD:
             - api://<client-id>/access_as_user
-      operationId: getProviderContactManagers
+      operationId: getProviderContractManagers
       tags:
         - Contract Managers
       description: |
@@ -1175,7 +1175,7 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
     post:
-      summary: Assign a liaison manager for office. Assigning a new manager end-dates all other managers.
+      summary: Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1195,7 +1195,7 @@ paths:
         This is no longer necessary in the new model.
 
         Use cases:
-        1) Assign new contract managers to a given office.
+        1) Assign new contract manager to a given office.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"

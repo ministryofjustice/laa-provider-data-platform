@@ -28,6 +28,7 @@ class LspProviderOfficeLinkRepositoryTest {
   private ProviderEntity provider;
   private OfficeEntity lspOffice;
   private OfficeEntity nonLspOffice;
+  private LspProviderOfficeLinkEntity savedLspLink;
 
   @BeforeEach
   void setUp() {
@@ -59,7 +60,7 @@ class LspProviderOfficeLinkRepositoryTest {
     lspLink.setProvider(provider);
     lspLink.setOffice(lspOffice);
     lspLink.setAccountNumber("LSP-001");
-    lspRepository.save(lspLink);
+    savedLspLink = lspRepository.save(lspLink);
 
     ProviderOfficeLinkEntity nonLspLink =
         ProviderOfficeLinkEntity.builder()
@@ -77,6 +78,15 @@ class LspProviderOfficeLinkRepositoryTest {
 
     assertThat(page.getTotalElements()).isEqualTo(1);
     assertThat(page.getContent().getFirst().getAccountNumber()).isEqualTo("LSP-001");
+  }
+
+  @Test
+  void findByProviderAndGuid_returnsLspLink() {
+    Optional<LspProviderOfficeLinkEntity> result =
+        lspRepository.findByProviderAndGuid(provider, savedLspLink.getGuid());
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getAccountNumber()).isEqualTo("LSP-001");
   }
 
   @Test

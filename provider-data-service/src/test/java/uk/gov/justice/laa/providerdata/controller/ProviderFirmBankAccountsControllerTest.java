@@ -102,8 +102,9 @@ class ProviderFirmBankAccountsControllerTest {
   void getProviderFirmOfficeBankAccounts_returnsOkWithEmptyPage() throws Exception {
     UUID guid = UUID.randomUUID();
     UUID officeGuid = UUID.randomUUID();
-    when(officeService.getLspOffice(eq(guid.toString()), eq(officeGuid.toString())))
-        .thenReturn(null);
+    ProviderEntity provider = ProviderEntity.builder().build();
+    when(providerService.getProvider(guid.toString())).thenReturn(provider);
+    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
     when(bankDetailsService.getOfficeBankAccounts(isNull(), isNull(), any()))
         .thenReturn(Page.empty());
 
@@ -119,7 +120,9 @@ class ProviderFirmBankAccountsControllerTest {
       throws Exception {
     UUID guid = UUID.randomUUID();
     UUID officeGuid = UUID.randomUUID();
-    when(officeService.getLspOffice(guid.toString(), officeGuid.toString()))
+    ProviderEntity provider = ProviderEntity.builder().build();
+    when(providerService.getProvider(guid.toString())).thenReturn(provider);
+    when(officeService.getOfficeLink(provider, officeGuid.toString()))
         .thenThrow(new ItemNotFoundException("Office not found: " + officeGuid));
 
     mockMvc
@@ -143,14 +146,32 @@ class ProviderFirmBankAccountsControllerTest {
   void getProviderFirmOfficeBankAccounts_returnsBadRequest_whenPageSizeIsZero() throws Exception {
     UUID guid = UUID.randomUUID();
     UUID officeGuid = UUID.randomUUID();
-    when(officeService.getLspOffice(eq(guid.toString()), eq(officeGuid.toString())))
-        .thenReturn(null);
+    ProviderEntity provider = ProviderEntity.builder().build();
+    when(providerService.getProvider(guid.toString())).thenReturn(provider);
+    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
 
     mockMvc
         .perform(
             get("/provider-firms/{id}/offices/{officeId}/bank-details", guid, officeGuid)
                 .param("pageSize", "0"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void getProviderFirmOfficeBankAccounts_returnsOk_forAnyFirmType() throws Exception {
+    UUID guid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    when(providerService.getProvider(guid.toString())).thenReturn(provider);
+    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
+    when(bankDetailsService.getOfficeBankAccounts(isNull(), isNull(), any()))
+        .thenReturn(Page.empty());
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/offices/{officeId}/bank-details", guid, officeGuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content").isArray())
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0));
   }
 
   @Test

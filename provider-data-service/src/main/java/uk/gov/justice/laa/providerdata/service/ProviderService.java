@@ -5,11 +5,13 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
@@ -23,6 +25,7 @@ public class ProviderService {
   private final ProviderRepository providerRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   private final ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
 
   /**
@@ -31,16 +34,19 @@ public class ProviderService {
    * @param providerRepository to find provider firms
    * @param lspProviderOfficeLinkRepository to find LSP head office links
    * @param chamberProviderOfficeLinkRepository to find Chambers head office links
+   * @param advocateProviderOfficeLinkRepository to find Advocate office links
    * @param providerParentLinkRepository to find Advocate parent links
    */
   public ProviderService(
       ProviderRepository providerRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
       ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository,
+      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
+    this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
   }
 
@@ -76,6 +82,11 @@ public class ProviderService {
   /** Returns the Chambers head office link for the given provider, if one exists. */
   public Optional<ChamberProviderOfficeLinkEntity> getChambersHeadOffice(ProviderEntity provider) {
     return chamberProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
+  }
+
+  /** Returns the Advocate office link for the given provider, if one exists. */
+  public Optional<AdvocateProviderOfficeLinkEntity> getAdvocateOfficeLink(ProviderEntity provider) {
+    return advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
   }
 
   /** Returns the parent firm links for the given provider (Advocates only). */

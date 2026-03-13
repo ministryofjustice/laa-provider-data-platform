@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -19,6 +20,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
@@ -30,6 +32,7 @@ class ProviderServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
 
   @InjectMocks private ProviderService service;
@@ -112,6 +115,20 @@ class ProviderServiceTest {
         .thenReturn(Optional.of(link));
 
     assertThat(service.getChambersHeadOffice(provider)).contains(link);
+  }
+
+  @Test
+  void getAdvocateOfficeLink_returnsLinkWhenPresent() {
+    ProviderEntity provider =
+        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("J. Smith").build();
+    provider.setGuid(UUID.randomUUID());
+
+    AdvocateProviderOfficeLinkEntity link = new AdvocateProviderOfficeLinkEntity();
+    link.setHeadOfficeFlag(Boolean.TRUE);
+    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getAdvocateOfficeLink(provider)).contains(link);
   }
 
   @Test

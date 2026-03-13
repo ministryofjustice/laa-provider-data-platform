@@ -1,5 +1,37 @@
-### 1a. Create a Practitioner firm — Advocate
-# Practitioners have no head office; only the provider record is created.
+### 1. Create a parent Chambers firm
+# The Chambers is the prerequisite for creating Advocates.
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Chambers",
+  "name": "Northgate Chambers",
+  "chambers": {
+    "address": {
+      "line1": "2 Temple Row",
+      "line2": "City Centre",
+      "townOrCity": "Birmingham",
+      "postcode": "B2 5LG"
+    },
+    "telephoneNumber": "0121 496 0100",
+    "emailAddress": "clerks@northgatechambers.example",
+    "liaisonManager": {
+      "firstName": "Robert",
+      "lastName": "Clarke",
+      "emailAddress": "r.clarke@northgatechambers.example",
+      "telephoneNumber": "0121 496 0101",
+      "activeDateFrom": "2024-04-01"
+    }
+  }
+}
+
+> {%
+  client.global.set("chambersFirmNumber", response.body.data.providerFirmNumber);
+%}
+
+### 2a. Create a Practitioner firm — Advocate
+# An office link is created pointing to the parent Chambers' head office.
+# EFT payment creates a bank account linked to that office.
 POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
@@ -9,7 +41,7 @@ Content-Type: application/json
   "practitioner": {
     "advocateType": "Advocate",
     "parentFirms": [
-      { "parentFirmNumber": "0B111C" }
+      { "parentFirmNumber": "{{chambersFirmNumber}}" }
     ],
     "advocate": {
       "advocateLevel": "Junior",
@@ -30,11 +62,14 @@ Content-Type: application/json
 }
 
 > {%
-  client.global.set("advocateGUID", response.body.data.providerFirmGUID);
-  client.global.set("advocateFirmNumber", response.body.data.providerFirmNumber);
+  if (response.body.data) {
+    client.global.set("advocateGUID", response.body.data.providerFirmGUID);
+    client.global.set("advocateFirmNumber", response.body.data.providerFirmNumber);
+  }
 %}
 
-### 1b. Create a Practitioner firm — Barrister
+### 2b. Create a Practitioner firm — Barrister
+# Cheque payment — no bank account created.
 POST http://localhost:8080/provider-firms
 Content-Type: application/json
 
@@ -44,7 +79,7 @@ Content-Type: application/json
   "practitioner": {
     "advocateType": "Barrister",
     "parentFirms": [
-      { "parentFirmNumber": "0B111C" }
+      { "parentFirmNumber": "{{chambersFirmNumber}}" }
     ],
     "barrister": {
       "barristerLevel": "KC",
@@ -54,16 +89,29 @@ Content-Type: application/json
       "paymentMethod": "CHECK"
     },
     "liaisonManager": {
-      "firstName": "Tom",
-      "lastName": "Jones",
-      "emailAddress": "t.jones@example.com",
-      "telephoneNumber": "07700 900456"
+      "useChambersLiaisonManager": true
     }
   }
 }
 
-### 2. Get the Advocate firm by GUID
+### 3. Get the Advocate firm by GUID
 GET http://localhost:8080/provider-firms/{{advocateGUID}}
 
-### 3. Get the Advocate firm by firm number
+### 4. Get the Advocate firm by firm number
 GET http://localhost:8080/provider-firms/{{advocateFirmNumber}}
+
+### 5. Get bank-details for the Advocate firm — returns only this Advocate's bank accounts
+GET http://localhost:8080/provider-firms/{{advocateGUID}}/bank-details
+
+### 6. List offices for the Advocate — returns the single Chambers office they are linked to
+GET http://localhost:8080/provider-firms/{{advocateGUID}}/offices
+
+> {%
+  if (response.body.data) {
+    client.global.set("advocateOfficeCode", response.body.data.content[0].accountNumber);
+  }
+%}
+
+### 7. Get office-level bank-details for the Advocate — returns this Advocate's bank accounts
+# Uses the office account number (accountNumber from step 6) as the office identifier.
+GET http://localhost:8080/provider-firms/{{advocateGUID}}/offices/{{advocateOfficeCode}}/bank-details

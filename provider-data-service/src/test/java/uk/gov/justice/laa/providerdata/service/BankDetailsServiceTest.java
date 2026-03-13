@@ -19,14 +19,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderBankAccountLinkRepository;
@@ -39,8 +43,29 @@ class BankDetailsServiceTest {
   @Mock private ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
   @Mock private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
+  @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
 
   @InjectMocks private BankDetailsService service;
+
+  // --- createAndLinkToProvider ---
+
+  @Test
+  void createAndLinkToProvider_savesAccountAndProviderLink_withoutOfficeLink() {
+    ProviderEntity provider = providerEntity(FirmType.ADVOCATE);
+    BankAccountEntity template = new BankAccountEntity();
+    BankAccountEntity saved = accountWithGuid();
+
+    when(bankAccountRepository.save(template)).thenReturn(saved);
+    when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(
+            provider, saved.getGuid()))
+        .thenReturn(false);
+
+    service.createAndLinkToProvider(template, provider);
+
+    verify(bankAccountRepository).save(template);
+    verify(providerBankAccountLinkRepository).save(any(ProviderBankAccountLinkEntity.class));
+    verify(officeBankAccountLinkRepository, never()).save(any());
+  }
 
   // --- createAndLink ---
 
@@ -52,12 +77,14 @@ class BankDetailsServiceTest {
 
     BankAccountEntity template = new BankAccountEntity();
     ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
+    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
     when(bankAccountRepository.save(template)).thenReturn(saved);
     when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(provider, savedGuid))
         .thenReturn(false);
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
+        .thenReturn(Optional.empty());
     when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
     OfficeBankAccountLinkEntity result =
         service.createAndLink(template, provider, officeLink, LocalDate.of(2024, 6, 1));
 
@@ -75,18 +102,48 @@ class BankDetailsServiceTest {
   }
 
   @Test
-  void createAndLink_defaultsActiveDateFromToToday_whenNull() {
-    ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
+  void createAndLink_endDatesExistingPrimary_whenOneExists() {
+    OfficeBankAccountLinkEntity existing = new OfficeBankAccountLinkEntity();
+    existing.setPrimaryFlag(Boolean.TRUE);
+
     BankAccountEntity saved = accountWithGuid();
+    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
 
     when(bankAccountRepository.save(any())).thenReturn(saved);
     when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(any(), any()))
         .thenReturn(false);
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
+        .thenReturn(Optional.of(existing));
+    when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
+    LocalDate newDate = LocalDate.of(2025, 1, 1);
+
+    service.createAndLink(new BankAccountEntity(), provider, officeLink, newDate);
+
+    assertThat(existing.getPrimaryFlag()).isFalse();
+    assertThat(existing.getActiveDateTo()).isEqualTo(newDate);
+
+    // save called twice: once for the old record end-dating, once for the new link
+    verify(officeBankAccountLinkRepository, org.mockito.Mockito.times(2))
+        .save(any(OfficeBankAccountLinkEntity.class));
+  }
+
+  @Test
+  void createAndLink_defaultsActiveDateFromToToday_whenNull() {
+    ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
+    BankAccountEntity saved = accountWithGuid();
+    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
+
+    when(bankAccountRepository.save(any())).thenReturn(saved);
+    when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(any(), any()))
+        .thenReturn(false);
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
+        .thenReturn(Optional.empty());
     when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     OfficeBankAccountLinkEntity result =
-        service.createAndLink(
-            new BankAccountEntity(), provider, new ProviderOfficeLinkEntity(), null);
+        service.createAndLink(new BankAccountEntity(), provider, officeLink, null);
 
     assertThat(result.getActiveDateFrom()).isEqualTo(LocalDate.now());
   }
@@ -95,14 +152,17 @@ class BankDetailsServiceTest {
   void createAndLink_doesNotDuplicateProviderLink_whenAlreadyExists() {
     ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
     BankAccountEntity saved = accountWithGuid();
+    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
 
     when(bankAccountRepository.save(any())).thenReturn(saved);
     when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(
             provider, saved.getGuid()))
         .thenReturn(true);
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
+        .thenReturn(Optional.empty());
     when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    service.createAndLink(new BankAccountEntity(), provider, new ProviderOfficeLinkEntity(), null);
+    service.createAndLink(new BankAccountEntity(), provider, officeLink, null);
 
     verify(providerBankAccountLinkRepository, never())
         .save(any(ProviderBankAccountLinkEntity.class));
@@ -116,14 +176,16 @@ class BankDetailsServiceTest {
     ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
     BankAccountEntity account = new BankAccountEntity();
     account.setGuid(guid);
+    ProviderOfficeLinkEntity officeLink = new ProviderOfficeLinkEntity();
 
     when(bankAccountRepository.findById(guid)).thenReturn(Optional.of(account));
     when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(provider, guid))
         .thenReturn(false);
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
+        .thenReturn(Optional.empty());
     when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    OfficeBankAccountLinkEntity result =
-        service.linkExisting(guid, provider, new ProviderOfficeLinkEntity(), null);
+    OfficeBankAccountLinkEntity result = service.linkExisting(guid, provider, officeLink, null);
 
     assertThat(result.getBankAccount()).isEqualTo(account);
     assertThat(result.getPrimaryFlag()).isTrue();
@@ -229,7 +291,7 @@ class BankDetailsServiceTest {
     var pageable = PageRequest.of(0, 10);
     var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
 
-    when(officeBankAccountLinkRepository.findByProviderOfficeLink(officeLink, pageable))
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkIn(List.of(officeLink), pageable))
         .thenReturn(page);
 
     var result = service.getOfficeBankAccounts(officeLink, null, pageable);
@@ -244,8 +306,8 @@ class BankDetailsServiceTest {
     var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
 
     when(officeBankAccountLinkRepository
-            .findByProviderOfficeLinkAndBankAccount_AccountNumberContainingIgnoreCase(
-                officeLink, "5678", pageable))
+            .findByProviderOfficeLinkInAndBankAccount_AccountNumberContainingIgnoreCase(
+                List.of(officeLink), "5678", pageable))
         .thenReturn(page);
 
     var result = service.getOfficeBankAccounts(officeLink, "5678", pageable);
@@ -259,13 +321,59 @@ class BankDetailsServiceTest {
     var pageable = PageRequest.of(0, 10);
     var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
 
-    when(officeBankAccountLinkRepository.findByProviderOfficeLink(officeLink, pageable))
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkIn(List.of(officeLink), pageable))
         .thenReturn(page);
 
     var result = service.getOfficeBankAccounts(officeLink, "  ", pageable);
 
     assertThat(result).isEqualTo(page);
-    verify(officeBankAccountLinkRepository).findByProviderOfficeLink(officeLink, pageable);
+    verify(officeBankAccountLinkRepository)
+        .findByProviderOfficeLinkIn(List.of(officeLink), pageable);
+  }
+
+  @Test
+  void getOfficeBankAccounts_chambersOfficeLink_aggregatesAdvocateOfficeLinks() {
+    OfficeEntity office = new OfficeEntity();
+    ChamberProviderOfficeLinkEntity chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setOffice(office);
+
+    AdvocateProviderOfficeLinkEntity advocate1Link = new AdvocateProviderOfficeLinkEntity();
+    AdvocateProviderOfficeLinkEntity advocate2Link = new AdvocateProviderOfficeLinkEntity();
+    var pageable = PageRequest.of(0, 10);
+    var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
+
+    when(advocateProviderOfficeLinkRepository.findByOffice(office))
+        .thenReturn(List.of(advocate1Link, advocate2Link));
+    when(officeBankAccountLinkRepository.findByProviderOfficeLinkIn(
+            List.of(advocate1Link, advocate2Link), pageable))
+        .thenReturn(page);
+
+    var result = service.getOfficeBankAccounts(chambersLink, null, pageable);
+
+    assertThat(result).isEqualTo(page);
+    verify(advocateProviderOfficeLinkRepository).findByOffice(office);
+  }
+
+  @Test
+  void getOfficeBankAccounts_chambersOfficeLink_withFilter_aggregatesAdvocateOfficeLinks() {
+    OfficeEntity office = new OfficeEntity();
+    ChamberProviderOfficeLinkEntity chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setOffice(office);
+
+    AdvocateProviderOfficeLinkEntity advocateLink = new AdvocateProviderOfficeLinkEntity();
+    var pageable = PageRequest.of(0, 10);
+    var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
+
+    when(advocateProviderOfficeLinkRepository.findByOffice(office))
+        .thenReturn(List.of(advocateLink));
+    when(officeBankAccountLinkRepository
+            .findByProviderOfficeLinkInAndBankAccount_AccountNumberContainingIgnoreCase(
+                List.of(advocateLink), "1234", pageable))
+        .thenReturn(page);
+
+    var result = service.getOfficeBankAccounts(chambersLink, "1234", pageable);
+
+    assertThat(result).isEqualTo(page);
   }
 
   // --- helpers ---

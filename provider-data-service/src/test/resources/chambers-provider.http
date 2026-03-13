@@ -42,5 +42,81 @@ GET http://localhost:8080/provider-firms/{{chambersGUID}}
 ### 3. Get the Chambers firm by firm number
 GET http://localhost:8080/provider-firms/{{chambersFirmNumber}}
 
-### 4. Get bank-details for a Chambers firm — returns accounts for all member Advocates
+### 4a. Create Advocate 1 — EFT payment (contributes a bank account to the Chambers)
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Advocate",
+  "name": "J. Smith Advocate",
+  "practitioner": {
+    "advocateType": "Advocate",
+    "parentFirms": [
+      { "parentFirmNumber": "{{chambersFirmNumber}}" }
+    ],
+    "advocate": {
+      "advocateLevel": "Junior",
+      "solicitorRegulationAuthorityRollNumber": "SRA123456"
+    },
+    "payment": {
+      "paymentMethod": "EFT",
+      "bankAccountDetails": {
+        "accountName": "J Smith Client Account",
+        "sortCode": "200000",
+        "accountNumber": "55779911"
+      }
+    },
+    "liaisonManager": {
+      "useChambersLiaisonManager": true
+    }
+  }
+}
+
+> {%
+  client.global.set("advocateGUID", response.body.data.providerFirmGUID);
+  client.global.set("advocateFirmNumber", response.body.data.providerFirmNumber);
+%}
+
+### 4b. Create Advocate 2 — cheque payment (no bank account; linked to same Chambers)
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Advocate",
+  "name": "T. Jones Barrister",
+  "practitioner": {
+    "advocateType": "Barrister",
+    "parentFirms": [
+      { "parentFirmNumber": "{{chambersFirmNumber}}" }
+    ],
+    "barrister": {
+      "barristerLevel": "KC",
+      "barCouncilRollNumber": "BC78901"
+    },
+    "payment": {
+      "paymentMethod": "CHECK"
+    },
+    "liaisonManager": {
+      "useChambersLiaisonManager": true
+    }
+  }
+}
+
+### 5. Get bank-details for the Chambers firm — returns accounts for all member Advocates
+# After step 4a one EFT bank account is returned; the cheque Advocate (4b) contributes none.
 GET http://localhost:8080/provider-firms/{{chambersGUID}}/bank-details
+
+### 6. List offices for the Chambers firm
+GET http://localhost:8080/provider-firms/{{chambersGUID}}/offices
+
+> {%
+  client.global.set("chambersOfficeCode", response.body.data.content[0].accountNumber);
+  client.global.set("chambersOfficeGUID", response.body.data.content[0].guid);
+%}
+
+### 7a. Get office-level bank-details for the Chambers office by account number
+# Returns accounts for all Advocates in the office — expects one account from Advocate 1 (step 4a).
+GET http://localhost:8080/provider-firms/{{chambersGUID}}/offices/{{chambersOfficeCode}}/bank-details
+
+### 7b. Get office-level bank-details for the Chambers office by GUID
+GET http://localhost:8080/provider-firms/{{chambersGUID}}/offices/{{chambersOfficeGUID}}/bank-details

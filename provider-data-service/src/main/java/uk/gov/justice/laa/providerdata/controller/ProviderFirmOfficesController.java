@@ -10,6 +10,7 @@ import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -116,11 +117,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<LspProviderOfficeLinkEntity> linkPage =
-        officeService.getLspOffices(providerFirmGUIDorFirmNumber, pageParams);
+    Page<ProviderOfficeLinkEntity> linkPage =
+        officeService.getOffices(providerFirmGUIDorFirmNumber, pageParams);
 
-    List<OfficeV2> offices =
-        linkPage.getContent().stream().map(officeMapper::toLspOfficeV2).toList();
+    List<OfficeV2> offices = linkPage.getContent().stream().map(officeMapper::toOfficeV2).toList();
 
     PaginationV2 pagination =
         new PaginationV2()

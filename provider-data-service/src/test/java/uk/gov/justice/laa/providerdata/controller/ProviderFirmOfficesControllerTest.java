@@ -94,14 +94,14 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOffices_returnsOk() throws Exception {
-    when(officeService.getLspOffices("FRM001", PageRequest.of(0, 100))).thenReturn(Page.empty());
+    when(officeService.getOffices("FRM001", PageRequest.of(0, 100))).thenReturn(Page.empty());
 
     mockMvc.perform(get("/provider-firms/{id}/offices", "FRM001")).andExpect(status().isOk());
   }
 
   @Test
   void getProviderFirmOffices_returnsNotFound_whenProviderMissing() throws Exception {
-    when(officeService.getLspOffices("UNKNOWN", PageRequest.of(0, 100)))
+    when(officeService.getOffices("UNKNOWN", PageRequest.of(0, 100)))
         .thenThrow(new ItemNotFoundException("Provider not found: UNKNOWN"));
 
     mockMvc

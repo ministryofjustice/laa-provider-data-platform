@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.e2e.destructive;
+package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
@@ -6,15 +6,15 @@ import static org.hamcrest.Matchers.notNullValue;
 import io.restassured.http.ContentType;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.providerdata.e2e.DestructiveTest;
+import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
 /**
- * Destructive e2e tests for {@code POST /provider-firms}.
+ * Data-modifying e2e tests for {@code POST /provider-firms}.
  *
  * <p>Each test creates new data in the local database. Tests use unique names (via timestamp
  * suffix) to avoid conflicts between runs.
  */
-@DestructiveTest
+@ModifyingTest
 class CreateProviderFirmE2eTest {
 
   @Test

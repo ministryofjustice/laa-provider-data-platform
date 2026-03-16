@@ -16,7 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <p>Also applies {@link E2eRestAssuredExtension} to configure RestAssured for the test class.
  *
- * @see DestructiveTest
+ * @see ModifyingTest
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

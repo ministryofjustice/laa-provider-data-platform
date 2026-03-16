@@ -17,8 +17,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 /**
  * JUnit 5 extension that configures RestAssured before each e2e test class runs.
  *
- * <p>Applied automatically via {@link ReadOnlyTest} and {@link DestructiveTest} — test classes do
- * not need to reference this extension directly.
+ * <p>Applied automatically via {@link ReadOnlyTest} and {@link ModifyingTest} — test classes do not
+ * need to reference this extension directly.
  *
  * <p>Sets up:
  *

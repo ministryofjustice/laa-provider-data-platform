@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Marks an e2e test class or method as destructive (i.e. it creates, modifies, or deletes data).
+ * Marks an e2e test class or method as data-modifying (i.e. it creates, modifies, or deletes data).
  *
- * <p>Destructive tests may only run against the {@code local} environment. The Gradle {@code
- * e2eDestructive} task enforces this at runtime by failing the build for any other environment.
+ * <p>Modifying tests may only run against the {@code local} environment. The Gradle {@code
+ * e2eModifying} task enforces this at runtime by failing the build for any other environment.
  *
  * <p>Also applies {@link E2eRestAssuredExtension} to configure RestAssured for the test class.
  *
@@ -23,6 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Documented
-@Tag("destructive")
+@Tag("modifying")
 @ExtendWith(E2eRestAssuredExtension.class)
-public @interface DestructiveTest {}
+public @interface ModifyingTest {}

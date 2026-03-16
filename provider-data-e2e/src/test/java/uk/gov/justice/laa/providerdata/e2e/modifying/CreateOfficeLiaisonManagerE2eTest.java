@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.e2e.destructive;
+package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -7,16 +7,16 @@ import static org.hamcrest.Matchers.notNullValue;
 import io.restassured.http.ContentType;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.providerdata.e2e.DestructiveTest;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
+import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
 /**
- * Destructive e2e tests for {@code POST
+ * Data-modifying e2e tests for {@code POST
  * /provider-firms/{firmId}/offices/{officeCode}/liaison-managers}.
  *
  * <p>Tests create new liaison manager records linked to the seeded local office.
  */
-@DestructiveTest
+@ModifyingTest
 class CreateOfficeLiaisonManagerE2eTest {
 
   @Test

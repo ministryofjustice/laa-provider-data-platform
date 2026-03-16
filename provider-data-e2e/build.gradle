@@ -95,11 +95,11 @@ tasks.register("e2eReadOnly", Test) {
     outputs.upToDateWhen { false }
 }
 
-tasks.register("e2eDestructive", Test) {
-    description = "Run destructive e2e tests (@DestructiveTest). Must not run against production."
+tasks.register("e2eModifying", Test) {
+    description = "Run data-modifying e2e tests (@ModifyingTest). Must not run against production."
     group = "verification"
     configureE2E(delegate)
-    useJUnitPlatform { includeTags "destructive" }
+    useJUnitPlatform { includeTags "modifying" }
     mustRunAfter tasks.named("e2eReadOnly")
     outputs.upToDateWhen { false }
 
@@ -107,7 +107,7 @@ tasks.register("e2eDestructive", Test) {
         def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
         if (envName != 'local') {
             throw new GradleException(
-                "Destructive e2e tests may only run against the local environment (env=${envName}). " +
+                "Data-modifying e2e tests may only run against the local environment (env=${envName}). " +
                 "Use 'e2eReadOnly' instead, or target env=local."
             )
         }
@@ -115,10 +115,10 @@ tasks.register("e2eDestructive", Test) {
 }
 
 tasks.register("e2eTest") {
-    description = "Run read-only e2e tests in all environments; also runs destructive tests when env=local."
+    description = "Run read-only e2e tests in all environments; also runs data-modifying tests when env=local."
     group = "verification"
     dependsOn "e2eReadOnly"
     if ((project.findProperty('e2e.env') as String) == 'local') {
-        dependsOn "e2eDestructive"
+        dependsOn "e2eModifying"
     }
 }

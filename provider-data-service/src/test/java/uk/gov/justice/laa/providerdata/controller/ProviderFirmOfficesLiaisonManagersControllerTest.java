@@ -12,23 +12,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
@@ -48,53 +49,36 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   private OfficeLiaisonManagerService service;
 
   @BeforeEach
-  @SuppressWarnings("removal")
   void setUp() {
     service = mock(OfficeLiaisonManagerService.class);
 
-    ObjectMapper objectMapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
-
     module.addDeserializer(
         OfficeLiaisonManagerCreateOrLinkV2.class,
         new StdDeserializer<>(OfficeLiaisonManagerCreateOrLinkV2.class) {
           @Override
           public OfficeLiaisonManagerCreateOrLinkV2 deserialize(
               JsonParser p, DeserializationContext ctx) throws JacksonException {
-            try {
-              JsonNode node = p.readValueAsTree();
+            JsonNode node = p.readValueAsTree();
 
-              JsonNode createNode = node.get("create");
-              if (createNode != null && !createNode.isNull()) {
-                return ctx.readTreeAsValue(createNode, LiaisonManagerCreateV2.class);
-              }
-
-              JsonNode linkHeadOfficeNode = node.get("linkHeadOffice");
-              if (linkHeadOfficeNode != null && !linkHeadOfficeNode.isNull()) {
-                return ctx.readTreeAsValue(
-                    linkHeadOfficeNode, LiaisonManagerLinkHeadOfficeV2.class);
-              }
-
-              JsonNode linkChambersNode = node.get("linkChambers");
-              if (linkChambersNode != null && !linkChambersNode.isNull()) {
-                return ctx.readTreeAsValue(linkChambersNode, LiaisonManagerLinkChambersV2.class);
-              }
-
-              throw new IllegalArgumentException(
-                  "Exactly one of create, linkHeadOffice, linkChambers must be provided");
-            } catch (IOException e) {
-              throw new com.fasterxml.jackson.core.JsonParseException(
-                  p, "Failed to deserialize OfficeLiaisonManagerCreateOrLinkV2", e);
+            if (node.has("useHeadOfficeLiaisonManager")) {
+              return ctx.readTreeAsValue(node, LiaisonManagerLinkHeadOfficeV2.class);
             }
+
+            if (node.has("useChambersLiaisonManager")) {
+              return ctx.readTreeAsValue(node, LiaisonManagerLinkChambersV2.class);
+            }
+
+            return ctx.readTreeAsValue(node, LiaisonManagerCreateV2.class);
           }
         });
 
-    objectMapper.registerModule(module);
+    JsonMapper jsonMapper = JsonMapper.builder().addModule(module).build();
 
     mockMvc =
         MockMvcBuilders.standaloneSetup(new ProviderFirmOfficesLiaisonManagersController(service))
             .setControllerAdvice(new GlobalExceptionHandler())
-            .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+            .setMessageConverters(new JacksonJsonHttpMessageConverter(jsonMapper))
             .build();
   }
 
@@ -106,6 +90,14 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     lm1.setLastName("Jones");
     lm1.setEmailAddress("alice@example.com");
     lm1.setTelephoneNumber("0123456789");
+    lm1.setCreatedBy("SYSTEM");
+    lm1.setLastUpdatedBy("SYSTEM");
+    lm1.setVersion(0L);
+
+    OfficeLiaisonManagerLinkEntity link1 = new OfficeLiaisonManagerLinkEntity();
+    link1.setLiaisonManager(lm1);
+    link1.setLinkedFlag(false);
+    link1.setActiveDateFrom(LocalDate.of(2024, 1, 1));
 
     LiaisonManagerEntity lm2 = new LiaisonManagerEntity();
     lm2.setGuid(UUID.fromString("11111111-2222-3333-4444-555555555555"));
@@ -113,8 +105,16 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     lm2.setLastName("Smith");
     lm2.setEmailAddress("bob@example.com");
     lm2.setTelephoneNumber("0987654321");
+    lm2.setCreatedBy("SYSTEM");
+    lm2.setLastUpdatedBy("SYSTEM");
+    lm2.setVersion(0L);
 
-    when(service.getOfficeLiaisonManagers("FRM001", "ACC001")).thenReturn(List.of(lm1, lm2));
+    OfficeLiaisonManagerLinkEntity link2 = new OfficeLiaisonManagerLinkEntity();
+    link2.setLiaisonManager(lm2);
+    link2.setLinkedFlag(true);
+    link2.setActiveDateFrom(LocalDate.of(2024, 2, 1));
+
+    when(service.getOfficeLiaisonManagers("FRM001", "ACC001")).thenReturn(List.of(link1, link2));
 
     mockMvc
         .perform(
@@ -132,11 +132,21 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(jsonPath("$.data.content[0].lastName").value("Jones"))
         .andExpect(jsonPath("$.data.content[0].emailAddress").value("alice@example.com"))
         .andExpect(jsonPath("$.data.content[0].telephoneNumber").value("0123456789"))
+        .andExpect(jsonPath("$.data.content[0].version").value(0))
+        .andExpect(jsonPath("$.data.content[0].createdBy").value("SYSTEM"))
+        .andExpect(jsonPath("$.data.content[0].lastUpdatedBy").value("SYSTEM"))
+        .andExpect(jsonPath("$.data.content[0].linkedFlag").value(false))
+        .andExpect(jsonPath("$.data.content[0].activeDateFrom").value("2024-01-01"))
         .andExpect(jsonPath("$.data.content[1].guid").value("11111111-2222-3333-4444-555555555555"))
         .andExpect(jsonPath("$.data.content[1].firstName").value("Bob"))
         .andExpect(jsonPath("$.data.content[1].lastName").value("Smith"))
         .andExpect(jsonPath("$.data.content[1].emailAddress").value("bob@example.com"))
-        .andExpect(jsonPath("$.data.content[1].telephoneNumber").value("0987654321"));
+        .andExpect(jsonPath("$.data.content[1].telephoneNumber").value("0987654321"))
+        .andExpect(jsonPath("$.data.content[1].version").value(0))
+        .andExpect(jsonPath("$.data.content[1].createdBy").value("SYSTEM"))
+        .andExpect(jsonPath("$.data.content[1].lastUpdatedBy").value("SYSTEM"))
+        .andExpect(jsonPath("$.data.content[1].linkedFlag").value(true))
+        .andExpect(jsonPath("$.data.content[1].activeDateFrom").value("2024-02-01"));
 
     verify(service).getOfficeLiaisonManagers("FRM001", "ACC001");
   }
@@ -179,9 +189,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     String invalidJson =
         """
                     {
-                      "create": null,
-                      "linkHeadOffice": null,
-                      "linkChambers": null
+                      "unknownField": "value"
                     }
                     """;
 
@@ -213,12 +221,10 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     String validJson =
         """
                     {
-                      "create": {
-                        "firstName": "Alice",
-                        "lastName": "Jones",
-                        "emailAddress": "alice@example.com",
-                        "telephoneNumber": "0123456789"
-                      }
+                      "firstName": "Alice",
+                      "lastName": "Jones",
+                      "emailAddress": "alice@example.com",
+                      "telephoneNumber": "0123456789"
                     }
                     """;
 

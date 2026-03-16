@@ -12,16 +12,14 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 
 /**
- * Deserializes {@link OfficeLiaisonManagerCreateOrLinkV2} from the wrapper payload used by this
- * service:
+ * Deserializes {@link OfficeLiaisonManagerCreateOrLinkV2} by discriminating on field presence,
+ * matching the flat payload structure defined in the OpenAPI spec.
  *
  * <ul>
- *   <li>{@code {"create": {...}}}
- *   <li>{@code {"linkHeadOffice": {...}}}
- *   <li>{@code {"linkChambers": {...}}}
+ *   <li>Presence of {@code useHeadOfficeLiaisonManager} → {@link LiaisonManagerLinkHeadOfficeV2}
+ *   <li>Presence of {@code useChambersLiaisonManager} → {@link LiaisonManagerLinkChambersV2}
+ *   <li>Otherwise → {@link LiaisonManagerCreateV2}
  * </ul>
- *
- * <p>The OpenAPI spec defines no discriminator, so the type is inferred by wrapper field presence.
  */
 @JacksonComponent(type = OfficeLiaisonManagerCreateOrLinkV2.class)
 class OfficeLiaisonManagerDeserializer extends StdDeserializer<OfficeLiaisonManagerCreateOrLinkV2> {
@@ -35,22 +33,14 @@ class OfficeLiaisonManagerDeserializer extends StdDeserializer<OfficeLiaisonMana
       throws JacksonException {
     JsonNode node = p.readValueAsTree();
 
-    JsonNode createNode = node.get("create");
-    if (createNode != null && !createNode.isNull()) {
-      return ctx.readTreeAsValue(createNode, LiaisonManagerCreateV2.class);
+    if (node.has("useHeadOfficeLiaisonManager")) {
+      return ctx.readTreeAsValue(node, LiaisonManagerLinkHeadOfficeV2.class);
     }
 
-    JsonNode linkHeadOfficeNode = node.get("linkHeadOffice");
-    if (linkHeadOfficeNode != null && !linkHeadOfficeNode.isNull()) {
-      return ctx.readTreeAsValue(linkHeadOfficeNode, LiaisonManagerLinkHeadOfficeV2.class);
+    if (node.has("useChambersLiaisonManager")) {
+      return ctx.readTreeAsValue(node, LiaisonManagerLinkChambersV2.class);
     }
 
-    JsonNode linkChambersNode = node.get("linkChambers");
-    if (linkChambersNode != null && !linkChambersNode.isNull()) {
-      return ctx.readTreeAsValue(linkChambersNode, LiaisonManagerLinkChambersV2.class);
-    }
-
-    throw new IllegalArgumentException(
-        "Exactly one of create, linkHeadOffice, linkChambers must be provided");
+    return ctx.readTreeAsValue(node, LiaisonManagerCreateV2.class);
   }
 }

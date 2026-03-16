@@ -830,6 +830,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
         "500":
           description: Server error
           content:
@@ -1108,6 +1114,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Provider firm or office not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
 
         "500":
           description: Server error
@@ -2688,7 +2701,6 @@ components:
             - sortCode
             - accountNumber
             - activeDateFrom
-            - activeDateTo
             - primaryFlag
           properties:
             accountName:

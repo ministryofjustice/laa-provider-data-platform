@@ -1,5 +1,8 @@
 package uk.gov.justice.laa.providerdata.e2e;
 
+import com.atlassian.oai.validator.OpenApiInteractionValidator;
+import com.atlassian.oai.validator.report.LevelResolver;
+import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -39,7 +42,39 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       if (is == null) {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
-      return new OpenApiValidationFilter(new String(is.readAllBytes(), StandardCharsets.UTF_8));
+      String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      // The spec declares application/json for error responses, but the service correctly returns
+      // application/problem+json (RFC 7807). Downgrade to WARN until the spec is updated.
+      //
+      // The spec uses allOf:[{$ref:BaseEntityV2},{type:object,properties:{...}}] throughout.
+      // The Atlassian validator evaluates each allOf branch in isolation and incorrectly rejects
+      // properties defined in the other branch as "additional properties not allowed", even though
+      // additionalProperties defaults to true. This affects both request and response validation.
+      // Downgrade to WARN until the library is fixed or the spec is restructured.
+      //
+      // Similarly, oneOf validation on requests is downgraded so that intentionally invalid
+      // request bodies (used in error-case tests) reach the service rather than being blocked.
+      OpenApiInteractionValidator validator =
+          OpenApiInteractionValidator.createForInlineApiSpecification(spec)
+              .withLevelResolver(
+                  LevelResolver.create()
+                      .withLevel(
+                          "validation.response.contentType.notAllowed", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.response.body.schema.allOf", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.response.body.schema.additionalProperties",
+                          ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.allOf", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.additionalProperties",
+                          ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.oneOf", ValidationReport.Level.WARN)
+                      .build())
+              .build();
+      return new OpenApiValidationFilter(validator);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load OpenAPI spec from classpath", e);
     }

@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeLiaisonManagers200Response;
@@ -63,14 +64,12 @@ public class ProviderFirmOfficesLiaisonManagersController {
   public ResponseEntity<GetProviderFirmOfficeLiaisonManagers200Response> getOfficeLiaisonManagers(
       @PathVariable String providerFirmGUIDorFirmNumber, @PathVariable String officeGUIDorCode) {
 
-    List<LiaisonManagerEntity> managers =
-        service.getOfficeLiaisonManagers(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+    var managers = service.getOfficeLiaisonManagers(providerFirmGUIDorFirmNumber, officeGUIDorCode);
 
     List<LiaisonManagerV2> content =
         managers.stream()
             .map(ProviderFirmOfficesLiaisonManagersController::toLiaisonManagerV2)
             .toList();
-
     return ResponseEntity.ok(
         new GetProviderFirmOfficeLiaisonManagers200Response()
             .data(new GetProviderFirmOfficeLiaisonManagers200ResponseData().content(content)));
@@ -138,13 +137,22 @@ public class ProviderFirmOfficesLiaisonManagersController {
                         .liaisonManagerGUID(result.liaisonManagerGuid().toString())));
   }
 
-  private static LiaisonManagerV2 toLiaisonManagerV2(LiaisonManagerEntity entity) {
+  private static LiaisonManagerV2 toLiaisonManagerV2(OfficeLiaisonManagerLinkEntity link) {
+    var m = link.getLiaisonManager();
     return new LiaisonManagerV2()
-        .guid(entity.getGuid().toString())
-        .firstName(entity.getFirstName())
-        .lastName(entity.getLastName())
-        .emailAddress(entity.getEmailAddress())
-        .telephoneNumber(entity.getTelephoneNumber());
+        .guid(m.getGuid().toString())
+        .version(BigDecimal.valueOf(m.getVersion()))
+        .createdBy(m.getCreatedBy())
+        .createdTimestamp(m.getCreatedTimestamp())
+        .lastUpdatedBy(m.getLastUpdatedBy())
+        .lastUpdatedTimestamp(m.getLastUpdatedTimestamp())
+        .firstName(m.getFirstName())
+        .lastName(m.getLastName())
+        .emailAddress(m.getEmailAddress())
+        .telephoneNumber(m.getTelephoneNumber())
+        .activeDateFrom(link.getActiveDateFrom())
+        .activeDateTo(link.getActiveDateTo())
+        .linkedFlag(link.getLinkedFlag());
   }
 
   private static void validateRequest(OfficeLiaisonManagerCreateOrLinkV2 request) {

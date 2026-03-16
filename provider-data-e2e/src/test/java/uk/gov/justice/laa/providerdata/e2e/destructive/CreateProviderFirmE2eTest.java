@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.e2e.destructive;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
@@ -87,9 +86,8 @@ class CreateProviderFirmE2eTest {
   }
 
   @Test
-  void createProviderFirm_missingName_returns500() {
-    // Controller throws IllegalArgumentException for missing name;
-    // the global exception handler maps this to 500
+  void createProviderFirm_missingName_returns400() {
+    // Missing required 'name' field; Bean Validation rejects the request → 400
     Map<String, Object> body =
         Map.of(
             "firmType",
@@ -113,13 +111,12 @@ class CreateProviderFirmE2eTest {
         .when()
         .post("/provider-firms")
         .then()
-        .statusCode(500)
-        .body("error.errorCode", equalTo("P00SE"));
+        .statusCode(400);
   }
 
   @Test
-  void createProviderFirm_multipleVariants_returns500() {
-    // Providing both legalServicesProvider and chambers is rejected by the controller
+  void createProviderFirm_multipleVariants_returns400() {
+    // Providing both legalServicesProvider and chambers is rejected by Bean Validation → 400
     Map<String, Object> address =
         Map.of("line1", "1 Street", "townOrCity", "London", "postcode", "EC1A 1BB");
     Map<String, Object> liaisonManager =
@@ -149,7 +146,6 @@ class CreateProviderFirmE2eTest {
         .when()
         .post("/provider-firms")
         .then()
-        .statusCode(500)
-        .body("error.errorCode", equalTo("P00SE"));
+        .statusCode(400);
   }
 }

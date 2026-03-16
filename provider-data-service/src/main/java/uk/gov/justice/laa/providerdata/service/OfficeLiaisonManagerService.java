@@ -57,7 +57,7 @@ public class OfficeLiaisonManagerService {
    * GET content-only: return liaison managers linked to a provider office (including historical).
    */
   @Transactional(readOnly = true)
-  public List<LiaisonManagerEntity> getOfficeLiaisonManagers(
+  public List<OfficeLiaisonManagerLinkEntity> getOfficeLiaisonManagers(
       String providerFirmGuidOrNumber, String officeGuidOrCode) {
 
     ProviderEntity provider =
@@ -82,11 +82,8 @@ public class OfficeLiaisonManagerService {
                         .orElseThrow(
                             () -> new ItemNotFoundException("Office not found for provider")));
 
-    return officeLiaisonManagerLinkRepository
-        .findByOffice_GuidOrderByActiveDateFromDesc(providerOfficeLink.getOffice().getGuid())
-        .stream()
-        .map(OfficeLiaisonManagerLinkEntity::getLiaisonManager)
-        .toList();
+    return officeLiaisonManagerLinkRepository.findByOffice_GuidOrderByActiveDateFromDesc(
+        providerOfficeLink.getOffice().getGuid());
   }
 
   /** POST create/link liaison manager (end-dates existing links for target office). */

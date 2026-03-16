@@ -61,8 +61,7 @@ class CreateOfficeLiaisonManagerE2eTest {
         .when()
         .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
         .then()
-        .statusCode(404)
-        .body("error.errorCode", equalTo("P00NF"));
+        .statusCode(404);
   }
 
   @Test
@@ -82,13 +81,12 @@ class CreateOfficeLiaisonManagerE2eTest {
         .when()
         .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
         .then()
-        .statusCode(404)
-        .body("error.errorCode", equalTo("P00NF"));
+        .statusCode(404);
   }
 
   @Test
-  void createLiaisonManager_missingRequiredFields_returns500() {
-    // Controller validates required fields and throws IllegalArgumentException → 500
+  void createLiaisonManager_missingRequiredFields_returns400() {
+    // Deserialized as LiaisonManagerCreateV2; Bean Validation rejects missing required fields → 400
     Map<String, Object> body = Map.of("firstName", "Incomplete");
 
     given()
@@ -99,7 +97,6 @@ class CreateOfficeLiaisonManagerE2eTest {
         .when()
         .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
         .then()
-        .statusCode(500)
-        .body("error.errorCode", equalTo("P00SE"));
+        .statusCode(400);
   }
 }

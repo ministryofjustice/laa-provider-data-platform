@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    api 'org.openapitools:jackson-databind-nullable:0.2.9'
+    compileOnly "com.fasterxml.jackson.core:jackson-annotations"
     compileOnly "io.swagger.core.v3:swagger-annotations:2.2.45"
     compileOnly "jakarta.annotation:jakarta.annotation-api"
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
@@ -53,6 +53,7 @@ openApiGenerate {
             skipDefaultInterface : "true",
             useJakartaEe         : "true",
             useSpringBoot3       : "true",
+            openApiNullable      : "false",
             useTags              : "true",
             hideGenerationTimestamp: "true",
     ]

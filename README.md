@@ -23,7 +23,7 @@ Includes the following subprojects:
 - Run integration tests: `./gradlew integrationTest`
 - Run the application: `./gradlew bootRun`
 - Build application container: `./gradlew bootBuildImage`
-- Run end-to-end tests: `./gradlew :provider-data-e2e:e2eTest -Penv=local -Dauth.token=Dummy1`
+- Run end-to-end tests: `./gradlew :provider-data-e2e:e2eTest -Pe2e.env=local -De2e.authToken=Dummy1`
 
 ## Application endpoints
 

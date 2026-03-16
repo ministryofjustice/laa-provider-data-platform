@@ -17,8 +17,8 @@ import java.util.Properties;
  * </ol>
  *
  * <p>Test data values are read exclusively from the properties file so that running the suite
- * against a different environment (e.g. {@code -Penv=staging}) only requires a corresponding {@code
- * staging.properties} file with values appropriate for that environment's data.
+ * against a different environment (e.g. {@code -Pe2e.env=staging}) only requires a corresponding
+ * {@code staging.properties} file with values appropriate for that environment's data.
  */
 public final class E2eConfig {
 

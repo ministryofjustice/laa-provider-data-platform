@@ -5,6 +5,9 @@ import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.HttpClientConfig;
 import io.restassured.http.ContentType;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -28,8 +31,19 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   private static final int CONNECTION_TIMEOUT_MS = 20_000;
   private static final int SOCKET_TIMEOUT_MS = 100_000;
 
-  private static final OpenApiValidationFilter OPENAPI_FILTER =
-      new OpenApiValidationFilter("classpath:laa-data-pda.yml");
+  private static final OpenApiValidationFilter OPENAPI_FILTER = createValidationFilter();
+
+  private static OpenApiValidationFilter createValidationFilter() {
+    try (InputStream is =
+        E2eRestAssuredExtension.class.getClassLoader().getResourceAsStream("laa-data-pda.yml")) {
+      if (is == null) {
+        throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
+      }
+      return new OpenApiValidationFilter(new String(is.readAllBytes(), StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to load OpenAPI spec from classpath", e);
+    }
+  }
 
   @Override
   public void beforeAll(ExtensionContext context) {

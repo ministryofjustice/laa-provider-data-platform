@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
@@ -15,7 +15,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderV2;
 @SpringBootTest(webEnvironment = WebEnvironment.NONE)
 class ProviderV2MixinTest {
 
-  @Autowired private ObjectMapper objectMapper;
+  @Autowired private JsonMapper objectMapper;
 
   @Test
   void serialisation_omitsNullVariantFields() throws Exception {

@@ -6,6 +6,8 @@
 spring:
   application:
     name: PDA (persistent)
+  jackson:
+    default-property-inclusion: non_null
   datasource:
     hikari:
       maximum-pool-size: 10  # Maximum connections per pod

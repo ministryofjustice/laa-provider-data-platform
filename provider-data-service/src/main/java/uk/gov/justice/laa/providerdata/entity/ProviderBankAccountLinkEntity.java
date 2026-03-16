@@ -5,22 +5,22 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Provider Bank Account Link entity representing a link between provider and bank accounts.
  * Available for LSP/Advocates. Not applicable for Chambers. Defines an additional filter for bank
  * accounts available for offices.
  */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "PROVIDER_BANK_ACCOUNT_LINK")
 public class ProviderBankAccountLinkEntity extends AuditableEntity {

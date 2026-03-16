@@ -99,9 +99,9 @@ jobs:
           PROFILE:      ${{ steps.vars.outputs.profile }}
         run: |
           ./gradlew :provider-data-e2e:e2eTest \
-            -Penv="$PROFILE" \
-            -Dbase.url="http://127.0.0.1:18080" \
-            -Dauth.token="${AUTH_TOKEN}" \
+            -Pe2e.env="$PROFILE" \
+            -De2e.baseUri="http://127.0.0.1:18080" \
+            -De2e.authToken="${AUTH_TOKEN}" \
             --stacktrace
 
       - name: "Upload E2E reports"

@@ -7,22 +7,22 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Office Bank Account Link entity representing a link between office and bank accounts. Applicable
  * only for paymentMethod=EFT (Electronic). Currently active one is marked as primaryFlag=true
  * (others are historical records).
  */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "OFFICE_BANK_ACCOUNT_LINK")
 public class OfficeBankAccountLinkEntity extends AuditableEntity {

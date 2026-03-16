@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
@@ -124,9 +125,17 @@ public class LocalDataSeeder implements CommandLineRunner {
             .name("Test Chambers")
             .build();
 
+    ProviderEntity provider3 =
+        ProviderEntity.builder()
+            .firmNumber("FRM003")
+            .firmType(FirmType.ADVOCATE)
+            .name("Test Advocate")
+            .build();
+
     providerRepository.save(provider1);
     providerRepository.save(provider2);
-    log.info("Seeded {} Provider records", 2);
+    providerRepository.save(provider3);
+    log.info("Seeded {} Provider records", 3);
   }
 
   private void seedOffices() {
@@ -155,9 +164,20 @@ public class LocalDataSeeder implements CommandLineRunner {
             .emailAddress("manchester@test.example.com")
             .build();
 
+    OfficeEntity office3 =
+        OfficeEntity.builder()
+            .addressLine1("1 Barrister Court")
+            .addressTownOrCity("London")
+            .addressCounty("London")
+            .addressPostCode("EC4A 1AA")
+            .telephoneNumber("020 7000 1234")
+            .emailAddress("advocate@test.example.com")
+            .build();
+
     officeRepository.save(office1);
     officeRepository.save(office2);
-    log.info("Seeded {} Office records", 2);
+    officeRepository.save(office3);
+    log.info("Seeded {} Office records", 3);
   }
 
   private void seedContractManagers() {
@@ -230,34 +250,51 @@ public class LocalDataSeeder implements CommandLineRunner {
     var providers = providerRepository.findAll();
     var offices = officeRepository.findAll();
 
-    if (providers.size() >= 2 && offices.size() >= 2) {
+    if (providers.size() >= 3 && offices.size() >= 3) {
       // LSP Provider office link
-      LspProviderOfficeLinkEntity lspLink = new LspProviderOfficeLinkEntity();
-      lspLink.setProvider(providers.get(0));
-      lspLink.setOffice(offices.get(0));
-      lspLink.setAccountNumber("ACC001");
-      lspLink.setFirmType("Legal Services Provider");
-      lspLink.setHeadOfficeFlag(true);
-      lspLink.setWebsite("https://example-lsp.com");
-      lspLink.setIntervenedFlag(false);
-      lspLink.setVatRegistrationNumber("GB123456789");
-      lspLink.setPaymentMethod("EFT");
-      lspLink.setPaymentHeldFlag(false);
-      lspLink.setDebtRecoveryFlag(false);
-      lspLink.setFalseBalanceFlag(false);
+      LspProviderOfficeLinkEntity lspLink =
+          LspProviderOfficeLinkEntity.builder()
+              .provider(providers.get(0))
+              .office(offices.get(0))
+              .accountNumber("ACC001")
+              .headOfficeFlag(true)
+              .website("https://example-lsp.com")
+              .intervenedFlag(false)
+              .vatRegistrationNumber("GB123456789")
+              .paymentMethod("EFT")
+              .paymentHeldFlag(false)
+              .debtRecoveryFlag(false)
+              .falseBalanceFlag(false)
+              .build();
 
-      // Chamber Provider office link
-      ChamberProviderOfficeLinkEntity chamberLink = new ChamberProviderOfficeLinkEntity();
-      chamberLink.setProvider(providers.get(1));
-      chamberLink.setOffice(offices.get(1));
-      chamberLink.setAccountNumber("ACC002");
-      chamberLink.setFirmType("Chambers");
-      chamberLink.setHeadOfficeFlag(true);
-      chamberLink.setWebsite("https://example-chambers.com");
+      // Chambers Provider office link
+      ChamberProviderOfficeLinkEntity chamberLink =
+          ChamberProviderOfficeLinkEntity.builder()
+              .provider(providers.get(1))
+              .office(offices.get(1))
+              .accountNumber("ACC002")
+              .headOfficeFlag(true)
+              .website("https://example-chambers.com")
+              .build();
+
+      // Advocate Provider office link (uses the Chambers' office)
+      AdvocateProviderOfficeLinkEntity advocateLink =
+          AdvocateProviderOfficeLinkEntity.builder()
+              .provider(providers.get(2))
+              .office(offices.get(1))
+              .accountNumber("ACC003")
+              .headOfficeFlag(true)
+              .intervenedFlag(false)
+              .paymentMethod("BACS")
+              .paymentHeldFlag(false)
+              .debtRecoveryFlag(false)
+              .falseBalanceFlag(false)
+              .build();
 
       providerOfficeLinkRepository.save(lspLink);
       providerOfficeLinkRepository.save(chamberLink);
-      log.info("Seeded {} ProviderOfficeLink records", 2);
+      providerOfficeLinkRepository.save(advocateLink);
+      log.info("Seeded {} ProviderOfficeLink records", 3);
     }
   }
 
@@ -266,10 +303,11 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     var providers = providerRepository.findAll();
 
-    if (providers.size() >= 2) {
+    if (providers.size() >= 3) {
+      // Advocate (FRM003) has Chambers (FRM002) as its parent
       ProviderParentLinkEntity parentLink =
           ProviderParentLinkEntity.builder()
-              .provider(providers.get(0))
+              .provider(providers.get(2))
               .parent(providers.get(1))
               .build();
 

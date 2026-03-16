@@ -11,11 +11,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Provider Office Link entity representing a link between provider and office. There is always only
@@ -23,11 +23,11 @@ import lombok.NoArgsConstructor;
  * an alternative bank account, intervention etc. Base entity for LSP ProviderOfficeLink and
  * Advocate ProviderOfficeLink subtypes.
  */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "PROVIDER_OFFICE_LINK")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)

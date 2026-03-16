@@ -5,11 +5,11 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Provider Parent Link entity representing a link between provider and parent provider. Applicable
@@ -19,11 +19,11 @@ import lombok.NoArgsConstructor;
  * created when a new Advocate record is added. When Advocate changes Chamber (parent), the link
  * should be updated.
  */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "PROVIDER_PARENT_LINK")
 public class ProviderParentLinkEntity extends AuditableEntity {

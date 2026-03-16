@@ -8,17 +8,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /** Office Liaison Manager Link entity representing a link between office and liaison manager. */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "OFFICE_LIAISON_MANAGER_LINK")
 public class OfficeLiaisonManagerLinkEntity extends AuditableEntity {

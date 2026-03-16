@@ -4,17 +4,19 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /** Liaison manager entity representing a liaison manager for provider offices. */
-@Data
-@EqualsAndHashCode(callSuper = false)
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "LIAISON_MANAGER")
 public class LiaisonManagerEntity extends AuditableEntity {

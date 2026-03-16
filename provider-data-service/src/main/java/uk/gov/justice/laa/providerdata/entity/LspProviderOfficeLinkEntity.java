@@ -4,16 +4,22 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import java.time.LocalDate;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * LSP Provider Office Link entity representing office-specific attributes for Legal Services
  * Providers. Extends ProviderOfficeLinkEntity with LSP-specific fields for intervention, VAT,
  * payment, and account flags.
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
+@NoArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue("Legal Services Provider")
 public class LspProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {

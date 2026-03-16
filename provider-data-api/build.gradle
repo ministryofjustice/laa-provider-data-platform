@@ -63,6 +63,10 @@ tasks.named('compileJava') {
     options.compilerArgs.addAll(['-Xlint:-deprecation', '-Xlint:-removal'])
 }
 
+processResources {
+    from(layout.projectDirectory.file("laa-data-pda.yml"))
+}
+
 plugins.withId('org.springframework.boot') {
     tasks.named('bootJar')        { enabled = false }
     tasks.named('bootRun')        { enabled = false }

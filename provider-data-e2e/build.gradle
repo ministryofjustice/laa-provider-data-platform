@@ -86,6 +86,10 @@ def configureE2E = { Test t ->
 tasks.register("e2eReadOnly", Test) {
     description = "Run read-only e2e tests (@ReadOnlyTest). Safe to run against any environment including production."
     group = "verification"
+    // TODO: Remove this guard once the database has been deployed to non-local environments.
+    onlyIf("e2e tests are currently only enabled for the local environment") {
+        (project.findProperty('e2e.env') as String) == 'local'
+    }
     configureE2E(delegate)
     useJUnitPlatform { includeTags "read-only" }
     outputs.upToDateWhen { false }

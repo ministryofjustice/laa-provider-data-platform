@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.e2e;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -22,7 +23,8 @@ class ProviderFirmOfficesE2eTest {
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
         .body("data.content[0].accountNumber", equalTo(E2eConfig.lspOfficeCode()))
         .body("data.content[0].firmType", equalTo(E2eConfig.lspFirmType()))
-        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1));
+        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
+        .body("data.metadata.searchCriteria.criteria", empty());
   }
 
   @Test

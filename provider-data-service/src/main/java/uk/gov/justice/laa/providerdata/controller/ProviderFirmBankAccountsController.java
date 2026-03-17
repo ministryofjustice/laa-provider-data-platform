@@ -18,13 +18,13 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts20
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts200ResponseData;
 import uk.gov.justice.laa.providerdata.model.OfficeBankAccountV2;
 import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
-import uk.gov.justice.laa.providerdata.model.PaginationV2;
-import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
-import uk.gov.justice.laa.providerdata.util.PageLinksBuilder;
+import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
+import uk.gov.justice.laa.providerdata.util.Pagination;
+import uk.gov.justice.laa.providerdata.util.SearchCriteria;
 
 /** REST controller for provider firm bank account retrieval. */
 @RestController
@@ -73,15 +73,11 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
     List<BankAccountV2> accounts =
         linkPage.getContent().stream().map(bankAccountMapper::toBankAccountV2).toList();
 
-    PaginationV2 pagination =
-        new PaginationV2()
-            .currentPage(BigDecimal.valueOf(linkPage.getNumber()))
-            .pageSize(BigDecimal.valueOf(linkPage.getSize()))
-            .totalPages(BigDecimal.valueOf(linkPage.getTotalPages()))
-            .totalItems(BigDecimal.valueOf(linkPage.getTotalElements()));
-
     PaginatedSearchV2 metadata =
-        new PaginatedSearchV2().searchCriteria(new SearchCriteriaV2()).pagination(pagination);
+        new PaginatedSearchV2()
+            .searchCriteria(
+                SearchCriteria.builder().add("bankAccountNumber", bankAccountNumber).build())
+            .pagination(Pagination.of(linkPage));
 
     return ResponseEntity.ok(
         new GetProviderFirmBankAccounts200Response()
@@ -89,7 +85,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmBankAccounts200ResponseData()
                     .content(accounts)
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageParams, linkPage.getTotalPages()))));
+                    .links(PageLinks.of(pageParams, linkPage.getTotalPages()))));
   }
 
   @Override
@@ -113,15 +109,11 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
             .getOfficeBankAccounts(officeLink, bankAccountNumber, pageParams)
             .map(bankAccountMapper::toOfficeBankAccountV2);
 
-    PaginationV2 pagination =
-        new PaginationV2()
-            .currentPage(BigDecimal.valueOf(resultPage.getNumber()))
-            .pageSize(BigDecimal.valueOf(resultPage.getSize()))
-            .totalPages(BigDecimal.valueOf(resultPage.getTotalPages()))
-            .totalItems(BigDecimal.valueOf(resultPage.getTotalElements()));
-
     PaginatedSearchV2 metadata =
-        new PaginatedSearchV2().searchCriteria(new SearchCriteriaV2()).pagination(pagination);
+        new PaginatedSearchV2()
+            .searchCriteria(
+                SearchCriteria.builder().add("bankAccountNumber", bankAccountNumber).build())
+            .pagination(Pagination.of(resultPage));
 
     return ResponseEntity.ok(
         new GetProviderFirmOfficeBankAccounts200Response()
@@ -129,6 +121,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmOfficeBankAccounts200ResponseData()
                     .content(resultPage.getContent())
                     .metadata(metadata)
-                    .links(PageLinksBuilder.build(pageParams, resultPage.getTotalPages()))));
+                    .links(PageLinks.of(pageParams, resultPage.getTotalPages()))));
   }
 }

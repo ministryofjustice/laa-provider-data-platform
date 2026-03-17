@@ -14,15 +14,15 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.model.LinksV2;
 
 /**
- * Tests for {@link PageLinksBuilder}.
+ * Tests for {@link PageLinks}.
  *
  * <p>A minimal stub controller is used to exercise the builder within a real MockMvc request
  * context, which is required for {@code UriComponentsBuilder.fromCurrentRequest()} to resolve the
  * request URI.
  */
-class PageLinksBuilderTest {
+class PageLinksTest {
 
-  /** Stub controller that delegates to {@link PageLinksBuilder} and returns the result. */
+  /** Stub controller that delegates to {@link PageLinks} and returns the result. */
   @RestController
   static class StubController {
     LinksV2 captured;
@@ -32,7 +32,7 @@ class PageLinksBuilderTest {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int pageSize,
         @RequestParam int totalPages) {
-      captured = PageLinksBuilder.build(PageRequest.of(page, pageSize), totalPages);
+      captured = PageLinks.of(PageRequest.of(page, pageSize), totalPages);
       return "ok";
     }
   }

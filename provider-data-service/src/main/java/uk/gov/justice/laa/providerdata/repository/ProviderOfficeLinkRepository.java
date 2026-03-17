@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -31,4 +33,13 @@ public interface ProviderOfficeLinkRepository
       UUID providerGuid, String accountNumber);
 
   Optional<ProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(ProviderEntity provider);
+
+  Page<ProviderOfficeLinkEntity> findByGuidInOrAccountNumberIn(
+      Collection<UUID> guids, Collection<String> accountNumbers, Pageable pageable);
+
+  List<ProviderOfficeLinkEntity> findAllByGuidInOrAccountNumberIn(
+      Collection<UUID> guids, Collection<String> accountNumbers);
+
+  Page<ProviderOfficeLinkEntity> findByProviderIn(
+      Collection<ProviderEntity> providers, Pageable pageable);
 }

@@ -65,7 +65,8 @@ class ProviderFirmBankAccountsControllerTest {
         .perform(get("/provider-firms/{id}/bank-details", guid))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
-        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0));
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0))
+        .andExpect(jsonPath("$.data.metadata.searchCriteria.criteria").isEmpty());
   }
 
   @Test
@@ -96,6 +97,23 @@ class ProviderFirmBankAccountsControllerTest {
         .andExpect(status().isBadRequest());
   }
 
+  @Test
+  void getProviderFirmBankAccounts_withBankAccountNumberFilter_echoesFilterInSearchCriteria()
+      throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerService.getProvider(guid.toString())).thenReturn(ProviderEntity.builder().build());
+    when(bankDetailsService.getProviderBankAccounts(any(), eq("12345"), any()))
+        .thenReturn(Page.empty());
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/bank-details", guid).param("bankAccountNumber", "12345"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$.data.metadata.searchCriteria.criteria[0].filter")
+                .value("bankAccountNumber"))
+        .andExpect(jsonPath("$.data.metadata.searchCriteria.criteria[0].values[0]").value("12345"));
+  }
+
   // --- GET /provider-firms/{id}/offices/{officeId}/bank-details ---
 
   @Test
@@ -112,7 +130,8 @@ class ProviderFirmBankAccountsControllerTest {
         .perform(get("/provider-firms/{id}/offices/{officeId}/bank-details", guid, officeGuid))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
-        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0));
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(0))
+        .andExpect(jsonPath("$.data.metadata.searchCriteria.criteria").isEmpty());
   }
 
   @Test

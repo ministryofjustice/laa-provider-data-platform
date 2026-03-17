@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.e2e;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -22,7 +23,8 @@ class ProviderFirmBankAccountsE2eTest {
         .body("data.content[0].accountName", equalTo(E2eConfig.lspBankAccountName()))
         .body("data.content[0].sortCode", equalTo(E2eConfig.lspBankAccountSortCode()))
         .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
-        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1));
+        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
+        .body("data.metadata.searchCriteria.criteria", empty());
   }
 
   @Test
@@ -35,7 +37,11 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()));
+        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
+        .body("data.metadata.searchCriteria.criteria[0].filter", equalTo("bankAccountNumber"))
+        .body(
+            "data.metadata.searchCriteria.criteria[0].values[0]",
+            equalTo(E2eConfig.lspBankAccountPartialMatch()));
   }
 
   @Test
@@ -75,7 +81,8 @@ class ProviderFirmBankAccountsE2eTest {
         .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
         .body("data.content[0].sortCode", equalTo(E2eConfig.lspBankAccountSortCode()))
         .body("data.content[0].primaryFlag", equalTo(true))
-        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1));
+        .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
+        .body("data.metadata.searchCriteria.criteria", empty());
   }
 
   @Test

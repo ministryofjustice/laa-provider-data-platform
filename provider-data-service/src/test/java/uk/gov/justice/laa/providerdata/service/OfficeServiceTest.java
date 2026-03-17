@@ -11,12 +11,14 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
@@ -489,5 +491,89 @@ class OfficeServiceTest {
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  @Test
+  void getOfficesGlobal_noFilters_returnsAllFromRepository() {
+    var pageable = PageRequest.of(0, 10);
+    var link = new ProviderOfficeLinkEntity();
+    var expected = new PageImpl<>(List.of(link), pageable, 1);
+    when(providerOfficeLinkRepository.findAll(pageable)).thenReturn(expected);
+
+    var result = service.getOfficesGlobal(null, null, null, pageable);
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getOfficesGlobal_emptyLists_returnsAllFromRepository() {
+    var pageable = PageRequest.of(0, 10);
+    Page<ProviderOfficeLinkEntity> expected = new PageImpl<>(List.of(), pageable, 0);
+    when(providerOfficeLinkRepository.findAll(pageable)).thenReturn(expected);
+
+    var result = service.getOfficesGlobal(List.of(), List.of(), false, pageable);
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getOfficesGlobal_guidFilter_returnsFilteredPage() {
+    var pageable = PageRequest.of(0, 10);
+    var guid = UUID.randomUUID();
+    var link = new ProviderOfficeLinkEntity();
+    var expected = new PageImpl<>(List.of(link), pageable, 1);
+    when(providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(
+            List.of(guid), List.of(), pageable))
+        .thenReturn(expected);
+
+    var result = service.getOfficesGlobal(List.of(guid.toString()), null, false, pageable);
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getOfficesGlobal_codeFilter_returnsFilteredPage() {
+    var pageable = PageRequest.of(0, 10);
+    var link = new ProviderOfficeLinkEntity();
+    var expected = new PageImpl<>(List.of(link), pageable, 1);
+    when(providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(
+            List.of(), List.of("ABC001"), pageable))
+        .thenReturn(expected);
+
+    var result = service.getOfficesGlobal(null, List.of("ABC001"), false, pageable);
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getOfficesGlobal_allProviderOffices_expandsToProviderOffices() {
+    var pageable = PageRequest.of(0, 10);
+    var guid = UUID.randomUUID();
+    var provider = new ProviderEntity();
+    var matchingLink = new ProviderOfficeLinkEntity();
+    matchingLink.setProvider(provider);
+    var allLink = new ProviderOfficeLinkEntity();
+    var expected = new PageImpl<>(List.of(matchingLink, allLink), pageable, 2);
+
+    when(providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(List.of(guid), List.of()))
+        .thenReturn(List.of(matchingLink));
+    when(providerOfficeLinkRepository.findByProviderIn(Set.of(provider), pageable))
+        .thenReturn(expected);
+
+    var result = service.getOfficesGlobal(List.of(guid.toString()), null, true, pageable);
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getOfficesGlobal_allProviderOffices_noMatchingOffices_returnsEmptyPage() {
+    var pageable = PageRequest.of(0, 10);
+    var guid = UUID.randomUUID();
+    when(providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(List.of(guid), List.of()))
+        .thenReturn(List.of());
+
+    var result = service.getOfficesGlobal(List.of(guid.toString()), null, true, pageable);
+
+    assertThat(result.getContent()).isEmpty();
   }
 }

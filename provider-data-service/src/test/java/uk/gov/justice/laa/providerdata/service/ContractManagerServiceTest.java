@@ -68,8 +68,7 @@ class ContractManagerServiceTest {
   @Test
   void shouldReturnContractManagersForOffice() {
 
-    when(linkRepository.findByOfficeGuidAndProviderGuid(officeGuid, providerGuid))
-        .thenReturn(List.of(link));
+    when(linkRepository.findByOffice_Guid(officeGuid)).thenReturn(List.of(link));
 
     when(mapper.toOfficeContractManagerV2(entity)).thenReturn(dto);
 
@@ -88,8 +87,7 @@ class ContractManagerServiceTest {
   @Test
   void shouldReturnEmptyListWhenNoContractManagersExist() {
 
-    when(linkRepository.findByOfficeGuidAndProviderGuid(officeGuid, providerGuid))
-        .thenReturn(List.of());
+    when(linkRepository.findByOffice_Guid(officeGuid)).thenReturn(List.of());
 
     List<OfficeContractManagerV2> result =
         service.getContractManagers(officeGuid.toString(), providerGuid.toString());

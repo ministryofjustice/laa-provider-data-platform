@@ -21,15 +21,8 @@ public interface ContractManagerMapper {
    * @return the corresponding OfficeContractManagerV2 DTO
    */
   @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
-  @Mapping(target = "contractManagerId", source = "contractManagerId")
-  @Mapping(target = "firstName", source = "firstName")
-  @Mapping(target = "lastName", source = "lastName")
-  @Mapping(target = "guid", ignore = true) // set manually if needed
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "createdBy", ignore = true)
-  @Mapping(target = "createdTimestamp", ignore = true)
-  @Mapping(target = "lastUpdatedBy", ignore = true)
-  @Mapping(target = "lastUpdatedTimestamp", ignore = true)
-  @Mapping(target = "email", ignore = true)
+  @Mapping(target = "contractManagerId")
+  @Mapping(target = "firstName")
+  @Mapping(target = "lastName")
   OfficeContractManagerV2 toOfficeContractManagerV2(ContractManagerEntity entity);
 }

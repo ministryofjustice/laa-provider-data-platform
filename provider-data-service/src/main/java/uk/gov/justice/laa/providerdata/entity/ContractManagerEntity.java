@@ -29,7 +29,4 @@ public class ContractManagerEntity extends AuditableEntity {
 
   @Column(name = "LAST_NAME")
   private String lastName;
-
-  @Column(name = "OFFICE_CODE")
-  private String officeCode;
 }

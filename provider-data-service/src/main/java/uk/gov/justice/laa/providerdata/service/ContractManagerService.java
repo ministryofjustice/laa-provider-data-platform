@@ -33,9 +33,7 @@ public class ContractManagerService {
 
     log.info("Fetching contract managers for office={} provider={}", officeGuid, providerGuid);
 
-    return officeContractManagerLinkRepository
-        .findByOfficeGuidAndProviderGuid(officeGuid, providerGuid)
-        .stream()
+    return officeContractManagerLinkRepository.findByOffice_Guid(officeGuid).stream()
         .map(link -> mapper.toOfficeContractManagerV2(link.getContractManager()))
         .toList();
   }

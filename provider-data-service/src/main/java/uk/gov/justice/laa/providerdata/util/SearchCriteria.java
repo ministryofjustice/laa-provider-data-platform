@@ -36,16 +36,6 @@ public class SearchCriteria {
   }
 
   /**
-   * Shortcut for {@code SearchCriteria.builder().build()} — returns an empty {@link
-   * SearchCriteriaV2} with no criteria entries.
-   *
-   * @return an empty {@link SearchCriteriaV2}
-   */
-  public static SearchCriteriaV2 empty() {
-    return new SearchCriteria().build();
-  }
-
-  /**
    * Adds a single-value string filter. No-op if {@code value} is {@code null}.
    *
    * @param filter the filter key name

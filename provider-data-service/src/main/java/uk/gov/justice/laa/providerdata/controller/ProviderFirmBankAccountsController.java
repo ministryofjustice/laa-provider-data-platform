@@ -17,13 +17,12 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmBankAccounts200Respo
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts200ResponseData;
 import uk.gov.justice.laa.providerdata.model.OfficeBankAccountV2;
-import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
 import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
-import uk.gov.justice.laa.providerdata.util.Pagination;
+import uk.gov.justice.laa.providerdata.util.PaginatedSearch;
 import uk.gov.justice.laa.providerdata.util.SearchCriteria;
 
 /** REST controller for provider firm bank account retrieval. */
@@ -73,18 +72,17 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
     List<BankAccountV2> accounts =
         linkPage.getContent().stream().map(bankAccountMapper::toBankAccountV2).toList();
 
-    PaginatedSearchV2 metadata =
-        new PaginatedSearchV2()
-            .searchCriteria(
-                SearchCriteria.builder().add("bankAccountNumber", bankAccountNumber).build())
-            .pagination(Pagination.of(linkPage));
-
     return ResponseEntity.ok(
         new GetProviderFirmBankAccounts200Response()
             .data(
                 new GetProviderFirmBankAccounts200ResponseData()
                     .content(accounts)
-                    .metadata(metadata)
+                    .metadata(
+                        PaginatedSearch.of(
+                            linkPage,
+                            SearchCriteria.builder()
+                                .add("bankAccountNumber", bankAccountNumber)
+                                .build()))
                     .links(PageLinks.of(linkPage))));
   }
 
@@ -109,18 +107,17 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
             .getOfficeBankAccounts(officeLink, bankAccountNumber, pageParams)
             .map(bankAccountMapper::toOfficeBankAccountV2);
 
-    PaginatedSearchV2 metadata =
-        new PaginatedSearchV2()
-            .searchCriteria(
-                SearchCriteria.builder().add("bankAccountNumber", bankAccountNumber).build())
-            .pagination(Pagination.of(resultPage));
-
     return ResponseEntity.ok(
         new GetProviderFirmOfficeBankAccounts200Response()
             .data(
                 new GetProviderFirmOfficeBankAccounts200ResponseData()
                     .content(resultPage.getContent())
-                    .metadata(metadata)
+                    .metadata(
+                        PaginatedSearch.of(
+                            resultPage,
+                            SearchCriteria.builder()
+                                .add("bankAccountNumber", bankAccountNumber)
+                                .build()))
                     .links(PageLinks.of(resultPage))));
   }
 }

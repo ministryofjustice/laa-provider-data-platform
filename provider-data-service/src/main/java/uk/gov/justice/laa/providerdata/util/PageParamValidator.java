@@ -16,6 +16,9 @@ public final class PageParamValidator {
   /** Default page size applied when the caller does not supply a {@code pageSize} parameter. */
   public static final int DEFAULT_PAGE_SIZE = 100;
 
+  /** Maximum permitted page size. Requests exceeding this are rejected with 400 Bad Request. */
+  public static final int MAX_PAGE_SIZE = 100_000;
+
   private PageParamValidator() {}
 
   /**
@@ -26,7 +29,8 @@ public final class PageParamValidator {
    * @param pageSize number of items per page, or {@code null} to default to {@link
    *     #DEFAULT_PAGE_SIZE}
    * @return a {@link Pageable} with the resolved and validated page and size
-   * @throws IllegalArgumentException if {@code page} is negative or {@code pageSize} is less than 1
+   * @throws IllegalArgumentException if {@code page} is negative, {@code pageSize} is less than 1,
+   *     or {@code pageSize} exceeds {@link #MAX_PAGE_SIZE}
    */
   public static Pageable resolve(@Nullable BigDecimal page, @Nullable BigDecimal pageSize) {
     int pageInt = page != null ? page.intValue() : 0;
@@ -36,6 +40,9 @@ public final class PageParamValidator {
     }
     if (pageSizeInt < 1) {
       throw new IllegalArgumentException("pageSize must be at least 1");
+    }
+    if (pageSizeInt > MAX_PAGE_SIZE) {
+      throw new IllegalArgumentException("pageSize must not exceed " + MAX_PAGE_SIZE);
     }
     return PageRequest.of(pageInt, pageSizeInt);
   }

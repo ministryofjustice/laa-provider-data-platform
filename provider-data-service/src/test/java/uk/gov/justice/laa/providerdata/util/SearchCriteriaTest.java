@@ -19,6 +19,13 @@ class SearchCriteriaTest {
   }
 
   @Test
+  void empty_returnsEmptyCriteriaList() {
+    SearchCriteriaV2 result = SearchCriteria.empty();
+
+    assertThat(result.getCriteria()).isEmpty();
+  }
+
+  @Test
   void builder_withNullString_skipsFilter() {
     SearchCriteriaV2 result = SearchCriteria.builder().add("myFilter", (String) null).build();
 

@@ -116,7 +116,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
                     .metadata(metadata)
-                    .links(PageLinks.of(pageParams, linkPage.getTotalPages()))));
+                    .links(PageLinks.of(linkPage))));
   }
 
   @Override
@@ -156,7 +156,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
                     .metadata(metadata)
-                    .links(PageLinks.of(pageParams, linkPage.getTotalPages()))));
+                    .links(PageLinks.of(linkPage))));
   }
 
   @Override

@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -32,7 +34,11 @@ class PageLinksTest {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int pageSize,
         @RequestParam int totalPages) {
-      captured = PageLinks.of(PageRequest.of(page, pageSize), totalPages);
+      // totalElements = totalPages * pageSize so that getTotalPages() returns totalPages
+      captured =
+          PageLinks.of(
+              new PageImpl<>(
+                  List.of(), PageRequest.of(page, pageSize), (long) totalPages * pageSize));
       return "ok";
     }
   }

@@ -85,7 +85,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmBankAccounts200ResponseData()
                     .content(accounts)
                     .metadata(metadata)
-                    .links(PageLinks.of(pageParams, linkPage.getTotalPages()))));
+                    .links(PageLinks.of(linkPage))));
   }
 
   @Override
@@ -121,6 +121,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmOfficeBankAccounts200ResponseData()
                     .content(resultPage.getContent())
                     .metadata(metadata)
-                    .links(PageLinks.of(pageParams, resultPage.getTotalPages()))));
+                    .links(PageLinks.of(resultPage))));
   }
 }

@@ -38,3 +38,7 @@ build/
 .vscode/
 *.code-workspace
 /provider-data-api/generated/
+
+### Tech-docs generated files ###
+/tech-docs/source/pdp-docs/api/laa-data-pda.yml
+/tech-docs/source/pdp-docs/api/widdershins.html.md

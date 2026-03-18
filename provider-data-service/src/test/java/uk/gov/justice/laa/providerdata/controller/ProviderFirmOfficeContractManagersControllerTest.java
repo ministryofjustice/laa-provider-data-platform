@@ -3,16 +3,20 @@ package uk.gov.justice.laa.providerdata.controller;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
+import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
+import uk.gov.justice.laa.providerdata.service.ContractManagerService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
 
 /**
@@ -35,6 +39,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
 
   private MockMvc mockMvc;
   private OfficeContractManagerAssignmentService assignmentService;
+  private ContractManagerService contractManagerService;
 
   /**
    * Initializes the test fixture before each test.
@@ -48,9 +53,11 @@ class ProviderFirmOfficeContractManagersControllerTest {
   @BeforeEach
   void setUp() {
     assignmentService = org.mockito.Mockito.mock(OfficeContractManagerAssignmentService.class);
+    contractManagerService = org.mockito.Mockito.mock(ContractManagerService.class);
     mockMvc =
         MockMvcBuilders.standaloneSetup(
-                new ProviderFirmOfficeContractManagersController(assignmentService))
+                new ProviderFirmOfficeContractManagersController(
+                    assignmentService, contractManagerService))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
@@ -219,5 +226,46 @@ class ProviderFirmOfficeContractManagersControllerTest {
                                         """
                         .formatted(contractManagerGuid)))
         .andExpect(status().isInternalServerError());
+  }
+
+  @Test
+  void getContractManagers_returns200_andResponseContainsManagers() throws Exception {
+    UUID officeGuid = UUID.randomUUID();
+    UUID providerGuid = UUID.randomUUID();
+
+    List<OfficeContractManagerV2> mockManagers =
+        List.of(new OfficeContractManagerV2().contractManagerId("CM-001"));
+
+    when(contractManagerService.getContractManagers(officeGuid.toString(), providerGuid.toString()))
+        .thenReturn(mockManagers);
+
+    mockMvc
+        .perform(
+            get(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    providerGuid.toString(),
+                    officeGuid.toString())
+                .contentType("application/json"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content[0].contractManagerId").value("CM-001"));
+  }
+
+  @Test
+  void getContractManagers_returnsEmptyList_whenNoManagersAssigned() throws Exception {
+    UUID officeGuid = UUID.randomUUID();
+    UUID providerGuid = UUID.randomUUID();
+
+    when(contractManagerService.getContractManagers(officeGuid.toString(), providerGuid.toString()))
+        .thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            get(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    providerGuid.toString(),
+                    officeGuid.toString())
+                .contentType("application/json"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content").isEmpty());
   }
 }

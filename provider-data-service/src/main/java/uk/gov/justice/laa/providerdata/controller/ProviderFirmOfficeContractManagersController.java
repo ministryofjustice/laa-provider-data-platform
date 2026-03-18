@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,9 @@ import uk.gov.justice.laa.providerdata.model.ContractManagerProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200ResponseData;
+import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
+import uk.gov.justice.laa.providerdata.service.ContractManagerService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
 
 /**
@@ -21,14 +25,18 @@ public class ProviderFirmOfficeContractManagersController
 
   private final OfficeContractManagerAssignmentService assignmentService;
 
+  private final ContractManagerService contractManagerService;
+
   /**
    * Constructs the controller with required dependencies.
    *
    * @param assignmentService service handling creation of office-to-contract-manager assignments
    */
   public ProviderFirmOfficeContractManagersController(
-      OfficeContractManagerAssignmentService assignmentService) {
+      OfficeContractManagerAssignmentService assignmentService,
+      ContractManagerService contractManagerService) {
     this.assignmentService = assignmentService;
+    this.contractManagerService = contractManagerService;
   }
 
   /**
@@ -100,9 +108,18 @@ public class ProviderFirmOfficeContractManagersController
           String xCorrelationId,
           String transparent) {
 
-    // MVP: not required for the POST story. Implement later if/when needed.
-    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-        .body(new GetProviderFirmOfficeContractManagers200Response());
+    List<OfficeContractManagerV2> managers =
+        contractManagerService.getContractManagers(officeGUIDorCode, providerFirmGUIDorFirmNumber);
+
+    GetProviderFirmOfficeContractManagers200Response response =
+        new GetProviderFirmOfficeContractManagers200Response();
+
+    GetProviderFirmOfficeContractManagers200ResponseData data =
+        new GetProviderFirmOfficeContractManagers200ResponseData();
+    data.setContent(managers);
+    response.setData(data);
+
+    return ResponseEntity.ok(response);
   }
 
   /**

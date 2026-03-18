@@ -84,7 +84,7 @@ public class OfficeContractManagerAssignmentService {
     OfficeEntity officeRef = entityManager.getReference(OfficeEntity.class, officeGuid);
 
     // MVP: ensure only one assignment exists
-    linkRepository.deleteByOfficeGuid(officeGuid);
+    linkRepository.deleteByOffice_Guid(officeGuid);
 
     OfficeContractManagerLinkEntity link =
         OfficeContractManagerLinkEntity.builder()

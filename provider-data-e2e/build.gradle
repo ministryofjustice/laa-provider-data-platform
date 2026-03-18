@@ -46,7 +46,7 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
     // OpenAPI response validation against laa-data-pda.yml
     testImplementation project(':provider-data-api')
-    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.41.0'
+    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.46.0'
 }
 
 test {

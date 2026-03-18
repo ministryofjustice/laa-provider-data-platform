@@ -1,10 +1,13 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
@@ -180,6 +183,54 @@ public class OfficeService {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
     return providerOfficeLinkRepository.findByProvider(provider, pageable);
+  }
+
+  /**
+   * Returns a paginated page of offices across all providers, with optional filtering by office
+   * GUID or account number.
+   *
+   * <p>When {@code officeGUIDs} and {@code officeCodes} are both empty, all offices are returned.
+   * When either filter list is non-empty, only offices matching those GUIDs or codes are returned,
+   * unless {@code allProviderOffices} is {@code true} — in which case all offices belonging to the
+   * providers that own any matching office are returned instead.
+   *
+   * @param officeGUIDs list of office-link GUID strings to filter by; may be null or empty
+   * @param officeCodes list of office account-number strings to filter by; may be null or empty
+   * @param allProviderOffices when {@code true}, expand results to all offices of the matched
+   *     providers
+   * @param pageable the page being requested
+   * @return a page of {@link ProviderOfficeLinkEntity}
+   */
+  @Transactional(readOnly = true)
+  public Page<ProviderOfficeLinkEntity> getOfficesGlobal(
+      @Nullable List<String> officeGUIDs,
+      @Nullable List<String> officeCodes,
+      @Nullable Boolean allProviderOffices,
+      Pageable pageable) {
+
+    List<UUID> guids =
+        officeGUIDs != null ? officeGUIDs.stream().map(UUID::fromString).toList() : List.of();
+    List<String> codes = officeCodes != null ? officeCodes : List.of();
+
+    if (guids.isEmpty() && codes.isEmpty()) {
+      // TODO: the spec describes use case 1 as "Browse all active offices" but defines no
+      // activeOnly parameter. This may mean the query should filter by activeDateTo IS NULL,
+      // but that would leave no way for callers to retrieve inactive offices.
+      return providerOfficeLinkRepository.findAll(pageable);
+    }
+
+    if (Boolean.TRUE.equals(allProviderOffices)) {
+      Collection<ProviderOfficeLinkEntity> matching =
+          providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(guids, codes);
+      if (matching.isEmpty()) {
+        return Page.empty(pageable);
+      }
+      Set<ProviderEntity> providers =
+          matching.stream().map(ProviderOfficeLinkEntity::getProvider).collect(Collectors.toSet());
+      return providerOfficeLinkRepository.findByProviderIn(providers, pageable);
+    }
+
+    return providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(guids, codes, pageable);
   }
 
   /**

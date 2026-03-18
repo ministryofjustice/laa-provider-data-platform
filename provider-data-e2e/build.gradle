@@ -46,7 +46,7 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
     // OpenAPI response validation against laa-data-pda.yml
     testImplementation project(':provider-data-api')
-    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.41.0'
+    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.46.0'
 }
 
 test {
@@ -79,7 +79,7 @@ def configureE2E = { Test t ->
             t.systemProperty 'e2e.authToken', authToken
         }
 
-        println "E2E using env=${envName}"
+        println "E2E using e2e.env=${envName}"
     }
 }
 
@@ -107,15 +107,15 @@ tasks.register("e2eModifying", Test) {
         def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
         if (envName != 'local') {
             throw new GradleException(
-                "Data-modifying e2e tests may only run against the local environment (env=${envName}). " +
-                "Use 'e2eReadOnly' instead, or target env=local."
+                "Data-modifying e2e tests may only run against the local environment (e2e.env=${envName}). " +
+                "Use 'e2eReadOnly' instead, or target e2e.env=local."
             )
         }
     }
 }
 
 tasks.register("e2eTest") {
-    description = "Run read-only e2e tests in all environments; also runs data-modifying tests when env=local."
+    description = "Run read-only e2e tests in all environments; also runs data-modifying tests when e2e.env=local."
     group = "verification"
     dependsOn "e2eReadOnly"
     if ((project.findProperty('e2e.env') as String) == 'local') {

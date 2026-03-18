@@ -2,12 +2,12 @@ package uk.gov.justice.laa.providerdata.mapper;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import org.springframework.lang.Nullable;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;

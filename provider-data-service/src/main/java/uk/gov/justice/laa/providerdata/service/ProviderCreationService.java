@@ -3,7 +3,7 @@ package uk.gov.justice.laa.providerdata.service;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;

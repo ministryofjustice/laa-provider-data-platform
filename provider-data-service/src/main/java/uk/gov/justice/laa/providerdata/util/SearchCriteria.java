@@ -23,16 +23,37 @@ import uk.gov.justice.laa.providerdata.model.SearchCriterionV2;
  *     .add("allProviderOffices", allProviderOffices)
  *     .build();
  * }</pre>
+ *
+ * @deprecated Use {@link PaginatedSearch#builder(org.springframework.data.domain.Page)} and its
+ *     {@code search} methods instead.
  */
+@Deprecated(forRemoval = true)
 public class SearchCriteria {
 
   private final List<SearchCriterionV2> criteria = new ArrayList<>();
 
   private SearchCriteria() {}
 
-  /** Returns a new empty builder. */
+  /**
+   * Returns a new empty builder.
+   *
+   * @deprecated Use {@link PaginatedSearch#builder(org.springframework.data.domain.Page)} instead.
+   */
+  @Deprecated(forRemoval = true)
   public static SearchCriteria builder() {
     return new SearchCriteria();
+  }
+
+  /**
+   * Shortcut for {@code SearchCriteria.builder().build()} — returns an empty {@link
+   * SearchCriteriaV2} with no criteria entries.
+   *
+   * @return an empty {@link SearchCriteriaV2}
+   * @deprecated Use {@link PaginatedSearch#of(org.springframework.data.domain.Page)} instead.
+   */
+  @Deprecated(forRemoval = true)
+  public static SearchCriteriaV2 empty() {
+    return new SearchCriteria().build();
   }
 
   /**
@@ -41,7 +62,9 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param value the filter value; ignored if {@code null}
    * @return this builder
+   * @deprecated Use {@link PaginatedSearch.Builder#search(String, String)} instead.
    */
+  @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable String value) {
     if (value != null) {
       criteria.add(new SearchCriterionV2().filter(filter).values(List.of(value)));
@@ -55,7 +78,9 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param values the filter values; ignored if {@code null} or empty
    * @return this builder
+   * @deprecated Use {@link PaginatedSearch.Builder#search(String, java.util.Collection)} instead.
    */
+  @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable Collection<String> values) {
     if (values != null && !values.isEmpty()) {
       criteria.add(new SearchCriterionV2().filter(filter).values(List.copyOf(values)));
@@ -69,7 +94,9 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param value the filter value; ignored if {@code null}
    * @return this builder
+   * @deprecated Use {@link PaginatedSearch.Builder#search(String, Boolean)} instead.
    */
+  @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable Boolean value) {
     if (value != null) {
       criteria.add(new SearchCriterionV2().filter(filter).values(List.of(value.toString())));
@@ -82,7 +109,9 @@ public class SearchCriteria {
    * empty list rather than absent.
    *
    * @return the populated {@link SearchCriteriaV2}
+   * @deprecated Use {@link PaginatedSearch.Builder#build()} instead.
    */
+  @Deprecated(forRemoval = true)
   public SearchCriteriaV2 build() {
     return new SearchCriteriaV2().criteria(List.copyOf(criteria));
   }

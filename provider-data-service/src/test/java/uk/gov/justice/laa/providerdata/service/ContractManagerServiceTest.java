@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -75,10 +75,10 @@ class ContractManagerServiceTest {
     List<OfficeContractManagerV2> result =
         service.getContractManagers(officeGuid.toString(), providerGuid.toString());
 
-    assertEquals(1, result.size());
-    assertEquals("CM123", result.get(0).getContractManagerId());
-    assertEquals("John", result.get(0).getFirstName());
-    assertEquals("Smith", result.get(0).getLastName());
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getContractManagerId()).isEqualTo("CM123");
+    assertThat(result.get(0).getFirstName()).isEqualTo("John");
+    assertThat(result.get(0).getLastName()).isEqualTo("Smith");
   }
 
   /**
@@ -92,6 +92,6 @@ class ContractManagerServiceTest {
     List<OfficeContractManagerV2> result =
         service.getContractManagers(officeGuid.toString(), providerGuid.toString());
 
-    assertEquals(0, result.size());
+    assertThat(result).isEmpty();
   }
 }

@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -39,8 +39,8 @@ public class ContractManagerMapperTest {
 
     OfficeContractManagerV2 dto = mapper.toOfficeContractManagerV2(entity);
 
-    assertEquals("123", dto.getContractManagerId(), "Contract Manager ID should match");
-    assertEquals("John", dto.getFirstName(), "First name should match");
-    assertEquals("Smith", dto.getLastName(), "Last name should match");
+    assertThat(dto.getContractManagerId()).isEqualTo("123");
+    assertThat(dto.getFirstName()).isEqualTo("John");
+    assertThat(dto.getLastName()).isEqualTo("Smith");
   }
 }

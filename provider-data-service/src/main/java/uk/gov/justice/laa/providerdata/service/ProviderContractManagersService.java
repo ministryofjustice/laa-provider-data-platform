@@ -2,16 +2,17 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
-import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 
 /**
  * Service for retrieving contract manager records for the {@code GET /provider-contract-managers}
  * endpoint.
  *
- * <p>This service queries the local PDP database using the Spring Data JPA layer, applying optional
+ * <p>This service queries the local PDP database using Spring Data JPA and applies optional
  * filters:
  *
  * <ul>
@@ -19,18 +20,17 @@ import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
  *   <li>{@code name}: case-insensitive fuzzy search across first name and last name
  * </ul>
  *
- * <p>Pagination is intentionally not implemented yet (MVP). The repository returns all matching
- * rows ordered by last name, first name, then contract manager ID.
+ * <p>Pagination is applied using a {@link Pageable} (resolved by the controller via {@code
+ * PageParamValidator.resolve(page, pageSize)}).
  */
 @Service
 @RequiredArgsConstructor
 public class ProviderContractManagersService {
 
   private final ContractManagerRepository contractManagerRepository;
-  private final ContractManagerMapper contractManagerMapper;
 
   /**
-   * Retrieves contract managers matching the optional filters.
+   * Retrieves contract managers matching the optional filters, returning a paged result.
    *
    * <p>If {@code contractManagerIds} is {@code null} or empty, no ID filtering is applied.
    *
@@ -38,15 +38,15 @@ public class ProviderContractManagersService {
    *
    * @param contractManagerIds optional list of contract manager IDs to filter by (multi)
    * @param name optional fuzzy search term applied to both first and last names
-   * @return list of {@link ContractManagerV2} DTOs matching the filters
+   * @param pageable paging parameters (page number + page size)
+   * @return a {@link Page} of {@link ContractManagerEntity} matching the filters
    */
-  public List<ContractManagerV2> getContractManagers(List<String> contractManagerIds, String name) {
-    boolean idsEmpty = (contractManagerIds == null || contractManagerIds.isEmpty());
+  public Page<ContractManagerEntity> getContractManagers(
+      List<String> contractManagerIds, String name, Pageable pageable) {
 
+    boolean idsEmpty = (contractManagerIds == null || contractManagerIds.isEmpty());
     List<String> ids = idsEmpty ? List.of() : contractManagerIds;
 
-    return contractManagerRepository.search(ids, idsEmpty, name).stream()
-        .map(contractManagerMapper::toContractManagerV2)
-        .toList();
+    return contractManagerRepository.search(ids, idsEmpty, name, pageable);
   }
 }

@@ -10,8 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
+import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderContractManagersService;
 
@@ -19,45 +22,56 @@ class ProviderContractManagersControllerTest {
 
   private MockMvc mockMvc;
   private ProviderContractManagersService providerContractManagersService;
+  private ContractManagerMapper contractManagerMapper;
 
   @BeforeEach
   void setUp() {
     providerContractManagersService =
         org.mockito.Mockito.mock(ProviderContractManagersService.class);
+    contractManagerMapper = org.mockito.Mockito.mock(ContractManagerMapper.class);
 
     mockMvc =
         MockMvcBuilders.standaloneSetup(
-                new ProviderContractManagersController(providerContractManagersService))
+                new ProviderContractManagersController(
+                    providerContractManagersService, contractManagerMapper))
             .build();
   }
 
   @Test
-  void getProviderContractManagers_returns200_andContent() throws Exception {
-    when(providerContractManagersService.getContractManagers(any(), any()))
+  void getProviderContractManagers_returns200_andContentAndMetadata() throws Exception {
+    ContractManagerEntity entity = new ContractManagerEntity();
+    entity.setContractManagerId("CM-001");
+    entity.setFirstName("Alex");
+    entity.setLastName("Smith");
+
+    when(providerContractManagersService.getContractManagers(any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(entity)));
+
+    when(contractManagerMapper.toContractManagerV2(any()))
         .thenReturn(
-            List.of(
-                new ContractManagerV2()
-                    .contractManagerId("CM-001")
-                    .firstName("Alex")
-                    .lastName("Smith")));
+            new ContractManagerV2()
+                .contractManagerId("CM-001")
+                .firstName("Alex")
+                .lastName("Smith"));
 
     mockMvc
         .perform(get("/provider-contract-managers").accept(APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content[0].contractManagerId").value("CM-001"))
-        .andExpect(jsonPath("$.data.content[0].firstName").value("Alex"))
-        .andExpect(jsonPath("$.data.content[0].lastName").value("Smith"));
+        .andExpect(jsonPath("$.data.metadata").exists())
+        .andExpect(jsonPath("$.data.links").exists());
   }
 
   @Test
-  void getProviderContractManagers_passesFiltersToService() throws Exception {
-    when(providerContractManagersService.getContractManagers(any(), any())).thenReturn(List.of());
+  void getProviderContractManagers_acceptsPaginationParams() throws Exception {
+    when(providerContractManagersService.getContractManagers(any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of()));
 
     mockMvc
         .perform(
             get("/provider-contract-managers")
-                .queryParam("contractManagerId", "CM-001", "CM-002")
-                .queryParam("name", "smi")
+                .queryParam("page", "0")
+                .queryParam("pageSize", "2")
                 .accept(APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray());

@@ -8,6 +8,7 @@ import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.model.SearchCriterionV2;
 
 /** Tests for {@link SearchCriteria}. */
+@SuppressWarnings({"deprecation", "removal"})
 class SearchCriteriaTest {
 
   @Test

@@ -21,13 +21,11 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
-import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
-import uk.gov.justice.laa.providerdata.util.Pagination;
-import uk.gov.justice.laa.providerdata.util.SearchCriteria;
 
 /**
  * REST controller implementing the Provider Firm Offices API.
@@ -95,28 +93,23 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> linkPage =
+    Page<ProviderOfficeLinkEntity> results =
         officeService.getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams);
 
-    List<OfficeV2> offices = linkPage.getContent().stream().map(officeMapper::toOfficeV2).toList();
-
-    PaginatedSearchV2 metadata =
-        new PaginatedSearchV2()
-            .searchCriteria(
-                SearchCriteria.builder()
-                    .add("officeGUID", officeGUID)
-                    .add("officeCode", officeCode)
-                    .add("allProviderOffices", allProviderOffices)
-                    .build())
-            .pagination(Pagination.of(linkPage));
+    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
-                    .metadata(metadata)
-                    .links(PageLinks.of(linkPage))));
+                    .metadata(
+                        PageMetadata.builder(results)
+                            .search("officeGUID", officeGUID)
+                            .search("officeCode", officeCode)
+                            .search("allProviderOffices", allProviderOffices)
+                            .build())
+                    .links(PageLinks.of(results))));
   }
 
   @Override
@@ -140,23 +133,18 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> linkPage =
+    Page<ProviderOfficeLinkEntity> results =
         officeService.getOffices(providerFirmGUIDorFirmNumber, pageParams);
 
-    List<OfficeV2> offices = linkPage.getContent().stream().map(officeMapper::toOfficeV2).toList();
-
-    PaginatedSearchV2 metadata =
-        new PaginatedSearchV2()
-            .searchCriteria(SearchCriteria.empty())
-            .pagination(Pagination.of(linkPage));
+    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
-                    .metadata(metadata)
-                    .links(PageLinks.of(linkPage))));
+                    .metadata(PageMetadata.of(results))
+                    .links(PageLinks.of(results))));
   }
 
   @Override

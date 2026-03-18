@@ -12,7 +12,12 @@ import uk.gov.justice.laa.providerdata.model.PaginationV2;
  * <pre>{@code
  * PaginationV2 pagination = Pagination.of(page);
  * }</pre>
+ *
+ * @deprecated Use {@link PageMetadata#of(Page)} or {@link PageMetadata#builder(Page)} instead,
+ *     which assemble the full {@link uk.gov.justice.laa.providerdata.model.PageMetadataV2}
+ *     including pagination in one call.
  */
+@Deprecated(forRemoval = true)
 public final class Pagination {
 
   private Pagination() {}
@@ -23,7 +28,9 @@ public final class Pagination {
    * @param page the page result from the service layer
    * @return a {@link PaginationV2} populated with current page, page size, total pages, and total
    *     items
+   * @deprecated Use {@link PageMetadata#of(Page)} or {@link PageMetadata#builder(Page)} instead.
    */
+  @Deprecated(forRemoval = true)
   public static PaginationV2 of(Page<?> page) {
     return new PaginationV2()
         .currentPage(BigDecimal.valueOf(page.getNumber()))

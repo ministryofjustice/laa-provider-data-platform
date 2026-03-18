@@ -1,5 +1,5 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-infrastructure.html.md.erb
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-infrastructure.html.md
 title: Zero-downtime infrastructure
 weight: 20
 ---

@@ -1,5 +1,5 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-cache-rotation.html.md.erb
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-cache-rotation.html.md
 title: Zero-downtime cache rotation
 weight: 21
 ---

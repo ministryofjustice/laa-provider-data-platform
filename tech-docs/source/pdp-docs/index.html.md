@@ -1,5 +1,5 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/index.html.md.erb
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/index.html.md
 title: Provider data API (persistent)
 weight: 10
 ---
@@ -20,6 +20,7 @@ The repository includes the following subprojects:
 
 ## Documentation
 
+- [API reference](api/) - OpenAPI specification rendered in multiple formats
 - [Getting started](getting-started.html) - Build and run the application locally
 - [GitHub workflows](github-workflows.html) - CI/CD pipeline documentation
 - [Spring Boot 4.0 migration](spring-boot-4-migration.html) - Migration notes

@@ -1,5 +1,5 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/index.html.md.erb
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/index.html.md
 title: Provider details API (legacy)
 weight: 10
 ---

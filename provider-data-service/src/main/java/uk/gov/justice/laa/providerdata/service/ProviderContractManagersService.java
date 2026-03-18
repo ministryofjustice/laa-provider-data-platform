@@ -7,17 +7,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
+import uk.gov.justice.laa.providerdata.repository.ContractManagerSpecifications;
 
 /**
  * Service for retrieving contract manager records for the {@code GET /provider-contract-managers}
  * endpoint.
  *
- * <p>This service queries the local PDP database using Spring Data JPA and applies optional
- * filters:
+ * <p>This service queries the local PDP database using Spring Data JPA Specifications and applies
+ * optional filters:
  *
  * <ul>
  *   <li>{@code contractManagerIds}: exact-match filtering on contract manager IDs (multi)
- *   <li>{@code name}: case-insensitive fuzzy search across first name and last name
+ *   <li>{@code name}: case-insensitive fuzzy search across first name and last name (including
+ *       "first last" and "last first")
  * </ul>
  *
  * <p>Pagination is applied using a {@link Pageable} (resolved by the controller via {@code
@@ -44,9 +46,11 @@ public class ProviderContractManagersService {
   public Page<ContractManagerEntity> getContractManagers(
       List<String> contractManagerIds, String name, Pageable pageable) {
 
-    boolean idsEmpty = (contractManagerIds == null || contractManagerIds.isEmpty());
-    List<String> ids = idsEmpty ? List.of() : contractManagerIds;
+    // Normalize to avoid weird DB function calls on parameters (and to keep filtering consistent).
+    String normalizedName = (name == null || name.isBlank()) ? null : name;
 
-    return contractManagerRepository.search(ids, idsEmpty, name, pageable);
+    var spec = ContractManagerSpecifications.filterBy(contractManagerIds, normalizedName);
+
+    return contractManagerRepository.findAll(spec, pageable);
   }
 }

@@ -2621,6 +2621,8 @@ components:
       description: |
         CWA ref: AP_BANK_ACCOUNT_USES_ALL.END_DATE
 
+        Absent from the response for the currently active record (i.e. where the underlying value is null).
+
     BankAccountPrimaryFlagV2:
       type: boolean
       description: |

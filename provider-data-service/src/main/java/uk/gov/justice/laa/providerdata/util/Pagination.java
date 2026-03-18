@@ -13,9 +13,9 @@ import uk.gov.justice.laa.providerdata.model.PaginationV2;
  * PaginationV2 pagination = Pagination.of(page);
  * }</pre>
  *
- * @deprecated Use {@link PaginatedSearch#of(Page)} or {@link PaginatedSearch#builder(Page)}
- *     instead, which assemble the full {@link
- *     uk.gov.justice.laa.providerdata.model.PaginatedSearchV2} including pagination in one call.
+ * @deprecated Use {@link PageMetadata#of(Page)} or {@link PageMetadata#builder(Page)} instead,
+ *     which assemble the full {@link uk.gov.justice.laa.providerdata.model.PageMetadataV2}
+ *     including pagination in one call.
  */
 @Deprecated(forRemoval = true)
 public final class Pagination {
@@ -28,8 +28,7 @@ public final class Pagination {
    * @param page the page result from the service layer
    * @return a {@link PaginationV2} populated with current page, page size, total pages, and total
    *     items
-   * @deprecated Use {@link PaginatedSearch#of(Page)} or {@link PaginatedSearch#builder(Page)}
-   *     instead.
+   * @deprecated Use {@link PageMetadata#of(Page)} or {@link PageMetadata#builder(Page)} instead.
    */
   @Deprecated(forRemoval = true)
   public static PaginationV2 of(Page<?> page) {

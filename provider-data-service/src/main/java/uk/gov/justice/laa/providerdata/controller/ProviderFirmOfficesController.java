@@ -24,8 +24,8 @@ import uk.gov.justice.laa.providerdata.model.OfficeV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
-import uk.gov.justice.laa.providerdata.util.PaginatedSearch;
 
 /**
  * REST controller implementing the Provider Firm Offices API.
@@ -104,7 +104,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
                     .metadata(
-                        PaginatedSearch.builder(results)
+                        PageMetadata.builder(results)
                             .search("officeGUID", officeGUID)
                             .search("officeCode", officeCode)
                             .search("allProviderOffices", allProviderOffices)
@@ -143,7 +143,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             .data(
                 new GetProviderFirmOffices200ResponseData()
                     .content(offices)
-                    .metadata(PaginatedSearch.of(results))
+                    .metadata(PageMetadata.of(results))
                     .links(PageLinks.of(results))));
   }
 

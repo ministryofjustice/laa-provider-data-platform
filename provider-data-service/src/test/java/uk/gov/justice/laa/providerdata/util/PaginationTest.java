@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.model.PaginationV2;
 
 /** Tests for {@link Pagination}. */
+@SuppressWarnings({"deprecation", "removal"})
 class PaginationTest {
 
   @Test

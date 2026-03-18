@@ -21,8 +21,8 @@ import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
-import uk.gov.justice.laa.providerdata.util.PaginatedSearch;
 
 /** REST controller for provider firm bank account retrieval. */
 @RestController
@@ -77,7 +77,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmBankAccounts200ResponseData()
                     .content(accounts)
                     .metadata(
-                        PaginatedSearch.builder(results)
+                        PageMetadata.builder(results)
                             .search("bankAccountNumber", bankAccountNumber)
                             .build())
                     .links(PageLinks.of(results))));
@@ -110,7 +110,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
                 new GetProviderFirmOfficeBankAccounts200ResponseData()
                     .content(results.getContent())
                     .metadata(
-                        PaginatedSearch.builder(results)
+                        PageMetadata.builder(results)
                             .search("bankAccountNumber", bankAccountNumber)
                             .build())
                     .links(PageLinks.of(results))));

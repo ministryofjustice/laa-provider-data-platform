@@ -24,8 +24,8 @@ import uk.gov.justice.laa.providerdata.model.SearchCriterionV2;
  *     .build();
  * }</pre>
  *
- * @deprecated Use {@link PaginatedSearch#builder(org.springframework.data.domain.Page)} and its
- *     {@code search} methods instead.
+ * @deprecated Use {@link PageMetadata#builder(org.springframework.data.domain.Page)} and its {@code
+ *     search} methods instead.
  */
 @Deprecated(forRemoval = true)
 public class SearchCriteria {
@@ -37,7 +37,7 @@ public class SearchCriteria {
   /**
    * Returns a new empty builder.
    *
-   * @deprecated Use {@link PaginatedSearch#builder(org.springframework.data.domain.Page)} instead.
+   * @deprecated Use {@link PageMetadata#builder(org.springframework.data.domain.Page)} instead.
    */
   @Deprecated(forRemoval = true)
   public static SearchCriteria builder() {
@@ -49,7 +49,7 @@ public class SearchCriteria {
    * SearchCriteriaV2} with no criteria entries.
    *
    * @return an empty {@link SearchCriteriaV2}
-   * @deprecated Use {@link PaginatedSearch#of(org.springframework.data.domain.Page)} instead.
+   * @deprecated Use {@link PageMetadata#of(org.springframework.data.domain.Page)} instead.
    */
   @Deprecated(forRemoval = true)
   public static SearchCriteriaV2 empty() {
@@ -62,7 +62,7 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param value the filter value; ignored if {@code null}
    * @return this builder
-   * @deprecated Use {@link PaginatedSearch.Builder#search(String, String)} instead.
+   * @deprecated Use {@link PageMetadata.Builder#search(String, String)} instead.
    */
   @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable String value) {
@@ -78,7 +78,7 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param values the filter values; ignored if {@code null} or empty
    * @return this builder
-   * @deprecated Use {@link PaginatedSearch.Builder#search(String, java.util.Collection)} instead.
+   * @deprecated Use {@link PageMetadata.Builder#search(String, java.util.Collection)} instead.
    */
   @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable Collection<String> values) {
@@ -94,7 +94,7 @@ public class SearchCriteria {
    * @param filter the filter key name
    * @param value the filter value; ignored if {@code null}
    * @return this builder
-   * @deprecated Use {@link PaginatedSearch.Builder#search(String, Boolean)} instead.
+   * @deprecated Use {@link PageMetadata.Builder#search(String, Boolean)} instead.
    */
   @Deprecated(forRemoval = true)
   public SearchCriteria add(String filter, @Nullable Boolean value) {
@@ -109,7 +109,7 @@ public class SearchCriteria {
    * empty list rather than absent.
    *
    * @return the populated {@link SearchCriteriaV2}
-   * @deprecated Use {@link PaginatedSearch.Builder#build()} instead.
+   * @deprecated Use {@link PageMetadata.Builder#build()} instead.
    */
   @Deprecated(forRemoval = true)
   public SearchCriteriaV2 build() {

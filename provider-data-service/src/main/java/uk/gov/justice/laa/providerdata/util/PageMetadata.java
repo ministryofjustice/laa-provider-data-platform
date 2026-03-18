@@ -23,21 +23,21 @@ import uk.gov.justice.laa.providerdata.model.SortV2;
  * <p>For endpoints with no filter parameters, use the factory directly:
  *
  * <pre>{@code
- * PaginatedSearch.of(page)
+ * PageMetadata.of(page)
  * }</pre>
  *
  * <p>For endpoints with filter parameters, use the builder:
  *
  * <pre>{@code
- * PaginatedSearch.builder(page)
+ * PageMetadata.builder(page)
  *     .search("officeGUID", officeGUID)
  *     .search("officeCode", officeCode)
  *     .build()
  * }</pre>
  */
-public class PaginatedSearch {
+public class PageMetadata {
 
-  private PaginatedSearch() {}
+  private PageMetadata() {}
 
   /**
    * Builds a {@link PaginatedSearchV2} with no search criteria, for endpoints that have no filter

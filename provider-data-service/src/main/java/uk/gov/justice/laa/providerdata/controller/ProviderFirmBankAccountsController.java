@@ -2,9 +2,9 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmBankAccountsApi;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;

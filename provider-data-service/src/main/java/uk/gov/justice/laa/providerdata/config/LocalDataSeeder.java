@@ -1,8 +1,8 @@
 package uk.gov.justice.laa.providerdata.config;
 
 import java.time.LocalDate;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -41,29 +41,20 @@ import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 @Slf4j
 @Component
 @Profile("local")
+@RequiredArgsConstructor
 public class LocalDataSeeder implements CommandLineRunner {
 
-  @Autowired private ProviderRepository providerRepository;
-
-  @Autowired private OfficeRepository officeRepository;
-
-  @Autowired private BankAccountRepository bankAccountRepository;
-
-  @Autowired private ContractManagerRepository contractManagerRepository;
-
-  @Autowired private LiaisonManagerRepository liaisonManagerRepository;
-
-  @Autowired private ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
-
-  @Autowired private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
-
-  @Autowired private ProviderOfficeLinkRepository providerOfficeLinkRepository;
-
-  @Autowired private ProviderParentLinkRepository providerParentLinkRepository;
-
-  @Autowired private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
-
-  @Autowired private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  private final ProviderRepository providerRepository;
+  private final OfficeRepository officeRepository;
+  private final BankAccountRepository bankAccountRepository;
+  private final ContractManagerRepository contractManagerRepository;
+  private final LiaisonManagerRepository liaisonManagerRepository;
+  private final ProviderBankAccountLinkRepository providerBankAccountLinkRepository;
+  private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
+  private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  private final ProviderParentLinkRepository providerParentLinkRepository;
+  private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
+  private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   @Override
   @Transactional

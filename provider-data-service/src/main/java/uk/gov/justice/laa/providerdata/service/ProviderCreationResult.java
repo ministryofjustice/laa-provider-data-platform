@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.util.UUID;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Result of a provider firm creation, containing the identifiers for the created resources. By

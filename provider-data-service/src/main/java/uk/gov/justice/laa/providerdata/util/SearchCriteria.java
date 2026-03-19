@@ -3,7 +3,7 @@ package uk.gov.justice.laa.providerdata.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.model.SearchCriterionV2;
 

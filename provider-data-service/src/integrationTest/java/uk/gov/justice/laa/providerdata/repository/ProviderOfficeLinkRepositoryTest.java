@@ -6,19 +6,16 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class ProviderOfficeLinkRepositoryTest {
+class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository providerRepository;
   @Autowired private OfficeRepository officeRepository;

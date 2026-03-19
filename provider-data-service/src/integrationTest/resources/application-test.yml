@@ -1,0 +1,8 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+logging:
+  level:
+    uk.gov.justice.laadata.providers: DEBUG

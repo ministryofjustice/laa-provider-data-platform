@@ -4,14 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class ProviderFirmRepositoryTest {
+class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository repository;
 

@@ -134,7 +134,8 @@ public class PageMetadata {
         .totalItems(BigDecimal.valueOf(page.getTotalElements()));
   }
 
-  @Nullable private static SortV2 sortFrom(Sort sort) {
+  @Nullable
+  private static SortV2 sortFrom(Sort sort) {
     if (sort.isUnsorted()) {
       return null;
     }

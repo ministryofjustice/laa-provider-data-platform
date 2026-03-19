@@ -11,6 +11,15 @@ spotless {
     }
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'provider-data-service'
+        }
+    }
+}
+
 tasks.withType(Checkstyle) {
     configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
     configProperties = [

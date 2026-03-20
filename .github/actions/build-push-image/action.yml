@@ -41,20 +41,36 @@ runs:
       with:
         image: ${{ inputs.image }}:pdp-${{ inputs.itag }}
         sarif: true
+        args: --json-file-output=snyk.json --policy-path=.snyk --sarif-file-output=snyk.sarif
 
-    - name: "Check for Snyk SARIF output"
-      id:   snyk_sarif
+    - name: "Check for Snyk output files"
+      id:   snyk_outputs
       if:   always()
       shell: bash
       run: |
-        if [ -f snyk.sarif ]; then
-          echo "exists=true" >> "$GITHUB_OUTPUT"
+        if [ -f snyk.json ]; then
+          echo "json_exists=true" >> "$GITHUB_OUTPUT"
+          echo "Snyk JSON output: present"
         else
-          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "json_exists=false" >> "$GITHUB_OUTPUT"
+          echo "Snyk JSON output: missing"
+        fi
+        if [ -f snyk.sarif ]; then
+          echo "sarif_exists=true" >> "$GITHUB_OUTPUT"
+          echo "Snyk SARIF output: present"
+        else
+          echo "sarif_exists=false" >> "$GITHUB_OUTPUT"
+          echo "Snyk SARIF output: missing"
         fi
 
+    - name: "Print Snyk JSON findings"
+      if:   always() && steps.snyk_outputs.outputs.json_exists == 'true'
+      shell: bash
+      run: |
+        cat snyk.json
+
     - name: "Upload Snyk SARIF results"
-      if:   always() && steps.snyk_sarif.outputs.exists == 'true'
+      if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: snyk.sarif

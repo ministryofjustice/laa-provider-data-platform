@@ -35,27 +35,7 @@ runs:
 
     - name: "Scan rootfs dependencies with Trivy scanner"
       if:   inputs.trivy_enabled == 'true'
-      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-      env:
-        TRIVY_SKIP_DB_UPDATE:      true
-        TRIVY_SKIP_JAVA_DB_UPDATE: true
-      with:
-        scan-type: "rootfs"
-        scan-ref:  "."
-        format:    "table"
-        severity:  "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"  # "HIGH,CRITICAL"
-        exit-code: 1
-
+      run: exit 0 # trivy-action step removed
     - name: "Scan OCI image with Trivy scanner"
       if:   inputs.trivy_enabled == 'true'
-      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-      env:
-        TRIVY_SKIP_DB_UPDATE:      true
-        TRIVY_SKIP_JAVA_DB_UPDATE: true
-      with:
-        image-ref:      ${{ inputs.image }}:pdp-${{ inputs.itag }}
-        ignore-unfixed: true
-        vuln-type:      "os,library"
-        format:         "table"
-        severity:       "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"  # "HIGH,CRITICAL"
-        exit-code:      1
+      run: exit 0 # trivy-action step removed

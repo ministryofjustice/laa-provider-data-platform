@@ -53,7 +53,7 @@ jobs:
   make-image:
     name: "Build PR #${{ needs.plan.outputs.prnum }}"
     needs: [ plan ]
-    permissions: { contents: read, id-token: write, packages: write }
+    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
     uses: ./.github/workflows/rw-pdp-build.yml
     with:
       itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"

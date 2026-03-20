@@ -118,6 +118,7 @@ jobs:
           itag:  ${{ inputs.itag }}
           mtag:  ${{ inputs.mtag }}
           module_dir: "provider-data-service" # Point to the new service module
+          trivy_enabled: ${{ vars.ENABLE_TRIVY != 'false' }}
 
       - name: "Send failure Slack message"
         if:   failure()

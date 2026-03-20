@@ -74,7 +74,7 @@ jobs:
     name: "Build ${{ needs.plan.outputs.gtag }}"
     if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')
     needs: [ plan ]
-    permissions: { contents: read, id-token: write, packages: write }
+    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
     uses: ./.github/workflows/rw-pdp-build.yml
     with:
       itag: ${{ needs.plan.outputs.gtag }}

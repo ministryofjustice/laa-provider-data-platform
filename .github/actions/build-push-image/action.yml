@@ -5,7 +5,6 @@ inputs:
   itag:  { required: true, description: "Immutable registry tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
   mtag:  { required: false, description: "Optional mutable registry tag to publish (e.g. pr-123)", default: "" }
   module_dir: { required: false, description: "Gradle submodule directory to build", default: "provider-data-service" }
-  trivy_enabled: { required: false, description: "Whether to run Trivy scans", default: "false" }
 runs:
   using: composite
   steps:
@@ -33,29 +32,46 @@ runs:
         docker tag "${IMAGE}:pdp-${ITAG}" "${IMAGE}:pdp-${MTAG}"
         docker push "${IMAGE}:pdp-${MTAG}"
 
-    - name: "Scan rootfs dependencies with Trivy scanner"
-      if:   inputs.trivy_enabled == 'true'
-      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+    - name: "Scan OCI image with Snyk"
+      id:   snyk_scan
+      continue-on-error: true
+      uses: snyk/actions/docker@master
       env:
-        TRIVY_SKIP_DB_UPDATE:      true
-        TRIVY_SKIP_JAVA_DB_UPDATE: true
+        SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
       with:
-        scan-type: "rootfs"
-        scan-ref:  "."
-        format:    "table"
-        severity:  "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"  # "HIGH,CRITICAL"
-        exit-code: 1
+        image: ${{ inputs.image }}:pdp-${{ inputs.itag }}
+        sarif: true
+        args: --json-file-output=snyk.json --policy-path=.snyk --sarif-file-output=snyk.sarif
 
-    - name: "Scan OCI image with Trivy scanner"
-      if:   inputs.trivy_enabled == 'true'
-      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-      env:
-        TRIVY_SKIP_DB_UPDATE:      true
-        TRIVY_SKIP_JAVA_DB_UPDATE: true
+    - name: "Check for Snyk output files"
+      id:   snyk_outputs
+      if:   always()
+      shell: bash
+      run: |
+        if [ -f snyk.json ]; then
+          echo "json_exists=true" >> "$GITHUB_OUTPUT"
+          echo "Snyk JSON output: present"
+        else
+          echo "json_exists=false" >> "$GITHUB_OUTPUT"
+          echo "Snyk JSON output: missing"
+        fi
+        if [ -f snyk.sarif ]; then
+          echo "sarif_exists=true" >> "$GITHUB_OUTPUT"
+          echo "Snyk SARIF output: present"
+        else
+          echo "sarif_exists=false" >> "$GITHUB_OUTPUT"
+          echo "Snyk SARIF output: missing"
+        fi
+
+    - name: "Print Snyk JSON findings"
+      if:   always() && steps.snyk_outputs.outputs.json_exists == 'true'
+      shell: bash
+      run: |
+        cat snyk.json
+
+    - name: "Upload Snyk SARIF results"
+      if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
+      uses: github/codeql-action/upload-sarif@v4
       with:
-        image-ref:      ${{ inputs.image }}:pdp-${{ inputs.itag }}
-        ignore-unfixed: true
-        vuln-type:      "os,library"
-        format:         "table"
-        severity:       "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"  # "HIGH,CRITICAL"
-        exit-code:      1
+        sarif_file: snyk.sarif
+        category: snyk-docker

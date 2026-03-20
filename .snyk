@@ -1,0 +1,38 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  SNYK-UBUNTU2404-OPENSSL-7838291:
+    - "*":
+        reason: Inherited from the Paketo Tiny base image; waiting on image refresh.
+
+  SNYK-UBUNTU2404-GLIBC-6727419:
+    - "*":
+        reason: Inherited from the Paketo Tiny base image; waiting on image refresh.
+
+  SNYK-JAVA-COMFASTERXMLJACKSONCORE-15365924:
+    - "*":
+        reason: Waiting on dependency upgrades in Spring Boot.
+
+  SNYK-JAVA-ORGSPRINGFRAMEWORK-15701755:
+    - "*":
+        reason: Waiting on dependency upgrades in Spring Boot.
+
+  SNYK-JAVA-ORGSPRINGFRAMEWORK-15701756:
+    - "*":
+        reason: Waiting on dependency upgrades in Spring Boot.
+
+  SNYK-JAVA-TOOLSJACKSONCORE-15365915:
+    - "*":
+        reason: Waiting on dependency upgrades in Spring Boot.
+
+  SNYK-JAVA-TOOLSJACKSONCORE-15371178:
+    - "*":
+        reason: Waiting on dependency upgrades in Spring Boot.
+
+  "snyk:lic:maven:ch.qos.logback:logback-core:(EPL-1.0_OR_LGPL-2.1)":
+    - "*":
+        reason: This license is not a problem.
+
+  "snyk:lic:maven:ch.qos.logback:logback-classic:(EPL-1.0_OR_LGPL-2.1)":
+    - "*":
+        reason: This license is not a problem.

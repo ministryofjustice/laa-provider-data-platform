@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     name: "Build OCI image"
-    permissions: { contents: read, id-token: write, packages: write }
+    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
     runs-on: ubuntu-latest
     steps:
       - name: "Validate registry tag names"
@@ -113,12 +113,13 @@ jobs:
       - name: "Build and push image"
         if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
         uses: ./.github/actions/build-push-image
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
           itag:  ${{ inputs.itag }}
           mtag:  ${{ inputs.mtag }}
           module_dir: "provider-data-service" # Point to the new service module
-          trivy_enabled: ${{ vars.ENABLE_TRIVY == 'true' }}
 
       - name: "Send failure Slack message"
         if:   failure()

@@ -73,5 +73,5 @@ You can find more information regarding the setup and usage of the Gradle plugin
 - [MapStruct](https://mapstruct.org/) - used for object mapping, specifically for converting
   between different Java object types, such as Data Transfer Objects (DTOs) and Entity objects.
   It generates mapping code at compile code.
-- [H2](https://www.h2database.com/html/main.html) - used to provide a database for testing only and
-  should not be used in production.
+- [Testcontainers](https://java.testcontainers.org/) - used to provide a database for integration
+  testing only and should not be used for local development, shared environments or in production.

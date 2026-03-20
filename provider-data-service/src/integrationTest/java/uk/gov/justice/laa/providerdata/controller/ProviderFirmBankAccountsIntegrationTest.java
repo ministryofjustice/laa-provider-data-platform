@@ -9,26 +9,23 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 
 /**
  * Integration tests for the bank-details GET endpoints.
  *
- * <p>Uses a full Spring context with an H2 in-memory database and {@code
+ * <p>Uses a full Spring context with a PostgreSQL Testcontainers database and {@code
  * MockMvcBuilders.webAppContextSetup} so that all custom Jackson deserializers and filters are
  * active. Each test method runs inside the test-managed transaction, which is rolled back after the
  * method completes so setup data does not persist between tests.
  */
-@SpringBootTest
-@ActiveProfiles("test")
 @Transactional
-class ProviderFirmBankAccountsIntegrationTest {
+class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
 
   @Autowired private WebApplicationContext context;
 

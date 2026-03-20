@@ -7,15 +7,12 @@ import jakarta.transaction.Transactional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class OfficeContractManagerLinkRepositoryTest {
+class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ContractManagerRepository contractManagerRepository;
 

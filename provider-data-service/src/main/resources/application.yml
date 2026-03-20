@@ -70,12 +70,12 @@ springdoc:
 
 ---
 ### This is a multi-document YAML file. The first document (above) has general settings for all profiles.
-### This document has property overrides for when the profile is NOT `local`.
+### This document has property overrides for when the profile is NEITHER `local` NOR `test`.
 ###
 spring:
   config:
     activate:
-      on-profile: "!local"
+      on-profile: "!local & !test"
   # Datasource credentials for all non-local profiles (no way to "unset" config for the local profile)
   datasource:
     url: ${SPRING_DATASOURCE_URL}

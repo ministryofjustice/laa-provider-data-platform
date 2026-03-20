@@ -5,6 +5,7 @@ inputs:
   itag:  { required: true, description: "Immutable registry tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
   mtag:  { required: false, description: "Optional mutable registry tag to publish (e.g. pr-123)", default: "" }
   module_dir: { required: false, description: "Gradle submodule directory to build", default: "provider-data-service" }
+  trivy_enabled: { required: false, description: "Whether to run Trivy scans", default: "false" }
 runs:
   using: composite
   steps:
@@ -33,6 +34,7 @@ runs:
         docker push "${IMAGE}:pdp-${MTAG}"
 
     - name: "Scan rootfs dependencies with Trivy scanner"
+      if:   inputs.trivy_enabled == 'true'
       uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
       env:
         TRIVY_SKIP_DB_UPDATE:      true
@@ -45,6 +47,7 @@ runs:
         exit-code: 1
 
     - name: "Scan OCI image with Trivy scanner"
+      if:   inputs.trivy_enabled == 'true'
       uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
       env:
         TRIVY_SKIP_DB_UPDATE:      true

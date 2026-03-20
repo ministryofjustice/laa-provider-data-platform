@@ -5,7 +5,7 @@ inputs:
   itag:  { required: true, description: "Immutable registry tag (e.g. v1.2.3 or pr-123-d2a094ef)" }
   mtag:  { required: false, description: "Optional mutable registry tag to publish (e.g. pr-123)", default: "" }
   module_dir: { required: false, description: "Gradle submodule directory to build", default: "provider-data-service" }
-  trivy_enabled: { required: false, description: "Whether to run Trivy scans", default: "true" }
+  trivy_enabled: { required: false, description: "Whether to run Trivy scans", default: "false" }
 runs:
   using: composite
   steps:

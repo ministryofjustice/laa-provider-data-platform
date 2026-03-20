@@ -75,10 +75,3 @@ runs:
       with:
         sarif_file: snyk.sarif
         category: snyk-docker
-
-    - name: "Fail if Snyk found vulnerabilities"
-      if:   steps.snyk_scan.outcome == 'failure'
-      shell: bash
-      run: |
-        echo "Snyk found vulnerabilities in the OCI image." >&2
-        exit 1

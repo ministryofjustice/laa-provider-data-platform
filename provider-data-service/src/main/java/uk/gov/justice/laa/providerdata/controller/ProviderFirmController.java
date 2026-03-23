@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,15 +12,19 @@ import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
+import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
@@ -108,6 +113,37 @@ public class ProviderFirmController {
                     providerFirmService.getChambersHeadOffice(provider).orElse(null),
                     providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
                     providerFirmService.getParentLinks(provider))));
+  }
+
+  /**
+   * Retrieves practitioners for a given Chambers.
+   *
+   * @param providerFirmGUIDorFirmNumber Chambers GUID or firm number
+   * @return 200 with the list of practitioners
+   */
+  @GetMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}/practitioners",
+      produces = "application/json")
+  public ResponseEntity<GetProviderFirmOfficePractitioners200Response>
+      getProviderFirmOfficePractitioners(@PathVariable String providerFirmGUIDorFirmNumber) {
+    List<ProviderParentLinkEntity> practitionerLinks =
+        providerFirmService.getPractitionersByChambers(providerFirmGUIDorFirmNumber);
+
+    List<OfficePractitionerV2> practitioners =
+        practitionerLinks.stream()
+            .map(
+                link -> {
+                  ProviderEntity practitioner = link.getProvider();
+                  return providerFirmMapper.toOfficePractitionerV2(
+                      practitioner,
+                      providerFirmService.getAdvocateOfficeLink(practitioner).orElse(null),
+                      providerFirmService.getParentLinks(practitioner));
+                })
+            .toList();
+
+    return ResponseEntity.ok(
+        new GetProviderFirmOfficePractitioners200Response()
+            .data(new GetProviderFirmOfficePractitioners200ResponseData().content(practitioners)));
   }
 
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {

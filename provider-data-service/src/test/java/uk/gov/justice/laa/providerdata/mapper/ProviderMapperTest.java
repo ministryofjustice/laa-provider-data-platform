@@ -6,6 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import java.time.OffsetDateTime;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -13,12 +16,14 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 
+@SpringBootTest
 class ProviderMapperTest {
 
-  private final ProviderMapper mapper = new ProviderMapperImpl();
+  @Autowired private ProviderMapper mapper;
 
   @Test
   void toProviderV2_mapsBasicFields() {
@@ -240,5 +245,42 @@ class ProviderMapperTest {
     assertThat(result.getPractitioner().getOffice().getOfficeGUID())
         .isEqualTo(officeLinkGuid.toString());
     assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ADV001");
+  }
+
+  @Test
+  void toOfficePractitionerV2_mapsAllFields() {
+    UUID guid = UUID.randomUUID();
+    ProviderEntity practitioner =
+        ProviderEntity.builder()
+            .guid(guid)
+            .name("Test Practitioner")
+            .firmType(FirmType.ADVOCATE)
+            .version(1L)
+            .createdBy("admin")
+            .createdTimestamp(OffsetDateTime.now())
+            .lastUpdatedBy("admin")
+            .lastUpdatedTimestamp(OffsetDateTime.now())
+            .build();
+
+    AdvocateProviderOfficeLinkEntity officeLink =
+        AdvocateProviderOfficeLinkEntity.builder()
+            .guid(UUID.randomUUID())
+            .accountNumber("ACCT123")
+            .office(OfficeEntity.builder().addressLine1("Chambers Office").build())
+            .build();
+
+    ProviderEntity chambers =
+        ProviderEntity.builder().guid(UUID.randomUUID()).name("Test Chambers").build();
+    ProviderParentLinkEntity parentLink =
+        ProviderParentLinkEntity.builder().parent(chambers).build();
+
+    OfficePractitionerV2 result =
+        mapper.toOfficePractitionerV2(practitioner, officeLink, List.of(parentLink));
+
+    assertThat(result.getGuid()).isEqualTo(guid.toString());
+    assertThat(result.getName()).isEqualTo("Test Practitioner");
+    assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.ADVOCATE);
+    assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ACCT123");
+    assertThat(result.getPractitioner().getParentFirms()).hasSize(1);
   }
 }

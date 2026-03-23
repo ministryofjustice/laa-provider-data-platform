@@ -22,6 +22,7 @@ The repository includes the following subprojects:
 
 - [API reference](api/) - OpenAPI specification rendered in multiple formats
 - [Getting started](getting-started.html) - Build and run the application locally
+- [End-to-end tests](end-to-end-tests.html) - E2E test setup, data management, and usage
 - [GitHub workflows](github-workflows.html) - CI/CD pipeline documentation
 - [Spring Boot 4.0 migration](spring-boot-4-migration.html) - Migration notes
 

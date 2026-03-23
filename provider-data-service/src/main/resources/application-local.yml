@@ -10,6 +10,9 @@
 ### second YAML document in `application.yml`.
 ###
 spring:
+  docker:
+    compose:
+      file: ../compose.yaml
   jpa:
     hibernate:
       ddl-auto: create-drop

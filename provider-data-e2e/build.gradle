@@ -47,6 +47,8 @@ dependencies {
     // OpenAPI response validation against laa-data-pda.yml
     testImplementation project(':provider-data-api')
     testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.46.0'
+    // PostgreSQL driver for direct database setup/teardown in e2e tests
+    testImplementation 'org.postgresql:postgresql:42.7.5'
 }
 
 test {

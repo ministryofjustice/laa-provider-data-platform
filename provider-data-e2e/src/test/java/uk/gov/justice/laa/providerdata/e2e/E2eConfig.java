@@ -36,6 +36,20 @@ public final class E2eConfig {
     return resolve("e2e.authToken", "E2E_AUTHTOKEN");
   }
 
+  // --- Database ---
+
+  public static String dbUrl() {
+    return resolve("db.url", "E2E_DB_URL");
+  }
+
+  public static String dbUsername() {
+    return resolve("db.username", "E2E_DB_USERNAME");
+  }
+
+  public static String dbPassword() {
+    return resolve("db.password", "E2E_DB_PASSWORD");
+  }
+
   // --- Legal Services Provider ---
 
   public static String lspFirmNumber() {
@@ -154,6 +168,34 @@ public final class E2eConfig {
 
   public static String chambersOfficeCode() {
     return require("chambers.office.code");
+  }
+
+  // --- Contract managers ---
+
+  public static String contractManagerId() {
+    return require("contractManager.id");
+  }
+
+  public static String contractManagerFirstName() {
+    return require("contractManager.firstName");
+  }
+
+  public static String contractManagerLastName() {
+    return require("contractManager.lastName");
+  }
+
+  public static String contractManagerGuid() {
+    return require("contractManager.guid");
+  }
+
+  // --- GUIDs (for endpoints requiring UUIDs) ---
+
+  public static String lspGuid() {
+    return require("lsp.guid");
+  }
+
+  public static String lspOfficeGuid() {
+    return require("lsp.office.guid");
   }
 
   // --- Invalid identifiers (for 404 testing) ---

@@ -7,13 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
-import io.restassured.response.Response;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -22,32 +16,11 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for {@code POST
  * /provider-firms/{firmId}/offices/{officeCode}/liaison-managers}.
  *
- * <p>Tests create new liaison manager records linked to the E2E office, verify via GET, and clean up
- * in {@link #afterAll()}.
+ * <p>Tests create new liaison manager records linked to the E2E office and verify via GET. Cleanup
+ * is handled by {@code delete-test-data.sql} which removes liaison manager links for E2E offices.
  */
 @ModifyingTest
 class CreateOfficeLiaisonManagerE2eTest {
-
-  private static final List<String> createdLiaisonManagerGuids = new ArrayList<>();
-
-  @AfterAll
-  static void afterAll() throws SQLException {
-    if (createdLiaisonManagerGuids.isEmpty()) {
-      return;
-    }
-    try (var conn =
-            DriverManager.getConnection(
-                E2eConfig.dbUrl(), E2eConfig.dbUsername(), E2eConfig.dbPassword());
-        var stmt = conn.createStatement()) {
-      for (String guid : createdLiaisonManagerGuids) {
-        stmt.execute(
-            "DELETE FROM office_liaison_manager_link WHERE liaison_manager_guid = '"
-                + guid
-                + "'");
-        stmt.execute("DELETE FROM liaison_manager WHERE guid = '" + guid + "'");
-      }
-    }
-  }
 
   @Test
   void createLiaisonManager_forExistingOffice_returns201ThenGetReturnsCreatedManager() {
@@ -61,26 +34,20 @@ class CreateOfficeLiaisonManagerE2eTest {
             "emailAddress", "new.liaison." + System.currentTimeMillis() + "@example.com",
             "telephoneNumber", "020 9999 8888");
 
-    Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .body(body)
-            .when()
-            .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
-            .then()
-            .statusCode(201)
-            .body("data.providerFirmGUID", notNullValue())
-            .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
-            .body("data.officeGUID", notNullValue())
-            .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()))
-            .body("data.liaisonManagerGUID", notNullValue())
-            .extract()
-            .response();
-
-    String liaisonManagerGuid = response.path("data.liaisonManagerGUID");
-    createdLiaisonManagerGuids.add(liaisonManagerGuid);
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(body)
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
+        .then()
+        .statusCode(201)
+        .body("data.providerFirmGUID", notNullValue())
+        .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
+        .body("data.officeGUID", notNullValue())
+        .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()))
+        .body("data.liaisonManagerGUID", notNullValue());
 
     // Verify the created liaison manager appears in the GET response
     given()

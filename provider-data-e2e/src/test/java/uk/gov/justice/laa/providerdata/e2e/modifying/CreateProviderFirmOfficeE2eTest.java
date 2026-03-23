@@ -6,12 +6,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -19,39 +14,11 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 /**
  * Data-modifying e2e tests for {@code POST /provider-firms/{firmId}/offices}.
  *
- * <p>Each test creates a new office linked to the E2E LSP provider, verifies it via GET, and
- * records identifiers for cleanup in {@link #afterAll()}.
+ * <p>Each test creates a new office linked to the E2E LSP provider and verifies it via GET. Cleanup
+ * is handled by {@code delete-test-data.sql} which removes offices linked to E2E providers.
  */
 @ModifyingTest
 class CreateProviderFirmOfficeE2eTest {
-
-  private static final List<String> createdOfficeCodes = new ArrayList<>();
-
-  @AfterAll
-  static void afterAll() throws SQLException {
-    if (createdOfficeCodes.isEmpty()) {
-      return;
-    }
-    try (var conn =
-            DriverManager.getConnection(
-                E2eConfig.dbUrl(), E2eConfig.dbUsername(), E2eConfig.dbPassword());
-        var stmt = conn.createStatement()) {
-      for (String officeCode : createdOfficeCodes) {
-        stmt.execute(
-            "DELETE FROM office_liaison_manager_link WHERE office_guid IN "
-                + "(SELECT office_guid FROM provider_office_link WHERE account_number = '"
-                + officeCode
-                + "')");
-        stmt.execute(
-            "DELETE FROM office_bank_account_link WHERE provider_office_link_guid IN "
-                + "(SELECT guid FROM provider_office_link WHERE account_number = '"
-                + officeCode
-                + "')");
-        stmt.execute(
-            "DELETE FROM provider_office_link WHERE account_number = '" + officeCode + "'");
-      }
-    }
-  }
 
   @Test
   void createOffice_forExistingLspFirm_returns201ThenGetReturnsCreatedOffice() {
@@ -88,7 +55,6 @@ class CreateProviderFirmOfficeE2eTest {
             .response();
 
     String officeCode = response.path("data.officeCode");
-    createdOfficeCodes.add(officeCode);
 
     // Verify the created office is retrievable via GET
     given()

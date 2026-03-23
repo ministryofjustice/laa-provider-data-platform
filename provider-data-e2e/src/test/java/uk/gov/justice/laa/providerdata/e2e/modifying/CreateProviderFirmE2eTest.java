@@ -6,64 +6,18 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
 /**
  * Data-modifying e2e tests for {@code POST /provider-firms}.
  *
- * <p>Each test creates new data in the local database, verifies it via GET, and records the
- * identifiers for cleanup in {@link #afterAll()}.
+ * <p>Each test creates new data in the local database and verifies it via GET. Cleanup is handled
+ * by {@code delete-test-data.sql} which removes providers with names starting with "New ".
  */
 @ModifyingTest
 class CreateProviderFirmE2eTest {
-
-  private static final List<String> createdFirmNumbers = new ArrayList<>();
-
-  @AfterAll
-  static void afterAll() throws SQLException {
-    if (createdFirmNumbers.isEmpty()) {
-      return;
-    }
-    try (var conn =
-            DriverManager.getConnection(
-                E2eConfig.dbUrl(), E2eConfig.dbUsername(), E2eConfig.dbPassword());
-        var stmt = conn.createStatement()) {
-      for (String firmNumber : createdFirmNumbers) {
-        // Delete links then provider (reverse FK order)
-        stmt.execute(
-            "DELETE FROM office_liaison_manager_link WHERE office_guid IN "
-                + "(SELECT office_guid FROM provider_office_link WHERE provider_guid = "
-                + "(SELECT guid FROM provider WHERE firm_number = '"
-                + firmNumber
-                + "'))");
-        stmt.execute(
-            "DELETE FROM office_bank_account_link WHERE provider_office_link_guid IN "
-                + "(SELECT guid FROM provider_office_link WHERE provider_guid = "
-                + "(SELECT guid FROM provider WHERE firm_number = '"
-                + firmNumber
-                + "'))");
-        stmt.execute(
-            "DELETE FROM provider_office_link WHERE provider_guid = "
-                + "(SELECT guid FROM provider WHERE firm_number = '"
-                + firmNumber
-                + "')");
-        stmt.execute(
-            "DELETE FROM provider_bank_account_link WHERE provider_guid = "
-                + "(SELECT guid FROM provider WHERE firm_number = '"
-                + firmNumber
-                + "')");
-        stmt.execute("DELETE FROM provider WHERE firm_number = '" + firmNumber + "'");
-      }
-    }
-  }
 
   @Test
   void createLspFirm_returns201ThenGetReturnsCreatedFirm() {
@@ -105,7 +59,6 @@ class CreateProviderFirmE2eTest {
             .response();
 
     String firmNumber = response.path("data.providerFirmNumber");
-    createdFirmNumbers.add(firmNumber);
 
     // Verify the created firm is retrievable via GET
     given()
@@ -157,7 +110,6 @@ class CreateProviderFirmE2eTest {
             .response();
 
     String firmNumber = response.path("data.providerFirmNumber");
-    createdFirmNumbers.add(firmNumber);
 
     // Verify the created firm is retrievable via GET
     given()

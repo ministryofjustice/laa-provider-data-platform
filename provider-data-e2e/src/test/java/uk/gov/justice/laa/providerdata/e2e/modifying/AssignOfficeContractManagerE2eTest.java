@@ -7,12 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -22,33 +17,11 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * /provider-firms/{firmId}/offices/{officeCode}/contract-managers}.
  *
  * <p>The MVP endpoint requires GUIDs for both office and contract manager identifiers. Tests verify
- * the assignment via GET and clean up in {@link #afterAll()}.
+ * the assignment via GET. Cleanup is handled by {@code delete-test-data.sql} which removes contract
+ * manager links for E2E contract managers.
  */
 @ModifyingTest
 class AssignOfficeContractManagerE2eTest {
-
-  private static final List<String> createdLinkOfficeGuids = new ArrayList<>();
-
-  @AfterAll
-  static void afterAll() throws SQLException {
-    if (createdLinkOfficeGuids.isEmpty()) {
-      return;
-    }
-    try (var conn =
-            DriverManager.getConnection(
-                E2eConfig.dbUrl(), E2eConfig.dbUsername(), E2eConfig.dbPassword());
-        var stmt = conn.createStatement()) {
-      for (String officeGuid : createdLinkOfficeGuids) {
-        // Only delete links created by this test (matching both office and contract manager)
-        stmt.execute(
-            "DELETE FROM office_contract_manager_link WHERE office_guid = '"
-                + officeGuid
-                + "' AND contract_manager_guid = '"
-                + E2eConfig.contractManagerGuid()
-                + "'");
-      }
-    }
-  }
 
   @Test
   void assignContractManager_forExistingOffice_returns201ThenGetReturnsAssignment() {
@@ -65,8 +38,6 @@ class AssignOfficeContractManagerE2eTest {
         .statusCode(201)
         .body("data.officeGUID", notNullValue())
         .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
-
-    createdLinkOfficeGuids.add(E2eConfig.lspOfficeGuid());
 
     // Verify the assignment appears in the GET response
     given()

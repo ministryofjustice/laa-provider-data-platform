@@ -47,47 +47,6 @@ public interface ProviderMapper {
   ProviderV2 toProviderV2(ProviderEntity entity);
 
   /**
-   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model with base
-   * fields only.
-   */
-  @BeanMapping(builder = @Builder(disableBuilder = true))
-  @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
-  @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
-  @Mapping(target = "practitioner", ignore = true)
-  @Mapping(target = "createdBy", source = "createdBy")
-  @Mapping(target = "createdTimestamp", source = "createdTimestamp")
-  @Mapping(target = "lastUpdatedBy", source = "lastUpdatedBy")
-  @Mapping(target = "lastUpdatedTimestamp", source = "lastUpdatedTimestamp")
-  OfficePractitionerV2 toOfficePractitionerV2(ProviderEntity entity);
-
-  /**
-   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model, enriching it
-   * with office and parent firm data.
-   *
-   * @param entity the provider entity
-   * @param officeLink the Advocate office link, or {@code null}
-   * @param parentLinks the parent firm links, or an empty list
-   * @return the populated response DTO
-   */
-  default OfficePractitionerV2 toOfficePractitionerV2(
-      ProviderEntity entity,
-      @Nullable AdvocateProviderOfficeLinkEntity officeLink,
-      List<ProviderParentLinkEntity> parentLinks) {
-    OfficePractitionerV2 result = toOfficePractitionerV2(entity);
-    PractitionerDetailsV2 practitioner = new PractitionerDetailsV2();
-    if (officeLink != null) {
-      practitioner.setOffice(toPractitionerOfficeDetails(officeLink));
-    }
-    if (!parentLinks.isEmpty()) {
-      practitioner.setParentFirms(toParentFirms(parentLinks));
-    }
-    result.setPractitioner(practitioner);
-
-    return result;
-  }
-
-  /**
    * Maps a {@link ProviderEntity} to a {@link ProviderV2} response model, enriching the appropriate
    * variant sub-object with head office and parent firm data.
    *
@@ -127,6 +86,47 @@ public interface ProviderMapper {
     } else if (FirmType.ADVOCATE.equals(entity.getFirmType())) {
       result.setPractitioner(new PractitionerDetailsV2());
     }
+    return result;
+  }
+
+  /**
+   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model with base
+   * fields only.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true))
+  @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
+  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
+  @Mapping(target = "practitioner", ignore = true)
+  @Mapping(target = "createdBy", source = "createdBy")
+  @Mapping(target = "createdTimestamp", source = "createdTimestamp")
+  @Mapping(target = "lastUpdatedBy", source = "lastUpdatedBy")
+  @Mapping(target = "lastUpdatedTimestamp", source = "lastUpdatedTimestamp")
+  OfficePractitionerV2 toOfficePractitionerV2(ProviderEntity entity);
+
+  /**
+   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model, enriching it
+   * with office and parent firm data.
+   *
+   * @param entity the provider entity
+   * @param officeLink the Advocate office link, or {@code null}
+   * @param parentLinks the parent firm links, or an empty list
+   * @return the populated response DTO
+   */
+  default OfficePractitionerV2 toOfficePractitionerV2(
+      ProviderEntity entity,
+      @Nullable AdvocateProviderOfficeLinkEntity officeLink,
+      List<ProviderParentLinkEntity> parentLinks) {
+    OfficePractitionerV2 result = toOfficePractitionerV2(entity);
+    PractitionerDetailsV2 practitioner = new PractitionerDetailsV2();
+    if (officeLink != null) {
+      practitioner.setOffice(toPractitionerOfficeDetails(officeLink));
+    }
+    if (!parentLinks.isEmpty()) {
+      practitioner.setParentFirms(toParentFirms(parentLinks));
+    }
+    result.setPractitioner(practitioner);
+
     return result;
   }
 

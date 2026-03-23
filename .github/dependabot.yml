@@ -8,6 +8,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     registries: "*"
     groups:
       gradle-updates:
@@ -16,10 +18,13 @@ updates:
       internal-packages:
         patterns:
           - "uk.gov.justice.laa.providerdata.*"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:

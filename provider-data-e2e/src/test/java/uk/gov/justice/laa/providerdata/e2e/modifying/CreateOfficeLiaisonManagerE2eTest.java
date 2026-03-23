@@ -29,10 +29,14 @@ class CreateOfficeLiaisonManagerE2eTest {
 
     Map<String, Object> body =
         Map.of(
-            "firstName", firstName,
-            "lastName", lastName,
-            "emailAddress", "new.liaison." + System.currentTimeMillis() + "@example.com",
-            "telephoneNumber", "020 9999 8888");
+            "firstName",
+            firstName,
+            "lastName",
+            lastName,
+            "emailAddress",
+            "new.liaison." + System.currentTimeMillis() + "@example.com",
+            "telephoneNumber",
+            "020 9999 8888");
 
     given()
         .contentType(ContentType.JSON)

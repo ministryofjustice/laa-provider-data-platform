@@ -22,9 +22,9 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber20
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
-import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;

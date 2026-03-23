@@ -108,8 +108,7 @@ public class ProviderService {
     ProviderEntity provider = getProvider(chambersGUIDorFirmNumber);
 
     if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
-      throw new IllegalArgumentException(
-          "Provider is not a Chambers: " + chambersGUIDorFirmNumber);
+      throw new IllegalArgumentException("Provider is not a Chambers: " + chambersGUIDorFirmNumber);
     }
 
     return providerParentLinkRepository.findByParentOrderByProviderNameAsc(provider);

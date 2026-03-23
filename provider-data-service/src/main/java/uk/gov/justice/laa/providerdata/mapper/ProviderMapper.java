@@ -47,8 +47,8 @@ public interface ProviderMapper {
   ProviderV2 toProviderV2(ProviderEntity entity);
 
   /**
-   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model with base fields
-   * only.
+   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model with base
+   * fields only.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
   @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")

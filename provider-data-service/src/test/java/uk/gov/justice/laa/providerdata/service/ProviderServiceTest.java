@@ -162,11 +162,16 @@ class ProviderServiceTest {
   void getPractitionersByChambers_returnsPractitionersForChambers() {
     String chambersId = UUID.randomUUID().toString();
     ProviderEntity chambers =
-        ProviderEntity.builder().guid(UUID.fromString(chambersId)).firmType(FirmType.CHAMBERS).build();
-    when(providerRepository.findById(UUID.fromString(chambersId))).thenReturn(Optional.of(chambers));
+        ProviderEntity.builder()
+            .guid(UUID.fromString(chambersId))
+            .firmType(FirmType.CHAMBERS)
+            .build();
+    when(providerRepository.findById(UUID.fromString(chambersId)))
+        .thenReturn(Optional.of(chambers));
 
     ProviderEntity practitioner = ProviderEntity.builder().name("Practitioner").build();
-    ProviderParentLinkEntity link = ProviderParentLinkEntity.builder().provider(practitioner).build();
+    ProviderParentLinkEntity link =
+        ProviderParentLinkEntity.builder().provider(practitioner).build();
     when(providerParentLinkRepository.findByParentOrderByProviderNameAsc(chambers))
         .thenReturn(List.of(link));
 
@@ -180,7 +185,10 @@ class ProviderServiceTest {
   void getPractitionersByChambers_notChambers_throwsIllegalArgumentException() {
     String lspId = UUID.randomUUID().toString();
     ProviderEntity lsp =
-        ProviderEntity.builder().guid(UUID.fromString(lspId)).firmType(FirmType.LEGAL_SERVICES_PROVIDER).build();
+        ProviderEntity.builder()
+            .guid(UUID.fromString(lspId))
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
     when(providerRepository.findById(UUID.fromString(lspId))).thenReturn(Optional.of(lsp));
 
     assertThatThrownBy(() -> service.getPractitionersByChambers(lspId))

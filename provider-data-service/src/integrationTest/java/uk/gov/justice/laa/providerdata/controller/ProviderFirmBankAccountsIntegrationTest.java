@@ -66,8 +66,6 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                                                   }
                                                 }
                                                 """))
-            // Uncomment while debugging:
-            // .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
             .andReturn();
 
     assertThat(createFirmResult.getResponse().getStatus()).isEqualTo(201);

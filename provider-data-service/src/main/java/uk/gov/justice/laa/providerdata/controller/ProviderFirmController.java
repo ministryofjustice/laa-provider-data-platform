@@ -111,7 +111,6 @@ public class ProviderFirmController {
    */
   @GetMapping(path = "/provider-firms", produces = "application/json")
   public ResponseEntity<GetProviderFirms200Response> getProviderFirms(
-      // Headers
       @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
       @RequestHeader(value = "traceparent", required = false) String traceparent,
 
@@ -120,6 +119,8 @@ public class ProviderFirmController {
       @RequestParam(required = false) List<String> providerFirmNumber,
       @RequestParam(required = false) String name,
       @RequestParam(required = false) String activeStatus,
+
+      // ✅ Dropdown-friendly enum input
       @RequestParam(required = false) List<ProviderFirmTypeV2> type,
       @RequestParam(required = false) List<String> accountNumber,
       @RequestParam(required = false) List<String> practitionerRollNumber,
@@ -129,6 +130,7 @@ public class ProviderFirmController {
       // Pagination
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
+
     // 🔹 Call service to get paged results
     Page<ProviderEntity> result =
         providerFirmService.searchProviders(
@@ -136,7 +138,7 @@ public class ProviderFirmController {
             providerFirmNumber,
             name,
             activeStatus,
-            type, // Multi-value Enum supported
+            type, // Multi-value enum supported directly
             PageRequest.of(page, pageSize));
 
     // 🔹 Map entities → DTOs
@@ -174,8 +176,7 @@ public class ProviderFirmController {
                 new GetProviderFirms200ResponseData()
                     .content(content)
                     .metadata(metadata)
-                    .links(new LinksV2()) // TODO: populate if needed
-                );
+                    .links(new LinksV2())); // TODO: populate if needed
 
     return ResponseEntity.ok(response);
   }

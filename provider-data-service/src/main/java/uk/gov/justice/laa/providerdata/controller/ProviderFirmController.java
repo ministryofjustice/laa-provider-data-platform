@@ -111,7 +111,6 @@ public class ProviderFirmController {
    */
   @GetMapping(path = "/provider-firms", produces = "application/json")
   public ResponseEntity<GetProviderFirms200Response> getProviderFirms(
-
       // Headers
       @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
       @RequestHeader(value = "traceparent", required = false) String traceparent,
@@ -130,15 +129,14 @@ public class ProviderFirmController {
       // Pagination
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
-
-    // 🔹 Call service
+    // 🔹 Call service to get paged results
     Page<ProviderEntity> result =
         providerFirmService.searchProviders(
             providerFirmGUID,
             providerFirmNumber,
             name,
             activeStatus,
-            type,
+            type, // Multi-value Enum supported
             PageRequest.of(page, pageSize));
 
     // 🔹 Map entities → DTOs

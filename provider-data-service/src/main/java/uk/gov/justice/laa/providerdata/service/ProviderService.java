@@ -105,7 +105,7 @@ public class ProviderService {
       Pageable pageable) {
 
     return providerFirmRepository.findAll(
-        ProviderSpecification.filter(guids, firmNumbers, name, activeStatus, types), pageable);
+        ProviderSpecification.filter(guids, firmNumbers, name, types), pageable);
   }
 
   /** Returns the LSP head office link for the given provider, if one exists. */

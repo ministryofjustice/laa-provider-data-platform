@@ -3,89 +3,76 @@ package uk.gov.justice.laa.providerdata.repository.spec;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 
-/**
- * Utility class for building dynamic JPA {@link Specification} queries for {@link ProviderEntity}.
- *
- * <p>Provides filtering logic for retrieving provider firms based on optional search criteria such
- * as GUID, firm number, name, type, and active status.
- *
- * <p>All filters are combined using AND logic.
- */
+/** Specification builder for querying ProviderEntity with optional filters. */
 public class ProviderSpecification {
 
+  private ProviderSpecification() {
+    // private constructor to prevent instantiation
+  }
+
   /**
-   * Builds a dynamic {@link Specification} for filtering {@link ProviderEntity} records.
+   * Creates a JPA Specification for ProviderEntity based on the given filters.
    *
-   * <p>Applies optional filters such as GUID, firm number, name, provider type, and active status.
-   * Only non-null and non-empty parameters are included in the query, and all conditions are
-   * combined using AND logic.
-   *
-   * @param guids list of provider firm GUIDs to filter
-   * @param firmNumbers list of provider firm numbers to filter
-   * @param name provider name (partial match, case-insensitive)
-   * @param activeStatus active status filter
-   * @param types list of provider firm types to filter
-   * @return a {@link Specification} representing the combined filter criteria
+   * @param providerFirmGUIDs list of provider GUIDs as strings
+   * @param providerFirmNumbers list of provider firm numbers
+   * @param name provider name (partial, case-insensitive)
+   * @param firmTypes list of firm types to filter by
+   * @return a Specification with all provided filters combined using AND
+   * @throws ResponseStatusException if any GUID string is invalid
    */
   public static Specification<ProviderEntity> filter(
-      List<String> guids,
-      List<String> firmNumbers,
+      List<String> providerFirmGUIDs,
+      List<String> providerFirmNumbers,
       String name,
-      String activeStatus,
-      List<ProviderFirmTypeV2> types) {
-    return (root, query, cb) -> {
+      List<ProviderFirmTypeV2> firmTypes) {
+    return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
 
-      // GUID filter
-      if (guids != null && !guids.isEmpty()) {
-        predicates.add(root.get("guid").in(guids));
+      // --- 1️⃣ Filter by providerFirmGUID (UUID) ---
+      if (providerFirmGUIDs != null && !providerFirmGUIDs.isEmpty()) {
+        List<UUID> uuidList =
+            providerFirmGUIDs.stream()
+                .map(
+                    uuidStr -> {
+                      try {
+                        return UUID.fromString(uuidStr);
+                      } catch (IllegalArgumentException e) {
+                        throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Invalid UUID: " + uuidStr);
+                      }
+                    })
+                .collect(Collectors.toList());
+        predicates.add(root.get("guid").in(uuidList));
       }
 
-      // Firm number filter
-      if (firmNumbers != null && !firmNumbers.isEmpty()) {
-        predicates.add(root.get("firmNumber").in(firmNumbers));
+      // --- 2️⃣ Filter by providerFirmNumber ---
+      if (providerFirmNumbers != null && !providerFirmNumbers.isEmpty()) {
+        predicates.add(root.get("firmNumber").in(providerFirmNumbers));
       }
 
-      // Name filter (case-insensitive LIKE)
-      if (name != null && !name.isBlank()) {
-        predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+      // --- 3️⃣ Filter by name (partial match, case-insensitive) ---
+      if (name != null && !name.isEmpty()) {
+        predicates.add(
+            criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
       }
 
-      // Type filter
-      if (types != null && !types.isEmpty()) {
-        predicates.add(root.get("firmType").in(types));
+      // --- 4️⃣ Filter by firmType ---
+      if (firmTypes != null && !firmTypes.isEmpty()) {
+        List<String> typeNames = firmTypes.stream().map(Enum::name).collect(Collectors.toList());
+        predicates.add(root.get("firmType").in(typeNames));
       }
 
-      // Active status filter
-      // Active status filter
-      if (activeStatus != null && !activeStatus.equals("All")) {
-        switch (activeStatus) {
-          case "Active" -> predicates.add(cb.equal(root.get("active"), true));
-
-          case "ContingentLiability" ->
-              predicates.add(cb.equal(root.get("contingentLiability"), true));
-
-          case "ActiveOrContingentLiability" ->
-              predicates.add(
-                  cb.or(
-                      cb.equal(root.get("active"), true),
-                      cb.equal(root.get("contingentLiability"), true)));
-
-          default -> throw new IllegalArgumentException("Invalid activeStatus: " + activeStatus);
-        }
-      }
-
-      // TODO:
-      // accountNumber
-      // practitionerRollNumber
-      // parentFirmGUID
-      // parentFirmNumber
-
-      return cb.and(predicates.toArray(new Predicate[0]));
+      // Combine all predicates with AND
+      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };
   }
 }

@@ -1,11 +1,17 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import java.math.BigDecimal;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
@@ -17,9 +23,17 @@ import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LinksV2;
+import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
+import uk.gov.justice.laa.providerdata.model.PaginationV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
+import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
+import uk.gov.justice.laa.providerdata.model.ProviderV2;
+import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
@@ -85,6 +99,87 @@ public class ProviderFirmController {
                     new CreateProviderFirm201ResponseData()
                         .providerFirmGUID(result.providerFirmGUID().toString())
                         .providerFirmNumber(result.firmNumber())));
+  }
+
+  /**
+   * Retrieves a paginated list of provider firms with optional filters.
+   *
+   * <p>Supports filtering by GUID, firm number, name, type, and active status. Multiple filters are
+   * combined using AND logic. Pagination is supported via page and pageSize parameters.
+   *
+   * @return paginated list of provider firms
+   */
+  @GetMapping(path = "/provider-firms", produces = "application/json")
+  public ResponseEntity<GetProviderFirms200Response> getProviderFirms(
+
+      // Headers
+      @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
+      @RequestHeader(value = "traceparent", required = false) String traceparent,
+
+      // Filters
+      @RequestParam(required = false) List<String> providerFirmGUID,
+      @RequestParam(required = false) List<String> providerFirmNumber,
+      @RequestParam(required = false) String name,
+      @RequestParam(required = false) String activeStatus,
+      @RequestParam(required = false) List<ProviderFirmTypeV2> type,
+      @RequestParam(required = false) List<String> accountNumber,
+      @RequestParam(required = false) List<String> practitionerRollNumber,
+      @RequestParam(required = false) List<String> parentFirmGUID,
+      @RequestParam(required = false) List<String> parentFirmNumber,
+
+      // Pagination
+      @RequestParam(name = "page", defaultValue = "0") int page,
+      @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
+
+    // 🔹 Call service
+    Page<ProviderEntity> result =
+        providerFirmService.searchProviders(
+            providerFirmGUID,
+            providerFirmNumber,
+            name,
+            activeStatus,
+            type,
+            PageRequest.of(page, pageSize));
+
+    // 🔹 Map entities → DTOs
+    List<ProviderV2> content =
+        result.getContent().stream()
+            .map(
+                provider ->
+                    providerFirmMapper.toProviderV2(
+                        provider,
+                        providerFirmService.getLspHeadOffice(provider).orElse(null),
+                        providerFirmService.getChambersHeadOffice(provider).orElse(null),
+                        providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+                        providerFirmService.getParentLinks(provider)))
+            .toList();
+
+    // 🔹 Build pagination metadata
+    PaginationV2 pagination =
+        PaginationV2.builder()
+            .currentPage(BigDecimal.valueOf(result.getNumber()))
+            .pageSize(BigDecimal.valueOf(result.getSize()))
+            .totalPages(BigDecimal.valueOf(result.getTotalPages()))
+            .totalItems(BigDecimal.valueOf(result.getTotalElements()))
+            .build();
+
+    PaginatedSearchV2 metadata =
+        PaginatedSearchV2.builder()
+            .searchCriteria(new SearchCriteriaV2()) // TODO: map actual filters if needed
+            .pagination(pagination)
+            .build();
+
+    // 🔹 Build final response
+    GetProviderFirms200Response response =
+        new GetProviderFirms200Response()
+            .data(
+                new GetProviderFirms200ResponseData()
+                    .content(content)
+                    .metadata(metadata)
+                    .links(new LinksV2()) // TODO: populate if needed
+                );
+
+    return ResponseEntity.ok(response);
   }
 
   /**

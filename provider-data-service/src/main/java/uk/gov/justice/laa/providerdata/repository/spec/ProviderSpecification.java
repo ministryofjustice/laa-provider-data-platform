@@ -33,7 +33,12 @@ public class ProviderSpecification {
       List<String> providerFirmNumbers,
       String name,
       List<ProviderFirmTypeV2> firmTypes) {
+
     return (root, query, criteriaBuilder) -> {
+
+      // ✅ Make query distinct to avoid duplicates from joins
+      query.distinct(true);
+
       List<Predicate> predicates = new ArrayList<>();
 
       // --- 1️⃣ Filter by providerFirmGUID (UUID) ---
@@ -65,10 +70,13 @@ public class ProviderSpecification {
                 criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
       }
 
-      // --- 4️⃣ Filter by firmType ---
+      // --- 4️⃣ Filter by firmType (use display value from enum) ---
       if (firmTypes != null && !firmTypes.isEmpty()) {
-        List<String> typeNames = firmTypes.stream().map(Enum::name).collect(Collectors.toList());
-        predicates.add(root.get("firmType").in(typeNames));
+        List<String> typeValues =
+            firmTypes.stream()
+                .map(ProviderFirmTypeV2::getValue) // use getValue() to match DB
+                .collect(Collectors.toList());
+        predicates.add(root.get("firmType").in(typeValues));
       }
 
       // Combine all predicates with AND

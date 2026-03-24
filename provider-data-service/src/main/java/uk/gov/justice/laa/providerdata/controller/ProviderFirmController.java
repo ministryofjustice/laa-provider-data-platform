@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -119,9 +121,11 @@ public class ProviderFirmController {
       @RequestParam(required = false) List<String> providerFirmNumber,
       @RequestParam(required = false) String name,
       @RequestParam(required = false) String activeStatus,
-
-      // ✅ Dropdown-friendly enum input
-      @RequestParam(required = false) List<ProviderFirmTypeV2> type,
+      @Parameter(
+              description = "Filter by provider firm type",
+              schema = @Schema(implementation = ProviderFirmTypeV2.class))
+          @RequestParam(required = false)
+          List<ProviderFirmTypeV2> type, // Spring calls ProviderFirmTypeConverter
       @RequestParam(required = false) List<String> accountNumber,
       @RequestParam(required = false) List<String> practitionerRollNumber,
       @RequestParam(required = false) List<String> parentFirmGUID,
@@ -138,7 +142,7 @@ public class ProviderFirmController {
             providerFirmNumber,
             name,
             activeStatus,
-            type, // Multi-value enum supported directly
+            type, // Multi-value Enum supported via converter
             PageRequest.of(page, pageSize));
 
     // 🔹 Map entities → DTOs
@@ -176,7 +180,8 @@ public class ProviderFirmController {
                 new GetProviderFirms200ResponseData()
                     .content(content)
                     .metadata(metadata)
-                    .links(new LinksV2())); // TODO: populate if needed
+                    .links(new LinksV2()) // TODO: populate if needed
+                );
 
     return ResponseEntity.ok(response);
   }

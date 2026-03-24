@@ -308,7 +308,17 @@ public class ProviderCreationService {
     if (lmTemplate == null || lmLinkTemplate == null) {
       return;
     }
+
     LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
+
+    // Enforce NOT NULL constraints introduced on OfficeLiaisonManagerLinkEntity.
+    if (lmLinkTemplate.getActiveDateFrom() == null) {
+      lmLinkTemplate.setActiveDateFrom(java.time.LocalDate.now());
+    }
+    if (lmLinkTemplate.getLinkedFlag() == null) {
+      lmLinkTemplate.setLinkedFlag(Boolean.FALSE);
+    }
+
     lmLinkTemplate.setLiaisonManager(savedLm);
     lmLinkTemplate.setOfficeLink(savedOfficeLink);
     officeLiaisonManagerLinkRepository.save(lmLinkTemplate);

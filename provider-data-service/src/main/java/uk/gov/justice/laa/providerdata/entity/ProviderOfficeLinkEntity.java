@@ -9,6 +9,7 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
@@ -68,4 +69,13 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
 
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
+
+  @PrePersist
+  void prePersistDefaults() {
+    // Some code paths (tests/mappers) don't explicitly set this.
+    // Because the database column is NOT NULL, we default it here.
+    if (headOfficeFlag == null) {
+      headOfficeFlag = Boolean.FALSE;
+    }
+  }
 }

@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

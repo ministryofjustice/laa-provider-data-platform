@@ -23,7 +23,7 @@ public class OfficeEntity extends AuditableEntity {
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 
-  @Column(name = "ADDRESS_LINE1")
+  @Column(name = "ADDRESS_LINE1", nullable = false)
   private String addressLine1;
 
   @Column(name = "ADDRESS_LINE2")
@@ -35,13 +35,13 @@ public class OfficeEntity extends AuditableEntity {
   @Column(name = "ADDRESS_LINE4")
   private String addressLine4;
 
-  @Column(name = "ADDRESS_TOWN_OR_CITY")
+  @Column(name = "ADDRESS_TOWN_OR_CITY", nullable = false)
   private String addressTownOrCity;
 
   @Column(name = "ADDRESS_COUNTY")
   private String addressCounty;
 
-  @Column(name = "ADDRESS_POST_CODE")
+  @Column(name = "ADDRESS_POST_CODE", nullable = false)
   private String addressPostCode;
 
   @Column(name = "TELEPHONE_NUMBER")

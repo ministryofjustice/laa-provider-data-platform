@@ -130,15 +130,12 @@ public class ProviderCreationService {
     linkTemplate.setAccountNumber(accountNumber);
     LspProviderOfficeLinkEntity savedLink = lspProviderOfficeLinkRepository.save(linkTemplate);
 
-    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedOffice);
+    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
     return new ProviderCreationResult(
-        savedProvider.getGuid(),
-        savedProvider.getFirmNumber(),
-        savedOffice.getGuid(),
-        accountNumber);
+        savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
 
   /**
@@ -170,15 +167,12 @@ public class ProviderCreationService {
     linkTemplate.setProvider(savedProvider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
-    chamberProviderOfficeLinkRepository.save(linkTemplate);
+    ProviderOfficeLinkEntity savedLink = chamberProviderOfficeLinkRepository.save(linkTemplate);
 
-    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedOffice);
+    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
 
     return new ProviderCreationResult(
-        savedProvider.getGuid(),
-        savedProvider.getFirmNumber(),
-        savedOffice.getGuid(),
-        accountNumber);
+        savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
 
   /**
@@ -310,13 +304,13 @@ public class ProviderCreationService {
   private void saveLiaisonManagerLink(
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
-      OfficeEntity savedOffice) {
+      ProviderOfficeLinkEntity savedOfficeLink) {
     if (lmTemplate == null || lmLinkTemplate == null) {
       return;
     }
     LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
     lmLinkTemplate.setLiaisonManager(savedLm);
-    lmLinkTemplate.setOffice(savedOffice);
+    lmLinkTemplate.setOfficeLink(savedOfficeLink);
     officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
   }
 

@@ -94,7 +94,7 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   private void assertAssignmentPersisted(TestData testData, UUID returnedProviderOfficeLinkGuid) {
     assertThat(returnedProviderOfficeLinkGuid).isEqualTo(testData.providerOfficeLink().getGuid());
-    var links = linkRepository.findByOffice_Guid(testData.office().getGuid());
+    var links = linkRepository.findByOfficeLink_Guid(testData.providerOfficeLink.getGuid());
     assertThat(links).hasSize(1);
     assertThat(links.get(0).getContractManager().getContractManagerId()).isEqualTo("CM-001");
   }

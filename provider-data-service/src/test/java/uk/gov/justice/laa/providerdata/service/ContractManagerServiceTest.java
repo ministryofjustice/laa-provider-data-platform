@@ -95,7 +95,7 @@ class ContractManagerServiceTest {
         .thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
-    when(linkRepository.findByOffice_Guid(officeGuid, pageable))
+    when(linkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable))
         .thenReturn(new PageImpl<>(List.of(link), pageable, 1));
 
     when(mapper.toOfficeContractManagerV2(entity)).thenReturn(dto);
@@ -118,7 +118,7 @@ class ContractManagerServiceTest {
     when(officeService.getOfficeLink(provider, "ACC001")).thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
-    when(linkRepository.findByOffice_Guid(officeGuid, pageable))
+    when(linkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable))
         .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
     var result = service.getContractManagers("FRM001", "ACC001", pageable);

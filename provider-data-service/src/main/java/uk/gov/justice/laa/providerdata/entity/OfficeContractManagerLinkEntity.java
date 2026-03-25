@@ -35,5 +35,5 @@ public class OfficeContractManagerLinkEntity extends AuditableEntity {
       name = "OFFICE_GUID",
       nullable = false,
       foreignKey = @ForeignKey(name = "FK_OFFICE_CONTRACT_MGR_LINK_OFFICE"))
-  private OfficeEntity office;
+  private ProviderOfficeLinkEntity officeLink;
 }

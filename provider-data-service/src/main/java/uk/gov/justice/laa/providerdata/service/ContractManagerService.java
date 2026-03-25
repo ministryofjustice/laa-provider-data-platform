@@ -45,7 +45,7 @@ public class ContractManagerService {
         officeGuid);
 
     return officeContractManagerLinkRepository
-        .findByOffice_Guid(officeGuid, pageable)
+        .findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable)
         .map(link -> mapper.toOfficeContractManagerV2(link.getContractManager()));
   }
 }

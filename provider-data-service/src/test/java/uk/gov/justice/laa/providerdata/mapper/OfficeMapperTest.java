@@ -262,7 +262,7 @@ class OfficeMapperTest {
     assertThat(result.getActiveDateFrom()).isEqualTo(LocalDate.of(2024, 6, 15));
     assertThat(result.getLinkedFlag()).isFalse();
     assertThat(result.getLiaisonManager()).isNull();
-    assertThat(result.getOffice()).isNull();
+    assertThat(result.getOfficeLink()).isNull();
   }
 
   private static OfficeEntity officeWithGuid() {

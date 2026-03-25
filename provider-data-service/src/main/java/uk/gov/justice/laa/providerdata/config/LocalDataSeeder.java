@@ -330,13 +330,13 @@ public class LocalDataSeeder implements CommandLineRunner {
   private void seedOfficeContractManagerLinks() {
     log.info("Seeding OfficeContractManagerLink table");
 
-    var offices = officeRepository.findAll();
+    var officeLinks = providerOfficeLinkRepository.findAll();
     var contractManagers = contractManagerRepository.findAll();
 
-    if (!offices.isEmpty() && !contractManagers.isEmpty()) {
+    if (!officeLinks.isEmpty() && !contractManagers.isEmpty()) {
       OfficeContractManagerLinkEntity link =
           OfficeContractManagerLinkEntity.builder()
-              .office(offices.get(0))
+              .officeLink(officeLinks.get(0))
               .contractManager(contractManagers.get(0))
               .build();
 
@@ -348,13 +348,13 @@ public class LocalDataSeeder implements CommandLineRunner {
   private void seedOfficeLiaisonManagerLinks() {
     log.info("Seeding OfficeLiaisonManagerLink table");
 
-    var offices = officeRepository.findAll();
+    var officeLinks = providerOfficeLinkRepository.findAll();
     var liaisonManagers = liaisonManagerRepository.findAll();
 
-    if (!offices.isEmpty() && !liaisonManagers.isEmpty()) {
+    if (!officeLinks.isEmpty() && !liaisonManagers.isEmpty()) {
       OfficeLiaisonManagerLinkEntity link =
           OfficeLiaisonManagerLinkEntity.builder()
-              .office(offices.get(0))
+              .officeLink(officeLinks.get(0))
               .liaisonManager(liaisonManagers.get(0))
               .activeDateFrom(LocalDate.now())
               .linkedFlag(true)

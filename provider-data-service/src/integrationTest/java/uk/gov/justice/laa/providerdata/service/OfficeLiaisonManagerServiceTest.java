@@ -45,19 +45,21 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
             .addressPostCode("SW1A 1AA")
             .build();
     office = officeRepository.save(office);
-    final var officeGuid = office.getGuid();
 
-    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
-    link.setProvider(provider);
-    link.setOffice(office);
-    link.setAccountNumber("0Q731M");
-    link.setFirmType("Legal Services Provider");
-    link.setHeadOfficeFlag(true);
-    link.setCreatedBy("test");
-    link.setCreatedTimestamp(now);
-    link.setLastUpdatedBy("test");
-    link.setLastUpdatedTimestamp(now);
-    providerOfficeLinkRepository.save(link);
+    LspProviderOfficeLinkEntity link =
+        LspProviderOfficeLinkEntity.builder()
+            .provider(provider)
+            .office(office)
+            .accountNumber("0Q731M")
+            .firmType("Legal Services Provider")
+            .headOfficeFlag(true)
+            .createdBy("test")
+            .createdTimestamp(now)
+            .lastUpdatedBy("test")
+            .lastUpdatedTimestamp(now)
+            .build();
+    link = providerOfficeLinkRepository.save(link);
+    final var officeLinkGuid = link.getGuid();
 
     LiaisonManagerCreateV2 request = new LiaisonManagerCreateV2();
     request.setFirstName("Alice");
@@ -70,16 +72,16 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
     assertThat(result).isNotNull();
     assertThat(result.providerFirmGuid()).isEqualTo(providerGuid);
     assertThat(result.providerFirmNumber()).isEqualTo("FRM100");
-    assertThat(result.officeGuid()).isEqualTo(officeGuid);
+    assertThat(result.officeGuid()).isEqualTo(officeLinkGuid);
     assertThat(result.officeCode()).isEqualTo("0Q731M");
     assertThat(result.liaisonManagerGuid()).isNotNull();
 
-    var persistedLinks = officeLiaisonManagerLinkRepository.findByOffice_Guid(officeGuid);
+    var persistedLinks = officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(officeLinkGuid);
     assertThat(persistedLinks).isNotEmpty();
     assertThat(persistedLinks)
         .anySatisfy(
             persisted -> {
-              assertThat(persisted.getOffice().getGuid()).isEqualTo(officeGuid);
+              assertThat(persisted.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
               assertThat(persisted.getLiaisonManager().getGuid())
                   .isEqualTo(result.liaisonManagerGuid());
               assertThat(persisted.getActiveDateTo()).isNull();

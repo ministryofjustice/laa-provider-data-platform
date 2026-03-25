@@ -66,22 +66,29 @@ class ProviderCreationServiceTest {
   @Test
   void createLspFirm_savesProviderOfficeAndLink_returnsAllIdentifiers() {
     UUID providerGuid = UUID.randomUUID();
-    UUID officeGuid = UUID.randomUUID();
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
+    UUID officeGuid = UUID.randomUUID();
     when(officeRepository.save(any()))
         .thenAnswer(
             inv -> {
-              OfficeEntity e = inv.getArgument(0);
-              e.setGuid(officeGuid);
-              return e;
+              OfficeEntity office = inv.getArgument(0);
+              office.setGuid(officeGuid);
+              return office;
             });
-    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    UUID officeLinkGuid = UUID.randomUUID();
+    when(lspProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LspProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              officeLink.setGuid(officeLinkGuid);
+              return officeLink;
+            });
 
     var linkTemplate = new LspProviderOfficeLinkEntity();
     linkTemplate.setHeadOfficeFlag(Boolean.TRUE);
@@ -100,7 +107,7 @@ class ProviderCreationServiceTest {
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("LSP-");
-    assertThat(result.headOfficeGUID()).isEqualTo(officeGuid);
+    assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
     assertThat(linkTemplate.getHeadOfficeFlag()).isTrue();
     verify(liaisonManagerRepository, never()).save(any());
@@ -110,23 +117,30 @@ class ProviderCreationServiceTest {
   @Test
   void createLspFirm_withLiaisonManager_savesLmAndLink() {
     UUID providerGuid = UUID.randomUUID();
-    UUID officeGuid = UUID.randomUUID();
-    UUID lmGuid = UUID.randomUUID();
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
+    UUID officeGuid = UUID.randomUUID();
     when(officeRepository.save(any()))
         .thenAnswer(
             inv -> {
-              OfficeEntity e = inv.getArgument(0);
-              e.setGuid(officeGuid);
-              return e;
+              OfficeEntity office = inv.getArgument(0);
+              office.setGuid(officeGuid);
+              return office;
             });
-    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    UUID officeLinkGuid = UUID.randomUUID();
+    when(lspProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LspProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              officeLink.setGuid(officeLinkGuid);
+              return officeLink;
+            });
+    UUID lmGuid = UUID.randomUUID();
     when(liaisonManagerRepository.save(any()))
         .thenAnswer(
             inv -> {
@@ -156,30 +170,37 @@ class ProviderCreationServiceTest {
     verify(liaisonManagerRepository).save(lmTemplate);
     assertThat(lmLink.getLiaisonManager()).isNotNull();
     assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
-    assertThat(lmLink.getOffice()).isNotNull();
-    assertThat(lmLink.getOffice().getGuid()).isEqualTo(officeGuid);
+    assertThat(lmLink.getOfficeLink()).isNotNull();
+    assertThat(lmLink.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
     verify(officeLiaisonManagerLinkRepository).save(lmLink);
   }
 
   @Test
   void createChambersFirm_savesProviderOfficeAndLink_returnsAllIdentifiers() {
     UUID providerGuid = UUID.randomUUID();
-    UUID officeGuid = UUID.randomUUID();
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
+    UUID officeGuid = UUID.randomUUID();
     when(officeRepository.save(any()))
         .thenAnswer(
             inv -> {
-              OfficeEntity e = inv.getArgument(0);
-              e.setGuid(officeGuid);
-              return e;
+              OfficeEntity office = inv.getArgument(0);
+              office.setGuid(officeGuid);
+              return office;
             });
-    when(chamberProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    UUID officeLinkGuid = UUID.randomUUID();
+    when(chamberProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ChamberProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              officeLink.setGuid(officeLinkGuid);
+              return officeLink;
+            });
 
     var linkTemplate = new ChamberProviderOfficeLinkEntity();
     linkTemplate.setHeadOfficeFlag(Boolean.TRUE);
@@ -194,7 +215,7 @@ class ProviderCreationServiceTest {
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("CH-");
-    assertThat(result.headOfficeGUID()).isEqualTo(officeGuid);
+    assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
     verify(liaisonManagerRepository, never()).save(any());
   }
@@ -205,9 +226,9 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
 
     var result =
@@ -235,9 +256,9 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
     when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -267,9 +288,9 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
     when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -301,9 +322,9 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
     when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -367,9 +388,9 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
 
     var createDetails =
@@ -412,16 +433,16 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ProviderEntity e = inv.getArgument(0);
-              e.setGuid(providerGuid);
-              return e;
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
             });
     when(officeRepository.save(any()))
         .thenAnswer(
             inv -> {
-              OfficeEntity e = inv.getArgument(0);
-              e.setGuid(officeGuid);
-              return e;
+              OfficeEntity office = inv.getArgument(0);
+              office.setGuid(officeGuid);
+              return office;
             });
 
     var linkTemplate = new LspProviderOfficeLinkEntity();

@@ -943,6 +943,8 @@ paths:
         - $ref: "#/components/parameters/TraceParentHeader"
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
         - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
           description: Provider details retrieved successfully
@@ -1148,6 +1150,8 @@ paths:
         - $ref: "#/components/parameters/TraceParentHeader"
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
         - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
           description: Provider details retrieved successfully
@@ -1280,6 +1284,8 @@ paths:
         - $ref: "#/components/parameters/TraceParentHeader"
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
         - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: "#/components/parameters/QPageNumber"
+        - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
           description: Provider details retrieved successfully

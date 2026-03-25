@@ -90,40 +90,13 @@ jobs:
           echo $! > /tmp/pf.pid
           sleep 3
 
-      - name: "Resolve database credentials from Kubernetes secret"
-        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
-        id:   db_creds
-        env:
-          NS: ${{ secrets.DPD_KUBE_NAMESPACE }}
-        run: |
-          SECRET_NAME="rds-postgresql-instance-output"
-          DB_HOST=$(kubectl -n "${NS}" get secret "${SECRET_NAME}" -o jsonpath='{.data.rds_instance_endpoint}' | base64 -d)
-          DB_NAME=$(kubectl -n "${NS}" get secret "${SECRET_NAME}" -o jsonpath='{.data.database_name}' | base64 -d)
-          DB_USER=$(kubectl -n "${NS}" get secret "${SECRET_NAME}" -o jsonpath='{.data.database_username}' | base64 -d)
-          DB_PASS=$(kubectl -n "${NS}" get secret "${SECRET_NAME}" -o jsonpath='{.data.database_password}' | base64 -d)
-          echo "::add-mask::${DB_PASS}"
-          echo "db_host=${DB_HOST}" >> "$GITHUB_OUTPUT"
-          echo "db_name=${DB_NAME}" >> "$GITHUB_OUTPUT"
-          echo "db_user=${DB_USER}" >> "$GITHUB_OUTPUT"
-          echo "db_pass=${DB_PASS}" >> "$GITHUB_OUTPUT"
-
-      # TODO: The GitHub Actions runner may not have direct network access to the RDS
-      # instance. If that is the case, set up a port-forward or proxy here. For example:
-      #   kubectl -n "${NS}" run db-proxy --image=alpine/socat --restart=Never \
-      #     -- TCP-LISTEN:5432,fork TCP:${DB_HOST}:5432
-      #   kubectl -n "${NS}" port-forward pod/db-proxy 15432:5432 &
-      # Then use jdbc:postgresql://127.0.0.1:15432/${DB_NAME} as E2E_DB_URL below.
-
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
-          AUTH_TOKEN:       ""
-          GITHUB_TOKEN:    ${{ github.token }}
-          GITHUB_ACTOR:    ${{ github.actor }}
-          PROFILE:         ${{ steps.vars.outputs.profile }}
-          E2E_DB_URL:      jdbc:postgresql://${{ steps.db_creds.outputs.db_host }}/${{ steps.db_creds.outputs.db_name }}
-          E2E_DB_USERNAME: ${{ steps.db_creds.outputs.db_user }}
-          E2E_DB_PASSWORD: ${{ steps.db_creds.outputs.db_pass }}
+          AUTH_TOKEN:   ""
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          PROFILE:      ${{ steps.vars.outputs.profile }}
         run: |
           ./gradlew :provider-data-e2e:e2eTest \
             -Pe2e.env="$PROFILE" \

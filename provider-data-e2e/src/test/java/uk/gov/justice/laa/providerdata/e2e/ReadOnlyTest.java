@@ -23,5 +23,5 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Inherited
 @Documented
 @Tag("read-only")
-@ExtendWith({E2eDatabaseExtension.class, E2eRestAssuredExtension.class})
+@ExtendWith(E2eRestAssuredExtension.class)
 public @interface ReadOnlyTest {}

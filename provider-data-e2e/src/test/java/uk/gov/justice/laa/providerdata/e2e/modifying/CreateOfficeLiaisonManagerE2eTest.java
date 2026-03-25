@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -61,7 +62,7 @@ class CreateOfficeLiaisonManagerE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
         .then()
         .statusCode(200)
-        .body("data.content", hasSize(notNullValue()))
+        .body("data.content", hasSize(greaterThanOrEqualTo(1)))
         .body("data.content.firstName", hasItem(firstName))
         .body("data.content.lastName", hasItem(lastName));
   }

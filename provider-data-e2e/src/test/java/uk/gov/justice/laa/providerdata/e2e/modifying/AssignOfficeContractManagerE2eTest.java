@@ -2,12 +2,14 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -16,21 +18,35 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for {@code POST
  * /provider-firms/{firmId}/offices/{officeCode}/contract-managers}.
  *
- * <p>The MVP endpoint requires GUIDs for both office and contract manager identifiers. Tests verify
- * the assignment via GET. Cleanup is handled by {@code delete-test-data.sql} which removes contract
- * manager links for E2E contract managers.
+ * <p>The MVP endpoint requires a contract manager GUID in the request body. The contract manager
+ * GUID is looked up dynamically from the API at test startup.
  */
 @ModifyingTest
 class AssignOfficeContractManagerE2eTest {
 
+  private static String contractManagerGuid;
+
+  @BeforeAll
+  static void lookUpGuids() {
+    contractManagerGuid =
+        given()
+            .queryParam("contractManagerId", E2eConfig.contractManagerId())
+            .when()
+            .get("/provider-contract-managers")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+  }
+
   @Test
   void assignContractManager_forExistingOffice_returns201ThenGetReturnsAssignment() {
-    Map<String, Object> body = Map.of("contractManagerGUID", E2eConfig.contractManagerGuid());
+    Map<String, Object> body = Map.of("contractManagerGUID", contractManagerGuid);
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspGuid())
-        .pathParam("officeCode", E2eConfig.lspOfficeGuid())
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
         .body(body)
         .when()
         .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
@@ -41,13 +57,13 @@ class AssignOfficeContractManagerE2eTest {
 
     // Verify the assignment appears in the GET response
     given()
-        .pathParam("firmId", E2eConfig.lspGuid())
-        .pathParam("officeCode", E2eConfig.lspOfficeGuid())
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
         .then()
         .statusCode(200)
-        .body("data.content", hasSize(notNullValue()))
+        .body("data.content", hasSize(greaterThanOrEqualTo(1)))
         .body("data.content.contractManagerId", hasItem(E2eConfig.contractManagerId()));
   }
 
@@ -57,8 +73,8 @@ class AssignOfficeContractManagerE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspGuid())
-        .pathParam("officeCode", E2eConfig.lspOfficeGuid())
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
         .body(body)
         .when()
         .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
@@ -66,18 +82,6 @@ class AssignOfficeContractManagerE2eTest {
         .statusCode(400);
   }
 
-  @Test
-  void assignContractManager_invalidOfficeGuid_returns400() {
-    Map<String, Object> body = Map.of("contractManagerGUID", E2eConfig.contractManagerGuid());
+  // TODO: Add unknownOfficeCode_returns404 test once the OpenAPI spec defines 404 for this endpoint.
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspGuid())
-        .pathParam("officeCode", "not-a-uuid")
-        .body(body)
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
-        .statusCode(400);
-  }
 }

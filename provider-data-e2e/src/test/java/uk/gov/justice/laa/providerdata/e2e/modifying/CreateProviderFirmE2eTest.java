@@ -14,14 +14,14 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for {@code POST /provider-firms}.
  *
  * <p>Each test creates new data in the local database and verifies it via GET. Cleanup is handled
- * by {@code delete-test-data.sql} which removes providers with names starting with "New ".
+ * by {@code delete-test-data.sql} which removes providers with names starting with "E2E-DSTEW ".
  */
 @ModifyingTest
 class CreateProviderFirmE2eTest {
 
   @Test
   void createLspFirm_returns201ThenGetReturnsCreatedFirm() {
-    String firmName = "New LSP " + System.currentTimeMillis();
+    String firmName = "E2E-DSTEW LSP " + System.currentTimeMillis();
 
     Map<String, Object> body =
         Map.of(
@@ -74,7 +74,7 @@ class CreateProviderFirmE2eTest {
 
   @Test
   void createChambersFirm_returns201ThenGetReturnsCreatedFirm() {
-    String firmName = "New Chambers " + System.currentTimeMillis();
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
 
     Map<String, Object> body =
         Map.of(

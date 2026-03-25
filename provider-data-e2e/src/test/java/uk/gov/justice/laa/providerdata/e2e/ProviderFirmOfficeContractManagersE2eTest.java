@@ -13,8 +13,8 @@ class ProviderFirmOfficeContractManagersE2eTest {
   @Test
   void getOfficeContractManagers_returns200WithExpectedManager() {
     given()
-        .pathParam("firmId", E2eConfig.lspGuid())
-        .pathParam("officeCode", E2eConfig.lspOfficeGuid())
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
         .then()

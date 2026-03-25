@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +11,11 @@ import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractMan
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200ResponseData;
-import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.service.ContractManagerService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
+import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
  * REST controller implementing the contract manager endpoints defined in {@link
@@ -42,22 +44,22 @@ public class ProviderFirmOfficeContractManagersController
   /**
    * Creates (or replaces) an assignment between an office and a contract manager.
    *
-   * <p>MVP behaviour:
-   *
    * <ul>
-   *   <li>The office identifier must be a valid GUID.
-   *   <li>The request body must contain a <code>contractManagerGUID</code>, also a valid GUID.
+   *   <li>The provider identifier may be either a GUID or a firm number.
+   *   <li>The office identifier may be either the provider office link GUID or the office code.
+   *   <li>The request body must contain a <code>contractManagerGUID</code>, which must be a valid
+   *       GUID.
    *   <li>The service replaces any existing assignment for that office.
-   *   <li>The response echoes the linked identifiers without performing further lookups.
+   *   <li>The response includes the provider office link GUID and contract manager ID.
    * </ul>
    *
-   * @param providerFirmGUIDorFirmNumber provider firm identifier (unused in MVP)
-   * @param officeGUIDorCode the office GUID as a string
+   * @param providerFirmGUIDorFirmNumber provider firm identifier
+   * @param officeGUIDorCode the provider office link GUID or office code
    * @param contractManagerProviderPatchV2 body containing the contract manager GUID
    * @param xCorrelationId request correlation ID (optional)
-   * @param transparent used for API debugging or pass‑through behaviour (unused in MVP)
+   * @param traceparent request traceId and spanId (optional)
    * @return HTTP 201 response containing minimal assignment details
-   * @throws IllegalArgumentException if the given office or contract manager IDs are not GUIDs
+   * @throws IllegalArgumentException if the given contract manager ID is not a GUID
    */
   @Override
   public ResponseEntity<CreateProviderFirmOfficeContractManager201Response>
@@ -66,10 +68,7 @@ public class ProviderFirmOfficeContractManagersController
           String officeGUIDorCode,
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String xCorrelationId,
-          String transparent) {
-
-    UUID officeGuid = parseGuidOrThrow("officeGUIDorCode", officeGUIDorCode);
-
+          String traceparent) {
     String rawMgrGuid = contractManagerProviderPatchV2.getContractManagerGUID();
     if (rawMgrGuid == null || rawMgrGuid.isBlank()) {
       throw new IllegalArgumentException("contractManagerGUID must be provided");
@@ -77,9 +76,10 @@ public class ProviderFirmOfficeContractManagersController
     UUID contractManagerGuid = parseGuidOrThrow("contractManagerGUID", rawMgrGuid);
 
     OfficeContractManagerAssignmentService.AssignmentResult result =
-        assignmentService.assign(officeGuid, contractManagerGuid);
+        assignmentService.assign(
+            providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGuid);
 
-    // MVP response: populate what we can without additional lookups
+    // populate what we can without additional lookups
     CreateProviderFirmOfficeContractManager201ResponseData data =
         new CreateProviderFirmOfficeContractManager201ResponseData()
             .officeGUID(result.officeGuid().toString())
@@ -90,15 +90,15 @@ public class ProviderFirmOfficeContractManagersController
   }
 
   /**
-   * Retrieves all contract manager assignments for an office.
+   * Retrieves contract manager assignments for an office.
    *
-   * <p>Currently not required for MVP and therefore returns HTTP 501 NOT_IMPLEMENTED.
-   *
-   * @param providerFirmGUIDorFirmNumber provider firm identifier (unused)
-   * @param officeGUIDorCode office identifier (unused)
-   * @param xCorrelationId request correlation ID (unused)
-   * @param transparent debugging/trace option (unused)
-   * @return 501 NOT_IMPLEMENTED with an empty response body
+   * @param providerFirmGUIDorFirmNumber provider firm identifier
+   * @param officeGUIDorCode office identifier
+   * @param xCorrelationId request correlation ID
+   * @param traceparent debugging/trace option
+   * @param page requested page number
+   * @param pageSize requested page size
+   * @return 200 OK with paginated contract manager response data
    */
   @Override
   public ResponseEntity<GetProviderFirmOfficeContractManagers200Response>
@@ -106,17 +106,22 @@ public class ProviderFirmOfficeContractManagersController
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
           String xCorrelationId,
-          String transparent) {
-
-    List<OfficeContractManagerV2> managers =
-        contractManagerService.getContractManagers(officeGUIDorCode, providerFirmGUIDorFirmNumber);
-
-    GetProviderFirmOfficeContractManagers200Response response =
-        new GetProviderFirmOfficeContractManagers200Response();
+          String traceparent,
+          BigDecimal page,
+          BigDecimal pageSize) {
+    var pageParams = PageParamValidator.resolve(page, pageSize);
+    var managers =
+        contractManagerService.getContractManagers(
+            providerFirmGUIDorFirmNumber, officeGUIDorCode, pageParams);
 
     GetProviderFirmOfficeContractManagers200ResponseData data =
         new GetProviderFirmOfficeContractManagers200ResponseData();
-    data.setContent(managers);
+    data.setContent(managers.getContent());
+    data.setMetadata(PageMetadata.of(managers));
+    data.setLinks(PageLinks.of(managers));
+
+    GetProviderFirmOfficeContractManagers200Response response =
+        new GetProviderFirmOfficeContractManagers200Response();
     response.setData(data);
 
     return ResponseEntity.ok(response);
@@ -134,7 +139,7 @@ public class ProviderFirmOfficeContractManagersController
     try {
       return UUID.fromString(value);
     } catch (Exception e) {
-      throw new IllegalArgumentException(field + " must be a GUID for MVP. Value was: " + value);
+      throw new IllegalArgumentException(field + " must be a GUID. Value was: " + value);
     }
   }
 }

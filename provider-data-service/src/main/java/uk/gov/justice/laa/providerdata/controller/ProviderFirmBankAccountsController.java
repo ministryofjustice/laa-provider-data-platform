@@ -56,7 +56,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
   public ResponseEntity<GetProviderFirmBankAccounts200Response> getProviderFirmBankAccounts(
       String providerFirmGUIDorFirmNumber,
       @Nullable String xCorrelationId,
-      @Nullable String transparent,
+      @Nullable String traceparent,
       @Nullable String bankAccountNumber,
       @Nullable BigDecimal page,
       @Nullable BigDecimal pageSize) {
@@ -89,7 +89,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
           @Nullable String xCorrelationId,
-          @Nullable String transparent,
+          @Nullable String traceparent,
           @Nullable String bankAccountNumber,
           @Nullable BigDecimal page,
           @Nullable BigDecimal pageSize) {

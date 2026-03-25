@@ -156,6 +156,20 @@ public final class E2eConfig {
     return require("chambers.office.code");
   }
 
+  // --- Contract managers ---
+
+  public static String contractManagerId() {
+    return require("contractManager.id");
+  }
+
+  public static String contractManagerFirstName() {
+    return require("contractManager.firstName");
+  }
+
+  public static String contractManagerLastName() {
+    return require("contractManager.lastName");
+  }
+
   // --- Invalid identifiers (for 404 testing) ---
 
   public static String invalidFirmNumber() {

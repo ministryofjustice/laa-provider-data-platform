@@ -82,6 +82,7 @@ class AssignOfficeContractManagerE2eTest {
         .statusCode(400);
   }
 
-  // TODO: Add unknownOfficeCode_returns404 test once the OpenAPI spec defines 404 for this endpoint.
+  // TODO: Add unknownOfficeCode_returns404 test once the OpenAPI spec defines 404 for this
+  // endpoint.
 
 }

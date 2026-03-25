@@ -16,7 +16,7 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  * <p><strong>Behavior:</strong>
  *
  * <ul>
- *   <li>Ensures there is at most one assignment per office (MVP rule). Any existing assignment for
+ *   <li>Ensures there is at most one assignment per office (for now). Any existing assignment for
  *       the office is removed before creating a new link.
  *   <li>Looks up the {@code ContractManagerEntity} by its GUID and throws an {@link
  *       IllegalArgumentException} if it does not exist.
@@ -34,6 +34,8 @@ public class OfficeContractManagerAssignmentService {
   private final ContractManagerRepository contractManagerRepository;
   private final OfficeContractManagerLinkRepository linkRepository;
   private final EntityManager entityManager;
+  private final ProviderService providerService;
+  private final OfficeService officeService;
 
   /**
    * Constructs a new {@code OfficeContractManagerAssignmentService}.
@@ -41,37 +43,45 @@ public class OfficeContractManagerAssignmentService {
    * @param contractManagerRepository repository for querying {@link ContractManagerEntity} records
    * @param linkRepository repository for managing {@link OfficeContractManagerLinkEntity} links
    * @param entityManager JPA {@link EntityManager} used to obtain references to entities
+   * @param providerService service for resolving provider identifiers
+   * @param officeService service for resolving provider office identifiers
    */
   public OfficeContractManagerAssignmentService(
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
-      EntityManager entityManager) {
+      EntityManager entityManager,
+      ProviderService providerService,
+      OfficeService officeService) {
     this.contractManagerRepository = contractManagerRepository;
     this.linkRepository = linkRepository;
     this.entityManager = entityManager;
+    this.providerService = providerService;
+    this.officeService = officeService;
   }
 
   /**
    * Assigns a contract manager to an office.
    *
-   * <p><strong>MVP Rule:</strong> Only one assignment per office is permitted. This method deletes
-   * any existing {@link OfficeContractManagerLinkEntity} for the provided {@code officeGuid} before
-   * creating the new link.
+   * <p>Currently only one assignment per office is permitted. This method resolves the provider
+   * using a provider GUID or firm number, then resolves the office using either the provider office
+   * link GUID or the office account number. It deletes any existing {@link
+   * OfficeContractManagerLinkEntity} for the resolved office before creating the new link.
    *
-   * <p><strong>Lookup semantics:</strong> The contract manager must exist; otherwise an {@link
-   * IllegalArgumentException} is thrown. The office is referenced via {@link
-   * EntityManager#getReference(Class, Object)} assuming the GUID is the primary key.
+   * <p>The contract manager must exist; otherwise an {@link IllegalArgumentException} is thrown.
+   * Provider and office resolution follow the same semantics as the other provider-office endpoints
+   * in the application.
    *
-   * @param officeGuid the GUID of the {@link OfficeEntity} receiving the assignment; assumed to be
-   *     its primary key
+   * @param providerGuidOrFirmNumber the provider GUID or firm number
+   * @param officeGuidOrCode the provider office link GUID or office account number
    * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} being assigned
-   * @return an {@link AssignmentResult} containing the office GUID and the assigned contract
-   *     manager's external/business ID
+   * @return an {@link AssignmentResult} containing the provider office link GUID and the assigned
+   *     contract manager's external/business ID
    * @throws IllegalArgumentException if no contract manager exists with the given {@code
    *     contractManagerGuid}
    */
   @Transactional
-  public AssignmentResult assign(UUID officeGuid, UUID contractManagerGuid) {
+  public AssignmentResult assign(
+      String providerGuidOrFirmNumber, String officeGuidOrCode, UUID contractManagerGuid) {
     ContractManagerEntity manager =
         contractManagerRepository
             .findById(contractManagerGuid)
@@ -79,6 +89,11 @@ public class OfficeContractManagerAssignmentService {
                 () ->
                     new IllegalArgumentException(
                         "Unknown contractManagerGUID: " + contractManagerGuid));
+
+    var provider = providerService.getProvider(providerGuidOrFirmNumber);
+    var providerOfficeLink = officeService.getOfficeLink(provider, officeGuidOrCode);
+    UUID officeGuid = providerOfficeLink.getOffice().getGuid();
+    UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
 
     // Lightweight reference; assumes OfficeEntity primary key is the GUID.
     OfficeEntity officeRef = entityManager.getReference(OfficeEntity.class, officeGuid);
@@ -94,13 +109,13 @@ public class OfficeContractManagerAssignmentService {
 
     linkRepository.save(link);
 
-    return new AssignmentResult(officeGuid, manager.getContractManagerId());
+    return new AssignmentResult(providerOfficeLinkGuid, manager.getContractManagerId());
   }
 
   /**
    * Simple result DTO representing the outcome of an assignment operation.
    *
-   * @param officeGuid the GUID of the office that received the assignment
+   * @param officeGuid the GUID of the provider office link that received the assignment
    * @param contractManagerId the business/external identifier of the assigned contract manager
    */
   public record AssignmentResult(UUID officeGuid, String contractManagerId) {}

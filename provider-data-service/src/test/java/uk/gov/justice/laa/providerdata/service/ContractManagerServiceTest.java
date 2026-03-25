@@ -87,8 +87,12 @@ class ContractManagerServiceTest {
    */
   @Test
   void shouldReturnContractManagersForOffice() {
-    when(providerService.getProvider("FRM001")).thenReturn(provider);
-    when(officeService.getOfficeLink(provider, "ACC001")).thenReturn(providerOfficeLink);
+    String providerGuidValue = providerGuid.toString();
+    String providerOfficeLinkGuidValue = providerOfficeLink.getGuid().toString();
+
+    when(providerService.getProvider(providerGuidValue)).thenReturn(provider);
+    when(officeService.getOfficeLink(provider, providerOfficeLinkGuidValue))
+        .thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
     when(linkRepository.findByOffice_Guid(officeGuid, pageable))
@@ -96,7 +100,8 @@ class ContractManagerServiceTest {
 
     when(mapper.toOfficeContractManagerV2(entity)).thenReturn(dto);
 
-    var result = service.getContractManagers("FRM001", "ACC001", pageable);
+    var result =
+        service.getContractManagers(providerGuidValue, providerOfficeLinkGuidValue, pageable);
 
     assertThat(result.getContent()).hasSize(1);
     assertThat(result.getContent().getFirst().getContractManagerId()).isEqualTo("CM123");

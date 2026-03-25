@@ -30,15 +30,36 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Test
   @Transactional
-  void assign_thenRepositoryCanQueryByOfficeGuid() {
-    // Arrange: contract manager
-    ContractManagerEntity cm =
+  void assign_byProviderFirmNumberAndOfficeCode_thenRepositoryCanQueryByOfficeGuid() {
+    TestData testData = createTestData();
+
+    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+
+    assertAssignmentPersisted(testData, result.officeGuid());
+  }
+
+  @Test
+  @Transactional
+  void assign_byProviderGuidAndOfficeLinkGuid_thenRepositoryCanQueryByOfficeGuid() {
+    TestData testData = createTestData();
+
+    var result =
+        service.assign(
+            testData.provider().getGuid().toString(),
+            testData.providerOfficeLink().getGuid().toString(),
+            testData.contractManager().getGuid());
+
+    assertAssignmentPersisted(testData, result.officeGuid());
+  }
+
+  private TestData createTestData() {
+    ContractManagerEntity contractManager =
         ContractManagerEntity.builder()
             .contractManagerId("CM-001")
             .firstName("Pat")
             .lastName("Jones")
             .build();
-    cm = contractManagerRepository.saveAndFlush(cm);
+    contractManager = contractManagerRepository.saveAndFlush(contractManager);
 
     ProviderEntity provider =
         providerRepository.save(
@@ -68,13 +89,19 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
     providerOfficeLink =
         (LspProviderOfficeLinkEntity) providerOfficeLinkRepository.save(providerOfficeLink);
 
-    // Act
-    var result = service.assign("FRM-CM-TEST", "ACC001", cm.getGuid());
+    return new TestData(contractManager, provider, office, providerOfficeLink);
+  }
 
-    // Assert
-    assertThat(result.officeGuid()).isEqualTo(providerOfficeLink.getGuid());
-    var links = linkRepository.findByOffice_Guid(officeGuid);
+  private void assertAssignmentPersisted(TestData testData, UUID returnedProviderOfficeLinkGuid) {
+    assertThat(returnedProviderOfficeLinkGuid).isEqualTo(testData.providerOfficeLink().getGuid());
+    var links = linkRepository.findByOffice_Guid(testData.office().getGuid());
     assertThat(links).hasSize(1);
     assertThat(links.get(0).getContractManager().getContractManagerId()).isEqualTo("CM-001");
   }
+
+  private record TestData(
+      ContractManagerEntity contractManager,
+      ProviderEntity provider,
+      OfficeEntity office,
+      LspProviderOfficeLinkEntity providerOfficeLink) {}
 }

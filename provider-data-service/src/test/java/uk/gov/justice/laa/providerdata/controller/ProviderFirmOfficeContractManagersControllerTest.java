@@ -80,9 +80,13 @@ class ProviderFirmOfficeContractManagersControllerTest {
   void postContractManagers_returns201_andBodyContainsOfficeGuidAndContractManagerId()
       throws Exception {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
+    UUID providerGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("FRM001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(
+            eq(providerGuid.toString()),
+            eq(providerOfficeLinkGuid.toString()),
+            eq(contractManagerGuid)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
                 providerOfficeLinkGuid, "CM-001"));
@@ -91,8 +95,8 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
-                    "ACC001")
+                    providerGuid,
+                    providerOfficeLinkGuid)
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
@@ -238,21 +242,24 @@ class ProviderFirmOfficeContractManagersControllerTest {
 
   @Test
   void getContractManagers_returns200_andResponseContainsManagers() throws Exception {
+    UUID providerGuid = UUID.randomUUID();
+    UUID providerOfficeLinkGuid = UUID.randomUUID();
     Page<OfficeContractManagerV2> mockManagers =
         new PageImpl<>(
             List.of(new OfficeContractManagerV2().contractManagerId("CM-001")),
             PageRequest.of(0, 100),
             1);
 
-    when(contractManagerService.getContractManagers("FRM001", "ACC001", PageRequest.of(0, 100)))
+    when(contractManagerService.getContractManagers(
+            providerGuid.toString(), providerOfficeLinkGuid.toString(), PageRequest.of(0, 100)))
         .thenReturn(mockManagers);
 
     mockMvc
         .perform(
             get(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
-                    "ACC001")
+                    providerGuid,
+                    providerOfficeLinkGuid)
                 .contentType("application/json"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content[0].contractManagerId").value("CM-001"))

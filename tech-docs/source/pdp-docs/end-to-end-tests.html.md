@@ -21,23 +21,12 @@ Tests are split into two categories using custom annotations:
 
 ## Test data
 
-### SQL-inserted data
+Test data is provided by the `LocalDataSeeder`, which runs on application startup with
+the `local` profile. It populates the database with providers, offices, bank accounts,
+contract managers, liaison managers, and their relationships.
 
-The `E2eDatabaseExtension` JUnit extension connects directly to the PostgreSQL database
-and runs SQL scripts before and after the test suite:
-
-- **`insert-test-data.sql`** — inserts test data with fixed `e2e00000-*` UUIDs before
-  all tests run. A preceding delete ensures idempotency.
-- **`delete-test-data.sql`** — removes the inserted data after all tests complete.
-
-This data is separate from the `LocalDataSeeder` and uses distinct identifiers
-(e.g. `E2E-LSP-001`, `E2E-CHM-001`) to avoid conflicts.
-
-### POST-created data
-
-Modifying tests create data via POST endpoints, verify it via GET, then clean up via
-JDBC in `@AfterAll`. Each test uses timestamp-suffixed names to avoid conflicts between
-runs.
+Modifying tests create additional data via POST endpoints and verify it via GET. Each
+test uses timestamp-suffixed names to avoid conflicts between runs.
 
 ## Configuration
 
@@ -48,11 +37,7 @@ Each environment has a `.properties` file under `src/test/resources/`.
 The `local.properties` file includes:
 
 - API base URI (`e2e.baseUri`)
-- Database connection details (`db.url`, `db.username`, `db.password`)
-- Test data identifiers matching `insert-test-data.sql`
-
-For non-local environments, database credentials must be supplied via environment
-variables: `E2E_DB_URL`, `E2E_DB_USERNAME`, `E2E_DB_PASSWORD`.
+- Test data identifiers matching the `LocalDataSeeder`
 
 ### Auth token
 
@@ -114,12 +99,6 @@ To query the local database directly:
 
 ```bash
 docker exec -it laa-provider-data-platform-db-1 psql -U provider -d provider_data
-```
-
-To verify E2E-inserted data:
-
-```sql
-SELECT guid, firm_number, name FROM provider WHERE firm_number LIKE 'E2E%';
 ```
 
 ## Gradle notes

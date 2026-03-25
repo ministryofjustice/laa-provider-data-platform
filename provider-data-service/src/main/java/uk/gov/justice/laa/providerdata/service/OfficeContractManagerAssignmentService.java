@@ -13,8 +13,6 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
 /**
  * Service responsible for assigning a {@link ContractManagerEntity} to an {@link OfficeEntity}.
  *
- * <p><strong>Behavior:</strong>
- *
  * <ul>
  *   <li>Ensures there is at most one assignment per office (for now). Any existing assignment for
  *       the office is removed before creating a new link.
@@ -24,16 +22,14 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  *       EntityManager#getReference(Class, Object)}, assuming the office GUID is the primary key.
  * </ul>
  *
- * <p><strong>Transactions:</strong> The {@link #assign(UUID, UUID)} method is transactional. It
- * will atomically remove any previous assignment for the office and persist the new link or roll
- * back on failure.
+ * <p>The {@link #assign(String, String, UUID)} method is transactional. It will atomically remove
+ * any previous assignment for the office and persist the new link or roll back on failure.
  */
 @Service
 public class OfficeContractManagerAssignmentService {
 
   private final ContractManagerRepository contractManagerRepository;
   private final OfficeContractManagerLinkRepository linkRepository;
-  private final EntityManager entityManager;
   private final ProviderService providerService;
   private final OfficeService officeService;
 
@@ -42,19 +38,16 @@ public class OfficeContractManagerAssignmentService {
    *
    * @param contractManagerRepository repository for querying {@link ContractManagerEntity} records
    * @param linkRepository repository for managing {@link OfficeContractManagerLinkEntity} links
-   * @param entityManager JPA {@link EntityManager} used to obtain references to entities
    * @param providerService service for resolving provider identifiers
    * @param officeService service for resolving provider office identifiers
    */
   public OfficeContractManagerAssignmentService(
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
-      EntityManager entityManager,
       ProviderService providerService,
       OfficeService officeService) {
     this.contractManagerRepository = contractManagerRepository;
     this.linkRepository = linkRepository;
-    this.entityManager = entityManager;
     this.providerService = providerService;
     this.officeService = officeService;
   }
@@ -92,18 +85,14 @@ public class OfficeContractManagerAssignmentService {
 
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
     var providerOfficeLink = officeService.getOfficeLink(provider, officeGuidOrCode);
-    UUID officeGuid = providerOfficeLink.getOffice().getGuid();
     UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
 
-    // Lightweight reference; assumes OfficeEntity primary key is the GUID.
-    OfficeEntity officeRef = entityManager.getReference(OfficeEntity.class, officeGuid);
-
     // MVP: ensure only one assignment exists
-    linkRepository.deleteByOffice_Guid(officeGuid);
+    linkRepository.deleteByOfficeLink_Guid(providerOfficeLinkGuid);
 
     OfficeContractManagerLinkEntity link =
         OfficeContractManagerLinkEntity.builder()
-            .office(officeRef)
+            .officeLink(providerOfficeLink)
             .contractManager(manager)
             .build();
 

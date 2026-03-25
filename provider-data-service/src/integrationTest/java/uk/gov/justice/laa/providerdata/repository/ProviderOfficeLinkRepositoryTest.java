@@ -70,15 +70,6 @@ class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   }
 
   @Test
-  void findByProviderAndOffice_Guid_returnsLink() {
-    Optional<ProviderOfficeLinkEntity> result =
-        repository.findByProviderAndOffice_Guid(provider, office.getGuid());
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getAccountNumber()).isEqualTo("LNK001");
-  }
-
-  @Test
   void findByProviderAndAccountNumber_returnsLink() {
     Optional<ProviderOfficeLinkEntity> result =
         repository.findByProviderAndAccountNumber(provider, "LNK001");

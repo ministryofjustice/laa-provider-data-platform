@@ -223,6 +223,7 @@ class ProviderFirmControllerTest {
     UUID guid1 = UUID.randomUUID();
     UUID guid2 = UUID.randomUUID();
 
+    // Mock provider entities
     ProviderEntity entity1 =
         ProviderEntity.builder().firmNumber("FRM001").name("Test Advocate 1").build();
     entity1.setGuid(guid1);
@@ -230,16 +231,24 @@ class ProviderFirmControllerTest {
         ProviderEntity.builder().firmNumber("FRM002").name("Test Advocate 2").build();
     entity2.setGuid(guid2);
 
+    // Mock paged result
     Page<ProviderEntity> page = new PageImpl<>(List.of(entity1, entity2), PageRequest.of(0, 20), 2);
-
     when(providerFirmService.searchProviders(
             any(), any(), any(), any(), any(), any(PageRequest.class)))
         .thenReturn(page);
 
+    // Mock head office / parent links
     when(providerFirmService.getLspHeadOffice(entity1)).thenReturn(Optional.empty());
     when(providerFirmService.getChambersHeadOffice(entity1)).thenReturn(Optional.empty());
     when(providerFirmService.getAdvocateOfficeLink(entity1)).thenReturn(Optional.empty());
     when(providerFirmService.getParentLinks(entity1)).thenReturn(List.of());
+
+    when(providerFirmService.getLspHeadOffice(entity2)).thenReturn(Optional.empty());
+    when(providerFirmService.getChambersHeadOffice(entity2)).thenReturn(Optional.empty());
+    when(providerFirmService.getAdvocateOfficeLink(entity2)).thenReturn(Optional.empty());
+    when(providerFirmService.getParentLinks(entity2)).thenReturn(List.of());
+
+    // Mock mapping to DTOs
     when(providerFirmMapper.toProviderV2(entity1, null, null, null, List.of()))
         .thenReturn(
             new ProviderV2()
@@ -248,10 +257,6 @@ class ProviderFirmControllerTest {
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 1"));
 
-    when(providerFirmService.getLspHeadOffice(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getChambersHeadOffice(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getAdvocateOfficeLink(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getParentLinks(entity2)).thenReturn(List.of());
     when(providerFirmMapper.toProviderV2(entity2, null, null, null, List.of()))
         .thenReturn(
             new ProviderV2()
@@ -260,6 +265,7 @@ class ProviderFirmControllerTest {
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 2"));
 
+    // Perform request
     mockMvc
         .perform(
             get("/provider-firms")
@@ -268,11 +274,23 @@ class ProviderFirmControllerTest {
                 .param("pageSize", "20")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
+        // Check content
         .andExpect(jsonPath("$.data.content.length()").value(2))
         .andExpect(jsonPath("$.data.content[0].guid").value(guid1.toString()))
         .andExpect(jsonPath("$.data.content[0].firmType").value("Advocate"))
         .andExpect(jsonPath("$.data.content[1].guid").value(guid2.toString()))
-        .andExpect(jsonPath("$.data.content[1].firmType").value("Advocate"));
+        .andExpect(jsonPath("$.data.content[1].firmType").value("Advocate"))
+        // Check pagination metadata
+        .andExpect(jsonPath("$.data.metadata.pagination.currentPage").value(0))
+        .andExpect(jsonPath("$.data.metadata.pagination.pageSize").value(20))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(2))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalPages").value(1))
+        // Check that search criteria includes 'type'
+        .andExpect(
+            jsonPath("$.data.metadata.searchCriteria.criteria[?(@.filter=='type')].values[0]")
+                .value("Advocate"))
+        // Check links are present
+        .andExpect(jsonPath("$.data.links").exists());
   }
 
   @Test

@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,15 +30,16 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LinksV2;
 import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
-import uk.gov.justice.laa.providerdata.model.PaginationV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
-import uk.gov.justice.laa.providerdata.model.SearchCriteriaV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
  * REST controller for provider firm operations.
@@ -120,32 +121,30 @@ public class ProviderFirmController {
       @RequestParam(required = false) List<String> providerFirmGUID,
       @RequestParam(required = false) List<String> providerFirmNumber,
       @RequestParam(required = false) String name,
-      @RequestParam(required = false) String activeStatus,
       @Parameter(
               description = "Filter by provider firm type",
               schema = @Schema(implementation = ProviderFirmTypeV2.class))
           @RequestParam(required = false)
           List<ProviderFirmTypeV2> type, // Spring calls ProviderFirmTypeConverter
+      @RequestParam(required = false) String activeStatus,
       @RequestParam(required = false) List<String> accountNumber,
       @RequestParam(required = false) List<String> practitionerRollNumber,
       @RequestParam(required = false) List<String> parentFirmGUID,
       @RequestParam(required = false) List<String> parentFirmNumber,
 
       // Pagination
-      @RequestParam(name = "page", defaultValue = "0") int page,
-      @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
+      @RequestParam(name = "page", required = false) BigDecimal page,
+      @RequestParam(name = "pageSize", required = false) BigDecimal pageSize) {
 
-    // 🔹 Call service to get paged results
+    // Resolve pagination using util
+    Pageable pageable = PageParamValidator.resolve(page, pageSize);
+
+    // Fetch paginated providers
     Page<ProviderEntity> result =
         providerFirmService.searchProviders(
-            providerFirmGUID,
-            providerFirmNumber,
-            name,
-            activeStatus,
-            type, // Multi-value Enum supported via converter
-            PageRequest.of(page, pageSize));
+            providerFirmGUID, providerFirmNumber, name, null, type, pageable);
 
-    // 🔹 Map entities → DTOs
+    // Map entities to DTOs
     List<ProviderV2> content =
         result.getContent().stream()
             .map(
@@ -158,30 +157,28 @@ public class ProviderFirmController {
                         providerFirmService.getParentLinks(provider)))
             .toList();
 
-    // 🔹 Build pagination metadata
-    PaginationV2 pagination =
-        PaginationV2.builder()
-            .currentPage(BigDecimal.valueOf(result.getNumber()))
-            .pageSize(BigDecimal.valueOf(result.getSize()))
-            .totalPages(BigDecimal.valueOf(result.getTotalPages()))
-            .totalItems(BigDecimal.valueOf(result.getTotalElements()))
-            .build();
-
+    // Build metadata only for filters that are actually applied
     PaginatedSearchV2 metadata =
-        PaginatedSearchV2.builder()
-            .searchCriteria(new SearchCriteriaV2()) // TODO: map actual filters if needed
-            .pagination(pagination)
+        PageMetadata.builder(result)
+            .search("providerFirmGUID", providerFirmGUID)
+            .search("providerFirmNumber", providerFirmNumber)
+            .search("name", name)
+            .search(
+                "type",
+                type != null ? type.stream().map(ProviderFirmTypeV2::getValue).toList() : null)
             .build();
 
-    // 🔹 Build final response
+    // Build links
+    LinksV2 links = PageLinks.of(result);
+
+    // Build final response
     GetProviderFirms200Response response =
         new GetProviderFirms200Response()
             .data(
                 new GetProviderFirms200ResponseData()
                     .content(content)
                     .metadata(metadata)
-                    .links(new LinksV2()) // TODO: populate if needed
-                );
+                    .links(links));
 
     return ResponseEntity.ok(response);
   }

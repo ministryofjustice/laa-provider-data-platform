@@ -5,6 +5,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,8 +14,7 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Provider Bank Account Link entity representing a link between provider and bank accounts.
- * Available for LSP/Advocates. Not applicable for Chambers. Defines an additional filter for bank
- * accounts available for offices.
+ * Available for LSP/Advocates. Not applicable for Chambers.
  */
 @SuperBuilder
 @NoArgsConstructor
@@ -22,7 +22,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "PROVIDER_BANK_ACCOUNT_LINK")
+@Table(
+    name = "PROVIDER_BANK_ACCOUNT_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_PROVIDER_BA_LINK_PROVIDER_BANK_ACCOUNT",
+            columnNames = {"PROVIDER_GUID", "BANK_ACCOUNT_GUID"}))
 public class ProviderBankAccountLinkEntity extends AuditableEntity {
 
   @ManyToOne

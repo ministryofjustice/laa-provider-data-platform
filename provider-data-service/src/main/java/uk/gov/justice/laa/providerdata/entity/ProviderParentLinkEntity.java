@@ -5,6 +5,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,11 +14,7 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Provider Parent Link entity representing a link between provider and parent provider. Applicable
- * only for provider type=Advocate. There can only be one parent provider of type=Chamber and/or
- * provider of type=LSP (maximum of two parents). Parent link is defined as a separate table to
- * facilitate future capability of Advocates having multiple parents. Chamber link is automatically
- * created when a new Advocate record is added. When Advocate changes Chamber (parent), the link
- * should be updated.
+ * only for provider type=Advocate.
  */
 @SuperBuilder
 @NoArgsConstructor
@@ -25,7 +22,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "PROVIDER_PARENT_LINK")
+@Table(
+    name = "PROVIDER_PARENT_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_PROVIDER_PARENT_LINK_PROVIDER_PARENT",
+            columnNames = {"PROVIDER_GUID", "PARENT_GUID"}))
 public class ProviderParentLinkEntity extends AuditableEntity {
 
   @ManyToOne

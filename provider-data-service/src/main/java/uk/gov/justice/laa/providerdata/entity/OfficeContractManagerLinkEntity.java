@@ -5,6 +5,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,7 +21,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "OFFICE_CONTRACT_MANAGER_LINK")
+@Table(
+    name = "OFFICE_CONTRACT_MANAGER_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_OFFICE_CONTRACT_MGR_LINK_OFFICE_CONTRACT_MGR",
+            columnNames = {"OFFICE_GUID", "CONTRACT_MANAGER_GUID"}))
 public class OfficeContractManagerLinkEntity extends AuditableEntity {
 
   @ManyToOne

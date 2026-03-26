@@ -123,6 +123,15 @@ public class OfficeService {
 
     if (lmTemplate != null && lmLinkTemplate != null) {
       LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
+
+      // Enforce NOT NULL constraints introduced on OfficeLiaisonManagerLinkEntity.
+      if (lmLinkTemplate.getActiveDateFrom() == null) {
+        lmLinkTemplate.setActiveDateFrom(LocalDate.now());
+      }
+      if (lmLinkTemplate.getLinkedFlag() == null) {
+        lmLinkTemplate.setLinkedFlag(Boolean.FALSE);
+      }
+
       lmLinkTemplate.setLiaisonManager(savedLm);
       lmLinkTemplate.setOfficeLink(savedLink);
       officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
@@ -213,9 +222,6 @@ public class OfficeService {
     List<String> codes = officeCodes != null ? officeCodes : List.of();
 
     if (guids.isEmpty() && codes.isEmpty()) {
-      // TODO: the spec describes use case 1 as "Browse all active offices" but defines no
-      // activeOnly parameter. This may mean the query should filter by activeDateTo IS NULL,
-      // but that would leave no way for callers to retrieve inactive offices.
       return providerOfficeLinkRepository.findAll(pageable);
     }
 
@@ -351,7 +357,7 @@ public class OfficeService {
       bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
     } else if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeLinkV2 link) {
       bankDetailsService.linkExisting(
-          UUID.fromString(link.getBankAccountGUID()),
+          java.util.UUID.fromString(link.getBankAccountGUID()),
           provider,
           officeLink,
           link.getActiveDateFrom());

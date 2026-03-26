@@ -6,6 +6,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -24,7 +25,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "OFFICE_BANK_ACCOUNT_LINK")
+@Table(
+    name = "OFFICE_BANK_ACCOUNT_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_OFFICE_BA_LINK_PROVIDER_OFFICE_BANK_ACCOUNT",
+            columnNames = {"PROVIDER_OFFICE_LINK_GUID", "BANK_ACCOUNT_GUID"}))
 public class OfficeBankAccountLinkEntity extends AuditableEntity {
 
   @ManyToOne
@@ -41,10 +47,10 @@ public class OfficeBankAccountLinkEntity extends AuditableEntity {
       foreignKey = @ForeignKey(name = "FK_OFFICE_BA_LINK_PROVIDER_OFFICE"))
   private ProviderOfficeLinkEntity providerOfficeLink;
 
-  @Column(name = "PRIMARY_FLAG")
+  @Column(name = "PRIMARY_FLAG", nullable = false)
   private Boolean primaryFlag;
 
-  @Column(name = "ACTIVE_DATE_FROM")
+  @Column(name = "ACTIVE_DATE_FROM", nullable = false)
   private LocalDate activeDateFrom;
 
   @Column(name = "ACTIVE_DATE_TO")

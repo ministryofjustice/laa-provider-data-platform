@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -15,6 +16,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 
+@Transactional
 class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository providerRepository;
@@ -57,6 +59,7 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
     lspLink.setProvider(provider);
     lspLink.setOffice(lspOffice);
     lspLink.setAccountNumber("LSP-001");
+    lspLink.setHeadOfficeFlag(true);
     savedLspLink = lspRepository.save(lspLink);
 
     ProviderOfficeLinkEntity nonLspLink =
@@ -64,6 +67,7 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
             .provider(provider)
             .office(nonLspOffice)
             .accountNumber("NLSP-001")
+            .headOfficeFlag(false)
             .build();
     providerOfficeLinkRepository.save(nonLspLink);
   }

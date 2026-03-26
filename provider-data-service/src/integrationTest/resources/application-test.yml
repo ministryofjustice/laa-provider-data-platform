@@ -2,7 +2,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+    # Keep SQL statement logging off in tests to reduce noise
+    show-sql: false
+    properties:
+      hibernate:
+        session:
+          events:
+            log:
+              # Keep slow-query logging enabled in tests too (safe default).
+              LOG_QUERIES_SLOWER_THAN_MS: 100
 
 logging:
   level:
     uk.gov.justice.laadata.providers: DEBUG
+    # Ensure slow query logger is visible in test logs if triggered.
+    org.hibernate.SQL_SLOW: INFO

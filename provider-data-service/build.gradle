@@ -67,6 +67,12 @@ jacocoTestCoverageVerification {
     }
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+    gradlePluginPortal()
+}
+
 dependencies {
     implementation project(':provider-data-api')
 
@@ -76,6 +82,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // Micrometer tracing (Spring Boot 4 compatible)
+    implementation platform('io.micrometer:micrometer-tracing-bom:1.6.4')
+    implementation 'io.micrometer:micrometer-tracing'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.postgresql:postgresql'

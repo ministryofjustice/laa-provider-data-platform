@@ -37,11 +37,25 @@ repos:
           [[ "$MSG" =~ ^Revert ]] && exit 0
           [[ "$MSG" =~ ^(feat|fix|chore|refactor|test|spike|docs|ci|infra)(\(|:|\s) ]] && exit 0
           echo "⛔ Invalid commit message. Must start with: feat|fix|chore|refactor|test|spike|docs|ci|infra"
-          exit 1
-          ' --
+          exit 1' --
         language: system
         stages: [commit-msg]
         always_run: true
+
+      - id: commit-signing-config
+        name: Commit signing configured
+        entry: |
+          bash -c '
+          KEY="$(git config --get user.signingkey || true)"
+          SIGN="$(git config --get commit.gpgsign || true)"
+          FORMAT="$(git config --get gpg.format || echo openpgp)"
+          [ -n "$KEY" ] && [ "$SIGN" = "true" ] && { [ "$FORMAT" = "openpgp" ] || [ "$FORMAT" = "ssh" ]; } && exit 0
+          echo "⛔ Git commit signing is likely not configured correctly. Check user.signingkey, commit.gpgsign, and gpg.format"
+          exit 1'
+        language: system
+        stages: [commit]
+        always_run: true
+        pass_filenames: false
 
       - id: spotless-format
         name: Spotless Java formatting

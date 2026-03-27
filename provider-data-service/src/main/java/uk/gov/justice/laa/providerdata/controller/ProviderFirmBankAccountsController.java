@@ -1,13 +1,11 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import java.math.BigDecimal;
-import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmBankAccountsApi;
-import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
@@ -65,17 +63,16 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 
-    Page<ProviderBankAccountLinkEntity> results =
-        bankDetailsService.getProviderBankAccounts(provider, bankAccountNumber, pageParams);
-
-    List<BankAccountV2> accounts =
-        results.getContent().stream().map(bankAccountMapper::toBankAccountV2).toList();
+    Page<BankAccountV2> results =
+        bankDetailsService
+            .getProviderBankAccounts(provider, bankAccountNumber, pageParams)
+            .map(bankAccountMapper::toBankAccountV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmBankAccounts200Response()
             .data(
                 new GetProviderFirmBankAccounts200ResponseData()
-                    .content(accounts)
+                    .content(results.getContent())
                     .metadata(
                         PageMetadata.builder(results)
                             .search("bankAccountNumber", bankAccountNumber)

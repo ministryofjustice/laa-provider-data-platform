@@ -10,7 +10,6 @@ import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -93,16 +92,16 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> results =
-        officeService.getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams);
-
-    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
+    Page<OfficeV2> results =
+        officeService
+            .getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams)
+            .map(officeMapper::toOfficeV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
-                    .content(offices)
+                    .content(results.getContent())
                     .metadata(
                         PageMetadata.builder(results)
                             .search("officeGUID", officeGUID)
@@ -135,16 +134,16 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> results =
-        officeService.getOffices(providerFirmGUIDorFirmNumber, pageParams);
-
-    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
+    Page<OfficeV2> results =
+        officeService
+            .getOffices(providerFirmGUIDorFirmNumber, pageParams)
+            .map(officeMapper::toOfficeV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
-                    .content(offices)
+                    .content(results.getContent())
                     .metadata(PageMetadata.of(results))
                     .links(PageLinks.of(results))));
   }

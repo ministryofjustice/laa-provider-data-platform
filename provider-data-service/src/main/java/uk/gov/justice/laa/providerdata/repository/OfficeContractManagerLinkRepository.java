@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.repository;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +14,6 @@ public interface OfficeContractManagerLinkRepository
 
   Page<OfficeContractManagerLinkEntity> findByOfficeLink_Guid(
       UUID officeLinkGuid, Pageable pageable);
-
-  List<OfficeContractManagerLinkEntity> findByOfficeLink_Guid(UUID officeLinkGuid);
 
   void deleteByOfficeLink_Guid(UUID officeLinkGuid);
 }

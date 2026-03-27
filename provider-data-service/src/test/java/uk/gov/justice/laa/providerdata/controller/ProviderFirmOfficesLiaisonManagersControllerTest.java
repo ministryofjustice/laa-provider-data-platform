@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
@@ -83,7 +86,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
   }
 
   @Test
-  void getOfficeLiaisonManagers_returns200_withContentOnly() throws Exception {
+  void getOfficeLiaisonManagers_returns200_withPaginationMetadata() throws Exception {
     LiaisonManagerEntity lm1 = new LiaisonManagerEntity();
     lm1.setGuid(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
     lm1.setFirstName("Alice");
@@ -114,7 +117,8 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     link2.setLinkedFlag(true);
     link2.setActiveDateFrom(LocalDate.of(2024, 2, 1));
 
-    when(service.getOfficeLiaisonManagers("FRM001", "ACC001")).thenReturn(List.of(link1, link2));
+    when(service.getOfficeLiaisonManagers("FRM001", "ACC001", PageRequest.of(0, 100)))
+        .thenReturn(new PageImpl<>(List.of(link1, link2), PageRequest.of(0, 100), 2));
 
     mockMvc
         .perform(
@@ -146,14 +150,21 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(jsonPath("$.data.content[1].createdBy").value("SYSTEM"))
         .andExpect(jsonPath("$.data.content[1].lastUpdatedBy").value("SYSTEM"))
         .andExpect(jsonPath("$.data.content[1].linkedFlag").value(true))
-        .andExpect(jsonPath("$.data.content[1].activeDateFrom").value("2024-02-01"));
+        .andExpect(jsonPath("$.data.content[1].activeDateFrom").value("2024-02-01"))
+        .andExpect(jsonPath("$.data.metadata.pagination.currentPage").value(0))
+        .andExpect(jsonPath("$.data.metadata.pagination.pageSize").value(100))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalPages").value(1))
+        .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(2))
+        .andExpect(jsonPath("$.data.links.self", containsString("page=0&pageSize=100")))
+        .andExpect(jsonPath("$.data.links.first", containsString("page=0&pageSize=100")))
+        .andExpect(jsonPath("$.data.links.last", containsString("page=0&pageSize=100")));
 
-    verify(service).getOfficeLiaisonManagers("FRM001", "ACC001");
+    verify(service).getOfficeLiaisonManagers("FRM001", "ACC001", PageRequest.of(0, 100));
   }
 
   @Test
   void getOfficeLiaisonManagers_returns404_whenServiceThrowsNotFound() throws Exception {
-    when(service.getOfficeLiaisonManagers("FRM404", "ACC404"))
+    when(service.getOfficeLiaisonManagers("FRM404", "ACC404", PageRequest.of(0, 100)))
         .thenThrow(new ItemNotFoundException("Office not found for provider"));
 
     mockMvc
@@ -167,7 +178,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.detail").value("Office not found for provider"));
 
-    verify(service).getOfficeLiaisonManagers("FRM404", "ACC404");
+    verify(service).getOfficeLiaisonManagers("FRM404", "ACC404", PageRequest.of(0, 100));
   }
 
   @Test

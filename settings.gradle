@@ -11,8 +11,8 @@ pluginManagement {
         gradlePluginPortal()
     }
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.0'
-        id 'org.openapi.generator' version '7.20.0'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.3'
+        id 'org.openapi.generator' version '7.21.0'
         id 'io.freefair.lombok' version '9.2.0'
         id 'com.diffplug.spotless' version '8.4.0'
     }

@@ -130,21 +130,22 @@ public class ProviderService {
   }
 
   /**
-   * Returns a list of practitioners (Advocates) assigned to the given Chambers.
+   * Returns a page of practitioners (Advocates) assigned to the given Chambers.
    *
    * @param chambersGUIDorFirmNumber Chambers GUID or firm number
-   * @return list of {@link ProviderParentLinkEntity} representing the practitioners
+   * @param pageable pagination information
+   * @return page of {@link ProviderParentLinkEntity} representing the practitioners
    * @throws IllegalArgumentException if the identifier does not correspond to a Chambers
    * @throws ItemNotFoundException if no provider matches the given identifier
    */
-  public List<ProviderParentLinkEntity> getPractitionersByChambers(
-      String chambersGUIDorFirmNumber) {
+  public Page<ProviderParentLinkEntity> getPractitionersByChambers(
+      String chambersGUIDorFirmNumber, Pageable pageable) {
     ProviderEntity provider = getProvider(chambersGUIDorFirmNumber);
 
     if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
       throw new IllegalArgumentException("Provider is not a Chambers: " + chambersGUIDorFirmNumber);
     }
 
-    return providerParentLinkRepository.findByParentOrderByProviderNameAsc(provider);
+    return providerParentLinkRepository.findByParentOrderByProviderNameAsc(provider, pageable);
   }
 }

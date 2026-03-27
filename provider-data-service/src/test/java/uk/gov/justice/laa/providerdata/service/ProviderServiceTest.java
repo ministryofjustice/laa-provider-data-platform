@@ -228,13 +228,15 @@ class ProviderServiceTest {
     ProviderEntity practitioner = ProviderEntity.builder().name("Practitioner").build();
     ProviderParentLinkEntity link =
         ProviderParentLinkEntity.builder().provider(practitioner).build();
-    when(providerParentLinkRepository.findByParentOrderByProviderNameAsc(chambers))
-        .thenReturn(List.of(link));
+    PageRequest pageable = PageRequest.of(0, 20);
+    when(providerParentLinkRepository.findByParentOrderByProviderNameAsc(chambers, pageable))
+        .thenReturn(new PageImpl<>(List.of(link), pageable, 1));
 
-    List<ProviderParentLinkEntity> result = service.getPractitionersByChambers(chambersId);
+    Page<ProviderParentLinkEntity> result =
+        service.getPractitionersByChambers(chambersId, pageable);
 
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).getProvider().getName()).isEqualTo("Practitioner");
+    assertThat(result.getContent()).hasSize(1);
+    assertThat(result.getContent().get(0).getProvider().getName()).isEqualTo("Practitioner");
   }
 
   @Test
@@ -247,7 +249,7 @@ class ProviderServiceTest {
             .build();
     when(providerRepository.findById(UUID.fromString(lspId))).thenReturn(Optional.of(lsp));
 
-    assertThatThrownBy(() -> service.getPractitionersByChambers(lspId))
+    assertThatThrownBy(() -> service.getPractitionersByChambers(lspId, PageRequest.of(0, 20)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Provider is not a Chambers");
   }

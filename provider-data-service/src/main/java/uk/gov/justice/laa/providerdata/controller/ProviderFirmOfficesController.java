@@ -116,9 +116,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       String xCorrelationId,
-      String traceparent,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      String traceparent) {
     LspProviderOfficeLinkEntity link =
         officeService.getLspOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
@@ -18,10 +19,14 @@ import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 
-@SpringBootTest
 class ProviderMapperTest {
 
-  @Autowired private ProviderMapper mapper;
+  private ProviderMapper mapper;
+
+  @BeforeEach
+  void setUp() {
+    mapper = new ProviderMapperImpl();
+  }
 
   @Test
   void toProviderV2_mapsBasicFields() {

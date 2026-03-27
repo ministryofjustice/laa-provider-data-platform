@@ -87,7 +87,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
 
     if (baseUri == null || baseUri.isBlank()) {
       throw new IllegalStateException(
-          "Missing required e2e configuration: set system property 'e2e.baseUri' or env var 'E2E_BASEURI'");
+          "Missing required e2e configuration: "
+              + "set system property 'e2e.baseUri' or env var 'E2E_BASEURI'");
     }
 
     RequestSpecBuilder builder =

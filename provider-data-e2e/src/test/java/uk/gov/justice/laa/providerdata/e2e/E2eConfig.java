@@ -184,9 +184,13 @@ public final class E2eConfig {
 
   private static String resolve(String sysPropKey, String envVarKey) {
     String value = System.getProperty(sysPropKey);
-    if (value != null && !value.isBlank()) return value;
+    if (value != null && !value.isBlank()) {
+      return value;
+    }
     value = System.getenv(envVarKey);
-    if (value != null && !value.isBlank()) return value;
+    if (value != null && !value.isBlank()) {
+      return value;
+    }
     return FILE_PROPS.getProperty(sysPropKey);
   }
 
@@ -213,7 +217,9 @@ public final class E2eConfig {
     }
     Properties props = new Properties();
     try (InputStream is = E2eConfig.class.getResourceAsStream("/" + env + ".properties")) {
-      if (is != null) props.load(is);
+      if (is != null) {
+        props.load(is);
+      }
     } catch (IOException e) {
       // Fall through — config may still be provided via system properties or env vars
     }

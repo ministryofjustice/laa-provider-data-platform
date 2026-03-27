@@ -25,7 +25,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    # SQL statement logging should be enabled only in local dev (see application-local.yml)
+    show-sql: false
+    properties:
+      hibernate:
+        session:
+          events:
+            log:
+              # Log only slow queries (ms threshold). Applies in all environments.
+              LOG_QUERIES_SLOWER_THAN_MS: 100
 
 info:
   app:
@@ -41,6 +49,8 @@ logging:
     javax: WARN
     net: WARN
     org.hibernate: WARN
+    # Slow query SQL text logger (Hibernate)
+    org.hibernate.SQL_SLOW: INFO
     org.springframework: WARN
     uk.gov.justice.laadata.providers: INFO
     uk.gov.laa.springboot.auth: WARN
@@ -81,6 +91,12 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+
+management:
+  metrics:
+    enable:
+      # Ensure Hibernate metrics are not emitted in non-local environments
+      hibernate: false
 
 # Use structured logging for non-local profiles (no way to "unset" config for the local profile)
 logging:

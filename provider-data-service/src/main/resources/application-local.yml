@@ -13,6 +13,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    # Enable SQL statement logging in local dev only
+    show-sql: true
+    properties:
+      hibernate:
+        # Enable Hibernate statistics in local so Hibernate metrics can be exported to Prometheus.
+        generate_statistics: true
+
+management:
+  metrics:
+    enable:
+      # Ensure Hibernate metrics are enabled in local
+      hibernate: true
 
 logging:
   level:

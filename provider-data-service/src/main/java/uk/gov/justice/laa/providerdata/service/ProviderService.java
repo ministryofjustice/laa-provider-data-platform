@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
@@ -126,5 +127,24 @@ public class ProviderService {
   /** Returns the parent firm links for the given provider (Advocates only). */
   public List<ProviderParentLinkEntity> getParentLinks(ProviderEntity provider) {
     return providerParentLinkRepository.findByProvider(provider);
+  }
+
+  /**
+   * Returns a list of practitioners (Advocates) assigned to the given Chambers.
+   *
+   * @param chambersGUIDorFirmNumber Chambers GUID or firm number
+   * @return list of {@link ProviderParentLinkEntity} representing the practitioners
+   * @throws IllegalArgumentException if the identifier does not correspond to a Chambers
+   * @throws ItemNotFoundException if no provider matches the given identifier
+   */
+  public List<ProviderParentLinkEntity> getPractitionersByChambers(
+      String chambersGUIDorFirmNumber) {
+    ProviderEntity provider = getProvider(chambersGUIDorFirmNumber);
+
+    if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
+      throw new IllegalArgumentException("Provider is not a Chambers: " + chambersGUIDorFirmNumber);
+    }
+
+    return providerParentLinkRepository.findByParentOrderByProviderNameAsc(provider);
   }
 }

@@ -15,4 +15,6 @@ public interface ProviderParentLinkRepository
   List<ProviderParentLinkEntity> findByProvider(ProviderEntity provider);
 
   List<ProviderParentLinkEntity> findByParent(ProviderEntity parent);
+
+  List<ProviderParentLinkEntity> findByParentOrderByProviderNameAsc(ProviderEntity parent);
 }

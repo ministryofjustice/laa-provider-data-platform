@@ -182,6 +182,7 @@ class ProviderServiceTest {
 
     Page<ProviderEntity> page = new PageImpl<>(List.of(provider));
 
+    //noinspection unchecked
     when(providerFirmRepository.findAll(
             any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
         .thenReturn(page);
@@ -205,6 +206,7 @@ class ProviderServiceTest {
 
     Page<ProviderEntity> emptyPage = Page.empty();
 
+    //noinspection unchecked
     when(providerFirmRepository.findAll(
             any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
         .thenReturn(emptyPage);
@@ -236,7 +238,7 @@ class ProviderServiceTest {
         service.getPractitionersByChambers(chambersId, pageable);
 
     assertThat(result.getContent()).hasSize(1);
-    assertThat(result.getContent().get(0).getProvider().getName()).isEqualTo("Practitioner");
+    assertThat(result.getContent().getFirst().getProvider().getName()).isEqualTo("Practitioner");
   }
 
   @Test

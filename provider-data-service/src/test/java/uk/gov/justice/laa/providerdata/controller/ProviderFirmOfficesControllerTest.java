@@ -116,7 +116,7 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getProviderFirmOfficeByGUID_returnsOk() throws Exception {
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
-    when(officeService.getLspOffice("FRM001", "ABC123")).thenReturn(link);
+    when(officeService.getLspOfficeLink("FRM001", "ABC123")).thenReturn(link);
     when(officeMapper.toLspOfficeV2(link)).thenReturn(new OfficeV2());
 
     mockMvc
@@ -126,7 +126,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOfficeByGUID_returnsNotFound_whenOfficeMissing() throws Exception {
-    when(officeService.getLspOffice("FRM001", "NOTEXIST"))
+    when(officeService.getLspOfficeLink("FRM001", "NOTEXIST"))
         .thenThrow(new ItemNotFoundException("Office not found: NOTEXIST"));
 
     mockMvc

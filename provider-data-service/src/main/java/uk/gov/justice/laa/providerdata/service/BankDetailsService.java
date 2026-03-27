@@ -16,6 +16,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
@@ -210,7 +211,7 @@ public class BankDetailsService {
 
     // Return all practitioners belonging to this Chambers.
     return providerParentLinkRepository.findByParent(provider).stream()
-        .map(link -> link.getProvider())
+        .map(ProviderParentLinkEntity::getProvider)
         .toList();
   }
 

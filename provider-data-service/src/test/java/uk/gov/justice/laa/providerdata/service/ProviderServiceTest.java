@@ -213,4 +213,44 @@ class ProviderServiceTest {
 
     assertThat(result).isEmpty();
   }
+
+  @Test
+  void getPractitionersByChambers_returnsPractitionersForChambers() {
+    String chambersId = UUID.randomUUID().toString();
+    ProviderEntity chambers =
+        ProviderEntity.builder()
+            .guid(UUID.fromString(chambersId))
+            .firmType(FirmType.CHAMBERS)
+            .build();
+    when(providerRepository.findById(UUID.fromString(chambersId)))
+        .thenReturn(Optional.of(chambers));
+
+    ProviderEntity practitioner = ProviderEntity.builder().name("Practitioner").build();
+    ProviderParentLinkEntity link =
+        ProviderParentLinkEntity.builder().provider(practitioner).build();
+    PageRequest pageable = PageRequest.of(0, 20);
+    when(providerParentLinkRepository.findByParentOrderByProviderNameAsc(chambers, pageable))
+        .thenReturn(new PageImpl<>(List.of(link), pageable, 1));
+
+    Page<ProviderParentLinkEntity> result =
+        service.getPractitionersByChambers(chambersId, pageable);
+
+    assertThat(result.getContent()).hasSize(1);
+    assertThat(result.getContent().get(0).getProvider().getName()).isEqualTo("Practitioner");
+  }
+
+  @Test
+  void getPractitionersByChambers_notChambers_throwsIllegalArgumentException() {
+    String lspId = UUID.randomUUID().toString();
+    ProviderEntity lsp =
+        ProviderEntity.builder()
+            .guid(UUID.fromString(lspId))
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    when(providerRepository.findById(UUID.fromString(lspId))).thenReturn(Optional.of(lsp));
+
+    assertThatThrownBy(() -> service.getPractitionersByChambers(lspId, PageRequest.of(0, 20)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Provider is not a Chambers");
+  }
 }

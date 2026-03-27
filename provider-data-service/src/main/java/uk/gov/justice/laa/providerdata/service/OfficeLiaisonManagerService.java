@@ -1,9 +1,10 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
@@ -52,34 +53,16 @@ public class OfficeLiaisonManagerService {
       String officeCode,
       UUID liaisonManagerGuid) {}
 
-  /**
-   * GET content-only: return liaison managers linked to a provider office (including historical).
-   */
+  /** Returns liaison managers linked to a provider office (including historical) as a page. */
   @Transactional(readOnly = true)
-  public List<OfficeLiaisonManagerLinkEntity> getOfficeLiaisonManagers(
-      String providerFirmGuidOrNumber, String officeGuidOrCode) {
+  public Page<OfficeLiaisonManagerLinkEntity> getOfficeLiaisonManagers(
+      String providerFirmGuidOrNumber, String officeGuidOrCode, Pageable pageable) {
 
-    ProviderEntity provider =
-        parseUuid(providerFirmGuidOrNumber)
-            .flatMap(providerRepository::findById)
-            .orElseGet(
-                () ->
-                    providerRepository
-                        .findByFirmNumber(providerFirmGuidOrNumber)
-                        .orElseThrow(() -> new ItemNotFoundException("Provider not found")));
-
-    var providerOfficeLink =
-        parseUuid(officeGuidOrCode)
-            .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
-            .orElseGet(
-                () ->
-                    providerOfficeLinkRepository
-                        .findByProvider_GuidAndAccountNumber(provider.getGuid(), officeGuidOrCode)
-                        .orElseThrow(
-                            () -> new ItemNotFoundException("Office not found for provider")));
+    ProviderOfficeLinkEntity providerOfficeLink =
+        resolveProviderOfficeLink(providerFirmGuidOrNumber, officeGuidOrCode);
 
     return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
-        providerOfficeLink.getGuid());
+        providerOfficeLink.getGuid(), pageable);
   }
 
   /** POST create/link liaison manager (end-dates existing links for target office). */
@@ -89,24 +72,9 @@ public class OfficeLiaisonManagerService {
       String officeGuidOrCode,
       OfficeLiaisonManagerCreateOrLinkV2 request) {
 
-    ProviderEntity provider =
-        parseUuid(providerFirmGuidOrNumber)
-            .flatMap(providerRepository::findById)
-            .orElseGet(
-                () ->
-                    providerRepository
-                        .findByFirmNumber(providerFirmGuidOrNumber)
-                        .orElseThrow(() -> new ItemNotFoundException("Provider not found")));
-
-    var providerOfficeLink =
-        parseUuid(officeGuidOrCode)
-            .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
-            .orElseGet(
-                () ->
-                    providerOfficeLinkRepository
-                        .findByProvider_GuidAndAccountNumber(provider.getGuid(), officeGuidOrCode)
-                        .orElseThrow(
-                            () -> new ItemNotFoundException("Office not found for provider")));
+    ProviderEntity provider = resolveProvider(providerFirmGuidOrNumber);
+    ProviderOfficeLinkEntity providerOfficeLink =
+        resolveProviderOfficeLink(provider, officeGuidOrCode);
 
     // IMPORTANT:
     // Resolve the liaison manager BEFORE end-dating existing links.
@@ -180,6 +148,32 @@ public class OfficeLiaisonManagerService {
     }
 
     throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
+  }
+
+  private ProviderOfficeLinkEntity resolveProviderOfficeLink(
+      String providerFirmGuidOrNumber, String officeGuidOrCode) {
+    return resolveProviderOfficeLink(resolveProvider(providerFirmGuidOrNumber), officeGuidOrCode);
+  }
+
+  private ProviderOfficeLinkEntity resolveProviderOfficeLink(
+      ProviderEntity provider, String officeGuidOrCode) {
+    return parseUuid(officeGuidOrCode)
+        .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
+        .orElseGet(
+            () ->
+                providerOfficeLinkRepository
+                    .findByProvider_GuidAndAccountNumber(provider.getGuid(), officeGuidOrCode)
+                    .orElseThrow(() -> new ItemNotFoundException("Office not found for provider")));
+  }
+
+  private ProviderEntity resolveProvider(String providerFirmGuidOrNumber) {
+    return parseUuid(providerFirmGuidOrNumber)
+        .flatMap(providerRepository::findById)
+        .orElseGet(
+            () ->
+                providerRepository
+                    .findByFirmNumber(providerFirmGuidOrNumber)
+                    .orElseThrow(() -> new ItemNotFoundException("Provider not found")));
   }
 
   private ProviderOfficeLinkEntity resolveHeadOfficeOffice(

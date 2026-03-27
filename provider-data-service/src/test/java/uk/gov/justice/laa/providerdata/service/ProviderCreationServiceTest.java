@@ -330,7 +330,14 @@ class ProviderCreationServiceTest {
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
         .thenReturn(Optional.of(parentOfficeLink));
-    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    UUID advocateOfficeLinkGuid = UUID.randomUUID();
+    when(advocateProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              AdvocateProviderOfficeLinkEntity link = inv.getArgument(0);
+              link.setGuid(advocateOfficeLinkGuid);
+              return link;
+            });
 
     var result =
         service.createPractitionerFirm(
@@ -338,7 +345,7 @@ class ProviderCreationServiceTest {
             List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
             null);
 
-    assertThat(result.headOfficeGUID()).isEqualTo(chambersOfficeGuid);
+    assertThat(result.headOfficeGUID()).isEqualTo(advocateOfficeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
   }
 

@@ -28,8 +28,6 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber20
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LinksV2;
-import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
@@ -139,14 +137,9 @@ public class ProviderFirmController {
     // Resolve pagination using util
     Pageable pageable = PageParamValidator.resolve(page, pageSize);
 
-    // Fetch paginated providers
-    Page<ProviderEntity> result =
-        providerFirmService.searchProviders(
-            providerFirmGUID, providerFirmNumber, name, null, type, pageable);
-
-    // Map entities to DTOs
-    List<ProviderV2> content =
-        result.getContent().stream()
+    Page<ProviderV2> result =
+        providerFirmService
+            .searchProviders(providerFirmGUID, providerFirmNumber, name, null, type, pageable)
             .map(
                 provider ->
                     providerFirmMapper.toProviderV2(
@@ -154,33 +147,25 @@ public class ProviderFirmController {
                         providerFirmService.getLspHeadOffice(provider).orElse(null),
                         providerFirmService.getChambersHeadOffice(provider).orElse(null),
                         providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
-                        providerFirmService.getParentLinks(provider)))
-            .toList();
+                        providerFirmService.getParentLinks(provider)));
 
-    // Build metadata only for filters that are actually applied
-    PaginatedSearchV2 metadata =
-        PageMetadata.builder(result)
-            .search("providerFirmGUID", providerFirmGUID)
-            .search("providerFirmNumber", providerFirmNumber)
-            .search("name", name)
-            .search(
-                "type",
-                type != null ? type.stream().map(ProviderFirmTypeV2::getValue).toList() : null)
-            .build();
-
-    // Build links
-    LinksV2 links = PageLinks.of(result);
-
-    // Build final response
-    GetProviderFirms200Response response =
+    return ResponseEntity.ok(
         new GetProviderFirms200Response()
             .data(
                 new GetProviderFirms200ResponseData()
-                    .content(content)
-                    .metadata(metadata)
-                    .links(links));
-
-    return ResponseEntity.ok(response);
+                    .content(result.getContent())
+                    .metadata(
+                        PageMetadata.builder(result)
+                            .search("providerFirmGUID", providerFirmGUID)
+                            .search("providerFirmNumber", providerFirmNumber)
+                            .search("name", name)
+                            .search(
+                                "type",
+                                type != null
+                                    ? type.stream().map(ProviderFirmTypeV2::getValue).toList()
+                                    : null)
+                            .build())
+                    .links(PageLinks.of(result))));
   }
 
   /**

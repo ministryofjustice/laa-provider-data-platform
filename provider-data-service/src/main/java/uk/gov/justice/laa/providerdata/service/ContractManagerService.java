@@ -35,14 +35,12 @@ public class ContractManagerService {
   public Page<OfficeContractManagerV2> getContractManagers(
       String providerGuidOrFirmNumber, String officeGuidOrCode, Pageable pageable) {
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
-    var providerOfficeLink = officeService.getOfficeLink(provider, officeGuidOrCode);
-    var officeGuid = providerOfficeLink.getOffice().getGuid();
+    var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);
 
     log.info(
-        "Fetching contract managers for provider={} officeLink={} office={}",
+        "Fetching contract managers for provider={} officeLink={}",
         provider.getGuid(),
-        providerOfficeLink.getGuid(),
-        officeGuid);
+        providerOfficeLink.getGuid());
 
     return officeContractManagerLinkRepository
         .findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable)

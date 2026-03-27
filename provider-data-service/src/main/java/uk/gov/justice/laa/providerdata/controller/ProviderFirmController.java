@@ -19,21 +19,15 @@ import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
-import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200Response;
-import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LinksV2;
-import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
-import uk.gov.justice.laa.providerdata.model.PaginatedSearchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
@@ -143,14 +137,9 @@ public class ProviderFirmController {
     // Resolve pagination using util
     Pageable pageable = PageParamValidator.resolve(page, pageSize);
 
-    // Fetch paginated providers
-    Page<ProviderEntity> result =
-        providerFirmService.searchProviders(
-            providerFirmGUID, providerFirmNumber, name, null, type, pageable);
-
-    // Map entities to DTOs
-    List<ProviderV2> content =
-        result.getContent().stream()
+    Page<ProviderV2> result =
+        providerFirmService
+            .searchProviders(providerFirmGUID, providerFirmNumber, name, null, type, pageable)
             .map(
                 provider ->
                     providerFirmMapper.toProviderV2(
@@ -158,33 +147,25 @@ public class ProviderFirmController {
                         providerFirmService.getLspHeadOffice(provider).orElse(null),
                         providerFirmService.getChambersHeadOffice(provider).orElse(null),
                         providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
-                        providerFirmService.getParentLinks(provider)))
-            .toList();
+                        providerFirmService.getParentLinks(provider)));
 
-    // Build metadata only for filters that are actually applied
-    PaginatedSearchV2 metadata =
-        PageMetadata.builder(result)
-            .search("providerFirmGUID", providerFirmGUID)
-            .search("providerFirmNumber", providerFirmNumber)
-            .search("name", name)
-            .search(
-                "type",
-                type != null ? type.stream().map(ProviderFirmTypeV2::getValue).toList() : null)
-            .build();
-
-    // Build links
-    LinksV2 links = PageLinks.of(result);
-
-    // Build final response
-    GetProviderFirms200Response response =
+    return ResponseEntity.ok(
         new GetProviderFirms200Response()
             .data(
                 new GetProviderFirms200ResponseData()
-                    .content(content)
-                    .metadata(metadata)
-                    .links(links));
-
-    return ResponseEntity.ok(response);
+                    .content(result.getContent())
+                    .metadata(
+                        PageMetadata.builder(result)
+                            .search("providerFirmGUID", providerFirmGUID)
+                            .search("providerFirmNumber", providerFirmNumber)
+                            .search("name", name)
+                            .search(
+                                "type",
+                                type != null
+                                    ? type.stream().map(ProviderFirmTypeV2::getValue).toList()
+                                    : null)
+                            .build())
+                    .links(PageLinks.of(result))));
   }
 
   /**
@@ -208,37 +189,6 @@ public class ProviderFirmController {
                     providerFirmService.getChambersHeadOffice(provider).orElse(null),
                     providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
                     providerFirmService.getParentLinks(provider))));
-  }
-
-  /**
-   * Retrieves practitioners for a given Chambers.
-   *
-   * @param providerFirmGUIDorFirmNumber Chambers GUID or firm number
-   * @return 200 with the list of practitioners
-   */
-  @GetMapping(
-      path = "/provider-firms/{providerFirmGUIDorFirmNumber}/practitioners",
-      produces = "application/json")
-  public ResponseEntity<GetProviderFirmOfficePractitioners200Response>
-      getProviderFirmOfficePractitioners(@PathVariable String providerFirmGUIDorFirmNumber) {
-    List<ProviderParentLinkEntity> practitionerLinks =
-        providerFirmService.getPractitionersByChambers(providerFirmGUIDorFirmNumber);
-
-    List<OfficePractitionerV2> practitioners =
-        practitionerLinks.stream()
-            .map(
-                link -> {
-                  ProviderEntity practitioner = link.getProvider();
-                  return providerFirmMapper.toOfficePractitionerV2(
-                      practitioner,
-                      providerFirmService.getAdvocateOfficeLink(practitioner).orElse(null),
-                      providerFirmService.getParentLinks(practitioner));
-                })
-            .toList();
-
-    return ResponseEntity.ok(
-        new GetProviderFirmOfficePractitioners200Response()
-            .data(new GetProviderFirmOfficePractitioners200ResponseData().content(practitioners)));
   }
 
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {

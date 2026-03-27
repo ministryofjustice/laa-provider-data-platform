@@ -212,7 +212,7 @@ public class ProviderCreationService {
       return new ProviderCreationResult(
           saved.getGuid(),
           saved.getFirmNumber(),
-          officeLink.getOffice().getGuid(),
+          officeLink.getGuid(),
           officeLink.getAccountNumber());
     }
 

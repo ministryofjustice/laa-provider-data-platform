@@ -91,7 +91,7 @@ class ContractManagerServiceTest {
     String providerOfficeLinkGuidValue = providerOfficeLink.getGuid().toString();
 
     when(providerService.getProvider(providerGuidValue)).thenReturn(provider);
-    when(officeService.getOfficeLink(provider, providerOfficeLinkGuidValue))
+    when(officeService.getProviderOfficeLink(provider, providerOfficeLinkGuidValue))
         .thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
@@ -115,7 +115,7 @@ class ContractManagerServiceTest {
   @Test
   void shouldReturnEmptyListWhenNoContractManagersExist() {
     when(providerService.getProvider("FRM001")).thenReturn(provider);
-    when(officeService.getOfficeLink(provider, "ACC001")).thenReturn(providerOfficeLink);
+    when(officeService.getProviderOfficeLink(provider, "ACC001")).thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
     when(linkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable))

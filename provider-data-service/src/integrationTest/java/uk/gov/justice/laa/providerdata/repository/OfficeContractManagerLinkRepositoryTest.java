@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -94,9 +95,12 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   private void assertAssignmentPersisted(TestData testData, UUID returnedProviderOfficeLinkGuid) {
     assertThat(returnedProviderOfficeLinkGuid).isEqualTo(testData.providerOfficeLink().getGuid());
-    var links = linkRepository.findByOfficeLink_Guid(testData.providerOfficeLink.getGuid());
-    assertThat(links).hasSize(1);
-    assertThat(links.get(0).getContractManager().getContractManagerId()).isEqualTo("CM-001");
+    var links =
+        linkRepository.findByOfficeLink_Guid(
+            testData.providerOfficeLink.getGuid(), PageRequest.of(0, 10));
+    assertThat(links.getContent()).hasSize(1);
+    assertThat(links.getContent().get(0).getContractManager().getContractManagerId())
+        .isEqualTo("CM-001");
   }
 
   private record TestData(

@@ -84,7 +84,7 @@ public class OfficeContractManagerAssignmentService {
                         "Unknown contractManagerGUID: " + contractManagerGuid));
 
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
-    var providerOfficeLink = officeService.getOfficeLink(provider, officeGuidOrCode);
+    var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);
     UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
 
     // MVP: ensure only one assignment exists

@@ -98,7 +98,8 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 
-    ProviderOfficeLinkEntity officeLink = officeService.getOfficeLink(provider, officeGUIDorCode);
+    ProviderOfficeLinkEntity officeLink =
+        officeService.getProviderOfficeLink(provider, officeGUIDorCode);
     Page<OfficeBankAccountV2> results =
         bankDetailsService
             .getOfficeBankAccounts(officeLink, bankAccountNumber, pageParams)

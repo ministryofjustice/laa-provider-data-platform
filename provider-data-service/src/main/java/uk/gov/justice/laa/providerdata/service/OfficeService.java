@@ -251,11 +251,11 @@ public class OfficeService {
    * @throws ItemNotFoundException if no matching office is found
    */
   @Transactional(readOnly = true)
-  public LspProviderOfficeLinkEntity getLspOffice(
+  public LspProviderOfficeLinkEntity getLspOfficeLink(
       String providerFirmGUIDorFirmNumber, String officeGUIDorCode) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
-    return findLink(provider, officeGUIDorCode)
+    return findLspOfficeLink(provider, officeGUIDorCode)
         .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
   }
 
@@ -271,28 +271,30 @@ public class OfficeService {
    * @throws ItemNotFoundException if no matching office is found
    */
   @Transactional(readOnly = true)
-  public ProviderOfficeLinkEntity getOfficeLink(ProviderEntity provider, String officeGUIDorCode) {
-    try {
-      UUID officeLinkGuid = UUID.fromString(officeGUIDorCode);
-      return providerOfficeLinkRepository
-          .findByProviderAndGuid(provider, officeLinkGuid)
-          .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
-    } catch (IllegalArgumentException e) {
-      return providerOfficeLinkRepository
-          .findByProviderAndAccountNumber(provider, officeGUIDorCode)
-          .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
-    }
+  public ProviderOfficeLinkEntity getProviderOfficeLink(
+      ProviderEntity provider, String officeGUIDorCode) {
+    return findProviderOfficeLink(provider, officeGUIDorCode)
+        .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
   }
 
-  private Optional<LspProviderOfficeLinkEntity> findLink(
+  private Optional<ProviderOfficeLinkEntity> findProviderOfficeLink(
       ProviderEntity provider, String officeGUIDorCode) {
-    try {
-      UUID guid = UUID.fromString(officeGUIDorCode);
-      return lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, guid);
-    } catch (IllegalArgumentException e) {
-      return lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(
-          provider, officeGUIDorCode);
-    }
+    return parseUuid(officeGUIDorCode)
+        .flatMap(guid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, guid))
+        .or(
+            () ->
+                providerOfficeLinkRepository.findByProviderAndAccountNumber(
+                    provider, officeGUIDorCode));
+  }
+
+  private Optional<LspProviderOfficeLinkEntity> findLspOfficeLink(
+      ProviderEntity provider, String officeGUIDorCode) {
+    return parseUuid(officeGUIDorCode)
+        .flatMap(guid -> lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, guid))
+        .or(
+            () ->
+                lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(
+                    provider, officeGUIDorCode));
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {
@@ -309,6 +311,14 @@ public class OfficeService {
           .orElseThrow(
               () ->
                   new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
+    }
+  }
+
+  private static Optional<UUID> parseUuid(String value) {
+    try {
+      return Optional.of(UUID.fromString(value));
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
     }
   }
 

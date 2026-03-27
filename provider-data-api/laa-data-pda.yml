@@ -2,7 +2,12 @@ openapi: 3.0.3
 info:
   title: Provider API
   version: 1.0.0
-  description: API for managing legal service providers, including solicitors, chambers, and advocates.
+  description: |
+    API for managing legal service providers, including solicitors, chambers, and advocates.
+
+    Unless explicitly stated otherwise, `officeGUID` values identify the provider-office
+    link record, not the underlying office record. The underlying office GUID is mainly
+    an internal identifier used to associate an office record with a provider-office link.
 
 paths:
   /provider-events:
@@ -3146,7 +3151,8 @@ components:
       schema:
         type: string
       description: >
-        Office GUID (primary key) or Office code (unique key).
+        GUID of the provider-office link, or the office code. Not the GUID of the underlying office
+        record.
     BankAccountDetailGUID:
       name: bankAccountDetailGUID
       in: path

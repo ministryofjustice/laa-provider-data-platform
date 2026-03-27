@@ -91,23 +91,6 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   }
 
   @Test
-  void findByProviderAndOffice_Guid_returnsLspLink() {
-    Optional<LspProviderOfficeLinkEntity> result =
-        lspRepository.findByProviderAndOffice_Guid(provider, lspOffice.getGuid());
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getAccountNumber()).isEqualTo("LSP-001");
-  }
-
-  @Test
-  void findByProviderAndOffice_Guid_emptyForNonLspLink() {
-    Optional<LspProviderOfficeLinkEntity> result =
-        lspRepository.findByProviderAndOffice_Guid(provider, nonLspOffice.getGuid());
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
   void findByProviderAndAccountNumber_returnsLspLink() {
     Optional<LspProviderOfficeLinkEntity> result =
         lspRepository.findByProviderAndAccountNumber(provider, "LSP-001");

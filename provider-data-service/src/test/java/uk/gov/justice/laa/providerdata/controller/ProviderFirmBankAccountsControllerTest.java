@@ -122,7 +122,8 @@ class ProviderFirmBankAccountsControllerTest {
     UUID officeGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().build();
     when(providerService.getProvider(guid.toString())).thenReturn(provider);
-    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
+    when(officeService.getProviderOfficeLink(eq(provider), eq(officeGuid.toString())))
+        .thenReturn(null);
     when(bankDetailsService.getOfficeBankAccounts(isNull(), isNull(), any()))
         .thenReturn(Page.empty());
 
@@ -141,7 +142,7 @@ class ProviderFirmBankAccountsControllerTest {
     UUID officeGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().build();
     when(providerService.getProvider(guid.toString())).thenReturn(provider);
-    when(officeService.getOfficeLink(provider, officeGuid.toString()))
+    when(officeService.getProviderOfficeLink(provider, officeGuid.toString()))
         .thenThrow(new ItemNotFoundException("Office not found: " + officeGuid));
 
     mockMvc
@@ -167,7 +168,8 @@ class ProviderFirmBankAccountsControllerTest {
     UUID officeGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().build();
     when(providerService.getProvider(guid.toString())).thenReturn(provider);
-    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
+    when(officeService.getProviderOfficeLink(eq(provider), eq(officeGuid.toString())))
+        .thenReturn(null);
 
     mockMvc
         .perform(
@@ -182,7 +184,8 @@ class ProviderFirmBankAccountsControllerTest {
     UUID officeGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
     when(providerService.getProvider(guid.toString())).thenReturn(provider);
-    when(officeService.getOfficeLink(eq(provider), eq(officeGuid.toString()))).thenReturn(null);
+    when(officeService.getProviderOfficeLink(eq(provider), eq(officeGuid.toString())))
+        .thenReturn(null);
     when(bankDetailsService.getOfficeBankAccounts(isNull(), isNull(), any()))
         .thenReturn(Page.empty());
 

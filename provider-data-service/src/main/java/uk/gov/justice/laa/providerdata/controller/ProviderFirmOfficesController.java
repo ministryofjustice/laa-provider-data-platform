@@ -121,7 +121,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       BigDecimal page,
       BigDecimal pageSize) {
     LspProviderOfficeLinkEntity link =
-        officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+        officeService.getLspOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
         new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toLspOfficeV2(link)));
   }

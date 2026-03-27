@@ -43,6 +43,7 @@ public class OfficeLiaisonManagerLinkEntity extends AuditableEntity {
       name = "OFFICE_GUID",
       nullable = false,
       foreignKey = @ForeignKey(name = "FK_OFFICE_LIAISON_MGR_LINK_OFFICE"))
+  // OFFICE_GUID points to PROVIDER_OFFICE_LINK.GUID, not OFFICE.GUID.
   private ProviderOfficeLinkEntity officeLink;
 
   @Column(name = "ACTIVE_DATE_FROM", nullable = false)

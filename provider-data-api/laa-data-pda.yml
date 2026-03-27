@@ -3143,7 +3143,7 @@ components:
       schema:
         type: string
       description: >
-        Provider Firm GUID (primary key) or Firm ID a.k.a Account Number (unique key).
+        GUID of the provider firm, or the firm number (unique account number).
     OfficeGUIDorCode:
       name: officeGUIDorCode
       in: path
@@ -3151,8 +3151,8 @@ components:
       schema:
         type: string
       description: >
-        GUID of the provider-office link, or the office code. Not the GUID of the underlying office
-        record.
+        GUID of the provider-office link (not of the underlying office record),
+        or the office code (unique account number).
     BankAccountDetailGUID:
       name: bankAccountDetailGUID
       in: path
@@ -3160,7 +3160,7 @@ components:
       schema:
         type: string
       description: >
-        Bank account details GUID (primary key).
+        GUID of the bank account details.
 
     QPageNumber:
       name: page

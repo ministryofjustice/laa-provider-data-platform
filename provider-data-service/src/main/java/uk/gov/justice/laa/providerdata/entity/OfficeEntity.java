@@ -3,7 +3,6 @@ package uk.gov.justice.laa.providerdata.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,9 +18,6 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Table(name = "OFFICE")
 public class OfficeEntity extends AuditableEntity {
-
-  @Column(name = "ACTIVE_DATE_TO")
-  private LocalDate activeDateTo;
 
   @Column(name = "ADDRESS_LINE1", nullable = false)
   private String addressLine1;

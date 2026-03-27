@@ -38,6 +38,7 @@ public class ContractManagerMapperTest {
         dto.getLastUpdatedBy(),
         dto.getLastUpdatedTimestamp(),
         dto.getContractManagerId(),
+        dto.getEmail(),
         dto.getFirstName(),
         dto.getLastName());
   }
@@ -56,6 +57,7 @@ public class ContractManagerMapperTest {
         dto.getLastUpdatedBy(),
         dto.getLastUpdatedTimestamp(),
         dto.getContractManagerId(),
+        dto.getEmail(),
         dto.getFirstName(),
         dto.getLastName());
   }
@@ -69,6 +71,7 @@ public class ContractManagerMapperTest {
         .lastUpdatedBy("john.doe.24")
         .lastUpdatedTimestamp(OffsetDateTime.parse("2025-09-26T12:30:00Z"))
         .contractManagerId("123")
+        .emailAddress("john.smith@example.test")
         .firstName("John")
         .lastName("Smith")
         .build();
@@ -82,6 +85,7 @@ public class ContractManagerMapperTest {
       String lastUpdatedBy,
       OffsetDateTime lastUpdatedTimestamp,
       String contractManagerId,
+      String email,
       String firstName,
       String lastName) {
     assertThat(guid).isEqualTo("11111111-1111-1111-1111-111111111111");
@@ -91,6 +95,7 @@ public class ContractManagerMapperTest {
     assertThat(lastUpdatedBy).isEqualTo("john.doe.24");
     assertThat(lastUpdatedTimestamp).isEqualTo(OffsetDateTime.parse("2025-09-26T12:30:00Z"));
     assertThat(contractManagerId).isEqualTo("123");
+    assertThat(email).isEqualTo("john.smith@example.test");
     assertThat(firstName).isEqualTo("John");
     assertThat(lastName).isEqualTo("Smith");
   }

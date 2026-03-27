@@ -28,9 +28,9 @@ public class BankAccountEntity extends AuditableEntity {
   @Column(name = "ACCOUNT_NAME", nullable = false)
   private String accountName;
 
-  @Column(name = "SORT_CODE", nullable = false)
+  @Column(name = "SORT_CODE", nullable = false, updatable = false)
   private String sortCode;
 
-  @Column(name = "ACCOUNT_NUMBER", nullable = false)
+  @Column(name = "ACCOUNT_NUMBER", nullable = false, updatable = false)
   private String accountNumber;
 }

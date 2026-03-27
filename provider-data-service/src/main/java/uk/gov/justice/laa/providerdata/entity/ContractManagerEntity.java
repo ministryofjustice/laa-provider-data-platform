@@ -21,7 +21,7 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "CONTRACT_MANAGER")
 public class ContractManagerEntity extends AuditableEntity {
 
-  @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true)
+  @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true, updatable = false)
   private String contractManagerId;
 
   @Column(name = "FIRST_NAME", nullable = false)
@@ -29,4 +29,7 @@ public class ContractManagerEntity extends AuditableEntity {
 
   @Column(name = "LAST_NAME", nullable = false)
   private String lastName;
+
+  @Column(name = "EMAIL_ADDRESS")
+  private String emailAddress;
 }

@@ -19,7 +19,7 @@ public interface ContractManagerMapper {
    * @param entity the contract manager entity to convert
    * @return the corresponding OfficeContractManagerV2 DTO
    */
-  @Mapping(target = "email", ignore = true)
+  @Mapping(target = "email", source = "emailAddress")
   OfficeContractManagerV2 toOfficeContractManagerV2(ContractManagerEntity entity);
 
   /**
@@ -29,6 +29,6 @@ public interface ContractManagerMapper {
    * @param entity the contract manager entity to convert
    * @return the corresponding ContractManagerV2 DTO
    */
-  @Mapping(target = "email", ignore = true)
+  @Mapping(target = "email", source = "emailAddress")
   ContractManagerV2 toContractManagerV2(ContractManagerEntity entity);
 }

@@ -41,7 +41,7 @@ import lombok.experimental.SuperBuilder;
 @DiscriminatorColumn(name = "FIRM_TYPE", discriminatorType = DiscriminatorType.STRING)
 public class ProviderOfficeLinkEntity extends AuditableEntity {
 
-  @Column(name = "ACCOUNT_NUMBER", nullable = false)
+  @Column(name = "ACCOUNT_NUMBER", nullable = false, unique = true, updatable = false)
   private String accountNumber;
 
   @ManyToOne

@@ -1,0 +1,40 @@
+name: "Scheduled: devsecops/sca analysis"
+
+on:
+  schedule:
+    - cron: "13 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  devsecops-sca:
+    name: "devsecops/sca analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions: { contents: write, pull-requests: write, issues: write,
+                   security-events: write, actions: read, packages: read }
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: "Set up Java 25 (Temurin distro)"
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: "Set up Gradle (cache)"
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6.0.1
+
+      - name: "Build classes without running tests"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew clean assemble testClasses integrationTestClasses
+
+      - name: "Software composition analysis"
+        uses: ministryofjustice/devsecops-actions/sca@f965eb1771ec66cfc41d7d57dc607fa6dfbc10ed # v1.4.0
+        env:
+          JAVA_HOME: /opt/jdk
+          JAVA_HOME_25_X64: ""
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          token: ${{ github.token }}

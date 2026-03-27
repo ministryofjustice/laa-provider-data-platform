@@ -22,10 +22,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
+import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
@@ -329,5 +331,24 @@ class ProviderFirmControllerTest {
         .andExpect(jsonPath("$.data.content.length()").value(1))
         .andExpect(jsonPath("$.data.content[0].guid").value(guid.toString()))
         .andExpect(jsonPath("$.data.content[0].firmType").value("Advocate"));
+  }
+
+  @Test
+  void getProviderFirmOfficePractitioners_returns200WithPractitioners() throws Exception {
+    String chambersId = UUID.randomUUID().toString();
+    ProviderEntity practitioner = ProviderEntity.builder().name("Practitioner").build();
+    ProviderParentLinkEntity link =
+        ProviderParentLinkEntity.builder().provider(practitioner).build();
+
+    when(providerFirmService.getPractitionersByChambers(chambersId)).thenReturn(List.of(link));
+    when(providerFirmService.getAdvocateOfficeLink(practitioner)).thenReturn(Optional.empty());
+    when(providerFirmService.getParentLinks(practitioner)).thenReturn(List.of());
+    when(providerFirmMapper.toOfficePractitionerV2(any(), any(), any()))
+        .thenReturn(new OfficePractitionerV2().name("Practitioner"));
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/practitioners", chambersId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content[0].name").value("Practitioner"));
   }
 }

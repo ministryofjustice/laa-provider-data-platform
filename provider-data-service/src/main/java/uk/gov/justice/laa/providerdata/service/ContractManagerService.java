@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.providerdata.service;
 
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
@@ -17,24 +17,35 @@ public class ContractManagerService {
 
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final ContractManagerMapper mapper;
+  private final ProviderService providerService;
+  private final OfficeService officeService;
 
   /**
    * Retrieves all contract managers assigned to a given office and provider.
    *
-   * @param officeGuidStr office GUID as string
-   * @param providerGuidStr provider GUID as string (optional: can pass null to ignore provider)
-   * @return list of OfficeContractManagerV2 DTOs
+   * <p>The provider identifier may be either a provider GUID or a firm number. The office
+   * identifier may be either a {@code ProviderOfficeLinkEntity.guid} value or a provider office
+   * account number ({@code ProviderOfficeLinkEntity.accountNumber}).
+   *
+   * @param providerGuidOrFirmNumber provider GUID or firm number
+   * @param officeGuidOrCode provider office link GUID or office account number
+   * @param pageable page request parameters
+   * @return paged OfficeContractManagerV2 DTOs
    */
-  public List<OfficeContractManagerV2> getContractManagers(
-      String officeGuidStr, String providerGuidStr) {
-    // Both are mandatory
-    UUID officeGuid = UUID.fromString(officeGuidStr);
-    UUID providerGuid = UUID.fromString(providerGuidStr);
+  public Page<OfficeContractManagerV2> getContractManagers(
+      String providerGuidOrFirmNumber, String officeGuidOrCode, Pageable pageable) {
+    var provider = providerService.getProvider(providerGuidOrFirmNumber);
+    var providerOfficeLink = officeService.getOfficeLink(provider, officeGuidOrCode);
+    var officeGuid = providerOfficeLink.getOffice().getGuid();
 
-    log.info("Fetching contract managers for office={} provider={}", officeGuid, providerGuid);
+    log.info(
+        "Fetching contract managers for provider={} officeLink={} office={}",
+        provider.getGuid(),
+        providerOfficeLink.getGuid(),
+        officeGuid);
 
-    return officeContractManagerLinkRepository.findByOffice_Guid(officeGuid).stream()
-        .map(link -> mapper.toOfficeContractManagerV2(link.getContractManager()))
-        .toList();
+    return officeContractManagerLinkRepository
+        .findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable)
+        .map(link -> mapper.toOfficeContractManagerV2(link.getContractManager()));
   }
 }

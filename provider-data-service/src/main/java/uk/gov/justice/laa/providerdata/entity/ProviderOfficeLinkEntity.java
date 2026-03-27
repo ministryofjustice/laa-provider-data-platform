@@ -9,7 +9,9 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,7 +31,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "PROVIDER_OFFICE_LINK")
+@Table(
+    name = "PROVIDER_OFFICE_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_PROVIDER_OFFICE_LINK_PROVIDER_OFFICE_FIRMTYPE",
+            columnNames = {"PROVIDER_GUID", "OFFICE_GUID", "FIRM_TYPE"}))
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "FIRM_TYPE", discriminatorType = DiscriminatorType.STRING)
 public class ProviderOfficeLinkEntity extends AuditableEntity {
@@ -54,7 +61,7 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
   @Column(name = "FIRM_TYPE", nullable = false, insertable = false, updatable = false)
   private String firmType;
 
-  @Column(name = "HEAD_OFFICE_FLAG")
+  @Column(name = "HEAD_OFFICE_FLAG", nullable = false)
   private Boolean headOfficeFlag;
 
   @Column(name = "WEBSITE")
@@ -62,4 +69,13 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
 
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
+
+  @PrePersist
+  void prePersistDefaults() {
+    // Some code paths (tests/mappers) don't explicitly set this.
+    // Because the database column is NOT NULL, we default it here.
+    if (headOfficeFlag == null) {
+      headOfficeFlag = Boolean.FALSE;
+    }
+  }
 }

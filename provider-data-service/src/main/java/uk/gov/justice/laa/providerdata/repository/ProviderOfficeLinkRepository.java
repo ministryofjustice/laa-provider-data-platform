@@ -20,14 +20,8 @@ public interface ProviderOfficeLinkRepository
 
   Optional<ProviderOfficeLinkEntity> findByProviderAndGuid(ProviderEntity provider, UUID guid);
 
-  Optional<ProviderOfficeLinkEntity> findByProviderAndOffice_Guid(
-      ProviderEntity provider, UUID officeGUID);
-
   Optional<ProviderOfficeLinkEntity> findByProviderAndAccountNumber(
       ProviderEntity provider, String accountNumber);
-
-  Optional<ProviderOfficeLinkEntity> findByProvider_GuidAndOffice_Guid(
-      UUID providerGuid, UUID officeGuid);
 
   Optional<ProviderOfficeLinkEntity> findByProvider_GuidAndAccountNumber(
       UUID providerGuid, String accountNumber);
@@ -37,7 +31,7 @@ public interface ProviderOfficeLinkRepository
   Page<ProviderOfficeLinkEntity> findByGuidInOrAccountNumberIn(
       Collection<UUID> guids, Collection<String> accountNumbers, Pageable pageable);
 
-  List<ProviderOfficeLinkEntity> findAllByGuidInOrAccountNumberIn(
+  List<ProviderOfficeLinkEntity> findByGuidInOrAccountNumberIn(
       Collection<UUID> guids, Collection<String> accountNumbers);
 
   Page<ProviderOfficeLinkEntity> findByProviderIn(

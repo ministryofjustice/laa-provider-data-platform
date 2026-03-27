@@ -19,12 +19,12 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "PROVIDER")
 public class ProviderEntity extends AuditableEntity {
 
-  @Column(name = "FIRM_NUMBER", nullable = false)
+  @Column(name = "FIRM_NUMBER", nullable = false, unique = true)
   private String firmNumber;
 
-  @Column(name = "FIRM_TYPE")
+  @Column(name = "FIRM_TYPE", nullable = false)
   private String firmType;
 
-  @Column(name = "NAME")
+  @Column(name = "NAME", nullable = false)
   private String name;
 }

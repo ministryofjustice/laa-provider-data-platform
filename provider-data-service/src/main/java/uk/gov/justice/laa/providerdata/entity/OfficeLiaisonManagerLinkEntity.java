@@ -6,6 +6,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -22,7 +23,12 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "OFFICE_LIAISON_MANAGER_LINK")
+@Table(
+    name = "OFFICE_LIAISON_MANAGER_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_OFFICE_LIAISON_MGR_LINK_OFFICE_LIAISON_MGR",
+            columnNames = {"OFFICE_GUID", "LIAISON_MANAGER_GUID"}))
 public class OfficeLiaisonManagerLinkEntity extends AuditableEntity {
 
   @ManyToOne
@@ -37,14 +43,14 @@ public class OfficeLiaisonManagerLinkEntity extends AuditableEntity {
       name = "OFFICE_GUID",
       nullable = false,
       foreignKey = @ForeignKey(name = "FK_OFFICE_LIAISON_MGR_LINK_OFFICE"))
-  private OfficeEntity office;
+  private ProviderOfficeLinkEntity officeLink;
 
-  @Column(name = "ACTIVE_DATE_FROM")
+  @Column(name = "ACTIVE_DATE_FROM", nullable = false)
   private LocalDate activeDateFrom;
 
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 
-  @Column(name = "LINKED_FLAG")
+  @Column(name = "LINKED_FLAG", nullable = false)
   private Boolean linkedFlag;
 }

@@ -123,11 +123,20 @@ public class OfficeService {
 
     if (lmTemplate != null && lmLinkTemplate != null) {
       LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
+
+      // Enforce NOT NULL constraints introduced on OfficeLiaisonManagerLinkEntity.
+      if (lmLinkTemplate.getActiveDateFrom() == null) {
+        lmLinkTemplate.setActiveDateFrom(LocalDate.now());
+      }
+      if (lmLinkTemplate.getLinkedFlag() == null) {
+        lmLinkTemplate.setLinkedFlag(Boolean.FALSE);
+      }
+
       lmLinkTemplate.setLiaisonManager(savedLm);
-      lmLinkTemplate.setOffice(savedOffice);
+      lmLinkTemplate.setOfficeLink(savedLink);
       officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
     } else if (linkToHeadOfficeLiaisonManager) {
-      linkHeadOfficeLiaisonManager(provider, savedOffice);
+      linkHeadOfficeLiaisonManager(provider, savedLink);
     }
 
     persistBankDetails(payment, provider, savedLink);
@@ -213,15 +222,12 @@ public class OfficeService {
     List<String> codes = officeCodes != null ? officeCodes : List.of();
 
     if (guids.isEmpty() && codes.isEmpty()) {
-      // TODO: the spec describes use case 1 as "Browse all active offices" but defines no
-      // activeOnly parameter. This may mean the query should filter by activeDateTo IS NULL,
-      // but that would leave no way for callers to retrieve inactive offices.
       return providerOfficeLinkRepository.findAll(pageable);
     }
 
     if (Boolean.TRUE.equals(allProviderOffices)) {
       Collection<ProviderOfficeLinkEntity> matching =
-          providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(guids, codes);
+          providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(guids, codes);
       if (matching.isEmpty()) {
         return Page.empty(pageable);
       }
@@ -310,7 +316,8 @@ public class OfficeService {
     return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.UK);
   }
 
-  private void linkHeadOfficeLiaisonManager(ProviderEntity provider, OfficeEntity newOffice) {
+  private void linkHeadOfficeLiaisonManager(
+      ProviderEntity provider, ProviderOfficeLinkEntity newOfficeLink) {
     LspProviderOfficeLinkEntity headOfficeLink =
         lspProviderOfficeLinkRepository
             .findByProviderAndHeadOfficeFlagTrue(provider)
@@ -319,9 +326,8 @@ public class OfficeService {
                     new ItemNotFoundException(
                         "Head office not found for provider: " + provider.getGuid()));
 
-    OfficeEntity headOffice = headOfficeLink.getOffice();
     List<OfficeLiaisonManagerLinkEntity> activeLmLinks =
-        officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice);
+        officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink);
 
     if (activeLmLinks.isEmpty()) {
       throw new ItemNotFoundException(
@@ -331,7 +337,7 @@ public class OfficeService {
     LiaisonManagerEntity headOfficeLm = activeLmLinks.getFirst().getLiaisonManager();
     OfficeLiaisonManagerLinkEntity link = new OfficeLiaisonManagerLinkEntity();
     link.setLiaisonManager(headOfficeLm);
-    link.setOffice(newOffice);
+    link.setOfficeLink(newOfficeLink);
     link.setActiveDateFrom(LocalDate.now());
     link.setLinkedFlag(Boolean.TRUE);
     officeLiaisonManagerLinkRepository.save(link);
@@ -351,7 +357,7 @@ public class OfficeService {
       bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
     } else if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeLinkV2 link) {
       bankDetailsService.linkExisting(
-          UUID.fromString(link.getBankAccountGUID()),
+          java.util.UUID.fromString(link.getBankAccountGUID()),
           provider,
           officeLink,
           link.getActiveDateFrom());

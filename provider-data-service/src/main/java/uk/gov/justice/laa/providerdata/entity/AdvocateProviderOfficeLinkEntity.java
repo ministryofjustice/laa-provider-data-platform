@@ -24,6 +24,12 @@ import lombok.experimental.SuperBuilder;
 @DiscriminatorValue("Advocate")
 public class AdvocateProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {
 
+  // NOTE:
+  // This project uses SINGLE_TABLE inheritance for PROVIDER_OFFICE_LINK.
+  // These columns exist for all firm types (including Chambers), so they must be nullable at the
+  // database column level. Any "required for Advocate" rules must be enforced in service/validation
+  // rather than via NOT NULL, unless discriminator-specific CHECK constraints are introduced.
+
   @Column(name = "INTERVENED_FLAG")
   private Boolean intervenedFlag;
 

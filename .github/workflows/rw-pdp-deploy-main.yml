@@ -66,12 +66,14 @@ jobs:
               "$CANARY_ROLE" "$CHART" "$DATACFG_SECRET"
           printf "* outputs.hostname_suffix=%s\n* outputs.release=%s\n" \
               "$HOSTNAME_SUFFIX" "$RELEASE"
-          echo "canary_role=$CANARY_ROLE" >> "$GITHUB_OUTPUT"
-          echo "chart=$CHART" >> "$GITHUB_OUTPUT"
-          echo "datacfg_secret=$DATACFG_SECRET" >> "$GITHUB_OUTPUT"
-          echo "hostname_suffix=$HOSTNAME_SUFFIX" >> "$GITHUB_OUTPUT"
-          echo "ptag=$PTAG" >> "$GITHUB_OUTPUT"
-          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          {
+            echo "canary_role=$CANARY_ROLE"
+            echo "chart=$CHART"
+            echo "datacfg_secret=$DATACFG_SECRET"
+            echo "hostname_suffix=$HOSTNAME_SUFFIX"
+            echo "ptag=$PTAG"
+            echo "release=$RELEASE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: "Authenticate with Amazon ECR"  # (needed to get ecr_registry)
         id:   ecr_auth

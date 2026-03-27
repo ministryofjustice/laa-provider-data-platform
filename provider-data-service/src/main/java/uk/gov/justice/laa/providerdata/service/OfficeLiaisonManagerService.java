@@ -1,16 +1,15 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
-import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
@@ -71,10 +70,7 @@ public class OfficeLiaisonManagerService {
 
     var providerOfficeLink =
         parseUuid(officeGuidOrCode)
-            .flatMap(
-                officeGuid ->
-                    providerOfficeLinkRepository.findByProvider_GuidAndOffice_Guid(
-                        provider.getGuid(), officeGuid))
+            .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
             .orElseGet(
                 () ->
                     providerOfficeLinkRepository
@@ -82,8 +78,8 @@ public class OfficeLiaisonManagerService {
                         .orElseThrow(
                             () -> new ItemNotFoundException("Office not found for provider")));
 
-    return officeLiaisonManagerLinkRepository.findByOffice_GuidOrderByActiveDateFromDesc(
-        providerOfficeLink.getOffice().getGuid());
+    return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
+        providerOfficeLink.getGuid());
   }
 
   /** POST create/link liaison manager (end-dates existing links for target office). */
@@ -104,10 +100,7 @@ public class OfficeLiaisonManagerService {
 
     var providerOfficeLink =
         parseUuid(officeGuidOrCode)
-            .flatMap(
-                officeGuid ->
-                    providerOfficeLinkRepository.findByProvider_GuidAndOffice_Guid(
-                        provider.getGuid(), officeGuid))
+            .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
             .orElseGet(
                 () ->
                     providerOfficeLinkRepository
@@ -115,20 +108,17 @@ public class OfficeLiaisonManagerService {
                         .orElseThrow(
                             () -> new ItemNotFoundException("Office not found for provider")));
 
-    LocalDate today = LocalDate.now();
-    OffsetDateTime now = OffsetDateTime.now();
-
     // IMPORTANT:
     // Resolve the liaison manager BEFORE end-dating existing links.
     // This prevents linkHeadOffice/linkChambers from failing when the target office is the same
     // as the source office (e.g. calling linkHeadOffice on the head office itself).
-    LiaisonManagerEntity liaisonManager = resolveOrCreateLiaisonManager(provider, request, now);
+    LiaisonManagerEntity liaisonManager = resolveOrCreateLiaisonManager(provider, request);
 
-    // End-date existing office liaison manager links (MVP behaviour).
+    // End-date existing office liaison manager links (current behaviour).
     var existingLinks =
-        officeLiaisonManagerLinkRepository.findByOffice_Guid(
-            providerOfficeLink.getOffice().getGuid());
+        officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid());
 
+    LocalDate today = LocalDate.now();
     for (OfficeLiaisonManagerLinkEntity link : existingLinks) {
       if (link.getActiveDateTo() == null || link.getActiveDateTo().isAfter(today)) {
         link.setActiveDateTo(today);
@@ -136,7 +126,7 @@ public class OfficeLiaisonManagerService {
     }
 
     OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
-    newLink.setOffice(providerOfficeLink.getOffice());
+    newLink.setOfficeLink(providerOfficeLink);
     newLink.setLiaisonManager(liaisonManager);
     newLink.setActiveDateFrom(today);
     newLink.setActiveDateTo(null);
@@ -147,13 +137,13 @@ public class OfficeLiaisonManagerService {
     return new OfficeLiaisonManagerOperationResult(
         provider.getGuid(),
         provider.getFirmNumber(),
-        providerOfficeLink.getOffice().getGuid(),
+        providerOfficeLink.getGuid(),
         providerOfficeLink.getAccountNumber(),
         liaisonManager.getGuid());
   }
 
   private LiaisonManagerEntity resolveOrCreateLiaisonManager(
-      ProviderEntity provider, OfficeLiaisonManagerCreateOrLinkV2 request, OffsetDateTime now) {
+      ProviderEntity provider, OfficeLiaisonManagerCreateOrLinkV2 request) {
 
     if (request instanceof LiaisonManagerCreateV2 create) {
       LiaisonManagerEntity entity = new LiaisonManagerEntity();
@@ -172,8 +162,8 @@ public class OfficeLiaisonManagerService {
         throw new IllegalArgumentException(
             "linkHeadOffice is only applicable for firmType=" + FIRM_TYPE_LSP);
       }
-      OfficeEntity headOffice = resolveHeadOfficeOffice(provider, "Head office");
-      return resolveActiveLiaisonManagerForOffice(headOffice);
+      ProviderOfficeLinkEntity headOfficeLink = resolveHeadOfficeOffice(provider, "Head office");
+      return resolveActiveLiaisonManagerForOffice(headOfficeLink);
     }
 
     if (request instanceof LiaisonManagerLinkChambersV2 linkChambers) {
@@ -184,29 +174,31 @@ public class OfficeLiaisonManagerService {
         throw new IllegalArgumentException(
             "linkChambers currently supports firmType=" + FIRM_TYPE_CHAMBERS);
       }
-      OfficeEntity chambersOffice = resolveHeadOfficeOffice(provider, "Chambers head office");
-      return resolveActiveLiaisonManagerForOffice(chambersOffice);
+      ProviderOfficeLinkEntity chambersOfficeLink =
+          resolveHeadOfficeOffice(provider, "Chambers head office");
+      return resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
     }
 
     throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
   }
 
-  private OfficeEntity resolveHeadOfficeOffice(ProviderEntity provider, String description) {
-    var headOfficeLink =
-        providerOfficeLinkRepository
-            .findByProviderAndHeadOfficeFlagTrue(provider)
-            .orElseThrow(
-                () ->
-                    new ItemNotFoundException(
-                        description + " not found for provider: " + provider.getGuid()));
-    return headOfficeLink.getOffice();
+  private ProviderOfficeLinkEntity resolveHeadOfficeOffice(
+      ProviderEntity provider, String description) {
+    return providerOfficeLinkRepository
+        .findByProviderAndHeadOfficeFlagTrue(provider)
+        .orElseThrow(
+            () ->
+                new ItemNotFoundException(
+                    description + " not found for provider: " + provider.getGuid()));
   }
 
-  private LiaisonManagerEntity resolveActiveLiaisonManagerForOffice(OfficeEntity office) {
-    var activeLinks = officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(office);
+  private LiaisonManagerEntity resolveActiveLiaisonManagerForOffice(
+      ProviderOfficeLinkEntity officeLink) {
+    var activeLinks =
+        officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(officeLink);
     if (activeLinks.isEmpty()) {
       throw new ItemNotFoundException(
-          "No active liaison manager found for office: " + office.getGuid());
+          "No active liaison manager found for office: " + officeLink.getGuid());
     }
     return activeLinks.getFirst().getLiaisonManager();
   }

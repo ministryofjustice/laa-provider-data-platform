@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.repository;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
@@ -11,7 +13,10 @@ import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 public interface OfficeContractManagerLinkRepository
     extends JpaRepository<OfficeContractManagerLinkEntity, UUID> {
 
-  List<OfficeContractManagerLinkEntity> findByOffice_Guid(UUID officeGuid);
+  Page<OfficeContractManagerLinkEntity> findByOfficeLink_Guid(
+      UUID officeLinkGuid, Pageable pageable);
 
-  void deleteByOffice_Guid(UUID officeGuid);
+  List<OfficeContractManagerLinkEntity> findByOfficeLink_Guid(UUID officeLinkGuid);
+
+  void deleteByOfficeLink_Guid(UUID officeLinkGuid);
 }

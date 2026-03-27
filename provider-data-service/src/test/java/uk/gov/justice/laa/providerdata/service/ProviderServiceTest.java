@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -12,6 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -20,9 +26,11 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
@@ -34,6 +42,9 @@ class ProviderServiceTest {
   @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
+
+  // ✅ NEW MOCK (minimal addition)
+  @Mock private ProviderFirmRepository providerFirmRepository;
 
   @InjectMocks private ProviderService service;
 
@@ -156,6 +167,51 @@ class ProviderServiceTest {
     when(providerParentLinkRepository.findByProvider(provider)).thenReturn(List.of());
 
     assertThat(service.getParentLinks(provider)).isEmpty();
+  }
+
+  // ============================================================
+  // ✅ NEW TESTS FOR searchProviders (added at end)
+  // ============================================================
+
+  @Test
+  void searchProviders_withFilters_returnsPagedResult() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    ProviderEntity provider =
+        ProviderEntity.builder().firmNumber("FRM001").name("Test Provider").build();
+
+    Page<ProviderEntity> page = new PageImpl<>(List.of(provider));
+
+    when(providerFirmRepository.findAll(
+            any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+        .thenReturn(page);
+
+    Page<ProviderEntity> result =
+        service.searchProviders(
+            List.of(UUID.randomUUID().toString()),
+            List.of("FRM001"),
+            "Test",
+            null,
+            List.of(ProviderFirmTypeV2.ADVOCATE),
+            pageable);
+
+    assertThat(result.getContent()).hasSize(1);
+    assertThat(result.getContent().getFirst().getName()).isEqualTo("Test Provider");
+  }
+
+  @Test
+  void searchProviders_withNoFilters_returnsAllPagedResults() {
+    Pageable pageable = PageRequest.of(0, 5);
+
+    Page<ProviderEntity> emptyPage = Page.empty();
+
+    when(providerFirmRepository.findAll(
+            any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+        .thenReturn(emptyPage);
+
+    Page<ProviderEntity> result = service.searchProviders(null, null, null, null, null, pageable);
+
+    assertThat(result).isEmpty();
   }
 
   @Test

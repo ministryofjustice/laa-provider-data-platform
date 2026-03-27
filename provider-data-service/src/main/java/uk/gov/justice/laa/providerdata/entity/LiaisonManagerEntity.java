@@ -21,13 +21,13 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "LIAISON_MANAGER")
 public class LiaisonManagerEntity extends AuditableEntity {
 
-  @Column(name = "FIRST_NAME")
+  @Column(name = "FIRST_NAME", nullable = false)
   private String firstName;
 
-  @Column(name = "LAST_NAME")
+  @Column(name = "LAST_NAME", nullable = false)
   private String lastName;
 
-  @Column(name = "EMAIL_ADDRESS")
+  @Column(name = "EMAIL_ADDRESS", nullable = false)
   private String emailAddress;
 
   @Column(name = "TELEPHONE_NUMBER")

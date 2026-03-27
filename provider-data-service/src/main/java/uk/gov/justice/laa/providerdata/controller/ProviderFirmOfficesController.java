@@ -48,7 +48,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       LSPOfficeCreateV2 lspOfficeCreateV2,
       String xCorrelationId,
-      String transparent) {
+      String traceparent) {
 
     LiaisonManagerEntity lmEntity = null;
     OfficeLiaisonManagerLinkEntity lmLinkTemplate = null;
@@ -85,7 +85,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getOffices(
       String xCorrelationId,
-      String transparent,
+      String traceparent,
       List<String> officeGUID,
       List<String> officeCode,
       Boolean allProviderOffices,
@@ -117,7 +117,9 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       String xCorrelationId,
-      String transparent) {
+      String traceparent,
+      BigDecimal page,
+      BigDecimal pageSize) {
     LspProviderOfficeLinkEntity link =
         officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
@@ -128,7 +130,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<GetProviderFirmOffices200Response> getProviderFirmOffices(
       String providerFirmGUIDorFirmNumber,
       String xCorrelationId,
-      String transparent,
+      String traceparent,
       BigDecimal page,
       BigDecimal pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
@@ -153,7 +155,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String officeGUIDorCode,
       OfficePatchV2 officePatchV2,
       String xCorrelationId,
-      String transparent) {
+      String traceparent) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 }

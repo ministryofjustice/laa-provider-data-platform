@@ -34,9 +34,11 @@ jobs:
           echo "- outputs.prnum=$PRNUM"
           echo "- outputs.short=$SHORT"
           echo "- outputs.no_preview=$NO_PREVIEW"
-          echo "prnum=$PRNUM" >> "$GITHUB_OUTPUT"
-          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
-          echo "no_preview=$NO_PREVIEW" >> "$GITHUB_OUTPUT"
+          {
+            echo "prnum=$PRNUM"
+            echo "short=$SHORT"
+            echo "no_preview=$NO_PREVIEW"
+          } >> "$GITHUB_OUTPUT"
 
   source-scan:
     name: "Source scan"

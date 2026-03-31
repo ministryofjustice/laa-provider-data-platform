@@ -156,6 +156,24 @@ public final class E2eConfig {
     return require("chambers.office.code");
   }
 
+  // --- Advocate ---
+
+  public static String advocateFirmNumber() {
+    return require("advocate.firmNumber");
+  }
+
+  public static String advocateName() {
+    return require("advocate.name");
+  }
+
+  public static String advocateFirmType() {
+    return require("advocate.firmType");
+  }
+
+  public static String advocateOfficeCode() {
+    return require("advocate.office.code");
+  }
+
   // --- Contract managers ---
 
   public static String contractManagerId() {

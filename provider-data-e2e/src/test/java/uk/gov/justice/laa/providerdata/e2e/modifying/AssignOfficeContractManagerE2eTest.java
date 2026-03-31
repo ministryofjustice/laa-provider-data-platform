@@ -25,7 +25,8 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 // deleteByOfficeLink_Guid does not flush before the subsequent save, causing a unique constraint
 // violation when the same contract manager is already assigned to the office by the seeder.
 @ModifyingTest
-@org.junit.jupiter.api.Disabled("Service bug: delete + insert in same flush causes unique constraint violation")
+@org.junit.jupiter.api.Disabled(
+    "Service bug: delete + insert in same flush causes unique constraint violation")
 class AssignOfficeContractManagerE2eTest {
 
   private static String contractManagerGuid;

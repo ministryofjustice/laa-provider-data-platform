@@ -21,11 +21,18 @@ spring:
   threads:
     virtual:
       enabled: true
+  zipkin:
+    base-url: http://localhost:9411
+    enabled: true
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  sleuth:
+    sampler:
+      probability: 0.2
 
 info:
   app:
@@ -58,8 +65,6 @@ management:
         security: false  # Disable meters with an ID starting with `spring.security`
     tags:
       application: provider-data-platform  # Used by Grafana dashboard
-  tracing:
-    enabled: true
 
 springdoc:
   default-flat-param-object: true

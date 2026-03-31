@@ -2,7 +2,9 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +27,7 @@ import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /** REST controller for provider firm bank account retrieval. */
+@Slf4j
 @RestController
 public class ProviderFirmBankAccountsController implements ProviderFirmBankAccountsApi {
 
@@ -61,7 +64,13 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
       @Nullable BigDecimal page,
       @Nullable BigDecimal pageSize) {
 
+    log.info(
+        "Checking trace logging here: getProviderFirmBankAccounts IN getProviderFirmBankAccounts");
     var pageParams = PageParamValidator.resolve(page, pageSize);
+    log.info("traceId from MDC: {}", MDC.get("traceId"));
+    log.info("spanId from MDC: {}", MDC.get("spanId"));
+    log.info("traceparent from MDC: {}", MDC.get("traceparent"));
+    log.info("traceparent being passed in method: {}", traceparent);
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 

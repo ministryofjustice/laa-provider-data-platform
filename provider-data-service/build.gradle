@@ -2,12 +2,18 @@ plugins {
     id 'io.freefair.lombok'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id 'com.diffplug.spotless'
+    id 'io.spring.dependency-management' version '1.1.2'
 }
 
 spotless {
     java {
         googleJavaFormat().reorderImports(true)
     }
+}
+
+repositories {
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
 }
 
 publishing {
@@ -47,7 +53,7 @@ tasks.register("checkstyleStaged", Checkstyle) {
 }
 
 test {
-    useJUnitPlatform()  // Ensures JUnit 5 tests are run by default
+    useJUnitPlatform()
     finalizedBy jacocoTestReport
 }
 
@@ -67,26 +73,20 @@ jacocoTestCoverageVerification {
     }
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-    gradlePluginPortal()
-}
-
 dependencies {
     implementation project(':provider-data-api')
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // Micrometer tracing (Spring Boot 4 compatible)
-    implementation platform('io.micrometer:micrometer-tracing-bom:1.6.4')
+    // ✅ Micrometer Tracing (Spring Boot 4 compatible)
     implementation 'io.micrometer:micrometer-tracing'
-    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
     implementation 'org.mapstruct:mapstruct:1.6.3'

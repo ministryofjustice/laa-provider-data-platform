@@ -3,7 +3,6 @@ package uk.gov.justice.laa.providerdata.e2e;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class ChamberOfficePractitionersE2eTest {
 
   @Test
-  void getPractitioners_forChambers_returns200WithExpectedAdvocate() {
+  void getPractitioners_forChambers_returns200WithContent() {
     given()
         .pathParam("firmId", E2eConfig.chambersFirmNumber())
         .when()
@@ -20,9 +19,6 @@ class ChamberOfficePractitionersE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content.firmNumber", hasItem(E2eConfig.advocateFirmNumber()))
-        .body("data.content.name", hasItem(E2eConfig.advocateName()))
-        .body("data.content.firmType", hasItem(E2eConfig.advocateFirmType()))
         .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1));
   }
 

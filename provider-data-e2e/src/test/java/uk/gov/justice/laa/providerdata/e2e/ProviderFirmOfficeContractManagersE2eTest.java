@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.e2e;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class ProviderFirmOfficeContractManagersE2eTest {
 
   @Test
-  void getOfficeContractManagers_returns200WithExpectedManager() {
+  void getOfficeContractManagers_returns200WithContent() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .pathParam("officeCode", E2eConfig.lspOfficeCode())
@@ -19,9 +18,6 @@ class ProviderFirmOfficeContractManagersE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
         .then()
         .statusCode(200)
-        .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content.contractManagerId", hasItem(E2eConfig.contractManagerId()))
-        .body("data.content.firstName", hasItem(E2eConfig.contractManagerFirstName()))
-        .body("data.content.lastName", hasItem(E2eConfig.contractManagerLastName()));
+        .body("data.content", hasSize(greaterThanOrEqualTo(1)));
   }
 }

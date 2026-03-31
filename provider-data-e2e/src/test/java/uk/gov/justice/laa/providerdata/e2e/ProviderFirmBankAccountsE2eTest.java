@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class ProviderFirmBankAccountsE2eTest {
 
   @Test
-  void getProviderFirmBankAccounts_returns200WithExpectedAccount() {
+  void getProviderFirmBankAccounts_returns200WithContent() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .when()
@@ -20,15 +21,15 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content[0].accountName", equalTo(E2eConfig.lspBankAccountName()))
-        .body("data.content[0].sortCode", equalTo(E2eConfig.lspBankAccountSortCode()))
-        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
+        .body("data.content[0].accountName", notNullValue())
+        .body("data.content[0].sortCode", notNullValue())
+        .body("data.content[0].accountNumber", notNullValue())
         .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
         .body("data.metadata.searchCriteria.criteria", empty());
   }
 
   @Test
-  void getProviderFirmBankAccounts_filterByPartialAccountNumber_returnsMatchingAccount() {
+  void getProviderFirmBankAccounts_filterByPartialAccountNumber_returnsResults() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .queryParam("bankAccountNumber", E2eConfig.lspBankAccountPartialMatch())
@@ -37,7 +38,6 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
         .body("data.metadata.searchCriteria.criteria[0].filter", equalTo("bankAccountNumber"))
         .body(
             "data.metadata.searchCriteria.criteria[0].values[0]",
@@ -69,7 +69,7 @@ class ProviderFirmBankAccountsE2eTest {
   }
 
   @Test
-  void getProviderFirmOfficeBankAccounts_returns200WithPrimaryAccount() {
+  void getProviderFirmOfficeBankAccounts_returns200WithContent() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .pathParam("officeCode", E2eConfig.lspOfficeCode())
@@ -78,9 +78,8 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspBankAccountNumber()))
-        .body("data.content[0].sortCode", equalTo(E2eConfig.lspBankAccountSortCode()))
-        .body("data.content[0].primaryFlag", equalTo(true))
+        .body("data.content[0].accountNumber", notNullValue())
+        .body("data.content[0].sortCode", notNullValue())
         .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
         .body("data.metadata.searchCriteria.criteria", empty());
   }

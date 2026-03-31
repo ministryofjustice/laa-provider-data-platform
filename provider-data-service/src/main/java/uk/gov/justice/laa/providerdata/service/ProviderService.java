@@ -14,7 +14,9 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
+import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
@@ -81,6 +83,69 @@ public class ProviderService {
               () ->
                   new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
     }
+  }
+
+  /**
+   * Patch LSP basic details only (name + simple LSP fields).
+   *
+   * <p>Rejects: firm type changes, firm number changes, practitioner branch updates, and
+   * head-office reassignment (out of scope).
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number
+   * @param patch patch contract
+   * @return updated firm identifiers
+   */
+  @Transactional
+  public ProviderCreationResult patchLspBasicDetails(
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch) {
+
+    ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
+
+    if (!FirmType.LEGAL_SERVICES_PROVIDER.equals(provider.getFirmType())) {
+      throw new IllegalArgumentException(
+          "Provider is not a Legal Service Provider: " + providerFirmGUIDorFirmNumber);
+    }
+
+    if (patch.getPractitioner() != null) {
+      throw new IllegalArgumentException("Practitioner updates are not supported on this endpoint");
+    }
+
+    LSPDetailsPatchV2 lspPatch = patch.getLegalServicesProvider();
+    if (lspPatch != null && lspPatch.getHeadOffice() != null) {
+      throw new IllegalArgumentException(
+          "Head office reassignment is not supported on this endpoint");
+    }
+
+    if (patch.getName() != null) {
+      if (patch.getName().isBlank()) {
+        throw new IllegalArgumentException("name must not be blank");
+      }
+      provider.setName(patch.getName());
+    }
+
+    if (lspPatch != null) {
+      if (lspPatch.getConstitutionalStatus() != null) {
+        /*
+         * Persist the constitutional status in the provider record.
+         *
+         * Note: the entity field type varies by implementation (String vs enum).
+         * This code assumes the entity accepts the OpenAPI enum value as a String.
+         */
+        provider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
+      }
+
+      if (lspPatch.getIndemnityReceivedDate() != null) {
+        provider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
+      }
+
+      if (lspPatch.getCompaniesHouseNumber() != null) {
+        provider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
+      }
+    }
+
+    ProviderEntity saved = providerRepository.save(provider);
+
+    return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 
   /**

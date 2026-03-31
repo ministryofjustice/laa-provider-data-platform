@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,4 +28,13 @@ public class ProviderEntity extends AuditableEntity {
 
   @Column(name = "NAME", nullable = false)
   private String name;
+
+  @Column(name = "CONSTITUTIONAL_STATUS")
+  private String constitutionalStatus;
+
+  @Column(name = "INDEMNITY_RECEIVED_DATE")
+  private LocalDate indemnityReceivedDate;
+
+  @Column(name = "COMPANIES_HOUSE_NUMBER")
+  private String companiesHouseNumber;
 }

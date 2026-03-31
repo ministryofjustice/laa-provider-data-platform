@@ -47,6 +47,7 @@ class ProviderServiceTest {
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
 
+  // ✅ NEW MOCK (minimal addition)
   @Mock private ProviderFirmRepository providerFirmRepository;
 
   @InjectMocks private ProviderService service;

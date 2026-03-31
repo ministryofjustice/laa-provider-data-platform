@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.e2e;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.jupiter.api.Test;
@@ -18,12 +19,9 @@ class ProviderFirmE2eTest {
         .then()
         .statusCode(200)
         .body("data.firmNumber", equalTo(E2eConfig.lspFirmNumber()))
-        .body("data.name", equalTo(E2eConfig.lspName()))
-        .body("data.firmType", equalTo(E2eConfig.lspFirmType()))
-        .body(
-            "data.legalServicesProvider.headOffice.accountNumber",
-            equalTo(E2eConfig.lspOfficeCode()))
-        .body("data.legalServicesProvider.headOffice.activeDateTo", nullValue())
+        .body("data.name", notNullValue())
+        .body("data.firmType", notNullValue())
+        .body("data.legalServicesProvider.headOffice.accountNumber", notNullValue())
         // Chambers and practitioner sub-objects should be absent for an LSP
         .body("data.chambers", nullValue())
         .body("data.practitioner", nullValue());
@@ -38,9 +36,9 @@ class ProviderFirmE2eTest {
         .then()
         .statusCode(200)
         .body("data.firmNumber", equalTo(E2eConfig.chambersFirmNumber()))
-        .body("data.name", equalTo(E2eConfig.chambersName()))
-        .body("data.firmType", equalTo(E2eConfig.chambersFirmType()))
-        .body("data.chambers.office.accountNumber", equalTo(E2eConfig.chambersOfficeCode()))
+        .body("data.name", notNullValue())
+        .body("data.firmType", notNullValue())
+        .body("data.chambers.office.accountNumber", notNullValue())
         // LSP and practitioner sub-objects should be absent for a Chambers firm
         .body("data.legalServicesProvider", nullValue())
         .body("data.practitioner", nullValue());

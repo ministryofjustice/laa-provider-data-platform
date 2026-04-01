@@ -197,7 +197,7 @@ public class ProviderFirmController {
   }
 
   /**
-   * Updates LSP basic details (name + simple LSP basic fields only).
+   * Updates supported provider basic details for the resolved provider subtype.
    *
    * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
    * @param request patch request (ProviderPatchV2)
@@ -213,7 +213,7 @@ public class ProviderFirmController {
     validatePatchRequest(request);
 
     ProviderCreationResult result =
-        providerFirmService.patchLspBasicDetails(providerFirmGUIDorFirmNumber, request);
+        providerFirmService.patchProvider(providerFirmGUIDorFirmNumber, request);
 
     return ResponseEntity.ok(
         new CreateProviderFirm201Response()
@@ -313,21 +313,23 @@ public class ProviderFirmController {
 
     boolean hasName = request.getName() != null;
     boolean hasLspDetails = request.getLegalServicesProvider() != null;
+    boolean hasPractitionerDetails = request.getPractitioner() != null;
 
-    if (!hasName && !hasLspDetails) {
+    if (!hasName && !hasLspDetails && !hasPractitionerDetails) {
       throw new IllegalArgumentException(
-          "At least one of name or legalServicesProvider must be provided");
+          "At least one of name, legalServicesProvider or practitioner must be provided");
     }
 
     if (hasName && request.getName().isBlank()) {
       throw new IllegalArgumentException("name must not be blank");
     }
 
-    if (request.getPractitioner() != null) {
-      throw new IllegalArgumentException("Practitioner updates are not supported on this endpoint");
+    if (hasLspDetails && hasPractitionerDetails) {
+      throw new IllegalArgumentException(
+          "Exactly one of legalServicesProvider or practitioner may be provided");
     }
 
-    if (request.getLegalServicesProvider() != null) {
+    if (hasLspDetails) {
       LSPDetailsPatchV2 lsp = request.getLegalServicesProvider();
       if (lsp.getHeadOffice() != null) {
         throw new IllegalArgumentException(

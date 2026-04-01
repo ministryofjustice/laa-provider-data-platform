@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,13 +39,4 @@ public class ProviderEntity extends AuditableEntity {
   /** PO.PO_VENDORS.VENDOR_NAME VARCHAR2(240) not null. */
   @Column(name = "NAME", nullable = false)
   private String name;
-
-  @Column(name = "CONSTITUTIONAL_STATUS")
-  private String constitutionalStatus;
-
-  @Column(name = "INDEMNITY_RECEIVED_DATE")
-  private LocalDate indemnityReceivedDate;
-
-  @Column(name = "COMPANIES_HOUSE_NUMBER")
-  private String companiesHouseNumber;
 }

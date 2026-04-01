@@ -19,9 +19,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -29,6 +31,8 @@ import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
@@ -95,15 +99,11 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchLspBasicDetails_updatesNameAndBasicFields_andReturnsIdentifiers() {
+  void patchProvider_updatesLspNameAndBasicFields_andReturnsIdentifiers() {
     UUID guid = UUID.randomUUID();
 
-    ProviderEntity existing =
-        ProviderEntity.builder()
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .firmNumber("LSP-0001")
-            .name("Old Name")
-            .build();
+    LspProviderEntity existing =
+        LspProviderEntity.builder().firmNumber("LSP-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -118,7 +118,7 @@ class ProviderServiceTest {
                     .indemnityReceivedDate(LocalDate.of(2024, 1, 2))
                     .companiesHouseNumber("12345678"));
 
-    ProviderCreationResult result = service.patchLspBasicDetails(guid.toString(), patch);
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
 
     assertThat(existing.getName()).isEqualTo("New Name");
     assertThat(existing.getConstitutionalStatus()).isEqualTo("Partnership");
@@ -130,7 +130,7 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchLspBasicDetails_whenProviderNotLsp_rejectsFirmTypeChange() {
+  void patchProvider_whenProviderNotLsp_rejectsLspPatch() {
     UUID guid = UUID.randomUUID();
 
     ProviderEntity existing =
@@ -148,21 +148,17 @@ class ProviderServiceTest {
             .name("New")
             .legalServicesProvider(new LSPDetailsPatchV2().companiesHouseNumber("X"));
 
-    assertThatThrownBy(() -> service.patchLspBasicDetails(guid.toString(), patch))
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("not a Legal Service Provider");
+        .hasMessageContaining("legalServicesProvider updates require a Legal Services Provider");
   }
 
   @Test
-  void patchLspBasicDetails_headOfficeReassignmentRejected() {
+  void patchProvider_headOfficeReassignmentRejected() {
     UUID guid = UUID.randomUUID();
 
-    ProviderEntity existing =
-        ProviderEntity.builder()
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .firmNumber("LSP-0001")
-            .name("Old Name")
-            .build();
+    LspProviderEntity existing =
+        LspProviderEntity.builder().firmNumber("LSP-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -174,20 +170,50 @@ class ProviderServiceTest {
                     .headOffice(
                         new uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2()));
 
-    assertThatThrownBy(() -> service.patchLspBasicDetails(guid.toString(), patch))
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Head office reassignment is not supported");
   }
 
   @Test
-  void patchLspBasicDetails_practitionerBranchRejected() {
+  void patchProvider_updatesAdvocatePractitionerFields() {
     UUID guid = UUID.randomUUID();
 
-    ProviderEntity existing =
-        ProviderEntity.builder()
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .firmNumber("LSP-0001")
+    AdvocateProviderEntity existing =
+        AdvocateProviderEntity.builder()
+            .firmNumber("ADV-0001")
             .name("Old Name")
+            .advocateType("Advocate")
+            .build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .advocateLevel(PractitionerDetailsAdvocateLevelV2.KC)
+                    .solicitorRegulationAuthorityRollNumber("SRA-123"));
+
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(existing.getAdvocateLevel()).isEqualTo("KC");
+    assertThat(existing.getSolicitorRegulationAuthorityRollNumber()).isEqualTo("SRA-123");
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("ADV-0001");
+  }
+
+  @Test
+  void patchProvider_rejectsBarristerFieldsForAdvocatePractitioner() {
+    UUID guid = UUID.randomUUID();
+
+    AdvocateProviderEntity existing =
+        AdvocateProviderEntity.builder()
+            .firmNumber("ADV-0001")
+            .name("Old Name")
+            .advocateType("Advocate")
             .build();
     existing.setGuid(guid);
 
@@ -195,11 +221,11 @@ class ProviderServiceTest {
 
     ProviderPatchV2 patch =
         new ProviderPatchV2()
-            .practitioner(new uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2());
+            .practitioner(new PractitionerDetailsPatchV2().barCouncilRollNumber("BAR-123"));
 
-    assertThatThrownBy(() -> service.patchLspBasicDetails(guid.toString(), patch))
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Practitioner updates are not supported");
+        .hasMessageContaining("Barrister fields are only valid");
   }
 
   @Test

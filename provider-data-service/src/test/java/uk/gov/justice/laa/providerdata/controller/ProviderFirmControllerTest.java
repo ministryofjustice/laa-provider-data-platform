@@ -225,7 +225,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchLspBasicDetails(anyString(), any()))
+    when(providerFirmService.patchProvider(anyString(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "LSP-0001"));
 
     mockMvc
@@ -249,7 +249,30 @@ class ProviderFirmControllerTest {
   }
 
   @Test
-  void patchProviderFirm_practitionerBranchRejected_returns400() throws Exception {
+  void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmService.patchProvider(anyString(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-0001"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "practitioner": {
+                                            "advocateLevel": "KC"
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("ADV-0001"));
+  }
+
+  @Test
+  void patchProviderFirm_mixedSubtypeBranchesRejected_returns400() throws Exception {
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "LSP-0001")
@@ -257,7 +280,12 @@ class ProviderFirmControllerTest {
                 .content(
                     """
                                         {
-                                          "practitioner": {}
+                                          "legalServicesProvider": {
+                                            "companiesHouseNumber": "12345678"
+                                          },
+                                          "practitioner": {
+                                            "advocateLevel": "KC"
+                                          }
                                         }
                                         """))
         .andExpect(status().isBadRequest());

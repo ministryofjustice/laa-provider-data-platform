@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,6 +22,7 @@ import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -184,7 +186,11 @@ class ProviderFirmControllerTest {
   void getProviderFirm_byGuid_returns200WithProviderDetails() throws Exception {
     UUID guid = UUID.randomUUID();
     ProviderEntity entity =
-        ProviderEntity.builder().firmNumber("LSP-ABC123").name("My LSP").build();
+        ProviderEntity.builder()
+            .firmNumber("LSP-ABC123")
+            .name("My LSP")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
     entity.setGuid(guid);
     ProviderV2 providerV2 =
         new ProviderV2()
@@ -216,7 +222,78 @@ class ProviderFirmControllerTest {
     mockMvc.perform(get("/provider-firms/{id}", "UNKNOWN")).andExpect(status().isNotFound());
   }
 
-  // ------------------- NEW TESTS FOR GET PROVIDER FIRMS -------------------
+  @Test
+  void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmService.patchLspBasicDetails(anyString(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "LSP-0001"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "name": "Updated Firm Name",
+                                          "legalServicesProvider": {
+                                            "constitutionalStatus": "Partnership",
+                                            "indemnityReceivedDate": "2024-01-02",
+                                            "companiesHouseNumber": "12345678"
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("LSP-0001"));
+  }
+
+  @Test
+  void patchProviderFirm_practitionerBranchRejected_returns400() throws Exception {
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", "LSP-0001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "practitioner": {}
+                                        }
+                                        """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void patchProviderFirm_headOfficeReassignmentRejected_returns400() throws Exception {
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", "LSP-0001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "legalServicesProvider": {
+                                            "headOffice": {
+                                              "officeGUID": "11111111-1111-1111-1111-111111111111"
+                                            }
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void patchProviderFirm_emptyPatchRejected_returns400() throws Exception {
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", "LSP-0001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        { }
+                                        """))
+        .andExpect(status().isBadRequest());
+  }
 
   @Test
   void getProviderFirms_withTypeFilter_returns200WithFilteredList() throws Exception {

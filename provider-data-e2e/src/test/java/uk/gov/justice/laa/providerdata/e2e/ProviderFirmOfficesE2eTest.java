@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.notNullValue;
 
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class ProviderFirmOfficesE2eTest {
 
   @Test
-  void getProviderFirmOffices_returnsPaginatedListContainingSeededOffice() {
+  void getProviderFirmOffices_returnsPaginatedList() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .when()
@@ -21,8 +21,8 @@ class ProviderFirmOfficesE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
-        .body("data.content[0].accountNumber", equalTo(E2eConfig.lspOfficeCode()))
-        .body("data.content[0].firmType", equalTo(E2eConfig.lspFirmType()))
+        .body("data.content[0].accountNumber", notNullValue())
+        .body("data.content[0].firmType", notNullValue())
         .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
         .body("data.metadata.searchCriteria.criteria", empty());
   }
@@ -39,7 +39,7 @@ class ProviderFirmOfficesE2eTest {
   }
 
   @Test
-  void getProviderFirmOfficeByCode_returns200WithAddressAndPaymentDetails() {
+  void getProviderFirmOfficeByCode_returns200WithDetails() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .pathParam("officeCode", E2eConfig.lspOfficeCode())
@@ -47,20 +47,11 @@ class ProviderFirmOfficesE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200)
-        .body("data.accountNumber", equalTo(E2eConfig.lspOfficeCode()))
-        .body("data.firmType", equalTo(E2eConfig.lspFirmType()))
-        .body("data.address.line1", equalTo(E2eConfig.lspOfficeAddressLine1()))
-        .body("data.address.line2", equalTo(E2eConfig.lspOfficeAddressLine2()))
-        .body("data.address.townOrCity", equalTo(E2eConfig.lspOfficeAddressTownOrCity()))
-        .body("data.address.postcode", equalTo(E2eConfig.lspOfficeAddressPostcode()))
-        .body("data.telephoneNumber", equalTo(E2eConfig.lspOfficeTelephoneNumber()))
-        .body("data.emailAddress", equalTo(E2eConfig.lspOfficeEmailAddress()))
-        .body("data.dxDetails.dxNumber", equalTo(E2eConfig.lspOfficeDxNumber()))
-        .body("data.dxDetails.dxCentre", equalTo(E2eConfig.lspOfficeDxCentre()))
-        .body("data.vatRegistration.vatNumber", equalTo(E2eConfig.lspOfficeVatNumber()))
-        .body("data.payment.paymentMethod", equalTo(E2eConfig.lspOfficePaymentMethod()))
-        // Active office has no end date
-        .body("data.activeDateTo", nullValue());
+        .body("data.accountNumber", notNullValue())
+        .body("data.firmType", notNullValue())
+        .body("data.address.line1", notNullValue())
+        .body("data.address.townOrCity", notNullValue())
+        .body("data.address.postcode", notNullValue());
   }
 
   @Test

@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,10 +30,12 @@ import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
+import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
@@ -193,6 +196,33 @@ public class ProviderFirmController {
                     providerFirmService.getParentLinks(provider))));
   }
 
+  /**
+   * Updates LSP basic details (name + simple LSP basic fields only).
+   *
+   * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
+   * @param request patch request (ProviderPatchV2)
+   * @return 200 with the updated identifiers (GUID + firm number)
+   */
+  @PatchMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}",
+      consumes = "application/json",
+      produces = "application/json")
+  public ResponseEntity<CreateProviderFirm201Response> patchProviderFirm(
+      @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
+
+    validatePatchRequest(request);
+
+    ProviderCreationResult result =
+        providerFirmService.patchLspBasicDetails(providerFirmGUIDorFirmNumber, request);
+
+    return ResponseEntity.ok(
+        new CreateProviderFirm201Response()
+            .data(
+                new CreateProviderFirm201ResponseData()
+                    .providerFirmGUID(result.providerFirmGUID().toString())
+                    .providerFirmNumber(result.firmNumber())));
+  }
+
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {
     if (request.getLegalServicesProvider() != null) {
       ProviderCreateLSPV2LegalServicesProvider lsp = request.getLegalServicesProvider();
@@ -273,6 +303,36 @@ public class ProviderFirmController {
           "firmType '"
               + request.getFirmType().getValue()
               + "' is inconsistent with the variant provided");
+    }
+  }
+
+  private static void validatePatchRequest(ProviderPatchV2 request) {
+    if (request == null) {
+      throw new IllegalArgumentException("request body must be provided");
+    }
+
+    boolean hasName = request.getName() != null;
+    boolean hasLspDetails = request.getLegalServicesProvider() != null;
+
+    if (!hasName && !hasLspDetails) {
+      throw new IllegalArgumentException(
+          "At least one of name or legalServicesProvider must be provided");
+    }
+
+    if (hasName && request.getName().isBlank()) {
+      throw new IllegalArgumentException("name must not be blank");
+    }
+
+    if (request.getPractitioner() != null) {
+      throw new IllegalArgumentException("Practitioner updates are not supported on this endpoint");
+    }
+
+    if (request.getLegalServicesProvider() != null) {
+      LSPDetailsPatchV2 lsp = request.getLegalServicesProvider();
+      if (lsp.getHeadOffice() != null) {
+        throw new IllegalArgumentException(
+            "Head office reassignment is not supported on this endpoint");
+      }
     }
   }
 }

@@ -1,25 +1,22 @@
 package uk.gov.justice.laa.providerdata.service;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 
 /**
- * Service responsible for assigning a {@link ContractManagerEntity} to an {@link OfficeEntity}.
+ * Service responsible for assigning a {@link ContractManagerEntity} to a provider office link.
  *
  * <ul>
  *   <li>Ensures there is at most one assignment per office (for now). Any existing assignment for
  *       the office is removed before creating a new link.
  *   <li>Looks up the {@code ContractManagerEntity} by its GUID and throws an {@link
  *       IllegalArgumentException} if it does not exist.
- *   <li>Obtains a lightweight reference to the {@code OfficeEntity} via {@link
- *       EntityManager#getReference(Class, Object)}, assuming the office GUID is the primary key.
+ *   <li>Treats re-assigning the same contract manager to the same office as idempotent.
  * </ul>
  *
  * <p>The {@link #assign(String, String, UUID)} method is transactional. It will atomically remove
@@ -87,7 +84,12 @@ public class OfficeContractManagerAssignmentService {
     var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);
     UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
 
-    // MVP: ensure only one assignment exists
+    if (linkRepository.existsByOfficeLink_GuidAndContractManager_Guid(
+        providerOfficeLinkGuid, contractManagerGuid)) {
+      return new AssignmentResult(providerOfficeLinkGuid, manager.getContractManagerId());
+    }
+
+    // Currently, we ensure only one assignment exists
     linkRepository.deleteByOfficeLink_Guid(providerOfficeLinkGuid);
 
     OfficeContractManagerLinkEntity link =

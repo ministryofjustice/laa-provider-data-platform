@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
@@ -197,10 +199,7 @@ public class ProviderFirmController {
       LiaisonManagerEntity lmEntity = lmEntity(lsp.getLiaisonManager());
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lsp.getLiaisonManager());
       return providerFirmCreationService.createLspFirm(
-          ProviderEntity.builder()
-              .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-              .name(request.getName())
-              .build(),
+          LspProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(lsp),
           officeMapper.toHeadOfficeLinkTemplate(lsp),
           lmEntity,
@@ -212,14 +211,14 @@ public class ProviderFirmController {
       LiaisonManagerEntity lmEntity = lmEntity(chambers.getLiaisonManager());
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(chambers.getLiaisonManager());
       return providerFirmCreationService.createChambersFirm(
-          ProviderEntity.builder().firmType(FirmType.CHAMBERS).name(request.getName()).build(),
+          ChamberProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
           lmLink);
     }
     return providerFirmCreationService.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name(request.getName()).build(),
+        AdvocateProviderEntity.builder().name(request.getName()).build(),
         request.getPractitioner().getParentFirms(),
         request.getPractitioner().getPayment());
   }

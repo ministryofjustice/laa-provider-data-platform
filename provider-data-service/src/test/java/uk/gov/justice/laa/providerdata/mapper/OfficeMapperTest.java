@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
@@ -95,7 +96,7 @@ class OfficeMapperTest {
     link.setGuid(officeLinkGuid);
     link.setOffice(office);
     link.setAccountNumber("ABC123");
-    link.setFirmType("Legal Services Provider");
+    link.setFirmType(FirmType.LEGAL_SERVICES_PROVIDER);
     link.setActiveDateTo(LocalDate.of(2030, 12, 31));
     link.setWebsite("https://westgate.example");
     link.setVatRegistrationNumber("GB123456789");
@@ -280,7 +281,7 @@ class OfficeMapperTest {
     link.setGuid(UUID.randomUUID());
     link.setOffice(office);
     link.setAccountNumber("TST001");
-    link.setFirmType("Legal Services Provider");
+    link.setFirmType(FirmType.LEGAL_SERVICES_PROVIDER);
     return link;
   }
 }

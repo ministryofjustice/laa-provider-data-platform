@@ -7,12 +7,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
@@ -43,15 +45,6 @@ import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 @Profile("local")
 @RequiredArgsConstructor
 public class LocalDataSeeder implements CommandLineRunner {
-
-  /**
-   * These values must match the discriminator values used by ProviderOfficeLink subtypes, and the
-   * NOT NULL constraint on ProviderEntity.firmType.
-   */
-  private static final String FIRM_TYPE_LSP = "Legal Services Provider";
-
-  private static final String FIRM_TYPE_CHAMBERS = "Chambers";
-  private static final String FIRM_TYPE_ADVOCATE = "Advocate";
 
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
@@ -123,25 +116,16 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     // Must not violate: firmNumber NOT NULL UNIQUE, firmType NOT NULL, name NOT NULL.
     ProviderEntity provider1 =
-        ProviderEntity.builder()
+        LspProviderEntity.builder()
             .firmNumber("FRM001")
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Test Legal Services Provider Ltd")
             .build();
 
     ProviderEntity provider2 =
-        ProviderEntity.builder()
-            .firmNumber("FRM002")
-            .firmType(FirmType.CHAMBERS)
-            .name("Test Chambers")
-            .build();
+        ChamberProviderEntity.builder().firmNumber("FRM002").name("Test Chambers").build();
 
     ProviderEntity provider3 =
-        ProviderEntity.builder()
-            .firmNumber("FRM003")
-            .firmType(FirmType.ADVOCATE)
-            .name("Test Advocate")
-            .build();
+        AdvocateProviderEntity.builder().firmNumber("FRM003").name("Test Advocate").build();
 
     providerRepository.save(provider1);
     providerRepository.save(provider2);

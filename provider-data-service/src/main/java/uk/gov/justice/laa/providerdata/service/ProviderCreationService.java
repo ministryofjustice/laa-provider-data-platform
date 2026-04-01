@@ -6,11 +6,14 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
@@ -112,14 +115,14 @@ public class ProviderCreationService {
    */
   @Transactional
   public ProviderCreationResult createLspFirm(
-      ProviderEntity providerTemplate,
+      LspProviderEntity providerTemplate,
       OfficeEntity officeTemplate,
       LspProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       @Nullable PaymentDetailsCreateV2 payment) {
 
-    providerTemplate.setFirmNumber(generateFirmNumber(providerTemplate.getFirmType()));
+    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.LEGAL_SERVICES_PROVIDER));
     ProviderEntity savedProvider = providerRepository.save(providerTemplate);
 
     OfficeEntity savedOffice = officeRepository.save(officeTemplate);
@@ -152,13 +155,13 @@ public class ProviderCreationService {
    */
   @Transactional
   public ProviderCreationResult createChambersFirm(
-      ProviderEntity providerTemplate,
+      ChamberProviderEntity providerTemplate,
       OfficeEntity officeTemplate,
       ChamberProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
 
-    providerTemplate.setFirmNumber(generateFirmNumber(providerTemplate.getFirmType()));
+    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.CHAMBERS));
     ProviderEntity savedProvider = providerRepository.save(providerTemplate);
 
     OfficeEntity savedOffice = officeRepository.save(officeTemplate);
@@ -194,10 +197,10 @@ public class ProviderCreationService {
    */
   @Transactional
   public ProviderCreationResult createPractitionerFirm(
-      ProviderEntity providerTemplate,
+      AdvocateProviderEntity providerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
       @Nullable PaymentDetailsCreateV2 payment) {
-    providerTemplate.setFirmNumber(generateFirmNumber(providerTemplate.getFirmType()));
+    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.ADVOCATE));
     ProviderEntity saved = providerRepository.save(providerTemplate);
 
     AdvocateProviderOfficeLinkEntity officeLink = null;

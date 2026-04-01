@@ -38,17 +38,19 @@ public class OfficeLiaisonManagerLinkEntity extends AuditableEntity {
       foreignKey = @ForeignKey(name = "FK_OFFICE_LIAISON_MGR_LINK_LIAISON_MGR"))
   private LiaisonManagerEntity liaisonManager;
 
+  /** OFFICE_GUID points to PROVIDER_OFFICE_LINK.GUID, not OFFICE.GUID. */
   @ManyToOne
   @JoinColumn(
       name = "OFFICE_GUID",
       nullable = false,
       foreignKey = @ForeignKey(name = "FK_OFFICE_LIAISON_MGR_LINK_OFFICE"))
-  // OFFICE_GUID points to PROVIDER_OFFICE_LINK.GUID, not OFFICE.GUID.
   private ProviderOfficeLinkEntity officeLink;
 
+  /** PO.PO_VENDOR_CONTACTS.CREATION_DATE DATE. */
   @Column(name = "ACTIVE_DATE_FROM", nullable = false)
   private LocalDate activeDateFrom;
 
+  /** PO.PO_VENDOR_CONTACTS.INACTIVE_DATE DATE. */
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 

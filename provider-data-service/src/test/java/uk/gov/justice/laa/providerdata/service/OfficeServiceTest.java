@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -355,7 +356,7 @@ class OfficeServiceTest {
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
     link.setOffice(office);
     link.setAccountNumber("ABC123");
-    link.setFirmType("Legal Services Provider");
+    link.setFirmType(FirmType.LEGAL_SERVICES_PROVIDER);
     return link;
   }
 

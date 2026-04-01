@@ -25,12 +25,15 @@ import lombok.experimental.SuperBuilder;
             columnNames = {"SORT_CODE", "ACCOUNT_NUMBER"}))
 public class BankAccountEntity extends AuditableEntity {
 
+  /** AP.AP_BANK_ACCCOUNTS_ALL.BANK_ACCOUNT_NAME VARCHAR2(80) not null. */
   @Column(name = "ACCOUNT_NAME", nullable = false)
   private String accountName;
 
+  /** AP.AP_BANK_BRANCHES.BANK_NUM VARCHAR2(25). */
   @Column(name = "SORT_CODE", nullable = false, updatable = false)
   private String sortCode;
 
+  /** AP.AP_BANK_ACCCOUNTS_ALL.BANK_ACCOUNT_NUM VARCHAR2(30) not null. */
   @Column(name = "ACCOUNT_NUMBER", nullable = false, updatable = false)
   private String accountNumber;
 }

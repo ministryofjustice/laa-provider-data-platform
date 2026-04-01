@@ -12,6 +12,9 @@ import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 public interface OfficeContractManagerLinkRepository
     extends JpaRepository<OfficeContractManagerLinkEntity, UUID> {
 
+  boolean existsByOfficeLink_GuidAndContractManager_Guid(
+      UUID officeLinkGuid, UUID contractManagerGuid);
+
   Page<OfficeContractManagerLinkEntity> findByOfficeLink_Guid(
       UUID officeLinkGuid, Pageable pageable);
 

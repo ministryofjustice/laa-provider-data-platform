@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -53,6 +53,17 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
     assertAssignmentPersisted(testData, result.officeGuid());
   }
 
+  @Test
+  @Transactional
+  void assign_sameContractManagerTwice_isIdempotent() {
+    TestData testData = createTestData();
+
+    service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+
+    assertAssignmentPersisted(testData, result.officeGuid());
+  }
+
   private TestData createTestData() {
     ContractManagerEntity contractManager =
         ContractManagerEntity.builder()
@@ -64,9 +75,8 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
     ProviderEntity provider =
         providerRepository.save(
-            ProviderEntity.builder()
+            LspProviderEntity.builder()
                 .firmNumber("FRM-CM-TEST")
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("Contract Manager Test Firm")
                 .build());
 

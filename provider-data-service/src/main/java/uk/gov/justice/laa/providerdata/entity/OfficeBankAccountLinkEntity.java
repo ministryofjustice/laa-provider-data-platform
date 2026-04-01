@@ -47,12 +47,15 @@ public class OfficeBankAccountLinkEntity extends AuditableEntity {
       foreignKey = @ForeignKey(name = "FK_OFFICE_BA_LINK_PROVIDER_OFFICE"))
   private ProviderOfficeLinkEntity providerOfficeLink;
 
+  /** AP.AP_BANK_ACCCOUNT_USES_ALL.PRIMARY_FLAGE VARCHAR2(1) not null. */
   @Column(name = "PRIMARY_FLAG", nullable = false)
   private Boolean primaryFlag;
 
+  /** AP.AP_BANK_ACCCOUNT_USES_ALL.START_DATE DATE. */
   @Column(name = "ACTIVE_DATE_FROM", nullable = false)
   private LocalDate activeDateFrom;
 
+  /** AP.AP_BANK_ACCCOUNT_USES_ALL.END_DATE DATE. */
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 }

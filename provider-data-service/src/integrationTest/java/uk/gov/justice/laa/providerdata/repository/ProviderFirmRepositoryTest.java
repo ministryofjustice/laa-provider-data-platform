@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +15,14 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository repository;
+  @Autowired private EntityManager entityManager;
 
   @Test
   void save_and_findByFirmNumber_roundTrips() {
     ProviderEntity saved =
-        repository.save(LspProviderEntity.builder().firmNumber("F12345").name("Test Firm").build());
+        repository.saveAndFlush(
+            LspProviderEntity.builder().firmNumber("F12345").name("Test Firm").build());
+    entityManager.clear();
 
     assertThat(saved.getGuid()).isNotNull();
 
@@ -31,7 +35,7 @@ class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
 
   @Test
   void save_and_findByFirmNumber_roundTripsSubtypeFields() {
-    repository.save(
+    repository.saveAndFlush(
         LspProviderEntity.builder()
             .firmNumber("LSP-FIELDS-1")
             .name("Subtype LSP")
@@ -41,7 +45,7 @@ class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
             .companiesHouseNumber("CH123456")
             .build());
 
-    repository.save(
+    repository.saveAndFlush(
         AdvocateProviderEntity.builder()
             .firmNumber("ADV-FIELDS-1")
             .name("Subtype Practitioner")
@@ -51,6 +55,7 @@ class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
             .barristerLevel("Level 4")
             .barCouncilRollNumber("BC67890")
             .build());
+    entityManager.clear();
 
     ProviderEntity reloadedLsp = repository.findByFirmNumber("LSP-FIELDS-1").orElseThrow();
     ProviderEntity reloadedPractitioner = repository.findByFirmNumber("ADV-FIELDS-1").orElseThrow();

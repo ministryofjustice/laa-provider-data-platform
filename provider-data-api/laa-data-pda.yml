@@ -1409,7 +1409,7 @@ components:
   schemas:
     BaseEntityGUIDV2:
       type: string
-      format: guid
+      format: uuid
       description: "GUID is the primary key for entity"
       example: "ABCD-DEFG-1234-5678"
 
@@ -3153,15 +3153,6 @@ components:
       description: >
         GUID of the provider-office link (not of the underlying office record),
         or the office code (unique account number).
-    BankAccountDetailGUID:
-      name: bankAccountDetailGUID
-      in: path
-      required: true
-      schema:
-        type: string
-      description: >
-        GUID of the bank account details.
-
     QPageNumber:
       name: page
       in: query

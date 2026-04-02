@@ -35,7 +35,7 @@ public interface BankAccountMapper {
   default BankAccountV2 toBankAccountV2(ProviderBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new BankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
+        .guid(account.getGuid())
         .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
@@ -55,7 +55,7 @@ public interface BankAccountMapper {
   default OfficeBankAccountV2 toOfficeBankAccountV2(OfficeBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
+        .guid(account.getGuid())
         .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
@@ -79,7 +79,7 @@ public interface BankAccountMapper {
   default OfficeBankAccountV2 toOfficeBankAccountV2(ProviderBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
+        .guid(account.getGuid())
         .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())

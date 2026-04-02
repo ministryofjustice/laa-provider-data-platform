@@ -133,17 +133,17 @@ public class ProviderFirmOfficesLiaisonManagersController
             new CreateProviderFirmOfficeLiaisonManager201Response()
                 .data(
                     new CreateProviderFirmOfficeLiaisonManager201ResponseData()
-                        .providerFirmGUID(result.providerFirmGuid().toString())
+                        .providerFirmGUID(result.providerFirmGuid())
                         .providerFirmNumber(result.providerFirmNumber())
-                        .officeGUID(result.officeGuid().toString())
+                        .officeGUID(result.officeGuid())
                         .officeCode(result.officeCode())
-                        .liaisonManagerGUID(result.liaisonManagerGuid().toString())));
+                        .liaisonManagerGUID(result.liaisonManagerGuid())));
   }
 
   private static LiaisonManagerV2 toLiaisonManagerV2(OfficeLiaisonManagerLinkEntity link) {
     var m = link.getLiaisonManager();
     return new LiaisonManagerV2()
-        .guid(m.getGuid().toString())
+        .guid(m.getGuid())
         .version(BigDecimal.valueOf(m.getVersion()))
         .createdBy(m.getCreatedBy())
         .createdTimestamp(m.getCreatedTimestamp())

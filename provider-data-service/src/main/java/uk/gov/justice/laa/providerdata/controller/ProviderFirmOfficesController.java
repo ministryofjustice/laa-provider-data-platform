@@ -75,9 +75,9 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             new CreateProviderFirmOffice201Response()
                 .data(
                     new CreateProviderFirmOffice201ResponseData()
-                        .providerFirmGUID(result.providerGUID().toString())
+                        .providerFirmGUID(result.providerGUID())
                         .providerFirmNumber(result.firmNumber())
-                        .officeGUID(result.officeGUID().toString())
+                        .officeGUID(result.officeGUID())
                         .officeCode(result.accountNumber())));
   }
 

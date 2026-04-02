@@ -55,7 +55,7 @@ class BankAccountMapperTest {
 
     BankAccountV2 dto = mapper.toBankAccountV2(link);
 
-    assertThat(dto.getGuid()).isEqualTo(guid.toString());
+    assertThat(dto.getGuid()).isEqualTo(guid);
     assertThat(dto.getVersion()).isEqualTo(BigDecimal.valueOf(3L));
     assertThat(dto.getCreatedBy()).isEqualTo("user1");
     assertThat(dto.getCreatedTimestamp()).isEqualTo(now);
@@ -98,7 +98,7 @@ class BankAccountMapperTest {
 
     OfficeBankAccountV2 dto = mapper.toOfficeBankAccountV2(link);
 
-    assertThat(dto.getGuid()).isEqualTo(guid.toString());
+    assertThat(dto.getGuid()).isEqualTo(guid);
     assertThat(dto.getVersion()).isEqualTo(BigDecimal.ONE);
     assertThat(dto.getAccountName()).isEqualTo("Barclays Account");
     assertThat(dto.getSortCode()).isEqualTo("20-00-00");

@@ -43,7 +43,7 @@ class ProviderMapperTest {
 
     ProviderV2 result = mapper.toProviderV2(entity);
 
-    assertThat(result.getGuid()).isEqualTo(guid.toString());
+    assertThat(result.getGuid()).isEqualTo(guid);
     assertThat(result.getVersion()).isEqualByComparingTo("3");
     assertThat(result.getFirmNumber()).isEqualTo("LSP-ABC123");
     assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER);
@@ -99,7 +99,7 @@ class ProviderMapperTest {
     assertThat(result.getLegalServicesProvider()).isNotNull();
     assertThat(result.getLegalServicesProvider().getHeadOffice()).isNotNull();
     assertThat(result.getLegalServicesProvider().getHeadOffice().getOfficeGUID())
-        .isEqualTo(officeLinkGuid.toString());
+        .isEqualTo(officeLinkGuid);
     assertThat(result.getLegalServicesProvider().getHeadOffice().getAccountNumber())
         .isEqualTo("ACC001");
     assertThat(result.getLegalServicesProvider().getHeadOffice().getActiveDateTo())
@@ -131,8 +131,7 @@ class ProviderMapperTest {
 
     assertThat(result.getChambers()).isNotNull();
     assertThat(result.getChambers().getOffice()).isNotNull();
-    assertThat(result.getChambers().getOffice().getOfficeGUID())
-        .isEqualTo(officeLinkGuid.toString());
+    assertThat(result.getChambers().getOffice().getOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.getChambers().getOffice().getAccountNumber()).isEqualTo("CH001");
     assertThat(result.getLegalServicesProvider()).isNull();
     assertThat(result.getPractitioner()).isNull();
@@ -174,7 +173,7 @@ class ProviderMapperTest {
     assertThat(result.getPractitioner()).isNotNull();
     assertThat(result.getPractitioner().getParentFirms()).hasSize(2);
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentGuid())
-        .isEqualTo(parentChambers.getGuid().toString());
+        .isEqualTo(parentChambers.getGuid());
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentFirmNumber())
         .isEqualTo("CH-XYZ789");
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentFirmType())
@@ -245,8 +244,7 @@ class ProviderMapperTest {
     ProviderV2 result = mapper.toProviderV2(entity, null, null, officeLink, parentLinks);
 
     assertThat(result.getPractitioner().getOffice()).isNotNull();
-    assertThat(result.getPractitioner().getOffice().getOfficeGUID())
-        .isEqualTo(officeLinkGuid.toString());
+    assertThat(result.getPractitioner().getOffice().getOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ADV001");
   }
 
@@ -280,7 +278,7 @@ class ProviderMapperTest {
     OfficePractitionerV2 result =
         mapper.toOfficePractitionerV2(practitioner, officeLink, List.of(parentLink));
 
-    assertThat(result.getGuid()).isEqualTo(guid.toString());
+    assertThat(result.getGuid()).isEqualTo(guid);
     assertThat(result.getName()).isEqualTo("Test Practitioner");
     assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.ADVOCATE);
     assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ACCT123");

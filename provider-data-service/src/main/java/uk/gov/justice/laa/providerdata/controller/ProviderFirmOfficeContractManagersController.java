@@ -69,11 +69,10 @@ public class ProviderFirmOfficeContractManagersController
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String xCorrelationId,
           String traceparent) {
-    String rawMgrGuid = contractManagerProviderPatchV2.getContractManagerGUID();
-    if (rawMgrGuid == null || rawMgrGuid.isBlank()) {
+    UUID contractManagerGuid = contractManagerProviderPatchV2.getContractManagerGUID();
+    if (contractManagerGuid == null) {
       throw new IllegalArgumentException("contractManagerGUID must be provided");
     }
-    UUID contractManagerGuid = parseGuidOrThrow("contractManagerGUID", rawMgrGuid);
 
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(
@@ -82,7 +81,7 @@ public class ProviderFirmOfficeContractManagersController
     // populate what we can without additional lookups
     CreateProviderFirmOfficeContractManager201ResponseData data =
         new CreateProviderFirmOfficeContractManager201ResponseData()
-            .officeGUID(result.officeGuid().toString())
+            .officeGUID(result.officeGuid())
             .contractManagerId(result.contractManagerId());
 
     return ResponseEntity.status(HttpStatus.CREATED)
@@ -125,21 +124,5 @@ public class ProviderFirmOfficeContractManagersController
     response.setData(data);
 
     return ResponseEntity.ok(response);
-  }
-
-  /**
-   * Parses a GUID from a string or throws an informative {@link IllegalArgumentException}.
-   *
-   * @param field the logical name of the field being parsed (used in error messages)
-   * @param value the string to parse
-   * @return parsed {@link UUID}
-   * @throws IllegalArgumentException if the value is not a valid UUID
-   */
-  private static UUID parseGuidOrThrow(String field, String value) {
-    try {
-      return UUID.fromString(value);
-    } catch (Exception e) {
-      throw new IllegalArgumentException(field + " must be a GUID. Value was: " + value);
-    }
   }
 }

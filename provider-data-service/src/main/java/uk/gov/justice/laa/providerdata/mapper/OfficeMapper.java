@@ -196,7 +196,7 @@ public interface OfficeMapper {
   default OfficeV2 toLspOfficeV2(LspProviderOfficeLinkEntity link) {
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
-        .guid(link.getGuid().toString())
+        .guid(link.getGuid())
         .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
         .createdBy(office.getCreatedBy())
         .createdTimestamp(office.getCreatedTimestamp())
@@ -231,7 +231,7 @@ public interface OfficeMapper {
     }
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
-        .guid(link.getGuid().toString())
+        .guid(link.getGuid())
         .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
         .createdBy(office.getCreatedBy())
         .createdTimestamp(office.getCreatedTimestamp())

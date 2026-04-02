@@ -110,7 +110,7 @@ class OfficeMapperTest {
 
     OfficeV2 result = mapper.toLspOfficeV2(link);
 
-    assertThat(result.getGuid()).isEqualTo(officeLinkGuid.toString());
+    assertThat(result.getGuid()).isEqualTo(officeLinkGuid);
     assertThat(result.getVersion()).isEqualTo(BigDecimal.valueOf(3L));
     assertThat(result.getCreatedBy()).isEqualTo("user1");
     assertThat(result.getCreatedTimestamp()).isEqualTo(now);

@@ -103,7 +103,7 @@ public class ProviderFirmController {
             new CreateProviderFirm201Response()
                 .data(
                     new CreateProviderFirm201ResponseData()
-                        .providerFirmGUID(result.providerFirmGUID().toString())
+                        .providerFirmGUID(result.providerFirmGUID())
                         .providerFirmNumber(result.firmNumber())));
   }
 
@@ -219,7 +219,7 @@ public class ProviderFirmController {
         new CreateProviderFirm201Response()
             .data(
                 new CreateProviderFirm201ResponseData()
-                    .providerFirmGUID(result.providerFirmGUID().toString())
+                    .providerFirmGUID(result.providerFirmGUID())
                     .providerFirmNumber(result.firmNumber())));
   }
 

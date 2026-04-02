@@ -78,7 +78,7 @@ public class ContractManagerMapperTest {
   }
 
   private static void assertCommonFields(
-      String guid,
+      UUID guid,
       BigDecimal version,
       String createdBy,
       OffsetDateTime createdTimestamp,
@@ -88,7 +88,7 @@ public class ContractManagerMapperTest {
       String email,
       String firstName,
       String lastName) {
-    assertThat(guid).isEqualTo("11111111-1111-1111-1111-111111111111");
+    assertThat(guid).isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
     assertThat(version).hasToString("12");
     assertThat(createdBy).isEqualTo("john.smith.42");
     assertThat(createdTimestamp).isEqualTo(OffsetDateTime.parse("2025-09-25T09:30:00Z"));

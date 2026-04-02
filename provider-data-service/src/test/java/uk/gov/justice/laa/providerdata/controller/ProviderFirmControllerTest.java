@@ -225,7 +225,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchLspBasicDetails(anyString(), any()))
+    when(providerFirmService.patchProvider(anyString(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "LSP-0001"));
 
     mockMvc
@@ -249,7 +249,30 @@ class ProviderFirmControllerTest {
   }
 
   @Test
-  void patchProviderFirm_practitionerBranchRejected_returns400() throws Exception {
+  void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmService.patchProvider(anyString(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-0001"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "practitioner": {
+                                            "advocateLevel": "KC"
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("ADV-0001"));
+  }
+
+  @Test
+  void patchProviderFirm_mixedSubtypeBranchesRejected_returns400() throws Exception {
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "LSP-0001")
@@ -257,7 +280,12 @@ class ProviderFirmControllerTest {
                 .content(
                     """
                                         {
-                                          "practitioner": {}
+                                          "legalServicesProvider": {
+                                            "companiesHouseNumber": "12345678"
+                                          },
+                                          "practitioner": {
+                                            "advocateLevel": "KC"
+                                          }
                                         }
                                         """))
         .andExpect(status().isBadRequest());
@@ -346,7 +374,7 @@ class ProviderFirmControllerTest {
     mockMvc
         .perform(
             get("/provider-firms")
-                .param("type", "Advocate")
+                .param("type", ProviderFirmTypeV2.ADVOCATE.getValue())
                 .param("page", "0")
                 .param("pageSize", "20")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -354,9 +382,11 @@ class ProviderFirmControllerTest {
         // Check content
         .andExpect(jsonPath("$.data.content.length()").value(2))
         .andExpect(jsonPath("$.data.content[0].guid").value(guid1.toString()))
-        .andExpect(jsonPath("$.data.content[0].firmType").value("Advocate"))
+        .andExpect(
+            jsonPath("$.data.content[0].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()))
         .andExpect(jsonPath("$.data.content[1].guid").value(guid2.toString()))
-        .andExpect(jsonPath("$.data.content[1].firmType").value("Advocate"))
+        .andExpect(
+            jsonPath("$.data.content[1].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()))
         // Check pagination metadata
         .andExpect(jsonPath("$.data.metadata.pagination.currentPage").value(0))
         .andExpect(jsonPath("$.data.metadata.pagination.pageSize").value(20))
@@ -365,7 +395,7 @@ class ProviderFirmControllerTest {
         // Check that search criteria includes 'type'
         .andExpect(
             jsonPath("$.data.metadata.searchCriteria.criteria[?(@.filter=='type')].values[0]")
-                .value("Advocate"))
+                .value(ProviderFirmTypeV2.ADVOCATE.getValue()))
         // Check links are present
         .andExpect(jsonPath("$.data.links").exists());
   }
@@ -405,6 +435,7 @@ class ProviderFirmControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content.length()").value(1))
         .andExpect(jsonPath("$.data.content[0].guid").value(guid.toString()))
-        .andExpect(jsonPath("$.data.content[0].firmType").value("Advocate"));
+        .andExpect(
+            jsonPath("$.data.content[0].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()));
   }
 }

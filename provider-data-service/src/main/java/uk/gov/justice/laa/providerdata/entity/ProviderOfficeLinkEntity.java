@@ -41,7 +41,8 @@ import lombok.experimental.SuperBuilder;
 @DiscriminatorColumn(name = "FIRM_TYPE", discriminatorType = DiscriminatorType.STRING)
 public class ProviderOfficeLinkEntity extends AuditableEntity {
 
-  @Column(name = "ACCOUNT_NUMBER", nullable = false)
+  /** PO.PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE VARCHAR2(15) not null. */
+  @Column(name = "ACCOUNT_NUMBER", nullable = false, unique = true, updatable = false)
   private String accountNumber;
 
   @ManyToOne
@@ -58,22 +59,25 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
       foreignKey = @ForeignKey(name = "FK_PROVIDER_OFFICE_LINK_OFFICE"))
   private OfficeEntity office;
 
+  /** PO.PO_VENDORS.ATTRIBUTE4 VARCHAR2(150). */
   @Column(name = "FIRM_TYPE", nullable = false, insertable = false, updatable = false)
   private String firmType;
 
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE1 VARCHAR2(150). */
   @Column(name = "HEAD_OFFICE_FLAG", nullable = false)
   private Boolean headOfficeFlag;
 
+  /** PO.PO_VENDOR_CONTACTS.URL VARCHAR2(2000). */
   @Column(name = "WEBSITE")
   private String website;
 
+  /** PO.PO_VENDOR_SITES_ALL.INACTIVE_DATE DATE. */
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 
+  /** The database column is NOT NULL, so default it here (some tests/mappers don't set it). */
   @PrePersist
   void prePersistDefaults() {
-    // Some code paths (tests/mappers) don't explicitly set this.
-    // Because the database column is NOT NULL, we default it here.
     if (headOfficeFlag == null) {
       headOfficeFlag = Boolean.FALSE;
     }

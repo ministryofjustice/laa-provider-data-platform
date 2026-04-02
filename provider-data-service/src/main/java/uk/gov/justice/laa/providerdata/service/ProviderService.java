@@ -7,14 +7,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
@@ -85,36 +89,11 @@ public class ProviderService {
     }
   }
 
-  /**
-   * Patch LSP basic details only (name + simple LSP fields).
-   *
-   * <p>Rejects: firm type changes, firm number changes, practitioner branch updates, and
-   * head-office reassignment (out of scope).
-   *
-   * @param providerFirmGUIDorFirmNumber GUID or firm number
-   * @param patch patch contract
-   * @return updated firm identifiers
-   */
+  /** Applies supported provider PATCH fields for the resolved provider subtype. */
   @Transactional
-  public ProviderCreationResult patchLspBasicDetails(
+  public ProviderCreationResult patchProvider(
       String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch) {
-
     ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
-
-    if (!FirmType.LEGAL_SERVICES_PROVIDER.equals(provider.getFirmType())) {
-      throw new IllegalArgumentException(
-          "Provider is not a Legal Service Provider: " + providerFirmGUIDorFirmNumber);
-    }
-
-    if (patch.getPractitioner() != null) {
-      throw new IllegalArgumentException("Practitioner updates are not supported on this endpoint");
-    }
-
-    LSPDetailsPatchV2 lspPatch = patch.getLegalServicesProvider();
-    if (lspPatch != null && lspPatch.getHeadOffice() != null) {
-      throw new IllegalArgumentException(
-          "Head office reassignment is not supported on this endpoint");
-    }
 
     if (patch.getName() != null) {
       if (patch.getName().isBlank()) {
@@ -123,29 +102,111 @@ public class ProviderService {
       provider.setName(patch.getName());
     }
 
+    LSPDetailsPatchV2 lspPatch = patch.getLegalServicesProvider();
     if (lspPatch != null) {
-      if (lspPatch.getConstitutionalStatus() != null) {
-        /*
-         * Persist the constitutional status in the provider record.
-         *
-         * Note: the entity field type varies by implementation (String vs enum).
-         * This code assumes the entity accepts the OpenAPI enum value as a String.
-         */
-        provider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
-      }
+      applyLspPatch(provider, providerFirmGUIDorFirmNumber, lspPatch);
+    }
 
-      if (lspPatch.getIndemnityReceivedDate() != null) {
-        provider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
-      }
-
-      if (lspPatch.getCompaniesHouseNumber() != null) {
-        provider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
-      }
+    PractitionerDetailsPatchV2 practitionerPatch = patch.getPractitioner();
+    if (practitionerPatch != null) {
+      applyPractitionerPatch(provider, providerFirmGUIDorFirmNumber, practitionerPatch);
     }
 
     ProviderEntity saved = providerRepository.save(provider);
 
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+  }
+
+  private static void applyLspPatch(
+      ProviderEntity provider, String providerFirmGUIDorFirmNumber, LSPDetailsPatchV2 lspPatch) {
+    if (!(provider instanceof LspProviderEntity lspProvider)) {
+      throw new IllegalArgumentException(
+          "legalServicesProvider updates require a Legal Services Provider: "
+              + providerFirmGUIDorFirmNumber);
+    }
+
+    if (lspPatch.getHeadOffice() != null) {
+      throw new IllegalArgumentException(
+          "Head office reassignment is not supported on this endpoint");
+    }
+
+    if (lspPatch.getConstitutionalStatus() != null) {
+      lspProvider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
+    }
+
+    if (lspPatch.getIndemnityReceivedDate() != null) {
+      lspProvider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
+    }
+
+    if (lspPatch.getCompaniesHouseNumber() != null) {
+      lspProvider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
+    }
+  }
+
+  private static void applyPractitionerPatch(
+      ProviderEntity provider,
+      String providerFirmGUIDorFirmNumber,
+      PractitionerDetailsPatchV2 practitionerPatch) {
+    if (!(provider instanceof AdvocateProviderEntity practitionerProvider)) {
+      throw new IllegalArgumentException(
+          "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
+    }
+
+    if (practitionerPatch.getLiaisonManager() != null) {
+      throw new IllegalArgumentException(
+          "Practitioner liaison manager updates are not supported on this endpoint");
+    }
+
+    if (practitionerPatch.getParentFirms() != null
+        && !practitionerPatch.getParentFirms().isEmpty()) {
+      throw new IllegalArgumentException(
+          "Practitioner parent-firm updates are not supported on this endpoint");
+    }
+
+    boolean hasAdvocateFields =
+        practitionerPatch.getAdvocateLevel() != null
+            || practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null;
+    boolean hasBarristerFields =
+        practitionerPatch.getBarristerLevel() != null
+            || practitionerPatch.getBarCouncilRollNumber() != null;
+
+    if (hasAdvocateFields && hasBarristerFields) {
+      throw new IllegalArgumentException(
+          "Practitioner patch must contain either advocate fields or barrister fields, not both");
+    }
+
+    if (hasAdvocateFields
+        && !PractitionerDetailsAdvocateTypeV2.ADVOCATE
+            .getValue()
+            .equals(practitionerProvider.getAdvocateType())) {
+      throw new IllegalArgumentException(
+          "Advocate fields are only valid for practitioner advocateType=Advocate");
+    }
+
+    if (hasBarristerFields
+        && !PractitionerDetailsAdvocateTypeV2.BARRISTER
+            .getValue()
+            .equals(practitionerProvider.getAdvocateType())) {
+      throw new IllegalArgumentException(
+          "Barrister fields are only valid for practitioner advocateType=Barrister");
+    }
+
+    if (practitionerPatch.getAdvocateLevel() != null) {
+      practitionerProvider.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
+    }
+
+    if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
+      practitionerProvider.setSolicitorRegulationAuthorityRollNumber(
+          practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
+    }
+
+    if (practitionerPatch.getBarristerLevel() != null) {
+      practitionerProvider.setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
+    }
+
+    if (practitionerPatch.getBarCouncilRollNumber() != null) {
+      practitionerProvider.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
+    }
   }
 
   /**

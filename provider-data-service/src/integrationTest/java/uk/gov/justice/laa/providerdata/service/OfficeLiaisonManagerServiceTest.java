@@ -6,7 +6,7 @@ import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -30,11 +30,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
     final OffsetDateTime now = OffsetDateTime.now(); // only used for test data below
 
     ProviderEntity provider =
-        ProviderEntity.builder()
-            .firmNumber("FRM100")
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .name("Test Firm")
-            .build();
+        LspProviderEntity.builder().firmNumber("FRM100").name("Test Firm").build();
     provider = providerRepository.save(provider);
     final var providerGuid = provider.getGuid();
 
@@ -51,7 +47,6 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
             .provider(provider)
             .office(office)
             .accountNumber("0Q731M")
-            .firmType("Legal Services Provider")
             .headOfficeFlag(true)
             .createdBy("test")
             .createdTimestamp(now)

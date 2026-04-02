@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -24,9 +25,6 @@ import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 /** Service responsible for Office Liaison Manager operations. */
 @Service
 public class OfficeLiaisonManagerService {
-
-  private static final String FIRM_TYPE_LSP = "Legal Services Provider";
-  private static final String FIRM_TYPE_CHAMBERS = "Chambers";
 
   private final ProviderRepository providerRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
@@ -126,9 +124,9 @@ public class OfficeLiaisonManagerService {
       if (!Boolean.TRUE.equals(linkHeadOffice.getUseHeadOfficeLiaisonManager())) {
         throw new IllegalArgumentException("useHeadOfficeLiaisonManager must be true");
       }
-      if (!FIRM_TYPE_LSP.equals(provider.getFirmType())) {
+      if (!FirmType.LEGAL_SERVICES_PROVIDER.equals(provider.getFirmType())) {
         throw new IllegalArgumentException(
-            "linkHeadOffice is only applicable for firmType=" + FIRM_TYPE_LSP);
+            "linkHeadOffice is only applicable for firmType=" + FirmType.LEGAL_SERVICES_PROVIDER);
       }
       ProviderOfficeLinkEntity headOfficeLink = resolveHeadOfficeOffice(provider, "Head office");
       return resolveActiveLiaisonManagerForOffice(headOfficeLink);
@@ -138,9 +136,9 @@ public class OfficeLiaisonManagerService {
       if (!Boolean.TRUE.equals(linkChambers.getUseChambersLiaisonManager())) {
         throw new IllegalArgumentException("useChambersLiaisonManager must be true");
       }
-      if (!FIRM_TYPE_CHAMBERS.equals(provider.getFirmType())) {
+      if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
         throw new IllegalArgumentException(
-            "linkChambers currently supports firmType=" + FIRM_TYPE_CHAMBERS);
+            "linkChambers currently supports firmType=" + FirmType.CHAMBERS);
       }
       ProviderOfficeLinkEntity chambersOfficeLink =
           resolveHeadOfficeOffice(provider, "Chambers head office");

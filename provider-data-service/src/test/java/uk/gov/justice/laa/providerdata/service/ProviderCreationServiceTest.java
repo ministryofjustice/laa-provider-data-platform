@@ -18,11 +18,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
@@ -95,10 +97,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createLspFirm(
-            ProviderEntity.builder()
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-                .name("My LSP")
-                .build(),
+            LspProviderEntity.builder().name("My LSP").build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
@@ -156,10 +155,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createLspFirm(
-            ProviderEntity.builder()
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-                .name("My LSP")
-                .build(),
+            LspProviderEntity.builder().name("My LSP").build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             new LspProviderOfficeLinkEntity(),
             lmTemplate,
@@ -207,7 +203,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createChambersFirm(
-            ProviderEntity.builder().firmType(FirmType.CHAMBERS).name("My Chambers").build(),
+            ChamberProviderEntity.builder().name("My Chambers").build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
@@ -233,9 +229,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Barrister").build(),
-            null,
-            null);
+            AdvocateProviderEntity.builder().name("A. Barrister").build(), null, null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("ADV-");
@@ -247,7 +241,7 @@ class ProviderCreationServiceTest {
   void createPractitionerFirm_withParentFirmByNumber_savesParentLink() {
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    ProviderEntity parent = ChamberProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     OfficeEntity parentOffice = new OfficeEntity();
     ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
@@ -267,7 +261,7 @@ class ProviderCreationServiceTest {
     when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        AdvocateProviderEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
         null);
 
@@ -279,7 +273,7 @@ class ProviderCreationServiceTest {
   void createPractitionerFirm_withParentFirmByGuid_savesParentLink() {
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    ProviderEntity parent = ChamberProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     OfficeEntity parentOffice = new OfficeEntity();
     ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
@@ -299,7 +293,7 @@ class ProviderCreationServiceTest {
     when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+        AdvocateProviderEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid.toString())),
         null);
 
@@ -310,7 +304,7 @@ class ProviderCreationServiceTest {
   @Test
   void createPractitionerFirm_withParentFirm_returnsOfficeFieldsFromCreatedLink() {
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    ProviderEntity parent = ChamberProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     UUID chambersOfficeGuid = UUID.randomUUID();
     OfficeEntity parentOffice = new OfficeEntity();
@@ -341,7 +335,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
+            AdvocateProviderEntity.builder().name("A. Advocate").build(),
             List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
             null);
 
@@ -352,7 +346,7 @@ class ProviderCreationServiceTest {
   @Test
   void createPractitionerFirm_throwsNotFound_whenParentHasNoHeadOffice() {
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ProviderEntity.builder().firmType(FirmType.CHAMBERS).build();
+    ProviderEntity parent = ChamberProviderEntity.builder().build();
     parent.setGuid(parentGuid);
 
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -364,7 +358,7 @@ class ProviderCreationServiceTest {
     assertThatThrownBy(
             () ->
                 service.createPractitionerFirm(
-                    ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A.").build(),
+                    AdvocateProviderEntity.builder().name("A.").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-NO-OFFICE")),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
@@ -379,10 +373,7 @@ class ProviderCreationServiceTest {
     assertThatThrownBy(
             () ->
                 service.createPractitionerFirm(
-                    ProviderEntity.builder()
-                        .firmType(FirmType.ADVOCATE)
-                        .name("A. Advocate")
-                        .build(),
+                    AdvocateProviderEntity.builder().name("A. Advocate").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN")),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
@@ -410,9 +401,7 @@ class ProviderCreationServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
-        null,
-        payment);
+        AdvocateProviderEntity.builder().name("A. Advocate").build(), null, payment);
 
     verify(bankDetailsService).createAndLinkToProvider(eq(accountTemplate), any());
   }
@@ -424,9 +413,7 @@ class ProviderCreationServiceTest {
     var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
 
     service.createPractitionerFirm(
-        ProviderEntity.builder().firmType(FirmType.ADVOCATE).name("A. Advocate").build(),
-        null,
-        payment);
+        AdvocateProviderEntity.builder().name("A. Advocate").build(), null, payment);
 
     verify(bankDetailsService, never()).createAndLinkToProvider(any(), any());
   }
@@ -464,7 +451,7 @@ class ProviderCreationServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createLspFirm(
-        ProviderEntity.builder().firmType(FirmType.LEGAL_SERVICES_PROVIDER).name("My LSP").build(),
+        LspProviderEntity.builder().name("My LSP").build(),
         OfficeEntity.builder().addressLine1("1 Test St").build(),
         linkTemplate,
         null,
@@ -484,7 +471,7 @@ class ProviderCreationServiceTest {
     var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
 
     service.createLspFirm(
-        ProviderEntity.builder().firmType(FirmType.LEGAL_SERVICES_PROVIDER).name("My LSP").build(),
+        LspProviderEntity.builder().name("My LSP").build(),
         OfficeEntity.builder().addressLine1("1 Test St").build(),
         new LspProviderOfficeLinkEntity(),
         null,

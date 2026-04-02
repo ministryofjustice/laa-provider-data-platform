@@ -21,12 +21,19 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "CONTRACT_MANAGER")
 public class ContractManagerEntity extends AuditableEntity {
 
-  @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true)
+  /** HR.PER_ALL_PEOPLE_F.PERSON_ID NUMBER(10) not null. */
+  @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true, updatable = false)
   private String contractManagerId;
 
+  /** HR.PER_ALL_PEOPLE_F.FIRST_NAME VARCHAR2(150). */
   @Column(name = "FIRST_NAME", nullable = false)
   private String firstName;
 
+  /** HR.PER_ALL_PEOPLE_F.LAST_NAME VARCHAR2(150) not null. */
   @Column(name = "LAST_NAME", nullable = false)
   private String lastName;
+
+  /** HR.PER_ALL_PEOPLE_F.EMAIL_ADDRESS VARCHAR2(240). */
+  @Column(name = "EMAIL_ADDRESS")
+  private String emailAddress;
 }

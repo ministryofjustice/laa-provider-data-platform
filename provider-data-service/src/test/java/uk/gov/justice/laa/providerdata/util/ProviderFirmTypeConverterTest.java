@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 
 class ProviderFirmTypeConverterTest {
@@ -18,13 +19,13 @@ class ProviderFirmTypeConverterTest {
 
   @Test
   void convert_withExactName_shouldReturnEnum() {
-    ProviderFirmTypeV2 result = converter.convert("Advocate");
+    ProviderFirmTypeV2 result = converter.convert(FirmType.ADVOCATE);
     assertEquals(ProviderFirmTypeV2.ADVOCATE, result);
 
-    result = converter.convert("Chambers");
+    result = converter.convert(FirmType.CHAMBERS);
     assertEquals(ProviderFirmTypeV2.CHAMBERS, result);
 
-    result = converter.convert("Legal Services Provider");
+    result = converter.convert(FirmType.LEGAL_SERVICES_PROVIDER);
     assertEquals(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER, result);
   }
 
@@ -59,7 +60,8 @@ class ProviderFirmTypeConverterTest {
         assertThrows(IllegalArgumentException.class, () -> converter.convert("InvalidType"));
     String expectedMessage =
         "Invalid provider firm type: 'InvalidType'. Allowed values: "
-            + "Legal Services Provider, Chambers, Advocate";
+            + String.join(
+                ", ", FirmType.LEGAL_SERVICES_PROVIDER, FirmType.CHAMBERS, FirmType.ADVOCATE);
     assertEquals(expectedMessage, ex.getMessage());
   }
 
@@ -69,14 +71,18 @@ class ProviderFirmTypeConverterTest {
         assertThrows(IllegalArgumentException.class, () -> converter.convert(""));
     assertEquals(
         "Invalid provider firm type: ''. Allowed values:"
-            + " Legal Services Provider, Chambers, Advocate",
+            + " "
+            + String.join(
+                ", ", FirmType.LEGAL_SERVICES_PROVIDER, FirmType.CHAMBERS, FirmType.ADVOCATE),
         ex1.getMessage());
 
     IllegalArgumentException ex2 =
         assertThrows(IllegalArgumentException.class, () -> converter.convert(null));
     assertEquals(
         "Invalid provider firm type: 'null'. Allowed values:"
-            + " Legal Services Provider, Chambers, Advocate",
+            + " "
+            + String.join(
+                ", ", FirmType.LEGAL_SERVICES_PROVIDER, FirmType.CHAMBERS, FirmType.ADVOCATE),
         ex2.getMessage());
   }
 }

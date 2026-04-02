@@ -79,6 +79,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.postgresql:postgresql'
+    implementation 'org.springframework.boot:spring-boot-starter-zipkin'
 
     // Sentry observability
     implementation 'io.sentry:sentry-spring-boot-4'

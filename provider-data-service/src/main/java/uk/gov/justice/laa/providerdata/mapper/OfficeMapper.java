@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.jspecify.annotations.Nullable;
@@ -197,7 +196,7 @@ public interface OfficeMapper {
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
         .guid(link.getGuid())
-        .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
+        .version(office.getVersion())
         .createdBy(office.getCreatedBy())
         .createdTimestamp(office.getCreatedTimestamp())
         .lastUpdatedBy(office.getLastUpdatedBy())
@@ -232,7 +231,7 @@ public interface OfficeMapper {
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
         .guid(link.getGuid())
-        .version(office.getVersion() != null ? BigDecimal.valueOf(office.getVersion()) : null)
+        .version(office.getVersion())
         .createdBy(office.getCreatedBy())
         .createdTimestamp(office.getCreatedTimestamp())
         .lastUpdatedBy(office.getLastUpdatedBy())

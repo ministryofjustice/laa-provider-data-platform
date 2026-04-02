@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
@@ -36,7 +35,7 @@ public interface BankAccountMapper {
     BankAccountEntity account = link.getBankAccount();
     return new BankAccountV2()
         .guid(account.getGuid())
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())
@@ -56,7 +55,7 @@ public interface BankAccountMapper {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
         .guid(account.getGuid())
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())
@@ -80,7 +79,7 @@ public interface BankAccountMapper {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
         .guid(account.getGuid())
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())

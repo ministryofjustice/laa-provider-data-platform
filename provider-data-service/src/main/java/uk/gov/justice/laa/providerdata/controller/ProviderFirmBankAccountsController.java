@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -56,8 +55,8 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
       @Nullable String xCorrelationId,
       @Nullable String traceparent,
       @Nullable String bankAccountNumber,
-      @Nullable BigDecimal page,
-      @Nullable BigDecimal pageSize) {
+      @Nullable Integer page,
+      @Nullable Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
@@ -88,8 +87,8 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
           @Nullable String xCorrelationId,
           @Nullable String traceparent,
           @Nullable String bankAccountNumber,
-          @Nullable BigDecimal page,
-          @Nullable BigDecimal pageSize) {
+          @Nullable Integer page,
+          @Nullable Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 

@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,8 +63,8 @@ public class ProviderFirmOfficesLiaisonManagersController
           String officeGUIDorCode,
           String xCorrelationId,
           String traceparent,
-          BigDecimal page,
-          BigDecimal pageSize) {
+          Integer page,
+          Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
     Page<LiaisonManagerV2> managers =
@@ -144,7 +143,7 @@ public class ProviderFirmOfficesLiaisonManagersController
     var m = link.getLiaisonManager();
     return new LiaisonManagerV2()
         .guid(m.getGuid())
-        .version(BigDecimal.valueOf(m.getVersion()))
+        .version(m.getVersion())
         .createdBy(m.getCreatedBy())
         .createdTimestamp(m.getCreatedTimestamp())
         .lastUpdatedBy(m.getLastUpdatedBy())

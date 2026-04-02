@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.util;
 
-import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import uk.gov.justice.laa.providerdata.model.PaginationV2;
 
@@ -33,9 +32,9 @@ public final class Pagination {
   @Deprecated(forRemoval = true)
   public static PaginationV2 of(Page<?> page) {
     return new PaginationV2()
-        .currentPage(BigDecimal.valueOf(page.getNumber()))
-        .pageSize(BigDecimal.valueOf(page.getSize()))
-        .totalPages(BigDecimal.valueOf(page.getTotalPages()))
-        .totalItems(BigDecimal.valueOf(page.getTotalElements()));
+        .currentPage(page.getNumber())
+        .pageSize(page.getSize())
+        .totalPages(page.getTotalPages())
+        .totalItems(page.getTotalElements());
   }
 }

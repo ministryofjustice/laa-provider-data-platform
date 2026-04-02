@@ -44,7 +44,7 @@ class ProviderMapperTest {
     ProviderV2 result = mapper.toProviderV2(entity);
 
     assertThat(result.getGuid()).isEqualTo(guid);
-    assertThat(result.getVersion()).isEqualByComparingTo("3");
+    assertThat(result.getVersion()).isEqualTo(3);
     assertThat(result.getFirmNumber()).isEqualTo("LSP-ABC123");
     assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER);
     assertThat(result.getName()).isEqualTo("Westgate Legal Services LLP");

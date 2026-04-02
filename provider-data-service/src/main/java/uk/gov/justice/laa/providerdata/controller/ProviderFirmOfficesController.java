@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -88,8 +87,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       List<String> officeGUID,
       List<String> officeCode,
       Boolean allProviderOffices,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      Integer page,
+      Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<OfficeV2> results =
@@ -128,8 +127,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String xCorrelationId,
       String traceparent,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      Integer page,
+      Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<OfficeV2> results =

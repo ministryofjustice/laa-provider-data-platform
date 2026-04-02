@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -136,8 +135,8 @@ public class ProviderFirmController {
       @RequestParam(required = false) List<String> parentFirmNumber,
 
       // Pagination
-      @RequestParam(name = "page", required = false) BigDecimal page,
-      @RequestParam(name = "pageSize", required = false) BigDecimal pageSize) {
+      @RequestParam(name = "page", required = false) Integer page,
+      @RequestParam(name = "pageSize", required = false) Integer pageSize) {
 
     // Resolve pagination using util
     Pageable pageable = PageParamValidator.resolve(page, pageSize);

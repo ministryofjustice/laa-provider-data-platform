@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -106,8 +105,8 @@ public class ProviderFirmOfficeContractManagersController
           String officeGUIDorCode,
           String xCorrelationId,
           String traceparent,
-          BigDecimal page,
-          BigDecimal pageSize) {
+          Integer page,
+          Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
     var managers =
         contractManagerService.getContractManagers(

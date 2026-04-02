@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.mapstruct.BeanMapping;
@@ -39,7 +38,7 @@ public interface ProviderMapper {
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
   @Mapping(target = "guid", source = "guid")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "version", source = "version")
   @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
   @Mapping(target = "legalServicesProvider", ignore = true)
   @Mapping(target = "chambers", ignore = true)
@@ -95,7 +94,7 @@ public interface ProviderMapper {
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
   @Mapping(target = "guid", source = "guid")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "version", source = "version")
   @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
   @Mapping(target = "practitioner", ignore = true)
   @Mapping(target = "createdBy", source = "createdBy")
@@ -177,11 +176,5 @@ public interface ProviderMapper {
       return null;
     }
     return ProviderFirmTypeV2.fromValue(value);
-  }
-
-  /** Converts a {@link Long} to {@link BigDecimal}. */
-  @Named("longToBigDecimal")
-  default @Nullable BigDecimal longToBigDecimal(@Nullable Long value) {
-    return value == null ? null : BigDecimal.valueOf(value);
   }
 }

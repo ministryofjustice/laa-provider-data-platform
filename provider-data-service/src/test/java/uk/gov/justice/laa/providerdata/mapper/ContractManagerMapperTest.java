@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -79,7 +78,7 @@ public class ContractManagerMapperTest {
 
   private static void assertCommonFields(
       UUID guid,
-      BigDecimal version,
+      Long version,
       String createdBy,
       OffsetDateTime createdTimestamp,
       String lastUpdatedBy,
@@ -89,7 +88,7 @@ public class ContractManagerMapperTest {
       String firstName,
       String lastName) {
     assertThat(guid).isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
-    assertThat(version).hasToString("12");
+    assertThat(version).isEqualTo(12L);
     assertThat(createdBy).isEqualTo("john.smith.42");
     assertThat(createdTimestamp).isEqualTo(OffsetDateTime.parse("2025-09-25T09:30:00Z"));
     assertThat(lastUpdatedBy).isEqualTo("john.doe.24");

@@ -1426,7 +1426,8 @@ components:
         guid:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
         version:
-          type: number
+          type: integer
+          format: int64
           description: "Record version (for audit and event concurrency)"
           example: "12"
         createdBy:
@@ -2998,19 +2999,20 @@ components:
       type: object
       properties:
         currentPage:
-          type: number
+          type: integer
           example: 2
           description: "Page index denoting the current page index for response, starting from 0"
         pageSize:
-          type: number
+          type: integer
           example: 10
           description: "Page size used for this search"
         totalPages:
-          type: number
+          type: integer
           example: 5
           description: "Total number of pages"
         totalItems:
-          type: number
+          type: integer
+          format: int64
           example: 123
           description: "Total number of records for given search request"
 
@@ -3158,7 +3160,7 @@ components:
       in: query
       required: false
       schema:
-        type: number
+        type: integer
       description: Page index for given request (start from 0, default is 0)
 
     QPageSize:
@@ -3166,7 +3168,7 @@ components:
       in: query
       required: false
       schema:
-        type: number
+        type: integer
       description: Page size for given request (default is 100)
 
 security:

@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -56,7 +55,7 @@ class BankAccountMapperTest {
     BankAccountV2 dto = mapper.toBankAccountV2(link);
 
     assertThat(dto.getGuid()).isEqualTo(guid);
-    assertThat(dto.getVersion()).isEqualTo(BigDecimal.valueOf(3L));
+    assertThat(dto.getVersion()).isEqualTo(3);
     assertThat(dto.getCreatedBy()).isEqualTo("user1");
     assertThat(dto.getCreatedTimestamp()).isEqualTo(now);
     assertThat(dto.getLastUpdatedBy()).isEqualTo("user2");
@@ -99,7 +98,7 @@ class BankAccountMapperTest {
     OfficeBankAccountV2 dto = mapper.toOfficeBankAccountV2(link);
 
     assertThat(dto.getGuid()).isEqualTo(guid);
-    assertThat(dto.getVersion()).isEqualTo(BigDecimal.ONE);
+    assertThat(dto.getVersion()).isEqualTo(1);
     assertThat(dto.getAccountName()).isEqualTo("Barclays Account");
     assertThat(dto.getSortCode()).isEqualTo("20-00-00");
     assertThat(dto.getAccountNumber()).isEqualTo("11223344");

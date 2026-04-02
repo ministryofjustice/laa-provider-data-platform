@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,8 +63,8 @@ public class ProviderFirmOfficesLiaisonManagersController
           String officeGUIDorCode,
           String xCorrelationId,
           String traceparent,
-          BigDecimal page,
-          BigDecimal pageSize) {
+          Integer page,
+          Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
     Page<LiaisonManagerV2> managers =
@@ -133,18 +132,18 @@ public class ProviderFirmOfficesLiaisonManagersController
             new CreateProviderFirmOfficeLiaisonManager201Response()
                 .data(
                     new CreateProviderFirmOfficeLiaisonManager201ResponseData()
-                        .providerFirmGUID(result.providerFirmGuid().toString())
+                        .providerFirmGUID(result.providerFirmGuid())
                         .providerFirmNumber(result.providerFirmNumber())
-                        .officeGUID(result.officeGuid().toString())
+                        .officeGUID(result.officeGuid())
                         .officeCode(result.officeCode())
-                        .liaisonManagerGUID(result.liaisonManagerGuid().toString())));
+                        .liaisonManagerGUID(result.liaisonManagerGuid())));
   }
 
   private static LiaisonManagerV2 toLiaisonManagerV2(OfficeLiaisonManagerLinkEntity link) {
     var m = link.getLiaisonManager();
     return new LiaisonManagerV2()
-        .guid(m.getGuid().toString())
-        .version(BigDecimal.valueOf(m.getVersion()))
+        .guid(m.getGuid())
+        .version(m.getVersion())
         .createdBy(m.getCreatedBy())
         .createdTimestamp(m.getCreatedTimestamp())
         .lastUpdatedBy(m.getLastUpdatedBy())

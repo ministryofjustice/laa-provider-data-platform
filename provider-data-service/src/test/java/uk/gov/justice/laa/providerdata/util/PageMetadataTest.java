@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -25,10 +24,10 @@ class PageMetadataTest {
 
     assertThat(result.getSearchCriteria()).isNotNull();
     assertThat(result.getSearchCriteria().getCriteria()).isEmpty();
-    assertThat(result.getPagination().getCurrentPage()).isEqualTo(BigDecimal.ZERO);
-    assertThat(result.getPagination().getPageSize()).isEqualTo(BigDecimal.TEN);
-    assertThat(result.getPagination().getTotalPages()).isEqualTo(BigDecimal.ONE);
-    assertThat(result.getPagination().getTotalItems()).isEqualTo(BigDecimal.ONE);
+    assertThat(result.getPagination().getCurrentPage()).isEqualTo(0);
+    assertThat(result.getPagination().getPageSize()).isEqualTo(10);
+    assertThat(result.getPagination().getTotalPages()).isEqualTo(1);
+    assertThat(result.getPagination().getTotalItems()).isEqualTo(1L);
   }
 
   // -- builder search overloads -----------------------------------------------
@@ -163,10 +162,10 @@ class PageMetadataTest {
 
     PaginatedSearchV2 result = PageMetadata.of(page);
 
-    assertThat(result.getPagination().getCurrentPage()).isEqualByComparingTo("2");
-    assertThat(result.getPagination().getPageSize()).isEqualByComparingTo("25");
-    assertThat(result.getPagination().getTotalPages()).isEqualByComparingTo("3");
-    assertThat(result.getPagination().getTotalItems()).isEqualByComparingTo("75");
+    assertThat(result.getPagination().getCurrentPage()).isEqualTo(2);
+    assertThat(result.getPagination().getPageSize()).isEqualTo(25);
+    assertThat(result.getPagination().getTotalPages()).isEqualTo(3);
+    assertThat(result.getPagination().getTotalItems()).isEqualTo(75L);
   }
 
   // -- sort extraction --------------------------------------------------------

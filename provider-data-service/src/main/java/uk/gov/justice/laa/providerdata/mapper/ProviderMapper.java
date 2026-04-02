@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.mapstruct.BeanMapping;
@@ -38,8 +37,8 @@ public interface ProviderMapper {
    * ChamberProviderOfficeLinkEntity, AdvocateProviderOfficeLinkEntity, List)}.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
-  @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "guid", source = "guid")
+  @Mapping(target = "version", source = "version")
   @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
   @Mapping(target = "legalServicesProvider", ignore = true)
   @Mapping(target = "chambers", ignore = true)
@@ -94,8 +93,8 @@ public interface ProviderMapper {
    * fields only.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
-  @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "guid", source = "guid")
+  @Mapping(target = "version", source = "version")
   @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
   @Mapping(target = "practitioner", ignore = true)
   @Mapping(target = "createdBy", source = "createdBy")
@@ -133,7 +132,7 @@ public interface ProviderMapper {
   /** Maps an LSP head office link to an {@link LSPHeadOfficeDetailsV2}. */
   default LSPHeadOfficeDetailsV2 toHeadOfficeDetails(ProviderOfficeLinkEntity link) {
     return new LSPHeadOfficeDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -141,7 +140,7 @@ public interface ProviderMapper {
   /** Maps a Chambers head office link to a {@link ChambersOfficeCoreDetailsV2}. */
   default ChambersOfficeCoreDetailsV2 toChambersOfficeDetails(ProviderOfficeLinkEntity link) {
     return new ChambersOfficeCoreDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -150,7 +149,7 @@ public interface ProviderMapper {
   default PractitionerOfficeCoreDetailsV2 toPractitionerOfficeDetails(
       ProviderOfficeLinkEntity link) {
     return new PractitionerOfficeCoreDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -163,7 +162,7 @@ public interface ProviderMapper {
             link -> {
               ProviderEntity parent = link.getParent();
               return new PractitionerDetailsParentV2()
-                  .parentGuid(parent.getGuid().toString())
+                  .parentGuid(parent.getGuid())
                   .parentFirmNumber(parent.getFirmNumber())
                   .parentFirmType(firmTypeFromString(parent.getFirmType()));
             })
@@ -177,11 +176,5 @@ public interface ProviderMapper {
       return null;
     }
     return ProviderFirmTypeV2.fromValue(value);
-  }
-
-  /** Converts a {@link Long} to {@link BigDecimal}. */
-  @Named("longToBigDecimal")
-  default @Nullable BigDecimal longToBigDecimal(@Nullable Long value) {
-    return value == null ? null : BigDecimal.valueOf(value);
   }
 }

@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,8 +33,8 @@ public class ChamberOfficePractitionersController implements ChamberOfficePracti
           String providerFirmGUIDorFirmNumber,
           String xCorrelationId,
           String traceparent,
-          BigDecimal page,
-          BigDecimal pageSize) {
+          Integer page,
+          Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
     Page<OfficePractitionerV2> practitioners =
         providerService

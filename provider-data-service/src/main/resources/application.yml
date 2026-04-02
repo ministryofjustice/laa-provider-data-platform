@@ -55,7 +55,7 @@ logging:
     uk.gov.justice.laadata.providers: INFO
     uk.gov.laa.springboot.auth: WARN
   pattern:
-    console: "%gray(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%thread] [RequestId=%X{requestId}] [%highlight(%-5level)] [%cyan(%class{0}.%M:%L)] - %msg %n"
+    console: "%gray(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%thread] [TraceId=%X{traceId:-}] [SpanId=%X{spanId:-}] [%highlight(%-5level)] [%cyan(%class{0}.%M:%L)] - %msg %n"
 
 management:
   endpoints:

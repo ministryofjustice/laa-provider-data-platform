@@ -17,3 +17,12 @@ logging:
     uk.gov.justice.laadata.providers: DEBUG
     # Ensure slow query logger is visible in test logs if triggered.
     org.hibernate.SQL_SLOW: INFO
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+feature:
+  trace-demo:
+    enabled: true

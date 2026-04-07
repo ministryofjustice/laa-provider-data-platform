@@ -1409,7 +1409,7 @@ components:
   schemas:
     BaseEntityGUIDV2:
       type: string
-      format: guid
+      format: uuid
       description: "GUID is the primary key for entity"
       example: "ABCD-DEFG-1234-5678"
 
@@ -1426,7 +1426,8 @@ components:
         guid:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
         version:
-          type: number
+          type: integer
+          format: int64
           description: "Record version (for audit and event concurrency)"
           example: "12"
         createdBy:
@@ -2998,19 +2999,20 @@ components:
       type: object
       properties:
         currentPage:
-          type: number
+          type: integer
           example: 2
           description: "Page index denoting the current page index for response, starting from 0"
         pageSize:
-          type: number
+          type: integer
           example: 10
           description: "Page size used for this search"
         totalPages:
-          type: number
+          type: integer
           example: 5
           description: "Total number of pages"
         totalItems:
-          type: number
+          type: integer
+          format: int64
           example: 123
           description: "Total number of records for given search request"
 
@@ -3153,21 +3155,12 @@ components:
       description: >
         GUID of the provider-office link (not of the underlying office record),
         or the office code (unique account number).
-    BankAccountDetailGUID:
-      name: bankAccountDetailGUID
-      in: path
-      required: true
-      schema:
-        type: string
-      description: >
-        GUID of the bank account details.
-
     QPageNumber:
       name: page
       in: query
       required: false
       schema:
-        type: number
+        type: integer
       description: Page index for given request (start from 0, default is 0)
 
     QPageSize:
@@ -3175,7 +3168,7 @@ components:
       in: query
       required: false
       schema:
-        type: number
+        type: integer
       description: Page size for given request (default is 100)
 
 security:

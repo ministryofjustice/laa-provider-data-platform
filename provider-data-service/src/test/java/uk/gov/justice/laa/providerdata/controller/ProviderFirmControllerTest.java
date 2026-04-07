@@ -194,7 +194,7 @@ class ProviderFirmControllerTest {
     entity.setGuid(guid);
     ProviderV2 providerV2 =
         new ProviderV2()
-            .guid(guid.toString())
+            .guid(guid)
             .firmNumber("LSP-ABC123")
             .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
             .name("My LSP");
@@ -357,7 +357,7 @@ class ProviderFirmControllerTest {
     when(providerFirmMapper.toProviderV2(entity1, null, null, null, List.of()))
         .thenReturn(
             new ProviderV2()
-                .guid(guid1.toString())
+                .guid(guid1)
                 .firmNumber("FRM001")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 1"));
@@ -365,7 +365,7 @@ class ProviderFirmControllerTest {
     when(providerFirmMapper.toProviderV2(entity2, null, null, null, List.of()))
         .thenReturn(
             new ProviderV2()
-                .guid(guid2.toString())
+                .guid(guid2)
                 .firmNumber("FRM002")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 2"));
@@ -421,7 +421,7 @@ class ProviderFirmControllerTest {
     when(providerFirmMapper.toProviderV2(entity, null, null, null, List.of()))
         .thenReturn(
             new ProviderV2()
-                .guid(guid.toString())
+                .guid(guid)
                 .firmNumber("FRM001")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate"));

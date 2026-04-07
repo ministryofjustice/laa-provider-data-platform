@@ -294,7 +294,7 @@ class ProviderCreationServiceTest {
 
     service.createPractitionerFirm(
         AdvocateProviderEntity.builder().name("A. Advocate").build(),
-        List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid.toString())),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid)),
         null);
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));

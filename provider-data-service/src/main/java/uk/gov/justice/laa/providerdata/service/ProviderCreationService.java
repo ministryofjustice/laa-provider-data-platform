@@ -274,7 +274,7 @@ public class ProviderCreationService {
   private ProviderEntity resolveParent(PractitionerDetailsParentUpdateV2 parentFirm) {
     if (parentFirm instanceof PractitionerDetailsParentUpdateV2OneOf byGuid) {
       return providerRepository
-          .findById(UUID.fromString(byGuid.getParentGuid()))
+          .findById(byGuid.getParentGuid())
           .orElseThrow(
               () ->
                   new ItemNotFoundException(

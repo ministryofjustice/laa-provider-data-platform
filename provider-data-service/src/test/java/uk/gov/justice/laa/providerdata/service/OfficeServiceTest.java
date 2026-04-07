@@ -440,7 +440,7 @@ class OfficeServiceTest {
     when(lspProviderOfficeLinkRepository.save(linkTemplate)).thenReturn(linkTemplate);
 
     UUID bankGuid = UUID.randomUUID();
-    var linkDetails = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankGuid.toString());
+    var linkDetails = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankGuid);
     var payment =
         new PaymentDetailsCreateOrLinkV2(PaymentDetailsPaymentMethodV2.EFT)
             .bankAccountDetails(linkDetails);

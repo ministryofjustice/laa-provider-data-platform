@@ -367,10 +367,7 @@ public class OfficeService {
       bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
     } else if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeLinkV2 link) {
       bankDetailsService.linkExisting(
-          java.util.UUID.fromString(link.getBankAccountGUID()),
-          provider,
-          officeLink,
-          link.getActiveDateFrom());
+          link.getBankAccountGUID(), provider, officeLink, link.getActiveDateFrom());
     }
   }
 }

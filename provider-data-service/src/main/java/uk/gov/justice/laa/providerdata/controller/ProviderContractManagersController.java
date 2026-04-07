@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,8 +32,8 @@ public class ProviderContractManagersController implements ContractManagersApi {
       String traceparent,
       List<String> contractManagerId,
       String name,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      Integer page,
+      Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 

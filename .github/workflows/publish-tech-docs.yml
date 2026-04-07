@@ -99,14 +99,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # SLSA checks out this repository internally, wiping the workspace. It must
+      # run before the artifact download, otherwise it would delete github-pages/.
+      - name: "SLSA (supply-chain levels for software artifacts)"
+        uses: ministryofjustice/devsecops-actions/sca/slsa@e3c63a5986ea6e7d57d38b7f72e5b8cf08dc7020
+
       - name: "Download a Build Artifact from build"
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: github-pages
           path: github-pages
-
-      - name: "SLSA (supply-chain levels for software artifacts) protection"
-        uses: ministryofjustice/devsecops-actions/sca/slsa@559ec2408860d9237cc472a5710e61c1c2187ffa # v1.4.0
 
       - name: "Unpack files and check URL links"
         run: |

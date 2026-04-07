@@ -8,13 +8,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 
+@Transactional
 class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository providerRepository;
@@ -29,11 +31,7 @@ class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   void setUp() {
     provider =
         providerRepository.save(
-            ProviderEntity.builder()
-                .firmNumber("FRM-LINK-TEST")
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-                .name("Link Test Firm")
-                .build());
+            LspProviderEntity.builder().firmNumber("FRM-LINK-TEST").name("Link Test Firm").build());
 
     office =
         officeRepository.save(
@@ -47,7 +45,7 @@ class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
     link.setProvider(provider);
     link.setOffice(office);
     link.setAccountNumber("LNK001");
-    link.setFirmType("Legal Services Provider");
+    link.setHeadOfficeFlag(true);
     link = (LspProviderOfficeLinkEntity) repository.save(link);
   }
 
@@ -70,15 +68,6 @@ class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   }
 
   @Test
-  void findByProviderAndOffice_Guid_returnsLink() {
-    Optional<ProviderOfficeLinkEntity> result =
-        repository.findByProviderAndOffice_Guid(provider, office.getGuid());
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getAccountNumber()).isEqualTo("LNK001");
-  }
-
-  @Test
   void findByProviderAndAccountNumber_returnsLink() {
     Optional<ProviderOfficeLinkEntity> result =
         repository.findByProviderAndAccountNumber(provider, "LNK001");
@@ -91,11 +80,7 @@ class ProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   void findByProvider_returnsEmpty_forDifferentProvider() {
     ProviderEntity other =
         providerRepository.save(
-            ProviderEntity.builder()
-                .firmNumber("FRM-OTHER")
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-                .name("Other Firm")
-                .build());
+            LspProviderEntity.builder().firmNumber("FRM-OTHER").name("Other Firm").build());
 
     Page<ProviderOfficeLinkEntity> page = repository.findByProvider(other, PageRequest.of(0, 20));
 

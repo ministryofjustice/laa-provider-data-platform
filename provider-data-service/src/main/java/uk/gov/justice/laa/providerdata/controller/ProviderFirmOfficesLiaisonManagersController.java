@@ -1,14 +1,10 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
-import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesLiaisonManagersApi;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201ResponseData;
@@ -20,10 +16,14 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
+import uk.gov.justice.laa.providerdata.util.PageLinks;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
+import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /** REST controller for provider firm office liaison manager operations. */
 @RestController
-public class ProviderFirmOfficesLiaisonManagersController {
+public class ProviderFirmOfficesLiaisonManagersController
+    implements ProviderFirmOfficesLiaisonManagersApi {
 
   private final OfficeLiaisonManagerService service;
 
@@ -56,23 +56,28 @@ public class ProviderFirmOfficesLiaisonManagersController {
    *     provider
    * @throws IllegalArgumentException if identifiers are malformed in a way that prevents resolution
    */
-  @GetMapping(
-      path =
-          "/provider-firms/{providerFirmGUIDorFirmNumber}"
-              + "/offices/{officeGUIDorCode}/liaison-managers",
-      produces = "application/json")
-  public ResponseEntity<GetProviderFirmOfficeLiaisonManagers200Response> getOfficeLiaisonManagers(
-      @PathVariable String providerFirmGUIDorFirmNumber, @PathVariable String officeGUIDorCode) {
+  @Override
+  public ResponseEntity<GetProviderFirmOfficeLiaisonManagers200Response>
+      getProviderFirmOfficeLiaisonManagers(
+          String providerFirmGUIDorFirmNumber,
+          String officeGUIDorCode,
+          String xCorrelationId,
+          String traceparent,
+          Integer page,
+          Integer pageSize) {
 
-    var managers = service.getOfficeLiaisonManagers(providerFirmGUIDorFirmNumber, officeGUIDorCode);
-
-    List<LiaisonManagerV2> content =
-        managers.stream()
-            .map(ProviderFirmOfficesLiaisonManagersController::toLiaisonManagerV2)
-            .toList();
+    var pageParams = PageParamValidator.resolve(page, pageSize);
+    Page<LiaisonManagerV2> managers =
+        service
+            .getOfficeLiaisonManagers(providerFirmGUIDorFirmNumber, officeGUIDorCode, pageParams)
+            .map(ProviderFirmOfficesLiaisonManagersController::toLiaisonManagerV2);
     return ResponseEntity.ok(
         new GetProviderFirmOfficeLiaisonManagers200Response()
-            .data(new GetProviderFirmOfficeLiaisonManagers200ResponseData().content(content)));
+            .data(
+                new GetProviderFirmOfficeLiaisonManagers200ResponseData()
+                    .content(managers.getContent())
+                    .metadata(PageMetadata.of(managers))
+                    .links(PageLinks.of(managers))));
   }
 
   /**
@@ -108,17 +113,14 @@ public class ProviderFirmOfficesLiaisonManagersController {
    * @throws IllegalArgumentException if the request does not represent exactly one supported
    *     operation, or required fields for the selected operation are missing/blank
    */
-  @PostMapping(
-      path =
-          "/provider-firms/{providerFirmGUIDorFirmNumber}"
-              + "/offices/{officeGUIDorCode}/liaison-managers",
-      consumes = "application/json",
-      produces = "application/json")
+  @Override
   public ResponseEntity<CreateProviderFirmOfficeLiaisonManager201Response>
-      postOfficeLiaisonManagers(
-          @PathVariable String providerFirmGUIDorFirmNumber,
-          @PathVariable String officeGUIDorCode,
-          @RequestBody OfficeLiaisonManagerCreateOrLinkV2 request) {
+      createProviderFirmOfficeLiaisonManager(
+          String providerFirmGUIDorFirmNumber,
+          String officeGUIDorCode,
+          OfficeLiaisonManagerCreateOrLinkV2 request,
+          String xCorrelationId,
+          String traceparent) {
 
     validateRequest(request);
 
@@ -130,18 +132,18 @@ public class ProviderFirmOfficesLiaisonManagersController {
             new CreateProviderFirmOfficeLiaisonManager201Response()
                 .data(
                     new CreateProviderFirmOfficeLiaisonManager201ResponseData()
-                        .providerFirmGUID(result.providerFirmGuid().toString())
+                        .providerFirmGUID(result.providerFirmGuid())
                         .providerFirmNumber(result.providerFirmNumber())
-                        .officeGUID(result.officeGuid().toString())
+                        .officeGUID(result.officeGuid())
                         .officeCode(result.officeCode())
-                        .liaisonManagerGUID(result.liaisonManagerGuid().toString())));
+                        .liaisonManagerGUID(result.liaisonManagerGuid())));
   }
 
   private static LiaisonManagerV2 toLiaisonManagerV2(OfficeLiaisonManagerLinkEntity link) {
     var m = link.getLiaisonManager();
     return new LiaisonManagerV2()
-        .guid(m.getGuid().toString())
-        .version(BigDecimal.valueOf(m.getVersion()))
+        .guid(m.getGuid())
+        .version(m.getVersion())
         .createdBy(m.getCreatedBy())
         .createdTimestamp(m.getCreatedTimestamp())
         .lastUpdatedBy(m.getLastUpdatedBy())

@@ -2,6 +2,9 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
@@ -14,19 +17,27 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for {@code POST
  * /provider-firms/{firmId}/offices/{officeCode}/liaison-managers}.
  *
- * <p>Tests create new liaison manager records linked to the seeded local office.
+ * <p>Tests create new liaison manager records linked to the E2E office and verify via GET. Cleanup
+ * is handled by {@code delete-test-data.sql} which removes liaison manager links for E2E offices.
  */
 @ModifyingTest
 class CreateOfficeLiaisonManagerE2eTest {
 
   @Test
-  void createLiaisonManager_forExistingOffice_returns201WithIdentifiers() {
+  void createLiaisonManager_forExistingOffice_returns201ThenGetReturnsCreatedManager() {
+    String firstName = "New";
+    String lastName = "Liaison";
+
     Map<String, Object> body =
         Map.of(
-            "firstName", "New",
-            "lastName", "Liaison",
-            "emailAddress", "new.liaison." + System.currentTimeMillis() + "@example.com",
-            "telephoneNumber", "020 9999 8888");
+            "firstName",
+            firstName,
+            "lastName",
+            lastName,
+            "emailAddress",
+            "new.liaison." + System.currentTimeMillis() + "@example.com",
+            "telephoneNumber",
+            "020 9999 8888");
 
     given()
         .contentType(ContentType.JSON)
@@ -42,6 +53,18 @@ class CreateOfficeLiaisonManagerE2eTest {
         .body("data.officeGUID", notNullValue())
         .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()))
         .body("data.liaisonManagerGUID", notNullValue());
+
+    // Verify the created liaison manager appears in the GET response
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(greaterThanOrEqualTo(1)))
+        .body("data.content.firstName", hasItem(firstName))
+        .body("data.content.lastName", hasItem(lastName));
   }
 
   @Test
@@ -86,7 +109,6 @@ class CreateOfficeLiaisonManagerE2eTest {
 
   @Test
   void createLiaisonManager_missingRequiredFields_returns400() {
-    // Deserialized as LiaisonManagerCreateV2; Bean Validation rejects missing required fields → 400
     Map<String, Object> body = Map.of("firstName", "Incomplete");
 
     given()

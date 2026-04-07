@@ -42,75 +42,15 @@ public final class E2eConfig {
     return require("lsp.firmNumber");
   }
 
-  public static String lspName() {
-    return require("lsp.name");
-  }
-
-  public static String lspFirmType() {
-    return require("lsp.firmType");
-  }
-
   // --- LSP head office ---
 
   public static String lspOfficeCode() {
     return require("lsp.office.code");
   }
 
-  public static String lspOfficeAddressLine1() {
-    return require("lsp.office.address.line1");
-  }
+  // --- LSP bank account (filter values) ---
 
-  public static String lspOfficeAddressLine2() {
-    return require("lsp.office.address.line2");
-  }
-
-  public static String lspOfficeAddressTownOrCity() {
-    return require("lsp.office.address.townOrCity");
-  }
-
-  public static String lspOfficeAddressPostcode() {
-    return require("lsp.office.address.postcode");
-  }
-
-  public static String lspOfficeTelephoneNumber() {
-    return require("lsp.office.telephoneNumber");
-  }
-
-  public static String lspOfficeEmailAddress() {
-    return require("lsp.office.emailAddress");
-  }
-
-  public static String lspOfficeDxNumber() {
-    return require("lsp.office.dxNumber");
-  }
-
-  public static String lspOfficeDxCentre() {
-    return require("lsp.office.dxCentre");
-  }
-
-  public static String lspOfficeVatNumber() {
-    return require("lsp.office.vatNumber");
-  }
-
-  public static String lspOfficePaymentMethod() {
-    return require("lsp.office.paymentMethod");
-  }
-
-  // --- LSP bank account ---
-
-  public static String lspBankAccountName() {
-    return require("lsp.bankAccount.name");
-  }
-
-  public static String lspBankAccountSortCode() {
-    return require("lsp.bankAccount.sortCode");
-  }
-
-  public static String lspBankAccountNumber() {
-    return require("lsp.bankAccount.accountNumber");
-  }
-
-  /** Partial string that matches {@link #lspBankAccountNumber()} for filter tests. */
+  /** Partial string that matches a bank account number for filter tests. */
   public static String lspBankAccountPartialMatch() {
     return require("lsp.bankAccount.partialMatch");
   }
@@ -120,40 +60,20 @@ public final class E2eConfig {
     return require("lsp.bankAccount.noMatch");
   }
 
-  // --- LSP head office liaison manager ---
-
-  public static String lspLiaisonManagerFirstName() {
-    return require("lsp.liaisonManager.firstName");
-  }
-
-  public static String lspLiaisonManagerLastName() {
-    return require("lsp.liaisonManager.lastName");
-  }
-
-  public static String lspLiaisonManagerEmailAddress() {
-    return require("lsp.liaisonManager.emailAddress");
-  }
-
-  public static String lspLiaisonManagerTelephoneNumber() {
-    return require("lsp.liaisonManager.telephoneNumber");
-  }
-
   // --- Chambers ---
 
   public static String chambersFirmNumber() {
     return require("chambers.firmNumber");
   }
 
-  public static String chambersName() {
-    return require("chambers.name");
+  // --- Contract managers ---
+
+  public static String contractManagerId() {
+    return require("contractManager.id");
   }
 
-  public static String chambersFirmType() {
-    return require("chambers.firmType");
-  }
-
-  public static String chambersOfficeCode() {
-    return require("chambers.office.code");
+  public static String contractManagerLastName() {
+    return require("contractManager.lastName");
   }
 
   // --- Invalid identifiers (for 404 testing) ---
@@ -170,9 +90,13 @@ public final class E2eConfig {
 
   private static String resolve(String sysPropKey, String envVarKey) {
     String value = System.getProperty(sysPropKey);
-    if (value != null && !value.isBlank()) return value;
+    if (value != null && !value.isBlank()) {
+      return value;
+    }
     value = System.getenv(envVarKey);
-    if (value != null && !value.isBlank()) return value;
+    if (value != null && !value.isBlank()) {
+      return value;
+    }
     return FILE_PROPS.getProperty(sysPropKey);
   }
 
@@ -199,7 +123,9 @@ public final class E2eConfig {
     }
     Properties props = new Properties();
     try (InputStream is = E2eConfig.class.getResourceAsStream("/" + env + ".properties")) {
-      if (is != null) props.load(is);
+      if (is != null) {
+        props.load(is);
+      }
     } catch (IOException e) {
       // Fall through — config may still be provided via system properties or env vars
     }

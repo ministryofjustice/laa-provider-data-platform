@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -10,7 +9,6 @@ import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -48,7 +46,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       LSPOfficeCreateV2 lspOfficeCreateV2,
       String xCorrelationId,
-      String transparent) {
+      String traceparent) {
 
     LiaisonManagerEntity lmEntity = null;
     OfficeLiaisonManagerLinkEntity lmLinkTemplate = null;
@@ -76,33 +74,33 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             new CreateProviderFirmOffice201Response()
                 .data(
                     new CreateProviderFirmOffice201ResponseData()
-                        .providerFirmGUID(result.providerGUID().toString())
+                        .providerFirmGUID(result.providerGUID())
                         .providerFirmNumber(result.firmNumber())
-                        .officeGUID(result.officeGUID().toString())
+                        .officeGUID(result.officeGUID())
                         .officeCode(result.accountNumber())));
   }
 
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getOffices(
       String xCorrelationId,
-      String transparent,
+      String traceparent,
       List<String> officeGUID,
       List<String> officeCode,
       Boolean allProviderOffices,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      Integer page,
+      Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> results =
-        officeService.getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams);
-
-    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
+    Page<OfficeV2> results =
+        officeService
+            .getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams)
+            .map(officeMapper::toOfficeV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
-                    .content(offices)
+                    .content(results.getContent())
                     .metadata(
                         PageMetadata.builder(results)
                             .search("officeGUID", officeGUID)
@@ -117,9 +115,9 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       String xCorrelationId,
-      String transparent) {
+      String traceparent) {
     LspProviderOfficeLinkEntity link =
-        officeService.getLspOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+        officeService.getLspOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
         new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toLspOfficeV2(link)));
   }
@@ -128,21 +126,21 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<GetProviderFirmOffices200Response> getProviderFirmOffices(
       String providerFirmGUIDorFirmNumber,
       String xCorrelationId,
-      String transparent,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      String traceparent,
+      Integer page,
+      Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ProviderOfficeLinkEntity> results =
-        officeService.getOffices(providerFirmGUIDorFirmNumber, pageParams);
-
-    List<OfficeV2> offices = results.getContent().stream().map(officeMapper::toOfficeV2).toList();
+    Page<OfficeV2> results =
+        officeService
+            .getOffices(providerFirmGUIDorFirmNumber, pageParams)
+            .map(officeMapper::toOfficeV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmOffices200Response()
             .data(
                 new GetProviderFirmOffices200ResponseData()
-                    .content(offices)
+                    .content(results.getContent())
                     .metadata(PageMetadata.of(results))
                     .links(PageLinks.of(results))));
   }
@@ -153,7 +151,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String officeGUIDorCode,
       OfficePatchV2 officePatchV2,
       String xCorrelationId,
-      String transparent) {
+      String traceparent) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 }

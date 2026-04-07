@@ -1,13 +1,11 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ContractManagersApi;
-import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderContractManagers200Response;
@@ -34,22 +32,21 @@ public class ProviderContractManagersController implements ContractManagersApi {
       String traceparent,
       List<String> contractManagerId,
       String name,
-      BigDecimal page,
-      BigDecimal pageSize) {
+      Integer page,
+      Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
-    Page<ContractManagerEntity> results =
-        providerContractManagersService.getContractManagers(contractManagerId, name, pageParams);
-
-    List<ContractManagerV2> content =
-        results.getContent().stream().map(contractManagerMapper::toContractManagerV2).toList();
+    Page<ContractManagerV2> results =
+        providerContractManagersService
+            .getContractManagers(contractManagerId, name, pageParams)
+            .map(contractManagerMapper::toContractManagerV2);
 
     return ResponseEntity.ok(
         new GetProviderContractManagers200Response()
             .data(
                 new GetProviderContractManagers200ResponseData()
-                    .content(content)
+                    .content(results.getContent())
                     .metadata(
                         PageMetadata.builder(results)
                             .search("contractManagerId", contractManagerId)

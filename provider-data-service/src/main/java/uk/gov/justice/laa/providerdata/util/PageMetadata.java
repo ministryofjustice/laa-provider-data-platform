@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.util;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -128,10 +127,10 @@ public class PageMetadata {
 
   private static PaginationV2 paginationFrom(Page<?> page) {
     return new PaginationV2()
-        .currentPage(BigDecimal.valueOf(page.getNumber()))
-        .pageSize(BigDecimal.valueOf(page.getSize()))
-        .totalPages(BigDecimal.valueOf(page.getTotalPages()))
-        .totalItems(BigDecimal.valueOf(page.getTotalElements()));
+        .currentPage(page.getNumber())
+        .pageSize(page.getSize())
+        .totalPages(page.getTotalPages())
+        .totalItems(page.getTotalElements());
   }
 
   @Nullable

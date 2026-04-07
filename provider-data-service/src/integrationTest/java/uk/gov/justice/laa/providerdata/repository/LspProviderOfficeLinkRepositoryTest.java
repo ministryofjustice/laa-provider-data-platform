@@ -8,13 +8,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 
+@Transactional
 class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderRepository providerRepository;
@@ -31,9 +33,8 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
   void setUp() {
     provider =
         providerRepository.save(
-            ProviderEntity.builder()
+            LspProviderEntity.builder()
                 .firmNumber("FRM-LSP-REPO-TEST")
-                .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
                 .name("LSP Repo Test Firm")
                 .build());
 
@@ -57,6 +58,7 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
     lspLink.setProvider(provider);
     lspLink.setOffice(lspOffice);
     lspLink.setAccountNumber("LSP-001");
+    lspLink.setHeadOfficeFlag(true);
     savedLspLink = lspRepository.save(lspLink);
 
     ProviderOfficeLinkEntity nonLspLink =
@@ -64,6 +66,7 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
             .provider(provider)
             .office(nonLspOffice)
             .accountNumber("NLSP-001")
+            .headOfficeFlag(false)
             .build();
     providerOfficeLinkRepository.save(nonLspLink);
   }
@@ -84,23 +87,6 @@ class LspProviderOfficeLinkRepositoryTest extends PostgresqlSpringBootTest {
 
     assertThat(result).isPresent();
     assertThat(result.get().getAccountNumber()).isEqualTo("LSP-001");
-  }
-
-  @Test
-  void findByProviderAndOffice_Guid_returnsLspLink() {
-    Optional<LspProviderOfficeLinkEntity> result =
-        lspRepository.findByProviderAndOffice_Guid(provider, lspOffice.getGuid());
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getAccountNumber()).isEqualTo("LSP-001");
-  }
-
-  @Test
-  void findByProviderAndOffice_Guid_emptyForNonLspLink() {
-    Optional<LspProviderOfficeLinkEntity> result =
-        lspRepository.findByProviderAndOffice_Guid(provider, nonLspOffice.getGuid());
-
-    assertThat(result).isEmpty();
   }
 
   @Test

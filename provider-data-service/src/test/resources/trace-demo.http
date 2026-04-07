@@ -1,0 +1,44 @@
+### Trace demo prerequisites
+# Start the application locally.
+# With Spring Boot Docker Compose support enabled, `compose.yaml` will start:
+# - PostgreSQL
+# - Zipkin at http://localhost:9411
+#
+# These requests exercise the local trace demo endpoints:
+# - /trace/1 shows the current request trace information
+# - /trace/n recursively calls /trace/(n-1) down to /trace/1
+#
+# Use the Zipkin UI to inspect the resulting spans.
+
+### 1. Call /trace/1 without an inbound traceparent
+GET http://localhost:8080/trace/1
+
+### 2. Call /trace/1 with a fixed W3C traceparent header
+# The response should show this trace ID, and the log line should include the same traceId/spanId.
+GET http://localhost:8080/trace/1
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+### 3. Call /trace/3 with a fixed W3C traceparent header
+# The response should include:
+# - top-level trace details for /trace/3
+# - nested downstream details for /trace/2 and /trace/1
+# - the same traceId across all calls
+# - different spanIds for each downstream call
+GET http://localhost:8080/trace/3
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+### 4. Call /trace/10 to generate a deeper span chain
+GET http://localhost:8080/trace/10
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+### 5. Invalid values return HTTP 400
+GET http://localhost:8080/trace/0
+
+###
+GET http://localhost:8080/trace/11
+
+###
+GET http://localhost:8080/trace/not-a-number
+
+### 6. Open the Zipkin UI
+GET http://localhost:9411/zipkin/

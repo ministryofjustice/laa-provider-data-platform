@@ -1,0 +1,14 @@
+### 1. List provider contract managers
+GET http://localhost:8080/provider-contract-managers
+
+### 2. List provider contract managers - paginated
+GET http://localhost:8080/provider-contract-managers?page=0&pageSize=10
+
+### 3. Filter provider contract managers by contract manager ID
+GET http://localhost:8080/provider-contract-managers?contractManagerId=CM-001
+
+### 4. Filter provider contract managers by name
+GET http://localhost:8080/provider-contract-managers?name=Smith
+
+### 5. Filter provider contract managers by ID and name
+GET http://localhost:8080/provider-contract-managers?contractManagerId=CM-001&name=Smith&page=0&pageSize=10

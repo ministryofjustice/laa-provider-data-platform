@@ -3,7 +3,7 @@ package uk.gov.justice.laa.providerdata;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Test configuration that provides the shared PostgreSQL Testcontainers service connection.
@@ -17,8 +17,7 @@ public class PostgresqlTestcontainersConfiguration {
 
   @Bean
   @ServiceConnection
-  @SuppressWarnings("resource")
-  PostgreSQLContainer<?> postgresqlContainer() {
-    return new PostgreSQLContainer<>("postgres:17-alpine");
+  PostgreSQLContainer postgresqlContainer() {
+    return new PostgreSQLContainer("postgres:17-alpine");
   }
 }

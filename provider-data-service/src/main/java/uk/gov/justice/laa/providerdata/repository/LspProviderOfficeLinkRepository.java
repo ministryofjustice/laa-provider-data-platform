@@ -23,9 +23,6 @@ public interface LspProviderOfficeLinkRepository
 
   Optional<LspProviderOfficeLinkEntity> findByProviderAndGuid(ProviderEntity provider, UUID guid);
 
-  Optional<LspProviderOfficeLinkEntity> findByProviderAndOffice_Guid(
-      ProviderEntity provider, UUID officeGuid);
-
   Optional<LspProviderOfficeLinkEntity> findByProviderAndAccountNumber(
       ProviderEntity provider, String accountNumber);
 

@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,38 +39,38 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
 
     // Create an LSP firm with EFT payment → head office + bank account.
-    String createFirmResponse =
+    var createFirmResult =
         mockMvc
             .perform(
                 post("/provider-firms")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                        {
-                          "firmType": "Legal Services Provider",
-                          "name": "Integration Test LSP",
-                          "legalServicesProvider": {
-                            "address": {
-                              "line1": "1 Test Street",
-                              "townOrCity": "London",
-                              "postcode": "SW1A 1AA"
-                            },
-                            "payment": {
-                              "paymentMethod": "EFT",
-                              "bankAccountDetails": {
-                                "accountName": "Firm Account",
-                                "sortCode": "12-34-56",
-                                "accountNumber": "11111111"
-                              }
-                            }
-                          }
-                        }
-                        """))
-            .andExpect(status().isCreated())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                                                {
+                                                  "firmType": "Legal Services Provider",
+                                                  "name": "Integration Test LSP",
+                                                  "legalServicesProvider": {
+                                                    "address": {
+                                                      "line1": "1 Test Street",
+                                                      "townOrCity": "London",
+                                                      "postcode": "SW1A 1AA"
+                                                    },
+                                                    "payment": {
+                                                      "paymentMethod": "EFT",
+                                                      "bankAccountDetails": {
+                                                        "accountName": "Firm Account",
+                                                        "sortCode": "12-34-56",
+                                                        "accountNumber": "11111111"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                """))
+            .andReturn();
 
+    assertThat(createFirmResult.getResponse().getStatus()).isEqualTo(201);
+
+    String createFirmResponse = createFirmResult.getResponse().getContentAsString();
     providerGuid = JsonPath.read(createFirmResponse, "$.data.providerFirmGUID");
 
     // Create a second office with EFT payment and a new liaison manager.
@@ -80,28 +81,28 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                        {
-                          "address": {
-                            "line1": "2 Test Street",
-                            "townOrCity": "Manchester",
-                            "postcode": "M1 1AA"
-                          },
-                          "payment": {
-                            "paymentMethod": "EFT",
-                            "bankAccountDetails": {
-                              "accountName": "Office Account",
-                              "sortCode": "65-43-21",
-                              "accountNumber": "22222222"
-                            }
-                          },
-                          "liaisonManager": {
-                            "firstName": "Jane",
-                            "lastName": "Smith",
-                            "emailAddress": "jane.smith@example.com",
-                            "telephoneNumber": "07700900000"
-                          }
-                        }
-                        """))
+                                                {
+                                                  "address": {
+                                                    "line1": "2 Test Street",
+                                                    "townOrCity": "Manchester",
+                                                    "postcode": "M1 1AA"
+                                                  },
+                                                  "payment": {
+                                                    "paymentMethod": "EFT",
+                                                    "bankAccountDetails": {
+                                                      "accountName": "Office Account",
+                                                      "sortCode": "65-43-21",
+                                                      "accountNumber": "22222222"
+                                                    }
+                                                  },
+                                                  "liaisonManager": {
+                                                    "firstName": "Jane",
+                                                    "lastName": "Smith",
+                                                    "emailAddress": "jane.smith@example.com",
+                                                    "telephoneNumber": "07700900000"
+                                                  }
+                                                }
+                                                """))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -177,32 +178,32 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                        {
-                          "firmType": "Chambers",
-                          "name": "Integration Test Chambers",
-                          "chambers": {
-                            "address": {
-                              "line1": "3 Inn Lane",
-                              "townOrCity": "London",
-                              "postcode": "EC4Y 7AA"
-                            },
-                            "payment": {
-                              "paymentMethod": "EFT",
-                              "bankAccountDetails": {
-                                "accountName": "Chambers Account",
-                                "sortCode": "11-22-33",
-                                "accountNumber": "33333333"
-                              }
-                            },
-                            "liaisonManager": {
-                              "firstName": "Bob",
-                              "lastName": "Clarke",
-                              "emailAddress": "b.clarke@example.com",
-                              "telephoneNumber": "07700900001"
-                            }
-                          }
-                        }
-                        """))
+                                                {
+                                                  "firmType": "Chambers",
+                                                  "name": "Integration Test Chambers",
+                                                  "chambers": {
+                                                    "address": {
+                                                      "line1": "3 Inn Lane",
+                                                      "townOrCity": "London",
+                                                      "postcode": "EC4Y 7AA"
+                                                    },
+                                                    "payment": {
+                                                      "paymentMethod": "EFT",
+                                                      "bankAccountDetails": {
+                                                        "accountName": "Chambers Account",
+                                                        "sortCode": "11-22-33",
+                                                        "accountNumber": "33333333"
+                                                      }
+                                                    },
+                                                    "liaisonManager": {
+                                                      "firstName": "Bob",
+                                                      "lastName": "Clarke",
+                                                      "emailAddress": "b.clarke@example.com",
+                                                      "telephoneNumber": "07700900001"
+                                                    }
+                                                  }
+                                                }
+                                                """))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -219,35 +220,35 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                    {
-                      "firmType": "Advocate",
-                      "name": "A. Test Advocate",
-                      "practitioner": {
-                        "advocateType": "Advocate",
-                        "parentFirms": [
-                          { "parentFirmNumber": "%s" }
-                        ],
-                        "advocate": {
-                          "advocateLevel": "Junior",
-                          "solicitorRegulationAuthorityRollNumber": "SRA999999"
-                        },
-                        "payment": {
-                          "paymentMethod": "EFT",
-                          "bankAccountDetails": {
-                            "accountName": "Advocate Account",
-                            "sortCode": "99-88-77",
-                            "accountNumber": "44444444"
-                          }
-                        },
-                        "liaisonManager": {
-                          "firstName": "Alice",
-                          "lastName": "Test",
-                          "emailAddress": "a.test@example.com",
-                          "telephoneNumber": "07700900002"
-                        }
-                      }
-                    }
-                    """
+                                            {
+                                              "firmType": "Advocate",
+                                              "name": "A. Test Advocate",
+                                              "practitioner": {
+                                                "advocateType": "Advocate",
+                                                "parentFirms": [
+                                                  { "parentFirmNumber": "%s" }
+                                                ],
+                                                "advocate": {
+                                                  "advocateLevel": "Junior",
+                                                  "solicitorRegulationAuthorityRollNumber": "SRA999999"
+                                                },
+                                                "payment": {
+                                                  "paymentMethod": "EFT",
+                                                  "bankAccountDetails": {
+                                                    "accountName": "Advocate Account",
+                                                    "sortCode": "99-88-77",
+                                                    "accountNumber": "44444444"
+                                                  }
+                                                },
+                                                "liaisonManager": {
+                                                  "firstName": "Alice",
+                                                  "lastName": "Test",
+                                                  "emailAddress": "a.test@example.com",
+                                                  "telephoneNumber": "07700900002"
+                                                }
+                                              }
+                                            }
+                                            """
                             .formatted(chambersFirmNumber)))
             .andExpect(status().isCreated())
             .andReturn()

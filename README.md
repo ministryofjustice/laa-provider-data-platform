@@ -25,6 +25,9 @@ Includes the following subprojects:
 - Build application container: `./gradlew bootBuildImage`
 - Run end-to-end tests: `./gradlew :provider-data-e2e:e2eTest -Pe2e.env=local -De2e.authToken=Dummy1`
 
+Install the Git hooks with `prek install` after cloning the repository. If `prek` is not installed,
+install it first, for example with `brew install prek`.
+
 ## Application endpoints
 
 ### REST API documentation

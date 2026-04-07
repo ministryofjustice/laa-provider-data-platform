@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'checkstyle'
     id 'com.diffplug.spotless'
+    id 'com.github.ben-manes.versions' version '0.53.0'
 }
 
 repositories {
@@ -46,7 +47,7 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
     // OpenAPI response validation against laa-data-pda.yml
     testImplementation project(':provider-data-api')
-    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.46.0'
+    testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.46.1'
 }
 
 test {

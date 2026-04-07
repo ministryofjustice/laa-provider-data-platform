@@ -123,11 +123,20 @@ public class OfficeService {
 
     if (lmTemplate != null && lmLinkTemplate != null) {
       LiaisonManagerEntity savedLm = liaisonManagerRepository.save(lmTemplate);
+
+      // Enforce NOT NULL constraints introduced on OfficeLiaisonManagerLinkEntity.
+      if (lmLinkTemplate.getActiveDateFrom() == null) {
+        lmLinkTemplate.setActiveDateFrom(LocalDate.now());
+      }
+      if (lmLinkTemplate.getLinkedFlag() == null) {
+        lmLinkTemplate.setLinkedFlag(Boolean.FALSE);
+      }
+
       lmLinkTemplate.setLiaisonManager(savedLm);
-      lmLinkTemplate.setOffice(savedOffice);
+      lmLinkTemplate.setOfficeLink(savedLink);
       officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
     } else if (linkToHeadOfficeLiaisonManager) {
-      linkHeadOfficeLiaisonManager(provider, savedOffice);
+      linkHeadOfficeLiaisonManager(provider, savedLink);
     }
 
     persistBankDetails(payment, provider, savedLink);
@@ -213,15 +222,12 @@ public class OfficeService {
     List<String> codes = officeCodes != null ? officeCodes : List.of();
 
     if (guids.isEmpty() && codes.isEmpty()) {
-      // TODO: the spec describes use case 1 as "Browse all active offices" but defines no
-      // activeOnly parameter. This may mean the query should filter by activeDateTo IS NULL,
-      // but that would leave no way for callers to retrieve inactive offices.
       return providerOfficeLinkRepository.findAll(pageable);
     }
 
     if (Boolean.TRUE.equals(allProviderOffices)) {
       Collection<ProviderOfficeLinkEntity> matching =
-          providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(guids, codes);
+          providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(guids, codes);
       if (matching.isEmpty()) {
         return Page.empty(pageable);
       }
@@ -245,11 +251,11 @@ public class OfficeService {
    * @throws ItemNotFoundException if no matching office is found
    */
   @Transactional(readOnly = true)
-  public LspProviderOfficeLinkEntity getLspOffice(
+  public LspProviderOfficeLinkEntity getLspOfficeLink(
       String providerFirmGUIDorFirmNumber, String officeGUIDorCode) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
-    return findLink(provider, officeGUIDorCode)
+    return findLspOfficeLink(provider, officeGUIDorCode)
         .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
   }
 
@@ -265,28 +271,30 @@ public class OfficeService {
    * @throws ItemNotFoundException if no matching office is found
    */
   @Transactional(readOnly = true)
-  public ProviderOfficeLinkEntity getOfficeLink(ProviderEntity provider, String officeGUIDorCode) {
-    try {
-      UUID officeLinkGuid = UUID.fromString(officeGUIDorCode);
-      return providerOfficeLinkRepository
-          .findByProviderAndGuid(provider, officeLinkGuid)
-          .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
-    } catch (IllegalArgumentException e) {
-      return providerOfficeLinkRepository
-          .findByProviderAndAccountNumber(provider, officeGUIDorCode)
-          .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
-    }
+  public ProviderOfficeLinkEntity getProviderOfficeLink(
+      ProviderEntity provider, String officeGUIDorCode) {
+    return findProviderOfficeLink(provider, officeGUIDorCode)
+        .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
   }
 
-  private Optional<LspProviderOfficeLinkEntity> findLink(
+  private Optional<ProviderOfficeLinkEntity> findProviderOfficeLink(
       ProviderEntity provider, String officeGUIDorCode) {
-    try {
-      UUID guid = UUID.fromString(officeGUIDorCode);
-      return lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, guid);
-    } catch (IllegalArgumentException e) {
-      return lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(
-          provider, officeGUIDorCode);
-    }
+    return parseUuid(officeGUIDorCode)
+        .flatMap(guid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, guid))
+        .or(
+            () ->
+                providerOfficeLinkRepository.findByProviderAndAccountNumber(
+                    provider, officeGUIDorCode));
+  }
+
+  private Optional<LspProviderOfficeLinkEntity> findLspOfficeLink(
+      ProviderEntity provider, String officeGUIDorCode) {
+    return parseUuid(officeGUIDorCode)
+        .flatMap(guid -> lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, guid))
+        .or(
+            () ->
+                lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(
+                    provider, officeGUIDorCode));
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {
@@ -306,11 +314,20 @@ public class OfficeService {
     }
   }
 
+  private static Optional<UUID> parseUuid(String value) {
+    try {
+      return Optional.of(UUID.fromString(value));
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
+  }
+
   private static String generateAccountNumber() {
     return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.UK);
   }
 
-  private void linkHeadOfficeLiaisonManager(ProviderEntity provider, OfficeEntity newOffice) {
+  private void linkHeadOfficeLiaisonManager(
+      ProviderEntity provider, ProviderOfficeLinkEntity newOfficeLink) {
     LspProviderOfficeLinkEntity headOfficeLink =
         lspProviderOfficeLinkRepository
             .findByProviderAndHeadOfficeFlagTrue(provider)
@@ -319,9 +336,8 @@ public class OfficeService {
                     new ItemNotFoundException(
                         "Head office not found for provider: " + provider.getGuid()));
 
-    OfficeEntity headOffice = headOfficeLink.getOffice();
     List<OfficeLiaisonManagerLinkEntity> activeLmLinks =
-        officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice);
+        officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink);
 
     if (activeLmLinks.isEmpty()) {
       throw new ItemNotFoundException(
@@ -331,7 +347,7 @@ public class OfficeService {
     LiaisonManagerEntity headOfficeLm = activeLmLinks.getFirst().getLiaisonManager();
     OfficeLiaisonManagerLinkEntity link = new OfficeLiaisonManagerLinkEntity();
     link.setLiaisonManager(headOfficeLm);
-    link.setOffice(newOffice);
+    link.setOfficeLink(newOfficeLink);
     link.setActiveDateFrom(LocalDate.now());
     link.setLinkedFlag(Boolean.TRUE);
     officeLiaisonManagerLinkRepository.save(link);
@@ -351,10 +367,7 @@ public class OfficeService {
       bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
     } else if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeLinkV2 link) {
       bankDetailsService.linkExisting(
-          UUID.fromString(link.getBankAccountGUID()),
-          provider,
-          officeLink,
-          link.getActiveDateFrom());
+          link.getBankAccountGUID(), provider, officeLink, link.getActiveDateFrom());
     }
   }
 }

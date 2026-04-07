@@ -132,16 +132,18 @@ class JacksonConfigTest {
 
   @Test
   void practitionerParent_resolves_to_guid_type_when_parentGuid_present() throws Exception {
+    var parentGuid = "11111111-1111-1111-1111-111111111111";
     var result =
         mapper.readValue(
             """
-            {"parentGuid": "abc-123"}
-            """,
+            {"parentGuid": "%s"}
+            """
+                .formatted(parentGuid),
             PractitionerDetailsParentUpdateV2.class);
 
     assertThat(result).isInstanceOf(PractitionerDetailsParentUpdateV2OneOf.class);
     assertThat(((PractitionerDetailsParentUpdateV2OneOf) result).getParentGuid())
-        .isEqualTo("abc-123");
+        .isEqualTo(java.util.UUID.fromString(parentGuid));
   }
 
   @Test
@@ -171,7 +173,7 @@ class JacksonConfigTest {
 
     assertThat(result).isInstanceOf(BankAccountProviderOfficeLinkV2.class);
     assertThat(((BankAccountProviderOfficeLinkV2) result).getBankAccountGUID())
-        .isEqualTo("82f8d845-a606-44ca-8971-cc1794b7d619");
+        .isEqualTo(java.util.UUID.fromString("82f8d845-a606-44ca-8971-cc1794b7d619"));
   }
 
   @Test

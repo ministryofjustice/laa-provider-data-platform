@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
@@ -35,8 +34,8 @@ public interface BankAccountMapper {
   default BankAccountV2 toBankAccountV2(ProviderBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new BankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .guid(account.getGuid())
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())
@@ -55,8 +54,8 @@ public interface BankAccountMapper {
   default OfficeBankAccountV2 toOfficeBankAccountV2(OfficeBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .guid(account.getGuid())
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())
@@ -79,8 +78,8 @@ public interface BankAccountMapper {
   default OfficeBankAccountV2 toOfficeBankAccountV2(ProviderBankAccountLinkEntity link) {
     BankAccountEntity account = link.getBankAccount();
     return new OfficeBankAccountV2()
-        .guid(account.getGuid() != null ? account.getGuid().toString() : null)
-        .version(account.getVersion() != null ? BigDecimal.valueOf(account.getVersion()) : null)
+        .guid(account.getGuid())
+        .version(account.getVersion())
         .createdBy(account.getCreatedBy())
         .createdTimestamp(account.getCreatedTimestamp())
         .lastUpdatedBy(account.getLastUpdatedBy())

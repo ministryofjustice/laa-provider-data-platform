@@ -1,13 +1,10 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import java.math.BigDecimal;
-import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmBankAccountsApi;
-import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
@@ -56,26 +53,25 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
   public ResponseEntity<GetProviderFirmBankAccounts200Response> getProviderFirmBankAccounts(
       String providerFirmGUIDorFirmNumber,
       @Nullable String xCorrelationId,
-      @Nullable String transparent,
+      @Nullable String traceparent,
       @Nullable String bankAccountNumber,
-      @Nullable BigDecimal page,
-      @Nullable BigDecimal pageSize) {
+      @Nullable Integer page,
+      @Nullable Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 
-    Page<ProviderBankAccountLinkEntity> results =
-        bankDetailsService.getProviderBankAccounts(provider, bankAccountNumber, pageParams);
-
-    List<BankAccountV2> accounts =
-        results.getContent().stream().map(bankAccountMapper::toBankAccountV2).toList();
+    Page<BankAccountV2> results =
+        bankDetailsService
+            .getProviderBankAccounts(provider, bankAccountNumber, pageParams)
+            .map(bankAccountMapper::toBankAccountV2);
 
     return ResponseEntity.ok(
         new GetProviderFirmBankAccounts200Response()
             .data(
                 new GetProviderFirmBankAccounts200ResponseData()
-                    .content(accounts)
+                    .content(results.getContent())
                     .metadata(
                         PageMetadata.builder(results)
                             .search("bankAccountNumber", bankAccountNumber)
@@ -89,16 +85,17 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
           @Nullable String xCorrelationId,
-          @Nullable String transparent,
+          @Nullable String traceparent,
           @Nullable String bankAccountNumber,
-          @Nullable BigDecimal page,
-          @Nullable BigDecimal pageSize) {
+          @Nullable Integer page,
+          @Nullable Integer pageSize) {
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     ProviderEntity provider = providerService.getProvider(providerFirmGUIDorFirmNumber);
 
-    ProviderOfficeLinkEntity officeLink = officeService.getOfficeLink(provider, officeGUIDorCode);
+    ProviderOfficeLinkEntity officeLink =
+        officeService.getProviderOfficeLink(provider, officeGUIDorCode);
     Page<OfficeBankAccountV2> results =
         bankDetailsService
             .getOfficeBankAccounts(officeLink, bankAccountNumber, pageParams)

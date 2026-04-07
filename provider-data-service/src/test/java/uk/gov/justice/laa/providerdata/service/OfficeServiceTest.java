@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -143,12 +144,18 @@ class OfficeServiceTest {
 
     UUID officeGuid = UUID.randomUUID();
     OfficeEntity savedOffice = new OfficeEntity();
-    savedOffice.setGuid(officeGuid);
 
+    UUID officeLinkGuid = UUID.randomUUID();
     UUID lmGuid = UUID.randomUUID();
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(officeRepository.save(any())).thenReturn(savedOffice);
-    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LspProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              officeLink.setGuid(officeLinkGuid);
+              return officeLink;
+            });
     when(liaisonManagerRepository.save(any()))
         .thenAnswer(
             inv -> {
@@ -173,7 +180,7 @@ class OfficeServiceTest {
 
     verify(liaisonManagerRepository).save(lmTemplate);
     assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
-    assertThat(lmLink.getOffice().getGuid()).isEqualTo(officeGuid);
+    assertThat(lmLink.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
     verify(officeLiaisonManagerLinkRepository).save(lmLink);
   }
 
@@ -201,14 +208,14 @@ class OfficeServiceTest {
 
     OfficeLiaisonManagerLinkEntity headOfficeLmLink = new OfficeLiaisonManagerLinkEntity();
     headOfficeLmLink.setLiaisonManager(existingLm);
-    headOfficeLmLink.setOffice(headOffice);
+    headOfficeLmLink.setOfficeLink(headOfficeLink);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(officeRepository.save(any())).thenReturn(savedOffice);
     when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
         .thenReturn(Optional.of(headOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
         .thenReturn(List.of(headOfficeLmLink));
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -246,7 +253,7 @@ class OfficeServiceTest {
     when(officeRepository.save(any())).thenReturn(savedOffice);
     when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
         .thenReturn(Optional.of(headOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeAndActiveDateToIsNull(headOffice))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
         .thenReturn(List.of());
 
     assertThatThrownBy(
@@ -305,7 +312,7 @@ class OfficeServiceTest {
     when(lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
         .thenReturn(Optional.of(link));
 
-    assertThat(service.getLspOffice(providerGuid.toString(), officeLinkGuid.toString()))
+    assertThat(service.getLspOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
         .isSameAs(link);
   }
 
@@ -321,7 +328,7 @@ class OfficeServiceTest {
     when(lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(provider, "ABC123"))
         .thenReturn(Optional.of(link));
 
-    assertThat(service.getLspOffice(providerGuid.toString(), "ABC123")).isSameAs(link);
+    assertThat(service.getLspOfficeLink(providerGuid.toString(), "ABC123")).isSameAs(link);
   }
 
   @Test
@@ -336,7 +343,7 @@ class OfficeServiceTest {
         .thenReturn(Optional.empty());
 
     assertThatThrownBy(
-            () -> service.getLspOffice(providerGuid.toString(), officeLinkGuid.toString()))
+            () -> service.getLspOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining(officeLinkGuid.toString());
   }
@@ -349,7 +356,7 @@ class OfficeServiceTest {
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
     link.setOffice(office);
     link.setAccountNumber("ABC123");
-    link.setFirmType("Legal Services Provider");
+    link.setFirmType(FirmType.LEGAL_SERVICES_PROVIDER);
     return link;
   }
 
@@ -364,7 +371,7 @@ class OfficeServiceTest {
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
         .thenReturn(Optional.of(link));
 
-    assertThat(service.getOfficeLink(provider, officeLinkGuid.toString())).isSameAs(link);
+    assertThat(service.getProviderOfficeLink(provider, officeLinkGuid.toString())).isSameAs(link);
   }
 
   @Test
@@ -375,7 +382,7 @@ class OfficeServiceTest {
     when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, "ACC001"))
         .thenReturn(Optional.of(link));
 
-    assertThat(service.getOfficeLink(provider, "ACC001")).isSameAs(link);
+    assertThat(service.getProviderOfficeLink(provider, "ACC001")).isSameAs(link);
   }
 
   @Test
@@ -386,7 +393,7 @@ class OfficeServiceTest {
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
         .thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.getOfficeLink(provider, officeLinkGuid.toString()))
+    assertThatThrownBy(() -> service.getProviderOfficeLink(provider, officeLinkGuid.toString()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining(officeLinkGuid.toString());
   }
@@ -433,7 +440,7 @@ class OfficeServiceTest {
     when(lspProviderOfficeLinkRepository.save(linkTemplate)).thenReturn(linkTemplate);
 
     UUID bankGuid = UUID.randomUUID();
-    var linkDetails = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankGuid.toString());
+    var linkDetails = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankGuid);
     var payment =
         new PaymentDetailsCreateOrLinkV2(PaymentDetailsPaymentMethodV2.EFT)
             .bankAccountDetails(linkDetails);
@@ -555,7 +562,7 @@ class OfficeServiceTest {
     var allLink = new ProviderOfficeLinkEntity();
     var expected = new PageImpl<>(List.of(matchingLink, allLink), pageable, 2);
 
-    when(providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(List.of(guid), List.of()))
+    when(providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(List.of(guid), List.of()))
         .thenReturn(List.of(matchingLink));
     when(providerOfficeLinkRepository.findByProviderIn(Set.of(provider), pageable))
         .thenReturn(expected);
@@ -569,7 +576,7 @@ class OfficeServiceTest {
   void getOfficesGlobal_allProviderOffices_noMatchingOffices_returnsEmptyPage() {
     var pageable = PageRequest.of(0, 10);
     var guid = UUID.randomUUID();
-    when(providerOfficeLinkRepository.findAllByGuidInOrAccountNumberIn(List.of(guid), List.of()))
+    when(providerOfficeLinkRepository.findByGuidInOrAccountNumberIn(List.of(guid), List.of()))
         .thenReturn(List.of());
 
     var result = service.getOfficesGlobal(List.of(guid.toString()), null, true, pageable);

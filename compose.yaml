@@ -10,5 +10,12 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  # Local developer Zipkin. A deployed environment would normally use an externally managed Zipkin
+  # service, configured with `management.tracing.export.zipkin.endpoint`.
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "127.0.0.1:9411:9411"  # Bind to localhost so the Zipkin UI is local-only
+
 volumes:
   postgres-data:

@@ -19,9 +19,9 @@ class PaginationTest {
 
     PaginationV2 result = Pagination.of(page);
 
-    assertThat(result.getCurrentPage()).isEqualByComparingTo("2");
-    assertThat(result.getPageSize()).isEqualByComparingTo("25");
-    assertThat(result.getTotalPages()).isEqualByComparingTo("3");
-    assertThat(result.getTotalItems()).isEqualByComparingTo("75");
+    assertThat(result.getCurrentPage()).isEqualTo(2);
+    assertThat(result.getPageSize()).isEqualTo(25);
+    assertThat(result.getTotalPages()).isEqualTo(3);
+    assertThat(result.getTotalItems()).isEqualTo(75L);
   }
 }

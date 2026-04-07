@@ -13,6 +13,28 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    # Enable SQL statement logging in local dev only
+    show-sql: true
+    properties:
+      hibernate:
+        # Enable Hibernate statistics in local so Hibernate metrics can be exported to Prometheus.
+        generate_statistics: true
+
+management:
+  tracing:
+    # Local runs can discover the Compose-managed Zipkin container automatically via Spring Boot
+    # service connections. A deployed environment with a managed Zipkin instance would normally set
+    # `management.tracing.export.zipkin.endpoint` externally instead of defining it here.
+    sampling:
+      probability: 1.0
+  metrics:
+    enable:
+      # Ensure Hibernate metrics are enabled in local
+      hibernate: true
+
+feature:
+  trace-demo:
+    enabled: true
 
 logging:
   level:

@@ -36,14 +36,16 @@ jobs:
           STAGING_FULLTAG=$(kubectl get deploy "pdp-stable-provider-data-platform" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
           STAGING_RTAG="${STAGING_FULLTAG#pdp-}"
-          echo "staging_fulltag=${STAGING_FULLTAG}" >> "$GITHUB_OUTPUT"
-          echo "staging_rtag=${STAGING_RTAG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "staging_fulltag=${STAGING_FULLTAG}"
+            echo "staging_rtag=${STAGING_RTAG}"
+          } >> "$GITHUB_OUTPUT"
 
   query-prod-version:
     name: "Query prod version"
     permissions: { contents: read }
     runs-on: ubuntu-latest
-    environment: prod
+    environment: "prod_auto_without_approval"
     outputs:
       prod_fulltag: ${{ steps.versions.outputs.prod_fulltag }}
       prod_rtag:    ${{ steps.versions.outputs.prod_rtag }}
@@ -68,8 +70,10 @@ jobs:
           PROD_FULLTAG=$(kubectl get deploy "pdp-stable-provider-data-platform" -o json \
             | jq -r '.spec.template.spec.containers[0].image | split(":")[-1]' || echo "unknown")
           PROD_RTAG="${PROD_FULLTAG#pdp-}"
-          echo "prod_fulltag=${PROD_FULLTAG}" >> "$GITHUB_OUTPUT"
-          echo "prod_rtag=${PROD_RTAG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "prod_fulltag=${PROD_FULLTAG}"
+            echo "prod_rtag=${PROD_RTAG}"
+          } >> "$GITHUB_OUTPUT"
 
   preflight-summary:
     name: "Preflight"
@@ -78,9 +82,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Production deployment"
+        env:
+          GH_TOKEN:     ${{ github.token }}
+          PREVIOUS_TAG: ${{ needs.query-prod-version.outputs.prod_rtag }}
+          TAG_TO_DEPLOY: ${{ inputs.rtag }}
         run: |
+          set -euo pipefail
+
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### Previously-deployed versions
+          ## Previously-deployed versions
           
           | Environment |                Version currently deployed                 |
           |:------------|:---------------------------------------------------------:|
@@ -89,7 +99,7 @@ jobs:
           
           Unless rolling back, the **staging** version should be similar to the registry tag to deploy (below) and the **prod** version (above) should be an older registry tag.
           
-          ### Version to be deployed
+          ## Version to be deployed
           
           | Workflow input name                 |      Requested value      |
           |:------------------------------------|:-------------------------:|
@@ -98,7 +108,19 @@ jobs:
           
           The registry tag `pdp-${{ inputs.rtag }}` will replace the previous `${{ needs.query-prod-version.outputs.prod_fulltag }}` version in **prod**.
           
-          ### Recommended manual checks
+          EOF
+
+          gh api "repos/${{ github.repository }}/releases/generate-notes" -X POST \
+            -f "previous_tag_name=v${PREVIOUS_TAG#v}" \
+            -f "tag_name=v${TAG_TO_DEPLOY#v}" \
+            | jq -r '.body' \
+            | sed -E 's|https://github\\.com/([^/]+)/([^/]+)/pull/([0-9]+)|[#\\3](https://github.com/\\1/\\2/pull/\\3)|g' \
+            >> "$GITHUB_STEP_SUMMARY" \
+            || echo "_Release notes unavailable._" >> "$GITHUB_STEP_SUMMARY"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          
+          ## Recommended manual checks
           
           Verify that the registry tags to deploy and to roll back both still exist in Amazon ECR:
           
@@ -106,7 +128,7 @@ jobs:
           - Within the registry, search for tag `pdp-${{ inputs.rtag }}` and confirm that this image version was recently pushed.
           - Search also for the older rollback tag `${{ needs.query-prod-version.outputs.prod_fulltag }}` to confirm it has not been deleted.
           
-          ### Next steps to proceed
+          ## Next steps to proceed
           
           Further deployment approval reviews are required to complete this deployment:
           
@@ -132,5 +154,5 @@ jobs:
     permissions: { contents: read, packages: read }
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
-      target: "prod"
+      target: "prod_auto_without_approval"
     secrets: inherit

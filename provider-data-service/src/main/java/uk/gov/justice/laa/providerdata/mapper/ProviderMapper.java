@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.mapstruct.BeanMapping;
@@ -19,6 +18,7 @@ import uk.gov.justice.laa.providerdata.model.ChamberDetailsV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficeCoreDetailsV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsV2;
+import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerOfficeCoreDetailsV2;
@@ -37,8 +37,8 @@ public interface ProviderMapper {
    * ChamberProviderOfficeLinkEntity, AdvocateProviderOfficeLinkEntity, List)}.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
-  @Mapping(target = "guid", expression = "java(entity.getGuid().toString())")
-  @Mapping(target = "version", source = "version", qualifiedByName = "longToBigDecimal")
+  @Mapping(target = "guid", source = "guid")
+  @Mapping(target = "version", source = "version")
   @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
   @Mapping(target = "legalServicesProvider", ignore = true)
   @Mapping(target = "chambers", ignore = true)
@@ -88,10 +88,51 @@ public interface ProviderMapper {
     return result;
   }
 
+  /**
+   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model with base
+   * fields only.
+   */
+  @BeanMapping(builder = @Builder(disableBuilder = true))
+  @Mapping(target = "guid", source = "guid")
+  @Mapping(target = "version", source = "version")
+  @Mapping(target = "firmType", source = "firmType", qualifiedByName = "firmTypeFromString")
+  @Mapping(target = "practitioner", ignore = true)
+  @Mapping(target = "createdBy", source = "createdBy")
+  @Mapping(target = "createdTimestamp", source = "createdTimestamp")
+  @Mapping(target = "lastUpdatedBy", source = "lastUpdatedBy")
+  @Mapping(target = "lastUpdatedTimestamp", source = "lastUpdatedTimestamp")
+  OfficePractitionerV2 toOfficePractitionerV2(ProviderEntity entity);
+
+  /**
+   * Maps a {@link ProviderEntity} to an {@link OfficePractitionerV2} response model, enriching it
+   * with office and parent firm data.
+   *
+   * @param entity the provider entity
+   * @param officeLink the Advocate office link, or {@code null}
+   * @param parentLinks the parent firm links, or an empty list
+   * @return the populated response DTO
+   */
+  default OfficePractitionerV2 toOfficePractitionerV2(
+      ProviderEntity entity,
+      @Nullable AdvocateProviderOfficeLinkEntity officeLink,
+      List<ProviderParentLinkEntity> parentLinks) {
+    OfficePractitionerV2 result = toOfficePractitionerV2(entity);
+    PractitionerDetailsV2 practitioner = new PractitionerDetailsV2();
+    if (officeLink != null) {
+      practitioner.setOffice(toPractitionerOfficeDetails(officeLink));
+    }
+    if (!parentLinks.isEmpty()) {
+      practitioner.setParentFirms(toParentFirms(parentLinks));
+    }
+    result.setPractitioner(practitioner);
+
+    return result;
+  }
+
   /** Maps an LSP head office link to an {@link LSPHeadOfficeDetailsV2}. */
   default LSPHeadOfficeDetailsV2 toHeadOfficeDetails(ProviderOfficeLinkEntity link) {
     return new LSPHeadOfficeDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -99,7 +140,7 @@ public interface ProviderMapper {
   /** Maps a Chambers head office link to a {@link ChambersOfficeCoreDetailsV2}. */
   default ChambersOfficeCoreDetailsV2 toChambersOfficeDetails(ProviderOfficeLinkEntity link) {
     return new ChambersOfficeCoreDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -108,7 +149,7 @@ public interface ProviderMapper {
   default PractitionerOfficeCoreDetailsV2 toPractitionerOfficeDetails(
       ProviderOfficeLinkEntity link) {
     return new PractitionerOfficeCoreDetailsV2()
-        .officeGUID(link.getGuid().toString())
+        .officeGUID(link.getGuid())
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo());
   }
@@ -121,7 +162,7 @@ public interface ProviderMapper {
             link -> {
               ProviderEntity parent = link.getParent();
               return new PractitionerDetailsParentV2()
-                  .parentGuid(parent.getGuid().toString())
+                  .parentGuid(parent.getGuid())
                   .parentFirmNumber(parent.getFirmNumber())
                   .parentFirmType(firmTypeFromString(parent.getFirmType()));
             })
@@ -135,11 +176,5 @@ public interface ProviderMapper {
       return null;
     }
     return ProviderFirmTypeV2.fromValue(value);
-  }
-
-  /** Converts a {@link Long} to {@link BigDecimal}. */
-  @Named("longToBigDecimal")
-  default @Nullable BigDecimal longToBigDecimal(@Nullable Long value) {
-    return value == null ? null : BigDecimal.valueOf(value);
   }
 }

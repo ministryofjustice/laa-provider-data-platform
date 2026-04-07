@@ -105,8 +105,8 @@ jobs:
           name: github-pages
           path: github-pages
 
-      - name: "SLSA (supply-chain levels for software artifacts)"
-        uses: ministryofjustice/devsecops-actions/sca/slsa@3e9410cef31dd9cec64ad567efc959afd88a591c
+      - name: "SLSA (supply-chain levels for software artifacts) protection"
+        uses: ministryofjustice/devsecops-actions/sca/slsa@559ec2408860d9237cc472a5710e61c1c2187ffa # v1.4.0
 
       - name: "Unpack files and check URL links"
         run: |

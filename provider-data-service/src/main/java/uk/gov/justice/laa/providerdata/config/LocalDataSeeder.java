@@ -7,7 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -125,7 +125,7 @@ public class LocalDataSeeder implements CommandLineRunner {
         ChamberProviderEntity.builder().firmNumber("FRM002").name("Test Chambers").build();
 
     ProviderEntity provider3 =
-        AdvocateProviderEntity.builder().firmNumber("FRM003").name("Test Advocate").build();
+        AdvocatePractitionerEntity.builder().firmNumber("FRM003").name("Test Advocate").build();
 
     providerRepository.save(provider1);
     providerRepository.save(provider2);

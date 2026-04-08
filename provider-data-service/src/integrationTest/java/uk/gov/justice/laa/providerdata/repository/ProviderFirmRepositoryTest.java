@@ -7,7 +7,8 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
+import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -46,19 +47,25 @@ class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
             .build());
 
     repository.saveAndFlush(
-        AdvocateProviderEntity.builder()
+        AdvocatePractitionerEntity.builder()
             .firmNumber("ADV-FIELDS-1")
-            .name("Subtype Practitioner")
-            .advocateType("Barrister")
+            .name("Subtype Advocate Practitioner")
             .advocateLevel("Level 3")
             .solicitorRegulationAuthorityRollNumber("SRA12345")
+            .build());
+
+    repository.saveAndFlush(
+        BarristerPractitionerEntity.builder()
+            .firmNumber("BAR-FIELDS-1")
+            .name("Subtype Barrister Practitioner")
             .barristerLevel("Level 4")
             .barCouncilRollNumber("BC67890")
             .build());
     entityManager.clear();
 
     ProviderEntity reloadedLsp = repository.findByFirmNumber("LSP-FIELDS-1").orElseThrow();
-    ProviderEntity reloadedPractitioner = repository.findByFirmNumber("ADV-FIELDS-1").orElseThrow();
+    ProviderEntity reloadedAdvocate = repository.findByFirmNumber("ADV-FIELDS-1").orElseThrow();
+    ProviderEntity reloadedBarrister = repository.findByFirmNumber("BAR-FIELDS-1").orElseThrow();
 
     assertThat(reloadedLsp).isInstanceOf(LspProviderEntity.class);
     assertThat(((LspProviderEntity) reloadedLsp).getConstitutionalStatus()).isEqualTo("Charity");
@@ -67,18 +74,24 @@ class ProviderFirmRepositoryTest extends PostgresqlSpringBootTest {
         .isEqualTo(LocalDate.of(2026, 3, 31));
     assertThat(((LspProviderEntity) reloadedLsp).getCompaniesHouseNumber()).isEqualTo("CH123456");
 
-    assertThat(reloadedPractitioner).isInstanceOf(AdvocateProviderEntity.class);
-    assertThat(((AdvocateProviderEntity) reloadedPractitioner).getAdvocateType())
-        .isEqualTo("Barrister");
-    assertThat(((AdvocateProviderEntity) reloadedPractitioner).getAdvocateLevel())
+    assertThat(reloadedAdvocate).isInstanceOf(AdvocatePractitionerEntity.class);
+    assertThat(reloadedAdvocate.getFirmType()).isEqualTo(FirmType.ADVOCATE);
+    assertThat(((AdvocatePractitionerEntity) reloadedAdvocate).getAdvocateType())
+        .isEqualTo("Advocate");
+    assertThat(((AdvocatePractitionerEntity) reloadedAdvocate).getAdvocateLevel())
         .isEqualTo("Level 3");
     assertThat(
-            ((AdvocateProviderEntity) reloadedPractitioner)
+            ((AdvocatePractitionerEntity) reloadedAdvocate)
                 .getSolicitorRegulationAuthorityRollNumber())
         .isEqualTo("SRA12345");
-    assertThat(((AdvocateProviderEntity) reloadedPractitioner).getBarristerLevel())
+
+    assertThat(reloadedBarrister).isInstanceOf(BarristerPractitionerEntity.class);
+    assertThat(reloadedBarrister.getFirmType()).isEqualTo(FirmType.ADVOCATE);
+    assertThat(((BarristerPractitionerEntity) reloadedBarrister).getAdvocateType())
+        .isEqualTo("Barrister");
+    assertThat(((BarristerPractitionerEntity) reloadedBarrister).getBarristerLevel())
         .isEqualTo("Level 4");
-    assertThat(((AdvocateProviderEntity) reloadedPractitioner).getBarCouncilRollNumber())
+    assertThat(((BarristerPractitionerEntity) reloadedBarrister).getBarCouncilRollNumber())
         .isEqualTo("BC67890");
   }
 }

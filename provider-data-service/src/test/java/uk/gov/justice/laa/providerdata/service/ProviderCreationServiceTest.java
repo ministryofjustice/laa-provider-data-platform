@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -229,7 +229,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            AdvocateProviderEntity.builder().name("A. Barrister").build(), null, null);
+            AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).startsWith("ADV-");
@@ -261,7 +261,7 @@ class ProviderCreationServiceTest {
     when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.createPractitionerFirm(
-        AdvocateProviderEntity.builder().name("A. Advocate").build(),
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
         null);
 
@@ -293,7 +293,7 @@ class ProviderCreationServiceTest {
     when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.createPractitionerFirm(
-        AdvocateProviderEntity.builder().name("A. Advocate").build(),
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid)),
         null);
 
@@ -335,7 +335,7 @@ class ProviderCreationServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            AdvocateProviderEntity.builder().name("A. Advocate").build(),
+            AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
             List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
             null);
 
@@ -358,7 +358,7 @@ class ProviderCreationServiceTest {
     assertThatThrownBy(
             () ->
                 service.createPractitionerFirm(
-                    AdvocateProviderEntity.builder().name("A.").build(),
+                    AdvocatePractitionerEntity.builder().name("A.").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-NO-OFFICE")),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
@@ -373,7 +373,7 @@ class ProviderCreationServiceTest {
     assertThatThrownBy(
             () ->
                 service.createPractitionerFirm(
-                    AdvocateProviderEntity.builder().name("A. Advocate").build(),
+                    AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN")),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
@@ -401,7 +401,7 @@ class ProviderCreationServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createPractitionerFirm(
-        AdvocateProviderEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
 
     verify(bankDetailsService).createAndLinkToProvider(eq(accountTemplate), any());
   }
@@ -413,7 +413,7 @@ class ProviderCreationServiceTest {
     var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
 
     service.createPractitionerFirm(
-        AdvocateProviderEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
 
     verify(bankDetailsService, never()).createAndLinkToProvider(any(), any());
   }

@@ -13,8 +13,9 @@ import lombok.experimental.SuperBuilder;
 public class ChamberProviderEntity extends ProviderEntity {
 
   /**
-   * Compatibility shim for newly-constructed instances before persistence populates the
-   * discriminator-backed {@code firmType} field.
+   * Returns the constant value for this subtype. The field itself is written by {@code @PrePersist}
+   * before insert; this override ensures the correct value is visible on newly constructed
+   * instances before that callback fires.
    */
   @Override
   public String getFirmType() {

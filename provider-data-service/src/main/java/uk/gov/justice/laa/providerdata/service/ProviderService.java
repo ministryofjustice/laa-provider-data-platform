@@ -7,17 +7,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
-import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
@@ -147,7 +148,7 @@ public class ProviderService {
       ProviderEntity provider,
       String providerFirmGUIDorFirmNumber,
       PractitionerDetailsPatchV2 practitionerPatch) {
-    if (!(provider instanceof AdvocateProviderEntity practitionerProvider)) {
+    if (!(provider instanceof PractitionerEntity practitionerProvider)) {
       throw new IllegalArgumentException(
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
@@ -175,37 +176,35 @@ public class ProviderService {
           "Practitioner patch must contain either advocate fields or barrister fields, not both");
     }
 
-    if (hasAdvocateFields
-        && !PractitionerDetailsAdvocateTypeV2.ADVOCATE
-            .getValue()
-            .equals(practitionerProvider.getAdvocateType())) {
+    if (hasAdvocateFields && !(practitionerProvider instanceof AdvocatePractitionerEntity)) {
       throw new IllegalArgumentException(
           "Advocate fields are only valid for practitioner advocateType=Advocate");
     }
 
-    if (hasBarristerFields
-        && !PractitionerDetailsAdvocateTypeV2.BARRISTER
-            .getValue()
-            .equals(practitionerProvider.getAdvocateType())) {
+    if (hasBarristerFields && !(practitionerProvider instanceof BarristerPractitionerEntity)) {
       throw new IllegalArgumentException(
           "Barrister fields are only valid for practitioner advocateType=Barrister");
     }
 
     if (practitionerPatch.getAdvocateLevel() != null) {
-      practitionerProvider.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
+      ((AdvocatePractitionerEntity) practitionerProvider)
+          .setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
     }
 
     if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
-      practitionerProvider.setSolicitorRegulationAuthorityRollNumber(
-          practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
+      ((AdvocatePractitionerEntity) practitionerProvider)
+          .setSolicitorRegulationAuthorityRollNumber(
+              practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
     }
 
     if (practitionerPatch.getBarristerLevel() != null) {
-      practitionerProvider.setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
+      ((BarristerPractitionerEntity) practitionerProvider)
+          .setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
     }
 
     if (practitionerPatch.getBarCouncilRollNumber() != null) {
-      practitionerProvider.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
+      ((BarristerPractitionerEntity) practitionerProvider)
+          .setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
     }
   }
 

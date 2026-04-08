@@ -19,7 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -179,12 +179,8 @@ class ProviderServiceTest {
   void patchProvider_updatesAdvocatePractitionerFields() {
     UUID guid = UUID.randomUUID();
 
-    AdvocateProviderEntity existing =
-        AdvocateProviderEntity.builder()
-            .firmNumber("ADV-0001")
-            .name("Old Name")
-            .advocateType("Advocate")
-            .build();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -209,12 +205,8 @@ class ProviderServiceTest {
   void patchProvider_rejectsBarristerFieldsForAdvocatePractitioner() {
     UUID guid = UUID.randomUUID();
 
-    AdvocateProviderEntity existing =
-        AdvocateProviderEntity.builder()
-            .firmNumber("ADV-0001")
-            .name("Old Name")
-            .advocateType("Advocate")
-            .build();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));

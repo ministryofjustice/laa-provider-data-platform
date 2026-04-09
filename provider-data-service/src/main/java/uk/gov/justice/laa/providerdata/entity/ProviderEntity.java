@@ -32,8 +32,7 @@ import org.hibernate.annotations.DiscriminatorFormula;
         + "WHEN FIRM_TYPE = 'Advocate' AND ADVOCATE_TYPE = 'Barrister' THEN 'Advocate.Barrister' "
         + "ELSE FIRM_TYPE "
         + "END")
-public sealed class ProviderEntity extends AuditableEntity
-    permits ChamberProviderEntity, LspProviderEntity, PractitionerEntity {
+public class ProviderEntity extends AuditableEntity {
 
   /** PO.PO_VENDORS.SEGMENT1 VARCHAR2(30) not null. */
   @Column(name = "FIRM_NUMBER", nullable = false, unique = true, updatable = false)

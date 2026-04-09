@@ -182,6 +182,10 @@ public class ProviderService {
           barrister.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
         }
       }
+      default ->
+          throw new AssertionError(
+              "unreachable: unknown PractitionerEntity subtype for "
+                  + providerFirmGUIDorFirmNumber);
     }
   }
 

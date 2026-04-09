@@ -25,8 +25,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue(FirmType.ADVOCATE)
-public abstract sealed class PractitionerEntity extends ProviderEntity
-    permits AdvocatePractitionerEntity, BarristerPractitionerEntity {
+public abstract class PractitionerEntity extends ProviderEntity {
 
   /** PO.PO_VENDORS.ATTRIBUTE9 VARCHAR2(150). */
   @Setter(AccessLevel.NONE)

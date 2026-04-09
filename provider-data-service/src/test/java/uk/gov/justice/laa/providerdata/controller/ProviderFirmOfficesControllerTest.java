@@ -50,9 +50,9 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 @Import(JacksonConfig.class)
 class ProviderFirmOfficesControllerTest {
 
-  @Autowired JsonMapper jsonMapper;
-  @MockitoBean OfficeService officeService;
-  @MockitoBean OfficeMapper officeMapper;
+  @Autowired private JsonMapper jsonMapper;
+  @MockitoBean private OfficeService officeService;
+  @MockitoBean private OfficeMapper officeMapper;
 
   private MockMvc mockMvc;
 

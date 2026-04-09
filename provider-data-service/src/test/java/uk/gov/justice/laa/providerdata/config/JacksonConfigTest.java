@@ -28,7 +28,7 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
 @Import(JacksonConfig.class)
 class JacksonConfigTest {
 
-  @Autowired JsonMapper mapper;
+  @Autowired private JsonMapper mapper;
 
   // LSPOfficeLiaisonManager
 

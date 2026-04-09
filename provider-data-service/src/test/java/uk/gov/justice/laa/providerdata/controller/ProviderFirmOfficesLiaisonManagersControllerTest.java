@@ -48,8 +48,8 @@ import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 @Import(JacksonConfig.class)
 class ProviderFirmOfficesLiaisonManagersControllerTest {
 
-  @Autowired JsonMapper jsonMapper;
-  @MockitoBean OfficeLiaisonManagerService service;
+  @Autowired private JsonMapper jsonMapper;
+  @MockitoBean private OfficeLiaisonManagerService service;
 
   private MockMvc mockMvc;
 

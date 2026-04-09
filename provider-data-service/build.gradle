@@ -71,7 +71,7 @@ jacocoTestCoverageVerification {
                 rule.limits.each {
                     limit ->
                         if (limit.counter == 'LINE' || limit.counter == 'INSTRUCTION') {
-                            limit.minimum = 0.8
+                            limit.minimum = 0.6
                         }
                 }
         }

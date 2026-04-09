@@ -29,7 +29,8 @@ tasks.withType(Checkstyle) {
 
 check.dependsOn(
         tasks.named("checkstyleMain"),
-        tasks.named("checkstyleTest")
+        tasks.named("checkstyleTest"),
+        tasks.named("jacocoTestCoverageVerification")
 )
 
 tasks.register("checkstyleStaged", Checkstyle) {
@@ -64,6 +65,16 @@ jacocoTestCoverageVerification {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: ['**/Application.class'])
         }))
+
+        violationRules.rules.each {
+            rule  ->
+                rule.limits.each {
+                    limit ->
+                        if (limit.counter == 'LINE' || limit.counter == 'INSTRUCTION') {
+                            limit.minimum = 0.6
+                        }
+                }
+        }
     }
 }
 

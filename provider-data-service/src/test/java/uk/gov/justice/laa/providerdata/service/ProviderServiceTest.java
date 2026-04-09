@@ -202,7 +202,7 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_rejectsBarristerFieldsForAdvocatePractitioner() {
+  void patchProvider_ignoresBarristerFieldsForAdvocatePractitioner() {
     UUID guid = UUID.randomUUID();
 
     AdvocatePractitionerEntity existing =
@@ -210,14 +210,16 @@ class ProviderServiceTest {
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .practitioner(new PractitionerDetailsPatchV2().barCouncilRollNumber("BAR-123"));
 
-    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Barrister fields are only valid");
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("ADV-0001");
   }
 
   @Test

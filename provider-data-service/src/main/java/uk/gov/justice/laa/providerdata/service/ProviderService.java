@@ -164,47 +164,24 @@ public class ProviderService {
           "Practitioner parent-firm updates are not supported on this endpoint");
     }
 
-    boolean hasAdvocateFields =
-        practitionerPatch.getAdvocateLevel() != null
-            || practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null;
-    boolean hasBarristerFields =
-        practitionerPatch.getBarristerLevel() != null
-            || practitionerPatch.getBarCouncilRollNumber() != null;
-
-    if (hasAdvocateFields && hasBarristerFields) {
-      throw new IllegalArgumentException(
-          "Practitioner patch must contain either advocate fields or barrister fields, not both");
-    }
-
-    if (hasAdvocateFields && !(practitionerProvider instanceof AdvocatePractitionerEntity)) {
-      throw new IllegalArgumentException(
-          "Advocate fields are only valid for practitioner advocateType=Advocate");
-    }
-
-    if (hasBarristerFields && !(practitionerProvider instanceof BarristerPractitionerEntity)) {
-      throw new IllegalArgumentException(
-          "Barrister fields are only valid for practitioner advocateType=Barrister");
-    }
-
-    if (practitionerPatch.getAdvocateLevel() != null) {
-      ((AdvocatePractitionerEntity) practitionerProvider)
-          .setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
-    }
-
-    if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
-      ((AdvocatePractitionerEntity) practitionerProvider)
-          .setSolicitorRegulationAuthorityRollNumber(
+    switch (practitionerProvider) {
+      case AdvocatePractitionerEntity advocate -> {
+        if (practitionerPatch.getAdvocateLevel() != null) {
+          advocate.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
+        }
+        if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
+          advocate.setSolicitorRegulationAuthorityRollNumber(
               practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
-    }
-
-    if (practitionerPatch.getBarristerLevel() != null) {
-      ((BarristerPractitionerEntity) practitionerProvider)
-          .setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
-    }
-
-    if (practitionerPatch.getBarCouncilRollNumber() != null) {
-      ((BarristerPractitionerEntity) practitionerProvider)
-          .setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
+        }
+      }
+      case BarristerPractitionerEntity barrister -> {
+        if (practitionerPatch.getBarristerLevel() != null) {
+          barrister.setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
+        }
+        if (practitionerPatch.getBarCouncilRollNumber() != null) {
+          barrister.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
+        }
+      }
     }
   }
 

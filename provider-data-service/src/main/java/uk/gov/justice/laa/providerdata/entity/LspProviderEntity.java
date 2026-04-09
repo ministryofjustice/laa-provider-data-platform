@@ -18,7 +18,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue(FirmType.LEGAL_SERVICES_PROVIDER)
-public class LspProviderEntity extends ProviderEntity {
+public final class LspProviderEntity extends ProviderEntity {
 
   /** PO.PO_VENDORS.ATTRIBUTE1 VARCHAR2(150). */
   @Column(name = "CONSTITUTIONAL_STATUS")

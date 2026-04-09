@@ -10,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @Entity
 @DiscriminatorValue(FirmType.CHAMBERS)
-public class ChamberProviderEntity extends ProviderEntity {
+public final class ChamberProviderEntity extends ProviderEntity {
 
   /**
    * Returns the constant value for this subtype. The field itself is written by {@code @PrePersist}

@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue("Advocate.Advocate")
-public class AdvocatePractitionerEntity extends PractitionerEntity {
+public final class AdvocatePractitionerEntity extends PractitionerEntity {
 
   /** PO.PO_VENDORS.ATTRIBUTE10 VARCHAR2(150). */
   @Column(name = "ADVOCATE_LEVEL")

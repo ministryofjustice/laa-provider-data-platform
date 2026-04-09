@@ -183,9 +183,11 @@ public class ProviderService {
         }
       }
       default ->
-          throw new AssertionError(
-              "unreachable: unknown PractitionerEntity subtype for "
-                  + providerFirmGUIDorFirmNumber);
+          throw new IllegalStateException(
+              "Unhandled PractitionerEntity subtype for provider "
+                  + providerFirmGUIDorFirmNumber
+                  + " with advocateType="
+                  + practitionerProvider.getAdvocateType());
     }
   }
 

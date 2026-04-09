@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -17,6 +16,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
@@ -197,7 +197,7 @@ public class ProviderCreationService {
    */
   @Transactional
   public ProviderCreationResult createPractitionerFirm(
-      AdvocateProviderEntity providerTemplate,
+      PractitionerEntity providerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
       @Nullable PaymentDetailsCreateV2 payment) {
     providerTemplate.setFirmNumber(generateFirmNumber(FirmType.ADVOCATE));

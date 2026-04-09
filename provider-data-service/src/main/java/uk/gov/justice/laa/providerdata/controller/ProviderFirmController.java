@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
+import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
@@ -31,7 +33,9 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
+import uk.gov.justice.laa.providerdata.model.ProviderCreatePractitionerV2Practitioner;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
@@ -247,9 +251,31 @@ public class ProviderFirmController {
           lmLink);
     }
     return providerFirmCreationService.createPractitionerFirm(
-        AdvocateProviderEntity.builder().name(request.getName()).build(),
+        buildPractitionerTemplate(request.getName(), request.getPractitioner()),
         request.getPractitioner().getParentFirms(),
         request.getPractitioner().getPayment());
+  }
+
+  private static PractitionerEntity buildPractitionerTemplate(
+      String name, ProviderCreatePractitionerV2Practitioner practitioner) {
+    if (PractitionerDetailsAdvocateTypeV2.ADVOCATE.equals(practitioner.getAdvocateType())
+        && practitioner.getAdvocate() != null) {
+      AdvocatePractitionerEntity entity = AdvocatePractitionerEntity.builder().name(name).build();
+      if (practitioner.getAdvocate().getAdvocateLevel() != null) {
+        entity.setAdvocateLevel(practitioner.getAdvocate().getAdvocateLevel().getValue());
+      }
+      entity.setSolicitorRegulationAuthorityRollNumber(
+          practitioner.getAdvocate().getSolicitorRegulationAuthorityRollNumber());
+      return entity;
+    }
+    BarristerPractitionerEntity entity = BarristerPractitionerEntity.builder().name(name).build();
+    if (practitioner.getBarrister() != null) {
+      if (practitioner.getBarrister().getBarristerLevel() != null) {
+        entity.setBarristerLevel(practitioner.getBarrister().getBarristerLevel().getValue());
+      }
+      entity.setBarCouncilRollNumber(practitioner.getBarrister().getBarCouncilRollNumber());
+    }
+    return entity;
   }
 
   private LiaisonManagerEntity lmEntity(LiaisonManagerCreateV2 dto) {

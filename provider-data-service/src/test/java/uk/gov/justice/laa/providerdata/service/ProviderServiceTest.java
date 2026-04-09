@@ -19,7 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import uk.gov.justice.laa.providerdata.entity.AdvocateProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -179,12 +179,8 @@ class ProviderServiceTest {
   void patchProvider_updatesAdvocatePractitionerFields() {
     UUID guid = UUID.randomUUID();
 
-    AdvocateProviderEntity existing =
-        AdvocateProviderEntity.builder()
-            .firmNumber("ADV-0001")
-            .name("Old Name")
-            .advocateType("Advocate")
-            .build();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -206,26 +202,24 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_rejectsBarristerFieldsForAdvocatePractitioner() {
+  void patchProvider_ignoresBarristerFieldsForAdvocatePractitioner() {
     UUID guid = UUID.randomUUID();
 
-    AdvocateProviderEntity existing =
-        AdvocateProviderEntity.builder()
-            .firmNumber("ADV-0001")
-            .name("Old Name")
-            .advocateType("Advocate")
-            .build();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .practitioner(new PractitionerDetailsPatchV2().barCouncilRollNumber("BAR-123"));
 
-    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Barrister fields are only valid");
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("ADV-0001");
   }
 
   @Test

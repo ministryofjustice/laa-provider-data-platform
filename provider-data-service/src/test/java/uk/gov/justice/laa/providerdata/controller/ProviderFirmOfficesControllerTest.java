@@ -83,8 +83,10 @@ class ProviderFirmOfficesControllerTest {
                     || node.has("emailAddress")
                     || node.has("website")
                     || node.has("dxDetails");
-            return ctx.readTreeAsValue(
-                node, hasContactField ? LSPOfficePatchV2.class : AdvocateOfficePatchV2.class);
+            if (hasContactField) {
+              return ctx.readTreeAsValue(node, LSPOfficePatchV2.class);
+            }
+            return ctx.readTreeAsValue(node, AdvocateOfficePatchV2.class);
           }
         });
     JsonMapper jsonMapper = JsonMapper.builder().addModule(module).build();

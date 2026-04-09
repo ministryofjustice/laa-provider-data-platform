@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -22,8 +23,14 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.DXPatchV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
@@ -295,6 +302,95 @@ public class OfficeService {
             () ->
                 lspProviderOfficeLinkRepository.findByProviderAndAccountNumber(
                     provider, officeGUIDorCode));
+  }
+
+  /**
+   * Patches the contact details of an office.
+   *
+   * <p>Only fields present in the patch request (non-null) are applied. Address and DX details are
+   * replaced as whole objects when provided. Website is stored on the {@link
+   * ProviderOfficeLinkEntity}; all other fields are stored on the {@link OfficeEntity}.
+   *
+   * <p>Contact fields (address, telephone, email, website, DX) are supported for LSP and Chambers
+   * offices. Advocate patch requests carry no contact fields and are treated as a no-op.
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeGUIDorCode office-link GUID or account number identifying the office
+   * @param patch the patch request
+   * @return identifiers for the provider and office
+   * @throws ItemNotFoundException if no provider or office matches the given identifiers
+   */
+  public OfficeCreationResult patchOffice(
+      String providerFirmGUIDorFirmNumber, String officeGUIDorCode, OfficePatchV2 patch) {
+
+    ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
+    ProviderOfficeLinkEntity link =
+        findProviderOfficeLink(provider, officeGUIDorCode)
+            .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
+
+    switch (patch) {
+      case LSPOfficePatchV2 lsp ->
+          applyContactPatch(
+              link.getOffice(),
+              link,
+              lsp.getAddress(),
+              lsp.getTelephoneNumber(),
+              lsp.getEmailAddress(),
+              lsp.getWebsite(),
+              lsp.getDxDetails());
+      case ChambersOfficePatchV2 chambers ->
+          applyContactPatch(
+              link.getOffice(),
+              link,
+              chambers.getAddress(),
+              chambers.getTelephoneNumber(),
+              chambers.getEmailAddress(),
+              chambers.getWebsite(),
+              chambers.getDxDetails());
+      case AdvocateOfficePatchV2 ignored -> { // no contact fields on Advocate patch
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unhandled OfficePatchV2 subtype: " + patch.getClass().getSimpleName());
+    }
+
+    officeRepository.save(link.getOffice());
+    providerOfficeLinkRepository.save(link);
+
+    return new OfficeCreationResult(
+        provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());
+  }
+
+  private static void applyContactPatch(
+      OfficeEntity office,
+      ProviderOfficeLinkEntity link,
+      @Nullable OfficeAddressV2 address,
+      @Nullable String telephoneNumber,
+      @Nullable String emailAddress,
+      @Nullable URI website,
+      @Nullable DXPatchV2 dxDetails) {
+    if (address != null) {
+      office.setAddressLine1(address.getLine1());
+      office.setAddressLine2(address.getLine2());
+      office.setAddressLine3(address.getLine3());
+      office.setAddressLine4(address.getLine4());
+      office.setAddressTownOrCity(address.getTownOrCity());
+      office.setAddressCounty(address.getCounty());
+      office.setAddressPostCode(address.getPostcode());
+    }
+    if (telephoneNumber != null) {
+      office.setTelephoneNumber(telephoneNumber);
+    }
+    if (emailAddress != null) {
+      office.setEmailAddress(emailAddress);
+    }
+    if (website != null) {
+      link.setWebsite(website.toString());
+    }
+    if (dxDetails != null) {
+      office.setDxDetailsNumber(dxDetails.getDxNumber());
+      office.setDxDetailsCentre(dxDetails.getDxCentre());
+    }
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {

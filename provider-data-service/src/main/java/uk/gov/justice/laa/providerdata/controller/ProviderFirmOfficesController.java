@@ -152,6 +152,15 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       OfficePatchV2 officePatchV2,
       String xCorrelationId,
       String traceparent) {
-    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    OfficeCreationResult result =
+        officeService.patchOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);
+    return ResponseEntity.ok(
+        new CreateProviderFirmOffice201Response()
+            .data(
+                new CreateProviderFirmOffice201ResponseData()
+                    .providerFirmGUID(result.providerGUID())
+                    .providerFirmNumber(result.firmNumber())
+                    .officeGUID(result.officeGUID())
+                    .officeCode(result.accountNumber())));
   }
 }

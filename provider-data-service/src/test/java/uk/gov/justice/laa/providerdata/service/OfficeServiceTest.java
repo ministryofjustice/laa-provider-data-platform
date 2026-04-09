@@ -31,8 +31,13 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.DXPatchV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
@@ -582,5 +587,127 @@ class OfficeServiceTest {
     var result = service.getOfficesGlobal(List.of(guid.toString()), null, true, pageable);
 
     assertThat(result.getContent()).isEmpty();
+  }
+
+  // patchOffice
+
+  @Test
+  void patchOffice_updatesContactFields_forLspPatch() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID linkGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    OfficeEntity office = new OfficeEntity();
+    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("ABC123");
+    link.setOffice(office);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    LSPOfficePatchV2 patch =
+        new LSPOfficePatchV2()
+            .address(
+                new OfficeAddressV2().line1("1 High St").townOrCity("London").postcode("SW1A 1AA"))
+            .telephoneNumber("0207 111 2222")
+            .emailAddress("info@example.com")
+            .website(java.net.URI.create("https://www.example.com"))
+            .dxDetails(new DXPatchV2().dxNumber("DX 1234").dxCentre("London"));
+
+    OfficeCreationResult result =
+        service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    assertThat(office.getAddressLine1()).isEqualTo("1 High St");
+    assertThat(office.getAddressTownOrCity()).isEqualTo("London");
+    assertThat(office.getAddressPostCode()).isEqualTo("SW1A 1AA");
+    assertThat(office.getTelephoneNumber()).isEqualTo("0207 111 2222");
+    assertThat(office.getEmailAddress()).isEqualTo("info@example.com");
+    assertThat(link.getWebsite()).isEqualTo("https://www.example.com");
+    assertThat(office.getDxDetailsNumber()).isEqualTo("DX 1234");
+    assertThat(office.getDxDetailsCentre()).isEqualTo("London");
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThat(result.officeGUID()).isEqualTo(linkGuid);
+    assertThat(result.accountNumber()).isEqualTo("ABC123");
+  }
+
+  @Test
+  void patchOffice_updatesContactFields_forChambersPatch() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID linkGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM002").build();
+    provider.setGuid(providerGuid);
+
+    OfficeEntity office = new OfficeEntity();
+    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("DEF456");
+    link.setOffice(office);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    ChambersOfficePatchV2 patch = new ChambersOfficePatchV2().telephoneNumber("0161 999 8888");
+
+    service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    assertThat(office.getTelephoneNumber()).isEqualTo("0161 999 8888");
+  }
+
+  @Test
+  void patchOffice_doesNotModifyOffice_forAdvocatePatch() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID linkGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM003").build();
+    provider.setGuid(providerGuid);
+
+    OfficeEntity office = new OfficeEntity();
+    office.setAddressLine1("Original");
+    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("GHI789");
+    link.setOffice(office);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.patchOffice(providerGuid.toString(), linkGuid.toString(), new AdvocateOfficePatchV2());
+
+    assertThat(office.getAddressLine1()).isEqualTo("Original");
+  }
+
+  @Test
+  void patchOffice_throwsItemNotFound_whenOfficeNotFound() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID linkGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.empty());
+    when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, linkGuid.toString()))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(), linkGuid.toString(), new ChambersOfficePatchV2()))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("Office not found");
   }
 }

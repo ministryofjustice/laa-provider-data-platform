@@ -1,8 +1,11 @@
 package uk.gov.justice.laa.providerdata.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,13 +16,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
@@ -44,10 +60,39 @@ class ProviderFirmOfficesControllerTest {
   void setUp() {
     officeService = mock(OfficeService.class);
     officeMapper = mock(OfficeMapper.class);
+    SimpleModule module = new SimpleModule();
+    module.addDeserializer(
+        OfficePatchV2.class,
+        new StdDeserializer<>(OfficePatchV2.class) {
+          @Override
+          public OfficePatchV2 deserialize(JsonParser p, DeserializationContext ctx)
+              throws JacksonException {
+            JsonNode node = p.readValueAsTree();
+            boolean hasLspOrAdvocateField =
+                node.has("payment")
+                    || node.has("vatRegistration")
+                    || node.has("intervened")
+                    || node.has("debtRecoveryFlag")
+                    || node.has("falseBalanceFlag");
+            if (!hasLspOrAdvocateField) {
+              return ctx.readTreeAsValue(node, ChambersOfficePatchV2.class);
+            }
+            boolean hasContactField =
+                node.has("address")
+                    || node.has("telephoneNumber")
+                    || node.has("emailAddress")
+                    || node.has("website")
+                    || node.has("dxDetails");
+            return ctx.readTreeAsValue(
+                node, hasContactField ? LSPOfficePatchV2.class : AdvocateOfficePatchV2.class);
+          }
+        });
+    JsonMapper jsonMapper = JsonMapper.builder().addModule(module).build();
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new ProviderFirmOfficesController(officeService, officeMapper))
             .setControllerAdvice(new GlobalExceptionHandler())
+            .setMessageConverters(new JacksonJsonHttpMessageConverter(jsonMapper))
             .build();
   }
 
@@ -213,5 +258,28 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getOffices_returnsBadRequest_whenPageNegative() throws Exception {
     mockMvc.perform(get("/provider-firms-offices?page=-1")).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateProviderFirmOffice_returns200_withIdentifiers() throws Exception {
+    var providerGuid = UUID.randomUUID();
+    var officeGuid = UUID.randomUUID();
+
+    when(officeService.patchOffice(eq("FRM001"), eq(officeGuid.toString()), any()))
+        .thenReturn(new OfficeCreationResult(providerGuid, "FRM001", officeGuid, "ABC123"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}/offices/{officeId}", "FRM001", officeGuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"telephoneNumber": "0207 111 2222"}
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(providerGuid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("FRM001"))
+        .andExpect(jsonPath("$.data.officeGUID").value(officeGuid.toString()))
+        .andExpect(jsonPath("$.data.officeCode").value("ABC123"));
   }
 }

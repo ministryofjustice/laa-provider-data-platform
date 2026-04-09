@@ -4,7 +4,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,66 +17,44 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.deser.std.StdDeserializer;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.module.SimpleModule;
+import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 
 /**
  * Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}.
  *
- * <p>Uses {@code MockMvcBuilders.standaloneSetup} to avoid loading the full Spring context.
+ * <p>Uses {@code MockMvcBuilders.standaloneSetup} because {@code @WebMvcTest} was removed in Spring
+ * Boot 4.0. The {@code @JsonTest} slice provides a correctly-configured {@link JsonMapper}
+ * (including all {@link tools.jackson.databind.JacksonModule} beans) without loading the full
+ * application context.
  */
+@JsonTest
+@Import(JacksonConfig.class)
 class ProviderFirmOfficesLiaisonManagersControllerTest {
 
+  @Autowired JsonMapper jsonMapper;
+  @MockitoBean OfficeLiaisonManagerService service;
+
   private MockMvc mockMvc;
-  private OfficeLiaisonManagerService service;
 
   @BeforeEach
   void setUp() {
-    service = mock(OfficeLiaisonManagerService.class);
-
-    SimpleModule module = new SimpleModule();
-    module.addDeserializer(
-        OfficeLiaisonManagerCreateOrLinkV2.class,
-        new StdDeserializer<>(OfficeLiaisonManagerCreateOrLinkV2.class) {
-          @Override
-          public OfficeLiaisonManagerCreateOrLinkV2 deserialize(
-              JsonParser p, DeserializationContext ctx) throws JacksonException {
-            JsonNode node = p.readValueAsTree();
-
-            if (node.has("useHeadOfficeLiaisonManager")) {
-              return ctx.readTreeAsValue(node, LiaisonManagerLinkHeadOfficeV2.class);
-            }
-
-            if (node.has("useChambersLiaisonManager")) {
-              return ctx.readTreeAsValue(node, LiaisonManagerLinkChambersV2.class);
-            }
-
-            return ctx.readTreeAsValue(node, LiaisonManagerCreateV2.class);
-          }
-        });
-
-    JsonMapper jsonMapper = JsonMapper.builder().addModule(module).build();
-
     mockMvc =
         MockMvcBuilders.standaloneSetup(new ProviderFirmOfficesLiaisonManagersController(service))
             .setControllerAdvice(new GlobalExceptionHandler())

@@ -3,6 +3,9 @@ package uk.gov.justice.laa.providerdata.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.context.annotation.Import;
 import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -21,12 +24,11 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 
+@JsonTest
+@Import(JacksonConfig.class)
 class JacksonConfigTest {
 
-  private static final JsonMapper mapper =
-      JsonMapper.builder()
-          .addModule(new JacksonConfig().deserializeOneOfWithoutDiscriminator())
-          .build();
+  @Autowired JsonMapper mapper;
 
   // LSPOfficeLiaisonManager
 

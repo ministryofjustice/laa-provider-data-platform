@@ -32,7 +32,7 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
  * generated model that lack an OpenAPI discriminator.
  */
 @Configuration
-class JacksonConfig {
+public class JacksonConfig {
 
   /** Registers deserializers for all {@code oneOf} types that lack an OpenAPI discriminator. */
   @Bean

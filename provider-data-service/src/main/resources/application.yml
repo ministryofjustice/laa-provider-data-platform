@@ -24,7 +24,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     # SQL statement logging should be enabled only in local dev (see application-local.yml)
     show-sql: false
     properties:

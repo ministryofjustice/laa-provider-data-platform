@@ -19,4 +19,4 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue(FirmType.CHAMBERS)
-public class ChamberProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {}
+public final class ChamberProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {}

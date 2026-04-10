@@ -255,16 +255,12 @@ public interface OfficeMapper {
    * the type from the class avoids that issue.
    */
   default ProviderFirmTypeV2 firmTypeFromEntity(ProviderOfficeLinkEntity link) {
-    if (link instanceof LspProviderOfficeLinkEntity) {
-      return ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER;
-    }
-    if (link instanceof ChamberProviderOfficeLinkEntity) {
-      return ProviderFirmTypeV2.CHAMBERS;
-    }
-    if (link instanceof AdvocateProviderOfficeLinkEntity) {
-      return ProviderFirmTypeV2.ADVOCATE;
-    }
-    return ProviderFirmTypeV2.fromValue(link.getFirmType());
+    return switch (link) {
+      case LspProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER;
+      case ChamberProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.CHAMBERS;
+      case AdvocateProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.ADVOCATE;
+      default -> ProviderFirmTypeV2.fromValue(link.getFirmType());
+    };
   }
 
   /** Returns a {@link DXV2} only when at least one DX field is non-null; otherwise {@code null}. */

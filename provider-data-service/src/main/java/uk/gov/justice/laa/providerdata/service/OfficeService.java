@@ -347,7 +347,7 @@ public class OfficeService {
               chambers.getEmailAddress(),
               chambers.getWebsite(),
               chambers.getDxDetails());
-      case AdvocateOfficePatchV2 ignored -> { // no contact fields on Advocate patch
+      case AdvocateOfficePatchV2 _ -> { // no contact fields on Advocate patch
       }
       default ->
           throw new IllegalStateException(

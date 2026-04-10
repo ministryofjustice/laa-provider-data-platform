@@ -111,41 +111,42 @@ public class OfficeLiaisonManagerService {
   private LiaisonManagerEntity resolveOrCreateLiaisonManager(
       ProviderEntity provider, OfficeLiaisonManagerCreateOrLinkV2 request) {
 
-    if (request instanceof LiaisonManagerCreateV2 create) {
-      LiaisonManagerEntity entity = new LiaisonManagerEntity();
-      entity.setFirstName(create.getFirstName());
-      entity.setLastName(create.getLastName());
-      entity.setEmailAddress(create.getEmailAddress());
-      entity.setTelephoneNumber(create.getTelephoneNumber());
-      return liaisonManagerRepository.save(entity);
-    }
-
-    if (request instanceof LiaisonManagerLinkHeadOfficeV2 linkHeadOffice) {
-      if (!Boolean.TRUE.equals(linkHeadOffice.getUseHeadOfficeLiaisonManager())) {
-        throw new IllegalArgumentException("useHeadOfficeLiaisonManager must be true");
+    return switch (request) {
+      case LiaisonManagerCreateV2 create -> {
+        LiaisonManagerEntity entity = new LiaisonManagerEntity();
+        entity.setFirstName(create.getFirstName());
+        entity.setLastName(create.getLastName());
+        entity.setEmailAddress(create.getEmailAddress());
+        entity.setTelephoneNumber(create.getTelephoneNumber());
+        yield liaisonManagerRepository.save(entity);
       }
-      if (!FirmType.LEGAL_SERVICES_PROVIDER.equals(provider.getFirmType())) {
-        throw new IllegalArgumentException(
-            "linkHeadOffice is only applicable for firmType=" + FirmType.LEGAL_SERVICES_PROVIDER);
+      case LiaisonManagerLinkHeadOfficeV2 linkHeadOffice -> {
+        if (!Boolean.TRUE.equals(linkHeadOffice.getUseHeadOfficeLiaisonManager())) {
+          throw new IllegalArgumentException("useHeadOfficeLiaisonManager must be true");
+        }
+        if (!FirmType.LEGAL_SERVICES_PROVIDER.equals(provider.getFirmType())) {
+          throw new IllegalArgumentException(
+              "linkHeadOffice is only applicable for firmType=" + FirmType.LEGAL_SERVICES_PROVIDER);
+        }
+        ProviderOfficeLinkEntity headOfficeLink = resolveHeadOfficeOffice(provider, "Head office");
+        yield resolveActiveLiaisonManagerForOffice(headOfficeLink);
       }
-      ProviderOfficeLinkEntity headOfficeLink = resolveHeadOfficeOffice(provider, "Head office");
-      return resolveActiveLiaisonManagerForOffice(headOfficeLink);
-    }
-
-    if (request instanceof LiaisonManagerLinkChambersV2 linkChambers) {
-      if (!Boolean.TRUE.equals(linkChambers.getUseChambersLiaisonManager())) {
-        throw new IllegalArgumentException("useChambersLiaisonManager must be true");
+      case LiaisonManagerLinkChambersV2 linkChambers -> {
+        if (!Boolean.TRUE.equals(linkChambers.getUseChambersLiaisonManager())) {
+          throw new IllegalArgumentException("useChambersLiaisonManager must be true");
+        }
+        if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
+          throw new IllegalArgumentException(
+              "linkChambers currently supports firmType=" + FirmType.CHAMBERS);
+        }
+        ProviderOfficeLinkEntity chambersOfficeLink =
+            resolveHeadOfficeOffice(provider, "Chambers head office");
+        yield resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
       }
-      if (!FirmType.CHAMBERS.equals(provider.getFirmType())) {
-        throw new IllegalArgumentException(
-            "linkChambers currently supports firmType=" + FirmType.CHAMBERS);
-      }
-      ProviderOfficeLinkEntity chambersOfficeLink =
-          resolveHeadOfficeOffice(provider, "Chambers head office");
-      return resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
-    }
-
-    throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported liaison manager request type: " + request);
+    };
   }
 
   private ProviderOfficeLinkEntity resolveProviderOfficeLink(

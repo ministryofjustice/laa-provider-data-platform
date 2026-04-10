@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,36 +10,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
-import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 
+@WebMvcTest(ChamberOfficePractitionersController.class)
 class ChamberOfficePractitionersControllerTest {
 
-  private MockMvc mockMvc;
-  private ProviderService providerService;
-  private ProviderMapper providerMapper;
-
-  @BeforeEach
-  void setUp() {
-    providerService = mock(ProviderService.class);
-    providerMapper = mock(ProviderMapper.class);
-
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(
-                new ChamberOfficePractitionersController(providerService, providerMapper))
-            .setControllerAdvice(new GlobalExceptionHandler())
-            .build();
-  }
+  @Autowired private MockMvc mockMvc;
+  @MockitoBean private ProviderService providerService;
+  @MockitoBean private ProviderMapper providerMapper;
 
   @Test
   void getProviderFirmOfficePractitioners_returns200WithPractitioners() throws Exception {

@@ -131,7 +131,7 @@ public class ProviderFirmController {
               description = "Filter by provider firm type",
               schema = @Schema(implementation = ProviderFirmTypeV2.class))
           @RequestParam(required = false)
-          List<ProviderFirmTypeV2> type, // Spring calls ProviderFirmTypeConverter
+          List<ProviderFirmTypeV2> type,
       @RequestParam(required = false) String activeStatus,
       @RequestParam(required = false) List<String> accountNumber,
       @RequestParam(required = false) List<String> practitionerRollNumber,

@@ -40,6 +40,10 @@ openApiGenerate {
     generatorName = "spring"
     inputSpec = layout.projectDirectory.file("laa-data-pda.yml").asFile.path
     outputDir = generatedDir.get().asFile.path
+    // Do not generate supporting files — this is a contract-only module; implementation
+    // configuration belongs in the service. EnumConverterConfiguration in particular ends up in
+    // org.openapitools.configuration which is outside the application component scan.
+    openapiGeneratorIgnoreList = ["**/EnumConverterConfiguration.java", "**/ApiUtil.java"]
 
     // Keep provider-data-api package naming
     apiPackage     = "uk.gov.justice.laa.providerdata.api"

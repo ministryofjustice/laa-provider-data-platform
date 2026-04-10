@@ -15,52 +15,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
-import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 
-/**
- * Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}.
- *
- * <p>Uses {@code MockMvcBuilders.standaloneSetup} because {@code @WebMvcTest} was removed in Spring
- * Boot 4.0. The {@code @JsonTest} slice provides a correctly-configured {@link JsonMapper}
- * (including all {@link tools.jackson.databind.JacksonModule} beans) without loading the full
- * application context.
- */
-@JsonTest
+/** Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}. */
+@WebMvcTest(ProviderFirmOfficesLiaisonManagersController.class)
 @Import(JacksonConfig.class)
 class ProviderFirmOfficesLiaisonManagersControllerTest {
 
-  @Autowired private JsonMapper jsonMapper;
+  @Autowired private MockMvc mockMvc;
   @MockitoBean private OfficeLiaisonManagerService service;
-
-  private MockMvc mockMvc;
-
-  @BeforeEach
-  void setUp() {
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(new ProviderFirmOfficesLiaisonManagersController(service))
-            .setControllerAdvice(new GlobalExceptionHandler())
-            .setMessageConverters(new JacksonJsonHttpMessageConverter(jsonMapper))
-            .build();
-  }
 
   @Test
   void getOfficeLiaisonManagers_returns200_withPaginationMetadata() throws Exception {

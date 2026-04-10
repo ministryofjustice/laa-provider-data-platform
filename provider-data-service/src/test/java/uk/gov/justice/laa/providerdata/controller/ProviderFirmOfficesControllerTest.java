@@ -11,21 +11,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
@@ -36,35 +31,18 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 /**
  * Web layer tests for {@link ProviderFirmOfficesController}.
  *
- * <p>Uses {@code MockMvcBuilders.standaloneSetup} because {@code @WebMvcTest} was removed in Spring
- * Boot 4.0. The {@code @JsonTest} slice provides a correctly-configured {@link JsonMapper}
- * (including all {@link tools.jackson.databind.JacksonModule} beans) without loading the full
- * application context.
- *
  * <p>Note: a full 201 happy-path test is not included here because {@code
  * LSPOfficeLiaisonManagerCreateOrLinkV2} is an untagged interface with no {@code @JsonSubTypes}
  * annotation, so Jackson cannot deserialise a value for the required {@code liaisonManager} field.
  * The happy path is covered by {@link uk.gov.justice.laa.providerdata.service.OfficeServiceTest}.
  */
-@JsonTest
+@WebMvcTest(ProviderFirmOfficesController.class)
 @Import(JacksonConfig.class)
 class ProviderFirmOfficesControllerTest {
 
-  @Autowired private JsonMapper jsonMapper;
+  @Autowired private MockMvc mockMvc;
   @MockitoBean private OfficeService officeService;
   @MockitoBean private OfficeMapper officeMapper;
-
-  private MockMvc mockMvc;
-
-  @BeforeEach
-  void setUp() {
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(
-                new ProviderFirmOfficesController(officeService, officeMapper))
-            .setControllerAdvice(new GlobalExceptionHandler())
-            .setMessageConverters(new JacksonJsonHttpMessageConverter(jsonMapper))
-            .build();
-  }
 
   @Test
   void createProviderFirmOffice_returnsBadRequest_whenBodyIsEmpty() throws Exception {

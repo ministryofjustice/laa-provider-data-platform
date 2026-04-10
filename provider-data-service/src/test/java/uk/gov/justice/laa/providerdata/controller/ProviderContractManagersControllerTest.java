@@ -8,34 +8,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderContractManagersService;
 
+@WebMvcTest(ProviderContractManagersController.class)
 class ProviderContractManagersControllerTest {
 
-  private MockMvc mockMvc;
-  private ProviderContractManagersService providerContractManagersService;
-  private ContractManagerMapper contractManagerMapper;
-
-  @BeforeEach
-  void setUp() {
-    providerContractManagersService =
-        org.mockito.Mockito.mock(ProviderContractManagersService.class);
-    contractManagerMapper = org.mockito.Mockito.mock(ContractManagerMapper.class);
-
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(
-                new ProviderContractManagersController(
-                    providerContractManagersService, contractManagerMapper))
-            .build();
-  }
+  @Autowired private MockMvc mockMvc;
+  @MockitoBean private ProviderContractManagersService providerContractManagersService;
+  @MockitoBean private ContractManagerMapper contractManagerMapper;
 
   @Test
   void getProviderContractManagers_returns200_andContentAndMetadata() throws Exception {

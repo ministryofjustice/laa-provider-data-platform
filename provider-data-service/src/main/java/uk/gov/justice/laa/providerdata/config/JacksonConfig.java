@@ -11,13 +11,17 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.deser.std.StdDeserializer;
 import tools.jackson.databind.module.SimpleModule;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
@@ -28,8 +32,9 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
  * generated model that lack an OpenAPI discriminator.
  */
 @Configuration
-class JacksonConfig {
+public class JacksonConfig {
 
+  /** Registers deserializers for all {@code oneOf} types that lack an OpenAPI discriminator. */
   @Bean
   JacksonModule deserializeOneOfWithoutDiscriminator() {
     return new SimpleModule()
@@ -79,7 +84,29 @@ class JacksonConfig {
                 node ->
                     node.has("bankAccountGUID")
                         ? BankAccountProviderOfficeLinkV2.class
-                        : BankAccountProviderOfficeCreateV2.class));
+                        : BankAccountProviderOfficeCreateV2.class))
+        .addDeserializer(
+            OfficePatchV2.class,
+            new TypeResolvingDeserializer<>(
+                OfficePatchV2.class,
+                node -> {
+                  boolean hasLspOrAdvocateField =
+                      node.has("payment")
+                          || node.has("vatRegistration")
+                          || node.has("intervened")
+                          || node.has("debtRecoveryFlag")
+                          || node.has("falseBalanceFlag");
+                  if (!hasLspOrAdvocateField) {
+                    return ChambersOfficePatchV2.class;
+                  }
+                  boolean hasContactField =
+                      node.has("address")
+                          || node.has("telephoneNumber")
+                          || node.has("emailAddress")
+                          || node.has("website")
+                          || node.has("dxDetails");
+                  return hasContactField ? LSPOfficePatchV2.class : AdvocateOfficePatchV2.class;
+                }));
   }
 
   /**

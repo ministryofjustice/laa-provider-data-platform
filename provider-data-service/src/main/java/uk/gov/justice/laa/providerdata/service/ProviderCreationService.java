@@ -272,23 +272,24 @@ public class ProviderCreationService {
   }
 
   private ProviderEntity resolveParent(PractitionerDetailsParentUpdateV2 parentFirm) {
-    if (parentFirm instanceof PractitionerDetailsParentUpdateV2OneOf byGuid) {
-      return providerRepository
-          .findById(byGuid.getParentGuid())
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException(
-                      "Parent provider not found: " + byGuid.getParentGuid()));
-    }
-    if (parentFirm instanceof PractitionerDetailsParentUpdateV2OneOf1 byNumber) {
-      return providerRepository
-          .findByFirmNumber(byNumber.getParentFirmNumber())
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException(
-                      "Parent provider not found: " + byNumber.getParentFirmNumber()));
-    }
-    throw new IllegalArgumentException("Unknown parentFirm type: " + parentFirm.getClass());
+    return switch (parentFirm) {
+      case PractitionerDetailsParentUpdateV2OneOf byGuid ->
+          providerRepository
+              .findById(byGuid.getParentGuid())
+              .orElseThrow(
+                  () ->
+                      new ItemNotFoundException(
+                          "Parent provider not found: " + byGuid.getParentGuid()));
+      case PractitionerDetailsParentUpdateV2OneOf1 byNumber ->
+          providerRepository
+              .findByFirmNumber(byNumber.getParentFirmNumber())
+              .orElseThrow(
+                  () ->
+                      new ItemNotFoundException(
+                          "Parent provider not found: " + byNumber.getParentFirmNumber()));
+      default ->
+          throw new IllegalArgumentException("Unknown parentFirm type: " + parentFirm.getClass());
+    };
   }
 
   private void persistBankDetailsForPractitioner(

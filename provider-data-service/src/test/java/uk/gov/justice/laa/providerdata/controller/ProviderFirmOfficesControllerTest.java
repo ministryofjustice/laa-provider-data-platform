@@ -1,55 +1,48 @@
 package uk.gov.justice.laa.providerdata.controller;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
  * Web layer tests for {@link ProviderFirmOfficesController}.
  *
- * <p>Uses {@code MockMvcBuilders.standaloneSetup} because {@code @WebMvcTest} was removed in Spring
- * Boot 4.0.
- *
  * <p>Note: a full 201 happy-path test is not included here because {@code
  * LSPOfficeLiaisonManagerCreateOrLinkV2} is an untagged interface with no {@code @JsonSubTypes}
  * annotation, so Jackson cannot deserialise a value for the required {@code liaisonManager} field.
  * The happy path is covered by {@link uk.gov.justice.laa.providerdata.service.OfficeServiceTest}.
  */
+@WebMvcTest(ProviderFirmOfficesController.class)
+@Import(JacksonConfig.class)
 class ProviderFirmOfficesControllerTest {
 
-  private MockMvc mockMvc;
-  private OfficeService officeService;
-  private OfficeMapper officeMapper;
-
-  @BeforeEach
-  void setUp() {
-    officeService = mock(OfficeService.class);
-    officeMapper = mock(OfficeMapper.class);
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(
-                new ProviderFirmOfficesController(officeService, officeMapper))
-            .setControllerAdvice(new GlobalExceptionHandler())
-            .build();
-  }
+  @Autowired private MockMvc mockMvc;
+  @MockitoBean private OfficeService officeService;
+  @MockitoBean private OfficeMapper officeMapper;
 
   @Test
   void createProviderFirmOffice_returnsBadRequest_whenBodyIsEmpty() throws Exception {
@@ -213,5 +206,28 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getOffices_returnsBadRequest_whenPageNegative() throws Exception {
     mockMvc.perform(get("/provider-firms-offices?page=-1")).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateProviderFirmOffice_returns200_withIdentifiers() throws Exception {
+    var providerGuid = UUID.randomUUID();
+    var officeGuid = UUID.randomUUID();
+
+    when(officeService.patchOffice(eq("FRM001"), eq(officeGuid.toString()), any()))
+        .thenReturn(new OfficeCreationResult(providerGuid, "FRM001", officeGuid, "ABC123"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}/offices/{officeId}", "FRM001", officeGuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"telephoneNumber": "0207 111 2222"}
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(providerGuid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("FRM001"))
+        .andExpect(jsonPath("$.data.officeGUID").value(officeGuid.toString()))
+        .andExpect(jsonPath("$.data.officeCode").value("ABC123"));
   }
 }

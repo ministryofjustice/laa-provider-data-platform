@@ -3,26 +3,32 @@ package uk.gov.justice.laa.providerdata.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.context.annotation.Import;
 import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 
+@JsonTest
+@Import(JacksonConfig.class)
 class JacksonConfigTest {
 
-  private static final JsonMapper mapper =
-      JsonMapper.builder()
-          .addModule(new JacksonConfig().deserializeOneOfWithoutDiscriminator())
-          .build();
+  @Autowired private JsonMapper mapper;
 
   // LSPOfficeLiaisonManager
 
@@ -188,5 +194,47 @@ class JacksonConfigTest {
     assertThat(result).isInstanceOf(BankAccountProviderOfficeCreateV2.class);
     assertThat(((BankAccountProviderOfficeCreateV2) result).getAccountName())
         .isEqualTo("Westgate Legal LLP Client A/C");
+  }
+
+  // OfficePatch
+
+  @Test
+  void officePatch_resolves_to_lsp_when_lsp_specific_and_contact_fields_present() throws Exception {
+    var result =
+        mapper.readValue(
+            """
+            {"address": {"line1": "1 High St", "townOrCity": "London", "postcode": "SW1A 1AA"},
+             "payment": {"paymentMethod": "EFT"}}
+            """,
+            OfficePatchV2.class);
+
+    assertThat(result).isInstanceOf(LSPOfficePatchV2.class);
+    assertThat(((LSPOfficePatchV2) result).getAddress().getLine1()).isEqualTo("1 High St");
+  }
+
+  @Test
+  void officePatch_resolves_to_advocate_when_only_lsp_specific_fields_present() throws Exception {
+    var result =
+        mapper.readValue(
+            """
+            {"debtRecoveryFlag": true}
+            """,
+            OfficePatchV2.class);
+
+    assertThat(result).isInstanceOf(AdvocateOfficePatchV2.class);
+    assertThat(((AdvocateOfficePatchV2) result).getDebtRecoveryFlag()).isTrue();
+  }
+
+  @Test
+  void officePatch_resolves_to_chambers_when_only_contact_fields_present() throws Exception {
+    var result =
+        mapper.readValue(
+            """
+            {"telephoneNumber": "0121 232 1111"}
+            """,
+            OfficePatchV2.class);
+
+    assertThat(result).isInstanceOf(ChambersOfficePatchV2.class);
+    assertThat(((ChambersOfficePatchV2) result).getTelephoneNumber()).isEqualTo("0121 232 1111");
   }
 }

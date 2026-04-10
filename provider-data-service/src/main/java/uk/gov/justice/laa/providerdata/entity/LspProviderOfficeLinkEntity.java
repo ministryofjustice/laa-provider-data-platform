@@ -27,7 +27,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue(FirmType.LEGAL_SERVICES_PROVIDER)
-public class LspProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {
+public final class LspProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {
 
   /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE11 VARCHAR2(150). */
   @Column(name = "INTERVENED_FLAG")

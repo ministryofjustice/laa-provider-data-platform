@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -13,18 +12,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
@@ -33,37 +31,15 @@ import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
-import uk.gov.justice.laa.providerdata.util.ProviderFirmTypeConverter;
 
+@WebMvcTest(ProviderFirmController.class)
 class ProviderFirmControllerTest {
 
-  private MockMvc mockMvc;
-  private ProviderCreationService providerFirmCreationService;
-  private ProviderService providerFirmService;
-  private OfficeMapper officeMapper;
-  private ProviderMapper providerFirmMapper;
-
-  @BeforeEach
-  void setUp() {
-    providerFirmCreationService = mock(ProviderCreationService.class);
-    providerFirmService = mock(ProviderService.class);
-    officeMapper = mock(OfficeMapper.class);
-    providerFirmMapper = mock(ProviderMapper.class);
-
-    DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
-    conversionService.addConverter(new ProviderFirmTypeConverter()); // ✅ KEY FIX
-
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(
-                new ProviderFirmController(
-                    providerFirmCreationService,
-                    providerFirmService,
-                    officeMapper,
-                    providerFirmMapper))
-            .setControllerAdvice(new GlobalExceptionHandler())
-            .setConversionService(conversionService) // ✅ REGISTER HERE
-            .build();
-  }
+  @Autowired private MockMvc mockMvc;
+  @MockitoBean private ProviderCreationService providerFirmCreationService;
+  @MockitoBean private ProviderService providerFirmService;
+  @MockitoBean private OfficeMapper officeMapper;
+  @MockitoBean private ProviderMapper providerFirmMapper;
 
   @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {

@@ -162,26 +162,24 @@ public class ProviderFirmOfficesLiaisonManagersController
       throw new IllegalArgumentException("Request body must be provided");
     }
 
-    if (request instanceof LiaisonManagerCreateV2 create) {
-      if (isBlank(create.getFirstName())
-          || isBlank(create.getLastName())
-          || isBlank(create.getEmailAddress())
-          || isBlank(create.getTelephoneNumber())) {
-        throw new IllegalArgumentException(
-            "create requires firstName, lastName, emailAddress, telephoneNumber");
+    switch (request) {
+      case LiaisonManagerCreateV2 create -> {
+        if (isBlank(create.getFirstName())
+            || isBlank(create.getLastName())
+            || isBlank(create.getEmailAddress())
+            || isBlank(create.getTelephoneNumber())) {
+          throw new IllegalArgumentException(
+              "create requires firstName, lastName, emailAddress, telephoneNumber");
+        }
       }
-      return;
+      case LiaisonManagerLinkHeadOfficeV2 _ -> { // no additional validation needed
+      }
+      case LiaisonManagerLinkChambersV2 _ -> { // no additional validation needed
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported liaison manager request type: " + request);
     }
-
-    if (request instanceof LiaisonManagerLinkHeadOfficeV2) {
-      return;
-    }
-
-    if (request instanceof LiaisonManagerLinkChambersV2) {
-      return;
-    }
-
-    throw new IllegalArgumentException("Unsupported liaison manager request type: " + request);
   }
 
   private static boolean isBlank(String s) {

@@ -36,6 +36,54 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.postgresContainer.enabled }}
+      # Native sidecar (K8s 1.28+): starts before the app container and its startup probe must
+      # pass before the app container is created. Prevents the race condition where the app
+      # connects to postgres before bitnami completes its two-phase initialisation.
+      initContainers:
+        - name: postgres
+          restartPolicy: Always
+          image: {{ .Values.postgresContainer.image | quote }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001  # bitnami/postgresql runs as UID 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgresContainer.port }}
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: {{ .Values.postgresContainer.database | quote }}
+            - name: POSTGRESQL_USERNAME
+              value: {{ .Values.postgresContainer.username | quote }}
+            - name: POSTGRESQL_PASSWORD
+              value: {{ .Values.postgresContainer.password | quote }}
+          startupProbe:
+            exec:
+              # pg_isready passes too early — bitnami/postgresql starts postgres in init mode,
+              # creates the database, then internally restarts. Use psql to run an actual query,
+              # which only succeeds after the internal restart completes.
+              # PGPASSWORD is set from the container's own env var to avoid an interactive prompt.
+              command: ["sh", "-c", "PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME -d $POSTGRESQL_DATABASE -c 'SELECT 1'"]
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}]
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.postgresContainer.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /bitnami/postgresql
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -57,12 +105,6 @@ spec:
               value: {{ .Values.postgresContainer.username | quote }}
             - name: SPRING_DATASOURCE_PASSWORD
               value: {{ .Values.postgresContainer.password | quote }}
-            # Allow Flyway to retry until the postgres sidecar is ready.
-            - name: SPRING_FLYWAY_CONNECT_RETRIES
-              value: "30"
-            # Do not fail on pool initialisation — postgres may not be ready yet.
-            - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
-              value: "-1"
             {{- else }}
             # RDS PostgreSQL connection (shared/release environments).
             - name: DB_HOST # Intermediate var for building the JDBC URL
@@ -143,7 +185,7 @@ spec:
               path: /actuator/health/liveness
               port: http
             periodSeconds: 5
-            failureThreshold: 36  # 3 minutes — enough for Flyway to run on a fresh database
+            failureThreshold: 18  # 90 seconds — enough for Spring Boot and Flyway migrations
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -160,49 +202,6 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-        {{- if .Values.postgresContainer.enabled }}
-        - name: postgres
-          image: {{ .Values.postgresContainer.image | quote }}
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1001  # bitnami/postgresql runs as UID 1001
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            seccompProfile:
-              type: RuntimeDefault
-            capabilities:
-              drop: ["ALL"]
-          ports:
-            - name: postgres
-              containerPort: {{ .Values.postgresContainer.port }}
-          env:
-            - name: POSTGRESQL_DATABASE
-              value: {{ .Values.postgresContainer.database | quote }}
-            - name: POSTGRESQL_USERNAME
-              value: {{ .Values.postgresContainer.username | quote }}
-            - name: POSTGRESQL_PASSWORD
-              value: {{ .Values.postgresContainer.password | quote }}
-          startupProbe:
-            exec:
-              # pg_isready passes too early — bitnami/postgresql starts postgres in init mode,
-              # creates the database, then internally restarts. Use psql to run an actual query,
-              # which only succeeds after the internal restart completes.
-              # PGPASSWORD is set from the container's own env var to avoid an interactive prompt.
-              command: ["sh", "-c", "PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME -d $POSTGRESQL_DATABASE -c 'SELECT 1'"]
-            periodSeconds: 2
-            failureThreshold: 30
-          livenessProbe:
-            exec:
-              command: [pg_isready, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}]
-            periodSeconds: 10
-            failureThreshold: 3
-          resources:
-            {{- toYaml .Values.postgresContainer.resources | nindent 12 }}
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /bitnami/postgresql
-        {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

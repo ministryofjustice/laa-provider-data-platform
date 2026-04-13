@@ -100,7 +100,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("FRM001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
                 providerOfficeLinkGuid, "CM-001"));
@@ -109,7 +109,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content(
@@ -135,7 +135,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content("{}"))
@@ -153,7 +153,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content(
@@ -177,7 +177,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content(
@@ -200,14 +200,14 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID officeGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("FRM001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
         .thenThrow(new RuntimeException("boom"));
 
     mockMvc
         .perform(
             post(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content(
@@ -250,14 +250,14 @@ class ProviderFirmOfficeContractManagersControllerTest {
 
   @Test
   void getContractManagers_returnsEmptyList_whenNoManagersAssigned() throws Exception {
-    when(contractManagerService.getContractManagers("FRM001", "ACC001", PageRequest.of(0, 100)))
+    when(contractManagerService.getContractManagers("100001", "ACC001", PageRequest.of(0, 100)))
         .thenReturn(Page.empty(PageRequest.of(0, 100)));
 
     mockMvc
         .perform(
             get(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .contentType("application/json"))
         .andExpect(status().isOk())
@@ -266,14 +266,14 @@ class ProviderFirmOfficeContractManagersControllerTest {
 
   @Test
   void getContractManagers_acceptsPaginationParams() throws Exception {
-    when(contractManagerService.getContractManagers("FRM001", "ACC001", PageRequest.of(2, 5)))
+    when(contractManagerService.getContractManagers("100001", "ACC001", PageRequest.of(2, 5)))
         .thenReturn(Page.empty(PageRequest.of(2, 5)));
 
     mockMvc
         .perform(
             get(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .param("page", "2")
                 .param("pageSize", "5")
@@ -289,7 +289,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             get(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .param("page", "-1")
                 .contentType("application/json"))
@@ -302,7 +302,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .perform(
             get(
                     "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .param("pageSize", "0")
                 .contentType("application/json"))

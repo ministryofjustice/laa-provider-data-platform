@@ -254,7 +254,7 @@ class ProviderCreationServiceTest {
               provider.setGuid(providerGuid);
               return provider;
             });
-    when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
+    when(providerRepository.findByFirmNumber("100002")).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
         .thenReturn(Optional.of(parentOfficeLink));
@@ -262,7 +262,7 @@ class ProviderCreationServiceTest {
 
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
-        List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
         null);
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
@@ -320,7 +320,7 @@ class ProviderCreationServiceTest {
               provider.setGuid(providerGuid);
               return provider;
             });
-    when(providerRepository.findByFirmNumber("CH-001")).thenReturn(Optional.of(parent));
+    when(providerRepository.findByFirmNumber("100002")).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
         .thenReturn(Optional.of(parentOfficeLink));
@@ -336,7 +336,7 @@ class ProviderCreationServiceTest {
     var result =
         service.createPractitionerFirm(
             AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
-            List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-001")),
+            List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
             null);
 
     assertThat(result.headOfficeGUID()).isEqualTo(advocateOfficeLinkGuid);

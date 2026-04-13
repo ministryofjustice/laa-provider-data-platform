@@ -382,12 +382,12 @@ class BankDetailsServiceTest {
   private static AdvocatePractitionerEntity advocateEntity() {
     return AdvocatePractitionerEntity.builder()
         .firmType(FirmType.ADVOCATE)
-        .firmNumber("FRM001")
+        .firmNumber("100003")
         .build();
   }
 
   private static ProviderEntity providerEntity(String firmType) {
-    return ProviderEntity.builder().firmType(firmType).firmNumber("FRM001").build();
+    return ProviderEntity.builder().firmType(firmType).firmNumber("100001").build();
   }
 
   private static BankAccountEntity accountWithGuid() {

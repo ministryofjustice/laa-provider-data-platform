@@ -30,7 +30,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
     final OffsetDateTime now = OffsetDateTime.now(); // only used for test data below
 
     ProviderEntity provider =
-        LspProviderEntity.builder().firmNumber("FRM100").name("Test Firm").build();
+        LspProviderEntity.builder().firmNumber("100100").name("Test Firm").build();
     provider = providerRepository.save(provider);
     final var providerGuid = provider.getGuid();
 
@@ -62,11 +62,11 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
     request.setEmailAddress("alice@example.com");
     request.setTelephoneNumber("0123456789");
 
-    var result = service.postOfficeLiaisonManager("FRM100", "0Q731M", request);
+    var result = service.postOfficeLiaisonManager("100100", "0Q731M", request);
 
     assertThat(result).isNotNull();
     assertThat(result.providerFirmGuid()).isEqualTo(providerGuid);
-    assertThat(result.providerFirmNumber()).isEqualTo("FRM100");
+    assertThat(result.providerFirmNumber()).isEqualTo("100100");
     assertThat(result.officeGuid()).isEqualTo(officeLinkGuid);
     assertThat(result.officeCode()).isEqualTo("0Q731M");
     assertThat(result.liaisonManagerGuid()).isNotNull();

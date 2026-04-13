@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -33,7 +31,7 @@ class ProviderMapperTest {
     UUID guid = UUID.randomUUID();
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Westgate Legal Services LLP")
             .build();
@@ -45,7 +43,7 @@ class ProviderMapperTest {
 
     assertThat(result.getGuid()).isEqualTo(guid);
     assertThat(result.getVersion()).isEqualTo(3);
-    assertThat(result.getFirmNumber()).isEqualTo("LSP-ABC123");
+    assertThat(result.getFirmNumber()).isEqualTo("100001");
     assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER);
     assertThat(result.getName()).isEqualTo("Westgate Legal Services LLP");
     assertThat(result.getCreatedBy()).isEqualTo("user1");
@@ -78,7 +76,7 @@ class ProviderMapperTest {
   void toProviderV2_lspWithHeadOffice_populatesLegalServicesProvider() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Westgate Legal")
             .build();
@@ -112,7 +110,7 @@ class ProviderMapperTest {
   void toProviderV2_chambersWithHeadOffice_populatesChambers() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("CH-XYZ789")
+            .firmNumber("100002")
             .firmType(FirmType.CHAMBERS)
             .name("Northgate Chambers")
             .build();
@@ -141,7 +139,7 @@ class ProviderMapperTest {
   void toProviderV2_practitionerWithParentFirms_populatesPractitioner() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("ADV-P0001")
+            .firmNumber("100003")
             .firmType(FirmType.ADVOCATE)
             .name("J. Smith")
             .build();
@@ -149,7 +147,7 @@ class ProviderMapperTest {
 
     ProviderEntity parentChambers =
         ProviderEntity.builder()
-            .firmNumber("CH-XYZ789")
+            .firmNumber("100002")
             .firmType(FirmType.CHAMBERS)
             .name("Northgate Chambers")
             .build();
@@ -157,7 +155,7 @@ class ProviderMapperTest {
 
     ProviderEntity parentLsp =
         ProviderEntity.builder()
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Westgate Legal")
             .build();
@@ -175,7 +173,7 @@ class ProviderMapperTest {
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentGuid())
         .isEqualTo(parentChambers.getGuid());
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentFirmNumber())
-        .isEqualTo("CH-XYZ789");
+        .isEqualTo("100002");
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentFirmType())
         .isEqualTo(ProviderFirmTypeV2.CHAMBERS);
     assertThat(result.getPractitioner().getParentFirms().get(1).getParentFirmType())
@@ -189,7 +187,7 @@ class ProviderMapperTest {
   void toProviderV2_noEnrichmentData_returnsEmptyVariantForFirmType() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Westgate Legal")
             .build();
@@ -207,7 +205,7 @@ class ProviderMapperTest {
   void toProviderV2_advocateWithNoParentLinks_returnsEmptyPractitioner() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("ADV-XYZ789")
+            .firmNumber("100003")
             .firmType(FirmType.ADVOCATE)
             .name("J. Smith")
             .build();
@@ -224,7 +222,7 @@ class ProviderMapperTest {
   void toProviderV2_advocateWithOfficeLink_populatesOffice() {
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("ADV-P0001")
+            .firmNumber("100003")
             .firmType(FirmType.ADVOCATE)
             .name("J. Smith")
             .build();
@@ -236,7 +234,7 @@ class ProviderMapperTest {
     officeLink.setAccountNumber("ADV001");
 
     ProviderEntity parentChambers =
-        ProviderEntity.builder().firmNumber("CH-001").firmType(FirmType.CHAMBERS).build();
+        ProviderEntity.builder().firmNumber("100002").firmType(FirmType.CHAMBERS).build();
     parentChambers.setGuid(UUID.randomUUID());
     List<ProviderParentLinkEntity> parentLinks =
         List.of(ProviderParentLinkEntity.builder().provider(entity).parent(parentChambers).build());
@@ -266,7 +264,7 @@ class ProviderMapperTest {
     AdvocateProviderOfficeLinkEntity officeLink =
         AdvocateProviderOfficeLinkEntity.builder()
             .guid(UUID.randomUUID())
-            .accountNumber("ACCT123")
+            .accountNumber("ACT123")
             .office(OfficeEntity.builder().addressLine1("Chambers Office").build())
             .build();
 
@@ -281,7 +279,7 @@ class ProviderMapperTest {
     assertThat(result.getGuid()).isEqualTo(guid);
     assertThat(result.getName()).isEqualTo("Test Practitioner");
     assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.ADVOCATE);
-    assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ACCT123");
+    assertThat(result.getPractitioner().getOffice().getAccountNumber()).isEqualTo("ACT123");
     assertThat(result.getPractitioner().getParentFirms()).hasSize(1);
   }
 }

@@ -70,13 +70,12 @@ class ProviderServiceTest {
 
   @Test
   void getProvider_byFirmNumber_returnsEntity() {
-    ProviderEntity entity =
-        ProviderEntity.builder().firmNumber("LSP-ABC123").name("My LSP").build();
-    when(providerRepository.findByFirmNumber("LSP-ABC123")).thenReturn(Optional.of(entity));
+    ProviderEntity entity = ProviderEntity.builder().firmNumber("100001").name("My LSP").build();
+    when(providerRepository.findByFirmNumber("100001")).thenReturn(Optional.of(entity));
 
-    ProviderEntity result = service.getProvider("LSP-ABC123");
+    ProviderEntity result = service.getProvider("100001");
 
-    assertThat(result.getFirmNumber()).isEqualTo("LSP-ABC123");
+    assertThat(result.getFirmNumber()).isEqualTo("100001");
   }
 
   @Test
@@ -103,7 +102,7 @@ class ProviderServiceTest {
     UUID guid = UUID.randomUUID();
 
     LspProviderEntity existing =
-        LspProviderEntity.builder().firmNumber("LSP-0001").name("Old Name").build();
+        LspProviderEntity.builder().firmNumber("100001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -126,7 +125,7 @@ class ProviderServiceTest {
     assertThat(existing.getCompaniesHouseNumber()).isEqualTo("12345678");
 
     assertThat(result.providerFirmGUID()).isEqualTo(guid);
-    assertThat(result.firmNumber()).isEqualTo("LSP-0001");
+    assertThat(result.firmNumber()).isEqualTo("100001");
   }
 
   @Test
@@ -136,7 +135,7 @@ class ProviderServiceTest {
     ProviderEntity existing =
         ProviderEntity.builder()
             .firmType(FirmType.CHAMBERS)
-            .firmNumber("CH-0001")
+            .firmNumber("100002")
             .name("Chambers")
             .build();
     existing.setGuid(guid);
@@ -158,7 +157,7 @@ class ProviderServiceTest {
     UUID guid = UUID.randomUUID();
 
     LspProviderEntity existing =
-        LspProviderEntity.builder().firmNumber("LSP-0001").name("Old Name").build();
+        LspProviderEntity.builder().firmNumber("100001").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -180,7 +179,7 @@ class ProviderServiceTest {
     UUID guid = UUID.randomUUID();
 
     AdvocatePractitionerEntity existing =
-        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -198,7 +197,7 @@ class ProviderServiceTest {
     assertThat(existing.getAdvocateLevel()).isEqualTo("KC");
     assertThat(existing.getSolicitorRegulationAuthorityRollNumber()).isEqualTo("SRA-123");
     assertThat(result.providerFirmGUID()).isEqualTo(guid);
-    assertThat(result.firmNumber()).isEqualTo("ADV-0001");
+    assertThat(result.firmNumber()).isEqualTo("100003");
   }
 
   @Test
@@ -206,7 +205,7 @@ class ProviderServiceTest {
     UUID guid = UUID.randomUUID();
 
     AdvocatePractitionerEntity existing =
-        AdvocatePractitionerEntity.builder().firmNumber("ADV-0001").name("Old Name").build();
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Old Name").build();
     existing.setGuid(guid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
@@ -219,7 +218,7 @@ class ProviderServiceTest {
     ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
 
     assertThat(result.providerFirmGUID()).isEqualTo(guid);
-    assertThat(result.firmNumber()).isEqualTo("ADV-0001");
+    assertThat(result.firmNumber()).isEqualTo("100003");
   }
 
   @Test
@@ -310,7 +309,7 @@ class ProviderServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
 
     ProviderEntity provider =
-        ProviderEntity.builder().firmNumber("FRM001").name("Test Provider").build();
+        ProviderEntity.builder().firmNumber("100001").name("Test Provider").build();
 
     Page<ProviderEntity> page = new PageImpl<>(List.of(provider));
 
@@ -322,7 +321,7 @@ class ProviderServiceTest {
     Page<ProviderEntity> result =
         service.searchProviders(
             List.of(UUID.randomUUID().toString()),
-            List.of("FRM001"),
+            List.of("100001"),
             "Test",
             null,
             List.of(ProviderFirmTypeV2.ADVOCATE),

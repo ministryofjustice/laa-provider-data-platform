@@ -163,7 +163,7 @@ class ProviderFirmControllerTest {
     UUID guid = UUID.randomUUID();
     ProviderEntity entity =
         ProviderEntity.builder()
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .name("My LSP")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .build();
@@ -171,7 +171,7 @@ class ProviderFirmControllerTest {
     ProviderV2 providerV2 =
         new ProviderV2()
             .guid(guid)
-            .firmNumber("LSP-ABC123")
+            .firmNumber("100001")
             .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
             .name("My LSP");
     when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
@@ -186,7 +186,7 @@ class ProviderFirmControllerTest {
         .perform(get("/provider-firms/{guid}", guid))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.guid").value(guid.toString()))
-        .andExpect(jsonPath("$.data.firmNumber").value("LSP-ABC123"))
+        .andExpect(jsonPath("$.data.firmNumber").value("100001"))
         .andExpect(jsonPath("$.data.name").value("My LSP"));
   }
 
@@ -202,7 +202,7 @@ class ProviderFirmControllerTest {
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
     when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "LSP-0001"));
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
 
     mockMvc
         .perform(
@@ -221,14 +221,14 @@ class ProviderFirmControllerTest {
                                         """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
-        .andExpect(jsonPath("$.data.providerFirmNumber").value("LSP-0001"));
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100001"));
   }
 
   @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
     when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-0001"));
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
 
     mockMvc
         .perform(
@@ -244,14 +244,14 @@ class ProviderFirmControllerTest {
                                         """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
-        .andExpect(jsonPath("$.data.providerFirmNumber").value("ADV-0001"));
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100003"));
   }
 
   @Test
   void patchProviderFirm_mixedSubtypeBranchesRejected_returns400() throws Exception {
     mockMvc
         .perform(
-            patch("/provider-firms/{id}", "LSP-0001")
+            patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -271,7 +271,7 @@ class ProviderFirmControllerTest {
   void patchProviderFirm_headOfficeReassignmentRejected_returns400() throws Exception {
     mockMvc
         .perform(
-            patch("/provider-firms/{id}", "LSP-0001")
+            patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -290,7 +290,7 @@ class ProviderFirmControllerTest {
   void patchProviderFirm_emptyPatchRejected_returns400() throws Exception {
     mockMvc
         .perform(
-            patch("/provider-firms/{id}", "LSP-0001")
+            patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -306,10 +306,10 @@ class ProviderFirmControllerTest {
 
     // Mock provider entities
     ProviderEntity entity1 =
-        ProviderEntity.builder().firmNumber("FRM001").name("Test Advocate 1").build();
+        ProviderEntity.builder().firmNumber("100001").name("Test Advocate 1").build();
     entity1.setGuid(guid1);
     ProviderEntity entity2 =
-        ProviderEntity.builder().firmNumber("FRM002").name("Test Advocate 2").build();
+        ProviderEntity.builder().firmNumber("100002").name("Test Advocate 2").build();
     entity2.setGuid(guid2);
 
     // Mock paged result
@@ -334,7 +334,7 @@ class ProviderFirmControllerTest {
         .thenReturn(
             new ProviderV2()
                 .guid(guid1)
-                .firmNumber("FRM001")
+                .firmNumber("100001")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 1"));
 
@@ -342,7 +342,7 @@ class ProviderFirmControllerTest {
         .thenReturn(
             new ProviderV2()
                 .guid(guid2)
-                .firmNumber("FRM002")
+                .firmNumber("100002")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate 2"));
 
@@ -381,7 +381,7 @@ class ProviderFirmControllerTest {
     UUID guid = UUID.randomUUID();
 
     ProviderEntity entity =
-        ProviderEntity.builder().firmNumber("FRM001").name("Test Advocate").build();
+        ProviderEntity.builder().firmNumber("100001").name("Test Advocate").build();
     entity.setGuid(guid);
 
     Page<ProviderEntity> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1);
@@ -398,7 +398,7 @@ class ProviderFirmControllerTest {
         .thenReturn(
             new ProviderV2()
                 .guid(guid)
-                .firmNumber("FRM001")
+                .firmNumber("100001")
                 .firmType(ProviderFirmTypeV2.ADVOCATE)
                 .name("Test Advocate"));
 

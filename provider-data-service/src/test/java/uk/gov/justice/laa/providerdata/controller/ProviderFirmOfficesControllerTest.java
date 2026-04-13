@@ -48,7 +48,7 @@ class ProviderFirmOfficesControllerTest {
   void createProviderFirmOffice_returnsBadRequest_whenBodyIsEmpty() throws Exception {
     mockMvc
         .perform(
-            post("/provider-firms/{id}/offices", "FRM001")
+            post("/provider-firms/{id}/offices", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
         .andExpect(status().isBadRequest());
@@ -58,7 +58,7 @@ class ProviderFirmOfficesControllerTest {
   void createProviderFirmOffice_returnsBadRequest_whenAddressIsMissing() throws Exception {
     mockMvc
         .perform(
-            post("/provider-firms/{id}/offices", "FRM001")
+            post("/provider-firms/{id}/offices", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -73,7 +73,7 @@ class ProviderFirmOfficesControllerTest {
   void createProviderFirmOffice_returnsBadRequest_whenPaymentIsMissing() throws Exception {
     mockMvc
         .perform(
-            post("/provider-firms/{id}/offices", "FRM001")
+            post("/provider-firms/{id}/offices", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -90,10 +90,10 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOffices_returnsOk() throws Exception {
-    when(officeService.getOffices("FRM001", PageParamValidator.resolve(null, null)))
+    when(officeService.getOffices("100001", PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
-    mockMvc.perform(get("/provider-firms/{id}/offices", "FRM001")).andExpect(status().isOk());
+    mockMvc.perform(get("/provider-firms/{id}/offices", "100001")).andExpect(status().isOk());
   }
 
   @Test
@@ -109,35 +109,35 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getProviderFirmOfficeByGUID_returnsOk() throws Exception {
     LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
-    when(officeService.getLspOfficeLink("FRM001", "ABC123")).thenReturn(link);
+    when(officeService.getLspOfficeLink("100001", "ABC123")).thenReturn(link);
     when(officeMapper.toLspOfficeV2(link)).thenReturn(new OfficeV2());
 
     mockMvc
-        .perform(get("/provider-firms/{id}/offices/{officeId}", "FRM001", "ABC123"))
+        .perform(get("/provider-firms/{id}/offices/{officeId}", "100001", "ABC123"))
         .andExpect(status().isOk());
   }
 
   @Test
   void getProviderFirmOfficeByGUID_returnsNotFound_whenOfficeMissing() throws Exception {
-    when(officeService.getLspOfficeLink("FRM001", "NOTEXIST"))
+    when(officeService.getLspOfficeLink("100001", "NOTEXIST"))
         .thenThrow(new ItemNotFoundException("Office not found: NOTEXIST"));
 
     mockMvc
-        .perform(get("/provider-firms/{id}/offices/{officeId}", "FRM001", "NOTEXIST"))
+        .perform(get("/provider-firms/{id}/offices/{officeId}", "100001", "NOTEXIST"))
         .andExpect(status().isNotFound());
   }
 
   @Test
   void getProviderFirmOffices_returnsBadRequest_whenPageNegative() throws Exception {
     mockMvc
-        .perform(get("/provider-firms/{id}/offices?page=-1", "FRM001"))
+        .perform(get("/provider-firms/{id}/offices?page=-1", "100001"))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void getProviderFirmOffices_returnsBadRequest_whenPageSizeZero() throws Exception {
     mockMvc
-        .perform(get("/provider-firms/{id}/offices?pageSize=0", "FRM001"))
+        .perform(get("/provider-firms/{id}/offices?pageSize=0", "100001"))
         .andExpect(status().isBadRequest());
   }
 
@@ -213,12 +213,12 @@ class ProviderFirmOfficesControllerTest {
     var providerGuid = UUID.randomUUID();
     var officeGuid = UUID.randomUUID();
 
-    when(officeService.patchOffice(eq("FRM001"), eq(officeGuid.toString()), any()))
-        .thenReturn(new OfficeCreationResult(providerGuid, "FRM001", officeGuid, "ABC123"));
+    when(officeService.patchOffice(eq("100001"), eq(officeGuid.toString()), any()))
+        .thenReturn(new OfficeCreationResult(providerGuid, "100001", officeGuid, "ABC123"));
 
     mockMvc
         .perform(
-            patch("/provider-firms/{id}/offices/{officeId}", "FRM001", officeGuid)
+            patch("/provider-firms/{id}/offices/{officeId}", "100001", officeGuid)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -226,7 +226,7 @@ class ProviderFirmOfficesControllerTest {
                     """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(providerGuid.toString()))
-        .andExpect(jsonPath("$.data.providerFirmNumber").value("FRM001"))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100001"))
         .andExpect(jsonPath("$.data.officeGUID").value(officeGuid.toString()))
         .andExpect(jsonPath("$.data.officeCode").value("ABC123"));
   }

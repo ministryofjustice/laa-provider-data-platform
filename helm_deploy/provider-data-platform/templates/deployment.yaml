@@ -49,6 +49,22 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            {{- if .Values.postgresContainer.enabled }}
+            # Sidecar PostgreSQL connection (PR preview environments).
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://localhost:{{ .Values.postgresContainer.port }}/{{ .Values.postgresContainer.database }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.postgresContainer.username | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.postgresContainer.password | quote }}
+            # Allow Flyway to retry until the postgres sidecar is ready.
+            - name: SPRING_FLYWAY_CONNECT_RETRIES
+              value: "30"
+            # Do not fail on pool initialisation — postgres may not be ready yet.
+            - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
+              value: "-1"
+            {{- else }}
+            # RDS PostgreSQL connection (shared/release environments).
             - name: DB_HOST # Intermediate var for building the JDBC URL
               valueFrom:
                 secretKeyRef:
@@ -71,6 +87,7 @@ spec:
                   key: database_password
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://$(DB_HOST)/$(DB_NAME)" # "?sslmode=require"
+            {{- end }}
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
               value: "org.postgresql.Driver"
 
@@ -137,6 +154,45 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+        {{- if .Values.postgresContainer.enabled }}
+        - name: postgres
+          image: {{ .Values.postgresContainer.image | quote }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001  # bitnami/postgresql runs as UID 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgresContainer.port }}
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: {{ .Values.postgresContainer.database | quote }}
+            - name: POSTGRESQL_USERNAME
+              value: {{ .Values.postgresContainer.username | quote }}
+            - name: POSTGRESQL_PASSWORD
+              value: {{ .Values.postgresContainer.password | quote }}
+          startupProbe:
+            exec:
+              command: [pg_isready, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}]
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}]
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.postgresContainer.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /bitnami/postgresql
+        {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

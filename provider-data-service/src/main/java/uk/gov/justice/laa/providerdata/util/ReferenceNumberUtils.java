@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.providerdata.util;
 
+import java.security.SecureRandom;
 import java.util.Locale;
-import java.util.concurrent.ThreadLocalRandom;
 import org.jspecify.annotations.Nullable;
 import uk.gov.justice.laa.providerdata.entity.AdvocateType;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -14,6 +14,8 @@ import uk.gov.justice.laa.providerdata.entity.FirmType;
  * characters.
  */
 public final class ReferenceNumberUtils {
+
+  private static final SecureRandom RANDOM = new SecureRandom();
 
   private ReferenceNumberUtils() {}
 
@@ -36,7 +38,7 @@ public final class ReferenceNumberUtils {
    * @return a new unique firm number
    */
   public static String generateFirmNumber(String firmType, @Nullable String advocateType) {
-    return Integer.toString(ThreadLocalRandom.current().nextInt(200, 1_000_000_000));
+    return Integer.toString(RANDOM.nextInt(200, 1_000_000_000));
   }
 
   /**
@@ -51,8 +53,7 @@ public final class ReferenceNumberUtils {
   public static String generateAccountNumber(String firmType, @Nullable String advocateType) {
     // 36^6 = 2,176,782,336 — the number of values representable in 6 Base36 digits
     String s =
-        Long.toString(ThreadLocalRandom.current().nextLong(36 * 36 * 36 * 36 * 36 * 36L), 36)
-            .toUpperCase(Locale.UK);
+        Long.toString(RANDOM.nextLong(36 * 36 * 36 * 36 * 36 * 36L), 36).toUpperCase(Locale.UK);
     return "000000".substring(s.length()) + s;
   }
 }

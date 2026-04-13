@@ -15,7 +15,7 @@ replicaCount: 1
 # which is acceptable since Flyway recreates the schema on startup.
 postgresContainer:
   enabled: true
-  image: bitnami/postgresql:17
+  image: public.ecr.aws/bitnami/postgresql:17
   port: 5432
   database: providerdata
   username: postgres

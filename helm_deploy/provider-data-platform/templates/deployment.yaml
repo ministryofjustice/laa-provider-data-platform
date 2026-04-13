@@ -138,6 +138,12 @@ spec:
             - name: TARGET_ENVIRONMENT
               value: "{{ (.Values.target).environment }}"
             {{- end }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36  # 3 minutes — enough for Flyway to run on a fresh database
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

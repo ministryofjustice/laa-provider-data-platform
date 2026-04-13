@@ -179,7 +179,10 @@ spec:
               value: {{ .Values.postgresContainer.password | quote }}
           startupProbe:
             exec:
-              command: [pg_isready, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}]
+              # pg_isready passes too early — bitnami/postgresql starts postgres in init mode,
+              # creates the database, then internally restarts. Use psql to run an actual query,
+              # which only succeeds after the internal restart completes.
+              command: [psql, -U, {{ .Values.postgresContainer.username }}, -d, {{ .Values.postgresContainer.database }}, -c, "SELECT 1"]
             periodSeconds: 2
             failureThreshold: 30
           livenessProbe:

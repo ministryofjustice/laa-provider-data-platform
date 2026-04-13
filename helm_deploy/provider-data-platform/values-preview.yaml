@@ -1,0 +1,55 @@
+# values-preview.yaml
+# Preview (PR) environment override values for the chart.
+# These environments use an ephemeral PostgreSQL sidecar instead of RDS.
+# Per-PR values (ingress host, image tag, postgres password) are set by the deploy workflow.
+
+target:
+  environment: preview
+
+# replicaCount must be 1 when postgresContainer.enabled=true — each pod has its own
+# independent sidecar database; multiple replicas would have inconsistent data.
+replicaCount: 1
+
+# PostgreSQL sidecar container. Runs alongside the application in the same pod,
+# using ephemeral (emptyDir) storage. Data is lost on pod restart or helm uninstall —
+# which is acceptable since Flyway recreates the schema on startup.
+postgresContainer:
+  enabled: true
+  image: public.ecr.aws/bitnami/postgresql:17
+  port: 5432
+  database: providerdata
+  username: postgres
+  password: ""  # Always overridden at deploy time — never relies on this default.
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+prometheus:
+  metricsEnabled: false
+  metricsQualifier: "preview"
+
+# No rate limiting for ephemeral preview environments.
+rateLimit:
+  rps: ""
+  rpm: ""
+  burst: ""
+
+# External ingress is enabled so the PR-specific URL is accessible.
+# The host and TLS values are set by the deploy workflow.
+ingress:
+  enabled: true
+
+ingressInternal:
+  enabled: false
+
+ingressShared:
+  enabled: false
+
+# The postgres-data volume is used by the postgres sidecar container (see postgresContainer above).
+volumes:
+  - name: postgres-data
+    emptyDir: {}

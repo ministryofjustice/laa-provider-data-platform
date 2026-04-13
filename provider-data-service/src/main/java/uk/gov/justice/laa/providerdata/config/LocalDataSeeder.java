@@ -36,13 +36,13 @@ import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 /**
- * Startup seeding component for local development profile. Populates foundation tables with sample
- * data on application startup. Uses CommandLineRunner to ensure Hibernate schema creation is
- * complete before seeding.
+ * Startup seeding component for local development and preview (PR) profiles. Populates foundation
+ * tables with sample data on application startup. Uses CommandLineRunner to ensure Hibernate schema
+ * creation is complete before seeding.
  */
 @Slf4j
 @Component
-@Profile("local")
+@Profile("local | preview")
 @RequiredArgsConstructor
 public class LocalDataSeeder implements CommandLineRunner {
 

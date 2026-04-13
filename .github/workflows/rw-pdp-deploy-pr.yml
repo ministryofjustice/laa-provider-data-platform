@@ -73,24 +73,20 @@ jobs:
           PTAG:    ${{ steps.vars.outputs.ptag }}
           RELEASE: ${{ steps.vars.outputs.release }}
           RTAG:    ${{ steps.vars.outputs.rtag }}
-          TARGET:  ${{ inputs.target }}
         run: |
           set -eu
-          echo "Upgrade Helm release - chart: [${CHART}], image: [${IMAGE}], tag: [${PTAG}${RTAG}], target: [${TARGET}], release: [${RELEASE}]"
+          echo "Upgrade Helm release - chart: [${CHART}], image: [${IMAGE}], tag: [${PTAG}${RTAG}], target: [${{ inputs.target }}], release: [${RELEASE}]"
           IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d')"
+          PG_PASSWORD="$(openssl rand -hex 16)"
           HELM_OPTS=(
               -f "${CHART}/values.yaml"
-              -f "${CHART}/values-${TARGET}.yaml"
-              --set-string "canary.role=none"
+              -f "${CHART}/values-preview.yaml"
               --set-string "image.repository=${IMAGE}"
               --set-string "image.tag=${PTAG}${RTAG}"
               --set-string "ingress.allowlist=${IP_ALLOWLIST//,/\\,}"
               --set-string "ingress.hosts[0].host=${PR_HOST}"
               --set-string "ingress.tls[0].hosts[0]=${PR_HOST}"
-              --set ingressInternal.enabled=false
-              --set ingressShared.enabled=false
-              --set prometheus.metricsEnabled=false
-              --set replicaCount=2
+              --set-string "postgresContainer.password=${PG_PASSWORD}"
           )
           helm upgrade --install "${RELEASE}" "${CHART}" "${HELM_OPTS[@]}" --debug --dry-run=server
           # If the dry-run succeeded, do the real thing

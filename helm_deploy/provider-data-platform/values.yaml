@@ -61,6 +61,10 @@ secretNames:
   rdspgConnection: rds-postgresql-instance-output
   redisConnection: app-redis
 
+# PostgreSQL sidecar for PR preview environments. Configured in values-preview.yaml.
+postgresContainer:
+  enabled: false
+
 prometheus:
   metricsEnabled: true
   # The metrics qualifier value will be overridden in the environment values file (for all deployments):

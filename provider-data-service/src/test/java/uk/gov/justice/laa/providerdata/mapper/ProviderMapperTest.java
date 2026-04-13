@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
+import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /** Specification builder for querying ProviderEntity with optional filters. */
 public class ProviderSpecification {
@@ -46,14 +47,12 @@ public class ProviderSpecification {
         List<UUID> uuidList =
             providerFirmGUIDs.stream()
                 .map(
-                    uuidStr -> {
-                      try {
-                        return UUID.fromString(uuidStr);
-                      } catch (IllegalArgumentException e) {
-                        throw new ResponseStatusException(
-                            HttpStatus.BAD_REQUEST, "Invalid UUID: " + uuidStr);
-                      }
-                    })
+                    uuidStr ->
+                        UuidUtils.parseUuid(uuidStr)
+                            .orElseThrow(
+                                () ->
+                                    new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST, "Invalid UUID: " + uuidStr)))
                 .collect(Collectors.toList());
         predicates.add(root.get("guid").in(uuidList));
       }

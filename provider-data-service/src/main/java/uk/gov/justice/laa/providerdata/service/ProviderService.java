@@ -29,6 +29,7 @@ import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.repository.spec.ProviderSpecification;
+import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /** Service responsible for provider firm read operations. */
 @Service
@@ -74,20 +75,12 @@ public class ProviderService {
    * @throws ItemNotFoundException if no provider matches the given identifier
    */
   public ProviderEntity getProvider(String providerFirmGUIDorFirmNumber) {
-    try {
-      UUID guid = UUID.fromString(providerFirmGUIDorFirmNumber);
-      return providerRepository
-          .findById(guid)
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
-    } catch (IllegalArgumentException e) {
-      return providerRepository
-          .findByFirmNumber(providerFirmGUIDorFirmNumber)
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
-    }
+    Optional<UUID> guid = UuidUtils.parseUuid(providerFirmGUIDorFirmNumber);
+    return (guid.isPresent()
+            ? providerRepository.findById(guid.get())
+            : providerRepository.findByFirmNumber(providerFirmGUIDorFirmNumber))
+        .orElseThrow(
+            () -> new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
   }
 
   /** Applies supported provider PATCH fields for the resolved provider subtype. */

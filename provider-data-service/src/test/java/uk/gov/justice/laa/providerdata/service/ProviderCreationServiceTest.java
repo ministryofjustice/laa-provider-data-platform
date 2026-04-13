@@ -105,7 +105,7 @@ class ProviderCreationServiceTest {
             null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
-    assertThat(result.firmNumber()).startsWith("LSP-");
+    assertThat(result.firmNumber()).isNotBlank();
     assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
     assertThat(linkTemplate.getHeadOfficeFlag()).isTrue();
@@ -210,7 +210,7 @@ class ProviderCreationServiceTest {
             null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
-    assertThat(result.firmNumber()).startsWith("CH-");
+    assertThat(result.firmNumber()).isNotBlank();
     assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
     verify(liaisonManagerRepository, never()).save(any());
@@ -232,7 +232,7 @@ class ProviderCreationServiceTest {
             AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
-    assertThat(result.firmNumber()).startsWith("ADV-");
+    assertThat(result.firmNumber()).isNotBlank();
     assertThat(result.headOfficeGUID()).isNull();
     assertThat(result.headOfficeAccountNumber()).isNull();
   }

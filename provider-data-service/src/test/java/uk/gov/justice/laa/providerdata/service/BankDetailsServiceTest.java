@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
@@ -51,16 +52,16 @@ class BankDetailsServiceTest {
 
   @Test
   void createAndLinkToProvider_savesAccountAndProviderLink_withoutOfficeLink() {
-    ProviderEntity provider = providerEntity(FirmType.ADVOCATE);
+    AdvocatePractitionerEntity practitioner = advocateEntity();
     BankAccountEntity template = new BankAccountEntity();
     BankAccountEntity saved = accountWithGuid();
 
     when(bankAccountRepository.save(template)).thenReturn(saved);
     when(providerBankAccountLinkRepository.existsByProviderAndBankAccount_Guid(
-            provider, saved.getGuid()))
+            practitioner, saved.getGuid()))
         .thenReturn(false);
 
-    service.createAndLinkToProvider(template, provider);
+    service.createAndLinkToProvider(template, practitioner);
 
     verify(bankAccountRepository).save(template);
     verify(providerBankAccountLinkRepository).save(any(ProviderBankAccountLinkEntity.class));
@@ -377,6 +378,13 @@ class BankDetailsServiceTest {
   }
 
   // --- helpers ---
+
+  private static AdvocatePractitionerEntity advocateEntity() {
+    return AdvocatePractitionerEntity.builder()
+        .firmType(FirmType.ADVOCATE)
+        .firmNumber("FRM001")
+        .build();
+  }
 
   private static ProviderEntity providerEntity(String firmType) {
     return ProviderEntity.builder().firmType(firmType).firmNumber("FRM001").build();

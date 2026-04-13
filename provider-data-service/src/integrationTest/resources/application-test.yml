@@ -1,7 +1,5 @@
 spring:
   jpa:
-    hibernate:
-      ddl-auto: create
     # Keep SQL statement logging off in tests to reduce noise
     show-sql: false
     properties:

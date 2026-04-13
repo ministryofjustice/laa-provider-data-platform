@@ -10,9 +10,12 @@
 ### second YAML document in `application.yml`.
 ###
 spring:
+  flyway:
+    # Allow clean + migrate on startup when spring.flyway.clean-on-start=true is set
+    # (e.g. pass -Dspring.flyway.clean-on-start=true on the command line, or set it in
+    # your IDE run configuration). Requires clean-disabled=false.
+    clean-disabled: false
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     # Enable SQL statement logging in local dev only
     show-sql: true
     properties:

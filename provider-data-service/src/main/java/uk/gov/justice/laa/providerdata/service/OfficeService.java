@@ -4,7 +4,6 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -39,6 +38,8 @@ import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkReposi
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
+import uk.gov.justice.laa.providerdata.util.ReferenceNumberUtils;
+import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /** Service responsible for provider firm office operations. */
 @Service
@@ -122,7 +123,7 @@ public class OfficeService {
 
     OfficeEntity savedOffice = officeRepository.save(officeTemplate);
 
-    String accountNumber = generateAccountNumber();
+    String accountNumber = ReferenceNumberUtils.generateAccountNumber(provider.getFirmType(), null);
     linkTemplate.setProvider(provider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
@@ -286,7 +287,7 @@ public class OfficeService {
 
   private Optional<ProviderOfficeLinkEntity> findProviderOfficeLink(
       ProviderEntity provider, String officeGUIDorCode) {
-    return parseUuid(officeGUIDorCode)
+    return UuidUtils.parseUuid(officeGUIDorCode)
         .flatMap(guid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, guid))
         .or(
             () ->
@@ -296,7 +297,7 @@ public class OfficeService {
 
   private Optional<LspProviderOfficeLinkEntity> findLspOfficeLink(
       ProviderEntity provider, String officeGUIDorCode) {
-    return parseUuid(officeGUIDorCode)
+    return UuidUtils.parseUuid(officeGUIDorCode)
         .flatMap(guid -> lspProviderOfficeLinkRepository.findByProviderAndGuid(provider, guid))
         .or(
             () ->
@@ -394,36 +395,16 @@ public class OfficeService {
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {
-    try {
-      UUID guid = UUID.fromString(providerFirmGUIDorFirmNumber);
-      return providerRepository
-          .findById(guid)
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
-    } catch (IllegalArgumentException e) {
-      return providerRepository
-          .findByFirmNumber(providerFirmGUIDorFirmNumber)
-          .orElseThrow(
-              () ->
-                  new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
-    }
-  }
-
-  private static Optional<UUID> parseUuid(String value) {
-    try {
-      return Optional.of(UUID.fromString(value));
-    } catch (IllegalArgumentException e) {
-      return Optional.empty();
-    }
-  }
-
-  private static String generateAccountNumber() {
-    return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.UK);
+    Optional<UUID> guid = UuidUtils.parseUuid(providerFirmGUIDorFirmNumber);
+    return (guid.isPresent()
+            ? providerRepository.findById(guid.get())
+            : providerRepository.findByFirmNumber(providerFirmGUIDorFirmNumber))
+        .orElseThrow(
+            () -> new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
   }
 
   private void linkHeadOfficeLiaisonManager(
-      ProviderEntity provider, ProviderOfficeLinkEntity newOfficeLink) {
+      ProviderEntity provider, LspProviderOfficeLinkEntity newOfficeLink) {
     LspProviderOfficeLinkEntity headOfficeLink =
         lspProviderOfficeLinkRepository
             .findByProviderAndHeadOfficeFlagTrue(provider)

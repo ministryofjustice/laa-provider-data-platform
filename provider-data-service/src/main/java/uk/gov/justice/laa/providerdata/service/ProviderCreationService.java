@@ -1,8 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,7 +8,6 @@ import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -37,6 +34,7 @@ import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
+import uk.gov.justice.laa.providerdata.util.ReferenceNumberUtils;
 
 /**
  * Orchestrates atomic provider firm creation, including the head office where applicable.
@@ -122,12 +120,14 @@ public class ProviderCreationService {
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       @Nullable PaymentDetailsCreateV2 payment) {
 
-    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.LEGAL_SERVICES_PROVIDER));
+    providerTemplate.setFirmNumber(
+        ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
     ProviderEntity savedProvider = providerRepository.save(providerTemplate);
 
     OfficeEntity savedOffice = officeRepository.save(officeTemplate);
 
-    String accountNumber = generateAccountNumber();
+    String accountNumber =
+        ReferenceNumberUtils.generateAccountNumber(savedProvider.getFirmType(), null);
     linkTemplate.setProvider(savedProvider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
@@ -161,12 +161,14 @@ public class ProviderCreationService {
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
 
-    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.CHAMBERS));
+    providerTemplate.setFirmNumber(
+        ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
     ProviderEntity savedProvider = providerRepository.save(providerTemplate);
 
     OfficeEntity savedOffice = officeRepository.save(officeTemplate);
 
-    String accountNumber = generateAccountNumber();
+    String accountNumber =
+        ReferenceNumberUtils.generateAccountNumber(savedProvider.getFirmType(), null);
     linkTemplate.setProvider(savedProvider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
@@ -190,18 +192,20 @@ public class ProviderCreationService {
    * <p>If no parent firms are provided, no office link is created and bank account details (if any)
    * are linked to the provider only.
    *
-   * @param providerTemplate partially-populated provider entity (firmType and name set)
+   * @param practitionerTemplate partially-populated provider entity (firmType and name set)
    * @param parentFirms parent firm references from the request, or {@code null}/empty
    * @param payment payment details from the request, or {@code null}
    * @return identifiers for the created provider and head office (if created)
    */
   @Transactional
   public ProviderCreationResult createPractitionerFirm(
-      PractitionerEntity providerTemplate,
+      PractitionerEntity practitionerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
       @Nullable PaymentDetailsCreateV2 payment) {
-    providerTemplate.setFirmNumber(generateFirmNumber(FirmType.ADVOCATE));
-    ProviderEntity saved = providerRepository.save(providerTemplate);
+    practitionerTemplate.setFirmNumber(
+        ReferenceNumberUtils.generateFirmNumber(
+            practitionerTemplate.getFirmType(), practitionerTemplate.getAdvocateType()));
+    PractitionerEntity saved = (PractitionerEntity) providerRepository.save(practitionerTemplate);
 
     AdvocateProviderOfficeLinkEntity officeLink = null;
     if (parentFirms != null && !parentFirms.isEmpty()) {
@@ -224,7 +228,7 @@ public class ProviderCreationService {
   }
 
   private AdvocateProviderOfficeLinkEntity createAdvocateOfficeLink(
-      ProviderEntity advocate, ProviderEntity parent) {
+      PractitionerEntity practitioner, ProviderEntity parent) {
     ProviderOfficeLinkEntity parentHeadOffice =
         providerOfficeLinkRepository
             .findByProviderAndHeadOfficeFlagTrue(parent)
@@ -233,41 +237,21 @@ public class ProviderCreationService {
                     new ItemNotFoundException(
                         "Parent firm has no head office: " + parent.getGuid()));
     AdvocateProviderOfficeLinkEntity link = new AdvocateProviderOfficeLinkEntity();
-    link.setProvider(advocate);
+    link.setProvider(practitioner);
     link.setOffice(parentHeadOffice.getOffice());
-    link.setAccountNumber(generateAccountNumber());
+    link.setAccountNumber(
+        ReferenceNumberUtils.generateAccountNumber(
+            practitioner.getFirmType(), practitioner.getAdvocateType()));
     link.setHeadOfficeFlag(Boolean.TRUE);
     return advocateProviderOfficeLinkRepository.save(link);
   }
 
-  private static String generateFirmNumber(String firmType) {
-    return firmPrefix(firmType)
-        + "-"
-        + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.UK);
-  }
-
-  private static String firmPrefix(String firmType) {
-    if (firmType == null) {
-      return "PF";
-    }
-    return switch (firmType) {
-      case FirmType.LEGAL_SERVICES_PROVIDER -> "LSP";
-      case FirmType.CHAMBERS -> "CH";
-      case FirmType.ADVOCATE -> "ADV";
-      default -> "PF";
-    };
-  }
-
-  private static String generateAccountNumber() {
-    return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.UK);
-  }
-
   private void persistParentLinks(
-      List<PractitionerDetailsParentUpdateV2> parentFirms, ProviderEntity advocate) {
+      List<PractitionerDetailsParentUpdateV2> parentFirms, PractitionerEntity practitioner) {
     for (PractitionerDetailsParentUpdateV2 parentFirm : parentFirms) {
       ProviderEntity parent = resolveParent(parentFirm);
       providerParentLinkRepository.save(
-          ProviderParentLinkEntity.builder().provider(advocate).parent(parent).build());
+          ProviderParentLinkEntity.builder().provider(practitioner).parent(parent).build());
     }
   }
 
@@ -293,7 +277,7 @@ public class ProviderCreationService {
   }
 
   private void persistBankDetailsForPractitioner(
-      @Nullable PaymentDetailsCreateV2 payment, ProviderEntity provider) {
+      @Nullable PaymentDetailsCreateV2 payment, PractitionerEntity practitioner) {
     if (payment == null
         || !PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
         || payment.getBankAccountDetails() == null) {
@@ -302,7 +286,7 @@ public class ProviderCreationService {
     BankAccountProviderOfficeCreateV2 create =
         (BankAccountProviderOfficeCreateV2) payment.getBankAccountDetails();
     BankAccountEntity template = bankAccountMapper.toBankAccountEntity(create);
-    bankDetailsService.createAndLinkToProvider(template, provider);
+    bankDetailsService.createAndLinkToProvider(template, practitioner);
   }
 
   private void saveLiaisonManagerLink(

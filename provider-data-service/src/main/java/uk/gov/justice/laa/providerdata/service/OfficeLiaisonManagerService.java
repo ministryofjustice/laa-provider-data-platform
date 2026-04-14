@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +20,7 @@ import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
+import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /** Service responsible for Office Liaison Manager operations. */
 @Service
@@ -156,7 +156,7 @@ public class OfficeLiaisonManagerService {
 
   private ProviderOfficeLinkEntity resolveProviderOfficeLink(
       ProviderEntity provider, String officeGuidOrCode) {
-    return parseUuid(officeGuidOrCode)
+    return UuidUtils.parseUuid(officeGuidOrCode)
         .flatMap(uuid -> providerOfficeLinkRepository.findByProviderAndGuid(provider, uuid))
         .orElseGet(
             () ->
@@ -166,7 +166,7 @@ public class OfficeLiaisonManagerService {
   }
 
   private ProviderEntity resolveProvider(String providerFirmGuidOrNumber) {
-    return parseUuid(providerFirmGuidOrNumber)
+    return UuidUtils.parseUuid(providerFirmGuidOrNumber)
         .flatMap(providerRepository::findById)
         .orElseGet(
             () ->
@@ -194,13 +194,5 @@ public class OfficeLiaisonManagerService {
           "No active liaison manager found for office: " + officeLink.getGuid());
     }
     return activeLinks.getFirst().getLiaisonManager();
-  }
-
-  private static Optional<UUID> parseUuid(String value) {
-    try {
-      return Optional.of(UUID.fromString(value));
-    } catch (Exception ignored) {
-      return Optional.empty();
-    }
   }
 }

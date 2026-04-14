@@ -117,15 +117,15 @@ public class LocalDataSeeder implements CommandLineRunner {
     // Must not violate: firmNumber NOT NULL UNIQUE, firmType NOT NULL, name NOT NULL.
     ProviderEntity provider1 =
         LspProviderEntity.builder()
-            .firmNumber("FRM001")
+            .firmNumber("100001")
             .name("Test Legal Services Provider Ltd")
             .build();
 
     ProviderEntity provider2 =
-        ChamberProviderEntity.builder().firmNumber("FRM002").name("Test Chambers").build();
+        ChamberProviderEntity.builder().firmNumber("100002").name("Test Chambers").build();
 
     ProviderEntity provider3 =
-        AdvocatePractitionerEntity.builder().firmNumber("FRM003").name("Test Advocate").build();
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Test Advocate").build();
 
     providerRepository.save(provider1);
     providerRepository.save(provider2);
@@ -339,7 +339,7 @@ public class LocalDataSeeder implements CommandLineRunner {
 
     if (providers.size() >= 3) {
       // Must not violate composite unique constraint (PROVIDER_GUID, PARENT_GUID).
-      // Advocate (FRM003) has Chambers (FRM002) as its parent
+      // Advocate (100003) has Chambers (100002) as its parent
       ProviderParentLinkEntity parentLink =
           ProviderParentLinkEntity.builder()
               .provider(providers.get(2))

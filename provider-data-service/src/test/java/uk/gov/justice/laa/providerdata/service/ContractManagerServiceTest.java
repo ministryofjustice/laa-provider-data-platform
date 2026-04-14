@@ -62,7 +62,7 @@ class ContractManagerServiceTest {
             .lastName("Smith")
             .build();
 
-    provider = ProviderEntity.builder().guid(providerGuid).firmNumber("FRM001").build();
+    provider = ProviderEntity.builder().guid(providerGuid).firmNumber("100001").build();
     OfficeEntity office = OfficeEntity.builder().guid(officeGuid).build();
     providerOfficeLink =
         ProviderOfficeLinkEntity.builder()
@@ -114,14 +114,14 @@ class ContractManagerServiceTest {
    */
   @Test
   void shouldReturnEmptyListWhenNoContractManagersExist() {
-    when(providerService.getProvider("FRM001")).thenReturn(provider);
+    when(providerService.getProvider("100001")).thenReturn(provider);
     when(officeService.getProviderOfficeLink(provider, "ACC001")).thenReturn(providerOfficeLink);
     var pageable = PageRequest.of(0, 100);
 
     when(linkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid(), pageable))
         .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-    var result = service.getContractManagers("FRM001", "ACC001", pageable);
+    var result = service.getContractManagers("100001", "ACC001", pageable);
 
     assertThat(result.getContent()).isEmpty();
   }

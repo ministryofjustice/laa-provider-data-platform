@@ -71,7 +71,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     link2.setLinkedFlag(true);
     link2.setActiveDateFrom(LocalDate.of(2024, 2, 1));
 
-    when(service.getOfficeLiaisonManagers("FRM001", "ACC001", PageRequest.of(0, 100)))
+    when(service.getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100)))
         .thenReturn(new PageImpl<>(List.of(link1, link2), PageRequest.of(0, 100), 2));
 
     mockMvc
@@ -79,7 +79,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             get(
                     "/provider-firms/{providerFirmGUIDorFirmNumber}"
                         + "/offices/{officeGUIDorCode}/liaison-managers",
-                    "FRM001",
+                    "100001",
                     "ACC001")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
@@ -113,12 +113,12 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(jsonPath("$.data.links.first", containsString("page=0&pageSize=100")))
         .andExpect(jsonPath("$.data.links.last", containsString("page=0&pageSize=100")));
 
-    verify(service).getOfficeLiaisonManagers("FRM001", "ACC001", PageRequest.of(0, 100));
+    verify(service).getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100));
   }
 
   @Test
   void getOfficeLiaisonManagers_returns404_whenServiceThrowsNotFound() throws Exception {
-    when(service.getOfficeLiaisonManagers("FRM404", "ACC404", PageRequest.of(0, 100)))
+    when(service.getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100)))
         .thenThrow(new ItemNotFoundException("Office not found for provider"));
 
     mockMvc
@@ -126,13 +126,13 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             get(
                     "/provider-firms/{providerFirmGUIDorFirmNumber}"
                         + "/offices/{officeGUIDorCode}/liaison-managers",
-                    "FRM404",
+                    "999404",
                     "ACC404")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.detail").value("Office not found for provider"));
 
-    verify(service).getOfficeLiaisonManagers("FRM404", "ACC404", PageRequest.of(0, 100));
+    verify(service).getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100));
   }
 
   @Test
@@ -142,7 +142,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             post(
                     "/provider-firms/{providerFirmGUIDorFirmNumber}"
                         + "/offices/{officeGUIDorCode}/liaison-managers",
-                    "FRM001",
+                    "100001",
                     "0Q731M")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
@@ -163,7 +163,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             post(
                     "/provider-firms/{providerFirmGUIDorFirmNumber}"
                         + "/offices/{officeGUIDorCode}/liaison-managers",
-                    "FRM001",
+                    "100001",
                     "0Q731M")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
@@ -178,10 +178,10 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
 
     given(
             service.postOfficeLiaisonManager(
-                eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
         .willReturn(
             new OfficeLiaisonManagerService.OfficeLiaisonManagerOperationResult(
-                providerGuid, "FRM100", officeGuid, "0Q731M", liaisonManagerGuid));
+                providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
 
     String validJson =
         """
@@ -198,20 +198,20 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             post(
                     "/provider-firms/{providerFirmGUIDorFirmNumber}"
                         + "/offices/{officeGUIDorCode}/liaison-managers",
-                    "FRM100",
+                    "100100",
                     "0Q731M")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validJson))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.data.providerFirmGUID").value(providerGuid.toString()))
-        .andExpect(jsonPath("$.data.providerFirmNumber").value("FRM100"))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100100"))
         .andExpect(jsonPath("$.data.officeGUID").value(officeGuid.toString()))
         .andExpect(jsonPath("$.data.officeCode").value("0Q731M"))
         .andExpect(jsonPath("$.data.liaisonManagerGUID").value(liaisonManagerGuid.toString()));
 
     verify(service)
         .postOfficeLiaisonManager(
-            eq("FRM100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
+            eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
   }
 }

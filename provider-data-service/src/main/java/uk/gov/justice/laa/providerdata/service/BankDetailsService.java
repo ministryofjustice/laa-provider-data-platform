@@ -13,6 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
@@ -117,16 +118,17 @@ public class BankDetailsService {
   }
 
   /**
-   * Saves a new bank account and links it to the given provider only (no office link).
+   * Saves a new bank account and links it to the given practitioner only (no office link).
    *
    * <p>Used for Practitioners, who have no office of their own.
    *
    * @param accountTemplate unpersisted bank account entity with account fields populated
-   * @param provider the provider to link the account to
+   * @param practitioner the practitioner to link the account to
    */
-  public void createAndLinkToProvider(BankAccountEntity accountTemplate, ProviderEntity provider) {
+  public void createAndLinkToProvider(
+      BankAccountEntity accountTemplate, PractitionerEntity practitioner) {
     BankAccountEntity savedAccount = bankAccountRepository.save(accountTemplate);
-    linkToProvider(savedAccount, provider);
+    linkToProvider(savedAccount, practitioner);
   }
 
   /**

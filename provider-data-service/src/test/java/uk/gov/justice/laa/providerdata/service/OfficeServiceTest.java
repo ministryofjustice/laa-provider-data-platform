@@ -66,7 +66,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID officeLinkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity savedOffice = new OfficeEntity();
@@ -84,7 +84,7 @@ class OfficeServiceTest {
             providerGuid.toString(), new OfficeEntity(), new LspProviderOfficeLinkEntity());
 
     assertThat(result.providerGUID()).isEqualTo(providerGuid);
-    assertThat(result.firmNumber()).isEqualTo("FRM001");
+    assertThat(result.firmNumber()).isEqualTo("100001");
     assertThat(result.officeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.accountNumber()).isNotBlank();
   }
@@ -94,7 +94,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID officeLinkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM999").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100999").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity savedOffice = new OfficeEntity();
@@ -103,14 +103,14 @@ class OfficeServiceTest {
     LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
     savedLink.setGuid(officeLinkGuid);
 
-    when(providerRepository.findByFirmNumber("FRM999")).thenReturn(Optional.of(provider));
+    when(providerRepository.findByFirmNumber("100999")).thenReturn(Optional.of(provider));
     when(officeRepository.save(any())).thenReturn(savedOffice);
     when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
 
     OfficeCreationResult result =
-        service.createLspOffice("FRM999", new OfficeEntity(), new LspProviderOfficeLinkEntity());
+        service.createLspOffice("100999", new OfficeEntity(), new LspProviderOfficeLinkEntity());
 
-    assertThat(result.firmNumber()).isEqualTo("FRM999");
+    assertThat(result.firmNumber()).isEqualTo("100999");
     assertThat(result.officeGUID()).isEqualTo(officeLinkGuid);
   }
 
@@ -144,7 +144,7 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withNewLiaisonManager_savesLmAndLink() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     UUID officeGuid = UUID.randomUUID();
@@ -195,7 +195,7 @@ class OfficeServiceTest {
     UUID officeGuid = UUID.randomUUID();
     UUID headOfficeGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity savedOffice = new OfficeEntity();
@@ -242,7 +242,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID headOfficeGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity savedOffice = new OfficeEntity();
@@ -278,7 +278,7 @@ class OfficeServiceTest {
   @Test
   void getLspOffices_byGuid_returnsPageFromRepository() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     LspProviderOfficeLinkEntity link = lspLink();
@@ -308,7 +308,7 @@ class OfficeServiceTest {
   void getLspOffice_byOfficeLinkGuid_returnsEntity() {
     UUID providerGuid = UUID.randomUUID();
     UUID officeLinkGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     LspProviderOfficeLinkEntity link = lspLink();
@@ -324,7 +324,7 @@ class OfficeServiceTest {
   @Test
   void getLspOffice_byAccountNumber_returnsEntity() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     LspProviderOfficeLinkEntity link = lspLink();
@@ -340,7 +340,7 @@ class OfficeServiceTest {
   void getLspOffice_throwsWhenOfficeNotFound() {
     UUID providerGuid = UUID.randomUUID();
     UUID officeLinkGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -370,7 +370,7 @@ class OfficeServiceTest {
   @Test
   void getOfficeLink_byOfficeLinkGuid_returnsEntity() {
     UUID officeLinkGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     ProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
 
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
@@ -381,7 +381,7 @@ class OfficeServiceTest {
 
   @Test
   void getOfficeLink_byAccountNumber_returnsEntity() {
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     ProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
 
     when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, "ACC001"))
@@ -393,7 +393,7 @@ class OfficeServiceTest {
   @Test
   void getOfficeLink_throwsWhenNotFound() {
     UUID officeLinkGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
 
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
         .thenReturn(Optional.empty());
@@ -408,7 +408,7 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withEftCreatePayment_persistsBankAccount() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -435,7 +435,7 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withEftLinkPayment_linksExistingBankAccount() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -460,7 +460,7 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withCheckPayment_doesNotPersistBankAccount() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -485,7 +485,7 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withNullPayment_doesNotPersistBankAccount() {
     UUID providerGuid = UUID.randomUUID();
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -596,7 +596,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity office = new OfficeEntity();
@@ -641,7 +641,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM002").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100002").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity office = new OfficeEntity();
@@ -668,7 +668,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM003").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100003").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity office = new OfficeEntity();
@@ -694,7 +694,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     UUID linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("FRM001").build();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));

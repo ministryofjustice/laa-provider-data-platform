@@ -213,43 +213,44 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
     String chambersFirmNumber = JsonPath.read(createChambersResponse, "$.data.providerFirmNumber");
 
     // Create an Advocate linked to that Chambers with an EFT bank account.
+    String createAdvocateBody =
+        """
+        {
+          "firmType": "Advocate",
+          "name": "A. Test Advocate",
+          "practitioner": {
+            "advocateType": "Advocate",
+            "parentFirms": [
+              { "parentFirmNumber": "%s" }
+            ],
+            "advocate": {
+              "advocateLevel": "Junior",
+              "solicitorRegulationAuthorityRollNumber": "SRA999999"
+            },
+            "payment": {
+              "paymentMethod": "EFT",
+              "bankAccountDetails": {
+                "accountName": "Advocate Account",
+                "sortCode": "99-88-77",
+                "accountNumber": "44444444"
+              }
+            },
+            "liaisonManager": {
+              "firstName": "Alice",
+              "lastName": "Test",
+              "emailAddress": "a.test@example.com",
+              "telephoneNumber": "07700900002"
+            }
+          }
+        }
+        """
+            .formatted(chambersFirmNumber);
     String createAdvocateResponse =
         mockMvc
             .perform(
                 post("/provider-firms")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
-                                            {
-                                              "firmType": "Advocate",
-                                              "name": "A. Test Advocate",
-                                              "practitioner": {
-                                                "advocateType": "Advocate",
-                                                "parentFirms": [
-                                                  { "parentFirmNumber": "%s" }
-                                                ],
-                                                "advocate": {
-                                                  "advocateLevel": "Junior",
-                                                  "solicitorRegulationAuthorityRollNumber": "SRA999999"
-                                                },
-                                                "payment": {
-                                                  "paymentMethod": "EFT",
-                                                  "bankAccountDetails": {
-                                                    "accountName": "Advocate Account",
-                                                    "sortCode": "99-88-77",
-                                                    "accountNumber": "44444444"
-                                                  }
-                                                },
-                                                "liaisonManager": {
-                                                  "firstName": "Alice",
-                                                  "lastName": "Test",
-                                                  "emailAddress": "a.test@example.com",
-                                                  "telephoneNumber": "07700900002"
-                                                }
-                                              }
-                                            }
-                                            """
-                            .formatted(chambersFirmNumber)))
+                    .content(createAdvocateBody))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()

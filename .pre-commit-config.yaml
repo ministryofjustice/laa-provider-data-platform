@@ -67,8 +67,8 @@ repos:
 
       - id: checkstyle-staged
         name: Checkstyle validation
-        entry: bash -c './gradlew checkstyleStaged'
+        entry: bash -c 'IFS=,; ./gradlew checkstyleStaged "-PcheckstyleFiles=$*"' --
         language: system
         stages: [commit]
         types: [java]
-        pass_filenames: false
+        pass_filenames: true

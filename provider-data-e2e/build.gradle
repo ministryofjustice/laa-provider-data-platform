@@ -9,32 +9,21 @@ repositories {
     mavenCentral()
 }
 
-spotless {
-    java {
-        googleJavaFormat().reorderImports(true)
-    }
-}
-
-tasks.withType(Checkstyle) {
-    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
-    configProperties = [
-            "org.checkstyle.google.suppressionfilter.config":
-                    "$rootDir/config/checkstyle/suppressions.xml",
-    ]
-}
-
 tasks.register("checkstyleStaged", Checkstyle) {
     group = "verification"
-    description = "Runs Checkstyle on staged files only"
-
-    def filesToCheck = project.findProperty("checkstyleFiles")
-    if (filesToCheck != null) {
-        source = files(filesToCheck.split(","))
-    } else {
-        source = sourceSets.test.allJava
+    description = "Runs Checkstyle on staged files in this project (used by the pre-commit hook)"
+    classpath = files()
+    def prefix = rootDir.toPath().relativize(projectDir.toPath()).toString() + "/"
+    def filesToCheck = (findProperty("checkstyleFiles") as String)
+            ?.split(",")
+            ?.findAll { it.startsWith(prefix) }
+            ?.collect { new File(rootDir, it) }
+            ?: []
+    source = filesToCheck.isEmpty() ? files() : files(filesToCheck)
+    reports {
+        xml.required = false
+        html.required = false
     }
-
-    classpath = sourceSets.test.compileClasspath
 }
 
 dependencies {

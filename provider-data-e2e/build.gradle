@@ -2,12 +2,16 @@ plugins {
     id 'java'
     id 'checkstyle'
     id 'com.diffplug.spotless'
-    id 'com.github.ben-manes.versions' version '0.53.0'
+    id 'com.github.ben-manes.versions'
 }
 
 repositories {
     mavenCentral()
 }
+
+// No production code; JaCoCo coverage is not meaningful for E2E projects.
+tasks.withType(org.gradle.testing.jacoco.tasks.JacocoReport).configureEach { enabled = false }
+tasks.withType(org.gradle.testing.jacoco.tasks.JacocoCoverageVerification).configureEach { enabled = false }
 
 dependencies {
     // JUnit: use BOM to constrain versions for both compile & runtime tests

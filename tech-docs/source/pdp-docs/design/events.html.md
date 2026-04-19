@@ -48,7 +48,7 @@ Further reading:
 
 The inbox pattern is the inbound complement to the outbox. A producer writes commands to a queue
 or an `inbox` table. The receiving service processes them from the queue, decoupling the API
-response from the processing. Enables backpressure, replay, and independent scaling of the worker.
+response from the processing. It enables backpressure, replay, and independent scaling of the worker.
 
 Further reading:
 

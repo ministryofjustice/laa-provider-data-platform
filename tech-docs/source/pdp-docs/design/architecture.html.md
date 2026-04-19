@@ -63,7 +63,7 @@ Onion, it uses concentric rings. The vocabulary it introduces:
   (map use-case output for delivery), and **Gateways** (concrete repository implementations).
 - **Frameworks & Drivers** (outermost)  -  Spring, Hibernate, the database itself.
 
-For a REST API there is no Presenter in the traditional sense. The Controller both invokes the
+For a REST API there's no Presenter in the traditional sense. The Controller both invokes the
 use case and formats the response.
 
 Further reading:
@@ -101,7 +101,7 @@ the application (HTTP requests), `out` adapters are driven by it (database calls
 
 **Onion architecture** (Jeffrey Palermo,
 [2008](https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/)) expresses the same
-constraints using concentric rings. There is no directional port concept, so repository interfaces
+constraints using concentric rings. There's no directional port concept, so repository interfaces
 live in the Domain Services ring.
 
 **Clean architecture** (Robert C. Martin,
@@ -129,7 +129,7 @@ Notes on the table:
 - In clean architecture, both input and output boundaries are in `usecase/boundary` (the Use
   Cases ring). Gateway implementations sit in `adapter/persistence` (Interface Adapters +
   Frameworks & Drivers).
-- Palermo's original diagrams label the outermost ring "UI". For a REST API there is no UI,
+- Palermo's original diagrams label the outermost ring "UI". For a REST API there's no UI,
   so the outer ring splits into `infrastructure/web` and `infrastructure/persistence`.
 
 ## Current structure
@@ -161,12 +161,12 @@ These apply regardless of which option is chosen.
 
 Each option is presented in its pragmatic form: JPA entity classes serve as the domain model.
 They carry JPA annotations, live in a domain-accessible package, and use cases may reference them
-directly. There is no mapping layer between domain objects and JPA entities.
+directly. There's no mapping layer between domain objects and JPA entities.
 
 The strict alternative - separate pure domain model objects with a mapper at the persistence
 boundary - adds significant boilerplate for limited benefit here. The domain model is
-straightforward, entity relationships are well-understood, and there is no requirement to swap the
-persistence technology. It is not being considered.
+straightforward, entity relationships are well-understood, and there's no requirement to swap the
+persistence technology. It's not being considered.
 
 Use cases must not import Spring Data interfaces or JPA annotations directly - only entity classes
 and plain result types. Repository interfaces are defined in terms of entity classes and

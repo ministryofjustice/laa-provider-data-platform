@@ -65,6 +65,6 @@ Content for this repository belongs in the `tech-docs/source/pdp-docs/` director
   rather than duplicating their content.
 - Use headings consistently: `#` for page title, `##` for sections, `###` for subsections.
 - Prefer sentence case in titles and headings.
-- Documentation files use `.html.md.erb` extension, but avoid ERB templating:
-  Use only YAML frontmatter and Markdown for content in documentation files.
+- Documentation files use `.html.md` extension. Use only YAML frontmatter and Markdown for
+  content in documentation files; no ERB templating.
 - Line-wrap documentation source files at 100 characters so Git diffs are readable.

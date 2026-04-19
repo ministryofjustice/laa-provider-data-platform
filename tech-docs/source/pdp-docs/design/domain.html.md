@@ -22,24 +22,24 @@ used consistently by both developers and domain experts).
 
 Definitive sources:
 
-- Eric Evans, *[Domain-Driven Design: Tackling Complexity in the Heart of Software](https://www.oreilly.com/library/view/domain-driven-design-tackling/0321125215/)* (2003)  -  the original text
-- Vaughn Vernon, *[Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven-design/9780133039900/)* (2013)  -  practical guidance
-- Martin Fowler, [DomainDrivenDesign](https://martinfowler.com/bliki/DomainDrivenDesign.html)  -  concise overview
-- Domain Language, [DDD Reference](https://www.domainlanguage.com/ddd/reference/)  -  pattern glossary
+- Eric Evans, *[Domain-Driven Design: Tackling Complexity in the Heart of Software](https://www.oreilly.com/library/view/domain-driven-design-tackling/0321125215/)* (2003) - the original text
+- Vaughn Vernon, *[Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven-design/9780133039900/)* (2013) - practical guidance
+- Martin Fowler, [DomainDrivenDesign](https://martinfowler.com/bliki/DomainDrivenDesign.html) - concise overview
+- Domain Language, [DDD Reference](https://www.domainlanguage.com/ddd/reference/) - pattern glossary
 
 ## Aggregates
 
 There are five aggregates. Each has a single root entity. All access and mutation flows through
-it. Cross-aggregate references use the root entity's GUID only  -  no object references across
+it. Cross-aggregate references use the root entity's GUID only - no object references across
 boundaries.
 
-| Aggregate | Root entity / table | Member entities / tables |
-|---|---|---|
-| `ProviderFirm` | `ProviderEntity` / `PROVIDER` | `ProviderParentLinkEntity` / `PROVIDER_PARENT_LINK`, `ProviderBankAccountLinkEntity` / `PROVIDER_BANK_ACCOUNT_LINK` |
-| `ProviderOffice` | `ProviderOfficeLinkEntity` / `PROVIDER_OFFICE_LINK` | `OfficeBankAccountLinkEntity` / `OFFICE_BANK_ACCOUNT_LINK`, `OfficeContractManagerLinkEntity` / `OFFICE_CONTRACT_MANAGER_LINK`, `OfficeLiaisonManagerLinkEntity` / `OFFICE_LIAISON_MANAGER_LINK` |
-| `BankAccount` | `BankAccountEntity` / `BANK_ACCOUNT` | - |
-| `LiaisonManager` | `LiaisonManagerEntity` / `LIAISON_MANAGER` | - |
-| `ContractManager` | `ContractManagerEntity` / `CONTRACT_MANAGER` | - |
+| Aggregate         | Root entity / table                                 | Member entities / tables                                                                                                                                                                         |
+|-------------------|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ProviderFirm`    | `ProviderEntity` / `PROVIDER`                       | `ProviderParentLinkEntity` / `PROVIDER_PARENT_LINK`, `ProviderBankAccountLinkEntity` / `PROVIDER_BANK_ACCOUNT_LINK`                                                                              |
+| `ProviderOffice`  | `ProviderOfficeLinkEntity` / `PROVIDER_OFFICE_LINK` | `OfficeBankAccountLinkEntity` / `OFFICE_BANK_ACCOUNT_LINK`, `OfficeContractManagerLinkEntity` / `OFFICE_CONTRACT_MANAGER_LINK`, `OfficeLiaisonManagerLinkEntity` / `OFFICE_LIAISON_MANAGER_LINK` |
+| `BankAccount`     | `BankAccountEntity` / `BANK_ACCOUNT`                | -                                                                                                                                                                                                |
+| `LiaisonManager`  | `LiaisonManagerEntity` / `LIAISON_MANAGER`          | -                                                                                                                                                                                                |
+| `ContractManager` | `ContractManagerEntity` / `CONTRACT_MANAGER`        | -                                                                                                                                                                                                |
 
 `OfficeEntity` / `OFFICE` is shared reference data, not an aggregate root. See
 [OfficeEntity as reference data](#officeentity-as-reference-data) below.
@@ -53,9 +53,9 @@ root entity `ProviderEntity` uses JPA single-table inheritance, with firm type s
 
 Members:
 
-- `ProviderParentLinkEntity`  -  the parent chambers for an advocate or barrister practitioner.
+- `ProviderParentLinkEntity` - the parent chambers for an advocate or barrister practitioner.
   Has no meaning outside the context of the child provider, always accessed via `ProviderFirm`.
-- `ProviderBankAccountLinkEntity`  -  records that a bank account has been registered against a
+- `ProviderBankAccountLinkEntity` - records that a bank account has been registered against a
   provider. This is the provider-level association. Office-level associations are in
   `ProviderOffice`.
 
@@ -65,7 +65,7 @@ Members:
 
 `POST /provider-firms` creates a complete provider firm record in a single transaction.
 Depending on the firm type, this may also create a `ProviderOffice` (LSP and Chambers always
-have a head office), and optionally a `BankAccount` and a `LiaisonManager`  -  all as side
+have a head office), and optionally a `BankAccount` and a `LiaisonManager` - all as side
 effects of the `ProviderFirm` creation use case.
 
 `GET /provider-firms` returns a paginated list of providers, with optional filters for GUID,
@@ -75,8 +75,8 @@ type-specific sub-objects for the head office relationship and, for practitioner
 
 `PATCH /provider-firms/{id}` is partially implemented. It supports updating firm name, LSP
 basic details, and practitioner parent firm (including re-linking the office and liaison manager
-on parent change). Some use cases described in the spec  -  such as changing the head office of
-an LSP  -  are still in development.
+on parent change). Some use cases described in the spec - such as changing the head office of
+an LSP - are still in development.
 
 ## ProviderOffice
 
@@ -89,11 +89,11 @@ VAT registration, and intervention flags.
 
 Members:
 
-- `OfficeBankAccountLinkEntity`  -  which bank account is active for this office association,
+- `OfficeBankAccountLinkEntity` - which bank account is active for this office association,
   including effective date range and primary flag. References `BankAccount` by GUID.
-- `OfficeContractManagerLinkEntity`  -  the contract manager assigned to this office. References
+- `OfficeContractManagerLinkEntity` - the contract manager assigned to this office. References
   `ContractManager` by GUID. LSP offices only.
-- `OfficeLiaisonManagerLinkEntity`  -  current and historical liaison managers for this office.
+- `OfficeLiaisonManagerLinkEntity` - current and historical liaison managers for this office.
   References `LiaisonManager` by GUID. Includes effective date range to support the
   active/historical query pattern.
 
@@ -106,7 +106,7 @@ record.
 
 `POST /provider-firms/{id}/offices` creates a new office for an LSP provider, creating the
 `OfficeEntity` address record and the `LspProviderOfficeLinkEntity` in a single transaction,
-and optionally creating or linking a `LiaisonManager` and creating a `BankAccount`.
+and optionally creating or linking a `LiaisonManager` and creating or linking a `BankAccount`.
 
 `GET /provider-firms/{id}/offices` returns paginated offices for a provider.
 `GET /provider-firms-offices` is a global office search across all providers.
@@ -127,10 +127,9 @@ bank accounts can be shared: a single account can be linked to multiple provider
 Bank accounts have no standalone creation endpoint. They're created only as a side effect of
 firm creation (`POST /provider-firms`) or office creation
 (`POST /provider-firms/{id}/offices`), when the request includes
-`payment.paymentMethod=EFT` with `bankAccountDetails`. The creation flow
-(`BankDetailsService.createAndLink`) saves the account, creates the
-`ProviderBankAccountLink`, and creates the `OfficeBankAccountLink` in one operation. An
-existing account can be linked by GUID via `BankDetailsService.linkExisting`.
+`payment.paymentMethod=EFT` with `bankAccountDetails`. The creation flow saves the account,
+creates the `ProviderBankAccountLink`, and creates the `OfficeBankAccountLink` in one
+transaction. An existing account can be linked by GUID.
 
 `GET /provider-firms/{id}/bank-details` retrieves bank accounts for a provider. For a Chambers
 provider, this returns accounts belonging to all its member advocates, since advocates hold
@@ -157,17 +156,17 @@ current `OfficeLiaisonManagerLink` for the target office and creates a new activ
 one liaison manager is active per office at any time.
 
 `GET /provider-firms/{id}/offices/{officeId}/liaison-managers` returns the full history of
-liaison manager assignments for an office  -  both current and end-dated  -  in descending date
+liaison manager assignments for an office - both current and end-dated - in descending date
 order.
 
 ## ContractManager
 
 `ContractManagerEntity` records the name and a business-assigned `contractManagerId` for an LAA
-contract manager. Unlike `LiaisonManager`, contract managers have an independent lifecycle  - 
+contract manager. Unlike `LiaisonManager`, contract managers have an independent lifecycle -
 they're LAA staff managed outside the provider domain, referenced by `contractManagerId` when
 assigned to an office.
 
-`GET /provider-contract-managers` provides a global list of contract managers for lookup.
+`GET /provider-contract-managers` returns a global list of contract managers for lookup.
 
 `POST /provider-firms/{id}/offices/{officeId}/contract-managers` assigns a contract manager to
 an LSP office, replacing any existing assignment. Only LSP offices support contract manager
@@ -183,7 +182,7 @@ It's not an aggregate root. The business domain operates on `ProviderOffice`
 (`PROVIDER_OFFICE_LINK`), which owns the firm-specific attributes and is the primary identifier
 for an "office" in the API.
 
-`OfficeEntity` is shared reference data  -  a physical location record that can be
+`OfficeEntity` is shared reference data - a physical location record that can be
 shared across multiple provider-office associations (for example, an advocate uses the same
 `OFFICE` row as its parent chambers). All other link entities (`OFFICE_BANK_ACCOUNT_LINK`,
 `OFFICE_CONTRACT_MANAGER_LINK`, `OFFICE_LIAISON_MANAGER_LINK`) reference `PROVIDER_OFFICE_LINK`

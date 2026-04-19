@@ -15,15 +15,15 @@ The repository includes the following subprojects:
 
 - **provider-data-api** - OpenAPI specification used for generating API stub interfaces and
   documentation.
-- **provider-data-service** - REST API service with CRUD operations interfacing a JPA repository.
+- **provider-data-service** - Spring Boot REST API backed by a PostgreSQL database.
 - **provider-data-e2e** - End-to-end tests to target a running system.
 
 ## Documentation
 
 - [Getting started](getting-started.html) - Build and run the application locally
-- [API reference](api/) - OpenAPI specification rendered in multiple formats
+- [API reference](api/index.html.md) - OpenAPI specification rendered in multiple formats
 - [Data model](data-model.html) - Key entity and identifier relationships
-- [Design](design/) - Domain model, architecture, and async events options
+- [Design](design/index.html.md) - Domain model, architecture, and async events options
 - [End-to-end tests](end-to-end-tests.html) - E2E test setup, data management, and usage
 - [GitHub workflows](github-workflows.html) - CI/CD pipeline documentation
 - [Spring Boot 4.0 migration](spring-boot-4-migration.html) - Migration notes

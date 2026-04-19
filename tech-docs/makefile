@@ -1,6 +1,6 @@
-IMAGE := ministryofjustice/tech-docs-github-pages-publisher:v3
+IMAGE := ghcr.io/ministryofjustice/tech-docs-github-pages-publisher:v6.2.0
 
-.PHONY: preview prepare clean deploy check
+.PHONY: preview package prepare clean
 
 # Generates files that must be built before previewing or deploying:
 #   - pdp-docs/api/laa-data-pda.yml  (spec copy for CDN-based renderers)
@@ -14,23 +14,17 @@ prepare:
 		sh tech-docs/scripts/prepare-api-spec.sh
 
 preview: prepare
-	docker run --rm \
-		-v $$(pwd)/config:/app/config \
-		-v $$(pwd)/source:/app/source \
+	docker run -it --rm \
+		-v $$(pwd)/config:/tech-docs-github-pages-publisher/config \
+		-v $$(pwd)/source:/tech-docs-github-pages-publisher/source \
 		-p 4567:4567 \
-		-it $(IMAGE) /scripts/preview.sh
+		$(IMAGE) /usr/local/bin/preview
 
-deploy: prepare
+package: prepare
 	docker run --rm \
-		-v $$(pwd)/config:/app/config \
-		-v $$(pwd)/source:/app/source \
-		-it $(IMAGE) /scripts/deploy.sh
-
-check:
-	docker run --rm \
-		-v $$(pwd)/config:/app/config \
-		-v $$(pwd)/source:/app/source \
-		-it $(IMAGE) /scripts/check-url-links.sh
+		-v $$(pwd)/config:/tech-docs-github-pages-publisher/config \
+		-v $$(pwd)/source:/tech-docs-github-pages-publisher/source \
+		$(IMAGE) /usr/local/bin/package
 
 clean:
 	rm -f source/pdp-docs/api/laa-data-pda.yml \

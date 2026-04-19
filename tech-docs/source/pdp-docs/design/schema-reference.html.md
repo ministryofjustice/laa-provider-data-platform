@@ -1,10 +1,10 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/data-model.html.md
-title: Data model
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/schema-reference.html.md
+title: Schema reference
 weight: 15
 ---
 
-# Data model
+# Schema reference
 
 This page records schema rules that are easy to miss when reading only the entity and API names.
 

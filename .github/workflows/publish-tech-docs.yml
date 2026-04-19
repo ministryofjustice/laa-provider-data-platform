@@ -48,7 +48,7 @@ jobs:
     needs: prepare-api-spec
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/ministryofjustice/tech-docs-github-pages-publisher:v6.0.1
+      image: ghcr.io/ministryofjustice/tech-docs-github-pages-publisher:v6.2.0
     permissions: { contents: read }
     steps:
       # We only check out the tech-docs directory, which allows us to keep all
@@ -68,7 +68,7 @@ jobs:
 
       - name: "Compile Markdown to HTML and create artifact"
         # Script to deploy is not in the repo, but in this image:
-        # `ministryofjustice/tech-docs-github-pages-publisher:v6.0.1`
+        # `ministryofjustice/tech-docs-github-pages-publisher:v6.2.0`
         run: |
           cd tech-docs && /usr/local/bin/package
 
@@ -118,5 +118,4 @@ jobs:
           npx linkinator . --recurse --markdown \
             --skip https://ministryofjustice.github.io/laa-provider-data-platform/images/ \
             --skip javascripts/govuk_frontend.js \
-            --skip 'http://localhost:.*' \
-            --skip 'https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/.*\.md\.erb'
+            --skip 'http://localhost:.*'

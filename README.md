@@ -23,11 +23,12 @@ This application uses Spring Boot Docker Compose support, which will automatical
 start the PostgreSQL database service defined in `docker-compose.yaml` on startup.
 Alternatively, you can start the database manually with `docker-compose up`.
 
-Run locally by starting the Spring Boot `main` class in your IDE
-(or use `./gradlew :provider-data-service:bootRun` from the CLI).
+Run app locally by starting the Spring Boot `main` class in your chosen IDE
+`java uk.gov.justice.laa.providerdata.Application`
 
 - Build the application: `./gradlew clean build`
 - Run integration tests: `./gradlew integrationTest`
+- Run the application (Not for local dev): `./gradlew :provider-data-service:bootRun`
 - Build application container: `./gradlew bootBuildImage`
 - Run end-to-end tests: `./gradlew :provider-data-e2e:e2eTest -Pe2e.env=local -De2e.authToken=Dummy1`
 

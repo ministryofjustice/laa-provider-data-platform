@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -31,6 +32,7 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
@@ -330,15 +332,17 @@ public class OfficeService {
             .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
 
     switch (patch) {
-      case LSPOfficePatchV2 lsp ->
-          applyContactPatch(
-              link.getOffice(),
-              link,
-              lsp.getAddress(),
-              lsp.getTelephoneNumber(),
-              lsp.getEmailAddress(),
-              lsp.getWebsite(),
-              lsp.getDxDetails());
+      case LSPOfficePatchV2 lsp -> {
+        applyContactPatch(
+            link.getOffice(),
+            link,
+            lsp.getAddress(),
+            lsp.getTelephoneNumber(),
+            lsp.getEmailAddress(),
+            lsp.getWebsite(),
+            lsp.getDxDetails());
+        applyPaymentPatchToLink(lsp.getPayment(), provider, link);
+      }
       case ChambersOfficePatchV2 chambers ->
           applyContactPatch(
               link.getOffice(),
@@ -348,8 +352,8 @@ public class OfficeService {
               chambers.getEmailAddress(),
               chambers.getWebsite(),
               chambers.getDxDetails());
-      case AdvocateOfficePatchV2 _ -> { // no contact fields on Advocate patch
-      }
+      case AdvocateOfficePatchV2 advocate ->
+          applyPaymentPatchToLink(advocate.getPayment(), provider, link);
       default ->
           throw new IllegalStateException(
               "Unhandled OfficePatchV2 subtype: " + patch.getClass().getSimpleName());
@@ -391,6 +395,60 @@ public class OfficeService {
     if (dxDetails != null) {
       office.setDxDetailsNumber(dxDetails.getDxNumber());
       office.setDxDetailsCentre(dxDetails.getDxCentre());
+    }
+  }
+
+  /**
+   * Applies payment fields and persists bank account changes for a patch request, dispatching on
+   * the actual link entity type rather than the patch DTO subtype. This handles cases where the
+   * {@link JacksonConfig} discriminator cannot distinguish LSP from Advocate patches when only
+   * {@code payment} fields are present.
+   *
+   * <p>No-op if {@code payment} is null or the link type does not support payment fields.
+   */
+  private void applyPaymentPatchToLink(
+      @Nullable PaymentDetailsPatchOrLinkV2 payment,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity link) {
+    if (payment == null) {
+      return;
+    }
+    if (link instanceof LspProviderOfficeLinkEntity lspLink) {
+      lspLink.setPaymentMethod(payment.getPaymentMethod().getValue());
+      lspLink.setPaymentHeldFlag(payment.getPaymentHeldFlag());
+      lspLink.setPaymentHeldReason(payment.getPaymentHeldReason());
+      persistBankDetailsForPatch(payment, provider, link);
+    } else if (link instanceof AdvocateProviderOfficeLinkEntity advocateLink) {
+      advocateLink.setPaymentMethod(payment.getPaymentMethod().getValue());
+      advocateLink.setPaymentHeldFlag(payment.getPaymentHeldFlag());
+      advocateLink.setPaymentHeldReason(payment.getPaymentHeldReason());
+      persistBankDetailsForPatch(payment, provider, link);
+    }
+  }
+
+  /**
+   * Creates or links a bank account from a patch payment request.
+   *
+   * <p>Only acts when {@code paymentMethod=EFT} and {@code bankAccountDetails} is non-null. The
+   * existing primary {@link OfficeBankAccountLinkEntity} is end-dated by {@link
+   * BankDetailsService#saveOfficeBankAccountLink} before the new one is saved.
+   *
+   * @throws ItemNotFoundException if the request links by GUID and no matching account exists
+   */
+  private void persistBankDetailsForPatch(
+      PaymentDetailsPatchOrLinkV2 payment,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity officeLink) {
+    if (!PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
+        || payment.getBankAccountDetails() == null) {
+      return;
+    }
+    if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeCreateV2 create) {
+      BankAccountEntity template = bankAccountMapper.toBankAccountEntity(create);
+      bankDetailsService.createAndLink(template, provider, officeLink, create.getActiveDateFrom());
+    } else if (payment.getBankAccountDetails() instanceof BankAccountProviderOfficeLinkV2 link) {
+      bankDetailsService.linkExisting(
+          link.getBankAccountGUID(), provider, officeLink, link.getActiveDateFrom());
     }
   }
 

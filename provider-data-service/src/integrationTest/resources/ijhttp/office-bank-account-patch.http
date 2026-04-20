@@ -1,0 +1,149 @@
+### Office bank account — PATCH reassignment demo
+#
+# Run steps in order. Steps 1–3 create a provider and office, steps 4–6 demo bank account
+# reassignment. Step 2 creates the initial bank account; step 4 links a second one.
+
+### 1. Create a Legal Services Provider firm
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Legal Services Provider",
+  "name": "Westgate Legal Services LLP",
+  "legalServicesProvider": {
+    "address": {
+      "line1": "56 Westgate Road",
+      "townOrCity": "Newcastle upon Tyne",
+      "postcode": "NE1 1TT"
+    },
+    "telephoneNumber": "0191 498 0100",
+    "emailAddress": "admin@westgatelegal.example",
+    "payment": {
+      "paymentMethod": "EFT",
+      "bankAccountDetails": {
+        "accountName": "Westgate Legal LLP Client A/C",
+        "sortCode": "601111",
+        "accountNumber": "06805333"
+      }
+    },
+    "liaisonManager": {
+      "firstName": "Alice",
+      "lastName": "Patel",
+      "emailAddress": "a.patel@westgatelegal.example",
+      "telephoneNumber": "0191 498 0101",
+      "activeDateFrom": "2024-04-01"
+    }
+  }
+}
+
+> {%
+  client.global.set("providerFirmGUID", response.body.data.providerFirmGUID);
+  client.global.set("providerFirmNumber", response.body.data.providerFirmNumber);
+%}
+
+### 2. Create an office (EFT payment — creates first bank account for the office)
+POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
+Content-Type: application/json
+
+{
+  "address": {
+    "line1": "56 Westgate Road",
+    "townOrCity": "Newcastle upon Tyne",
+    "postcode": "NE1 1TT"
+  },
+  "telephoneNumber": "0191 498 0100",
+  "emailAddress": "westgate@example.com",
+  "payment": {
+    "paymentMethod": "EFT",
+    "bankAccountDetails": {
+      "accountName": "Westgate Legal LLP Office A/C",
+      "sortCode": "601111",
+      "accountNumber": "07916244"
+    }
+  },
+  "liaisonManager": {
+    "useHeadOfficeLiaisonManager": true
+  }
+}
+
+> {%
+  client.global.set("officeGUID", response.body.data.officeGUID);
+  client.global.set("officeCode", response.body.data.officeCode);
+%}
+
+### 3. List bank accounts for the provider — capture a second account GUID for linking
+# The head office account (06805333) was created in step 1; use its GUID in step 4.
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/bank-details
+
+> {%
+  client.global.set("bankAccountGUID", response.body.data.content[0].guid);
+%}
+
+### 4. PATCH office — link an existing bank account by GUID
+# End-dates the current primary OfficeBankAccountLink and creates a new primary link
+# to the bank account captured in step 3.
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "type": "link",
+      "bankAccountGUID": "{{bankAccountGUID}}"
+    }
+  }
+}
+
+> {%
+  client.test("Link existing bank account — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.providerFirmGUID !== undefined, "providerFirmGUID missing");
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 5. PATCH office — create and link a new bank account
+# Creates a new BankAccount, links it to the provider and the office, and end-dates the
+# previously primary OfficeBankAccountLink.
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "accountName": "Westgate Legal LLP New Client A/C",
+      "sortCode": "601111",
+      "accountNumber": "11223344"
+    }
+  }
+}
+
+> {%
+  client.test("Create and link new bank account — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.providerFirmGUID !== undefined, "providerFirmGUID missing");
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 6. Verify — list bank accounts for the office (expect historical records + one current primary)
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}/bank-details
+
+### 7. PATCH office — unknown bank account GUID (expect 404)
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "type": "link",
+      "bankAccountGUID": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}

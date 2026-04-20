@@ -36,16 +36,15 @@ import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 /**
- * Startup seeding component for local development and preview (PR) profiles. Populates foundation
- * tables with sample data on application startup. Uses CommandLineRunner to ensure Hibernate schema
- * creation is complete before seeding.
+ * Startup test data seeding component for local development and preview (pull request) profiles.
+ * Populates foundation tables with sample data on application startup. Uses `CommandLineRunner` to
+ * ensure Flyway DB schema creation is complete before inserting data.
  */
 @Slf4j
 @Component
 @Profile("local | preview")
 @RequiredArgsConstructor
 public class LocalDataSeeder implements CommandLineRunner {
-
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
   private final BankAccountRepository bankAccountRepository;
@@ -58,379 +57,267 @@ public class LocalDataSeeder implements CommandLineRunner {
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
+  // Firm numbers used as stable identifiers for test data.
+  private static final String LSP_FIRM_NUMBER = "100001";
+  private static final String CHAMBERS_FIRM_NUMBER = "100002";
+  private static final String ADVOCATE_FIRM_NUMBER = "100003";
+
   @Override
   @Transactional
-  public void run(String... args) throws Exception {
-    // Give Hibernate time to create schema before seeding
+  public void run(String... args) {
+    if (providerRepository.findByFirmNumber(LSP_FIRM_NUMBER).isPresent()) {
+      log.info("Test data already seeded - skipping");
+      return;
+    }
     log.info("Starting local data seeding for foundation tables");
-
-    seedBankAccounts();
-    seedProviders();
-    seedOffices();
-    seedContractManagers();
-    seedLiaisonManagers();
-    seedProviderBankAccountLinks();
-    seedProviderOfficeLinks();
-    seedProviderParentLinks();
-    seedOfficeBankAccountLinks();
-    seedOfficeContractManagerLinks();
-    seedOfficeLiaisonManagerLinks();
-
+    var providers = seedProviders();
+    seedProviderParentLinks(providers);
+    var offices = seedOffices();
+    var officeLinks = seedProviderOfficeLinks(providers, offices);
+    var bankAccounts = seedBankAccounts();
+    seedProviderBankAccountLinks(providers, bankAccounts);
+    seedOfficeBankAccountLinks(officeLinks, bankAccounts);
+    var liaisonManagers = seedLiaisonManagers();
+    seedOfficeLiaisonManagerLinks(officeLinks, liaisonManagers);
+    var contractManagers = seedContractManagers();
+    seedOfficeContractManagerLinks(officeLinks, contractManagers);
     log.info("Local data seeding completed successfully");
   }
 
-  private void seedBankAccounts() {
+  private BankAccountEntity[] seedBankAccounts() {
     log.info("Seeding BankAccount table");
-    if (bankAccountRepository.count() > 0) {
-      log.info("BankAccount already seeded - skipping");
-      return;
-    }
-
-    // Must not violate composite unique constraint (SORT_CODE, ACCOUNT_NUMBER) and NOT NULL
-    // columns.
+    // composite unique constraint (SORT_CODE, ACCOUNT_NUMBER) and NOT NULL columns.
     BankAccountEntity account1 =
-        BankAccountEntity.builder()
-            .accountName("Test Bank Account 1")
-            .sortCode("200000")
-            .accountNumber("12345678")
-            .build();
-
+        bankAccountRepository.save(
+            BankAccountEntity.builder()
+                .accountName("Test Bank Account 1")
+                .sortCode("200000")
+                .accountNumber("12345678")
+                .build());
     BankAccountEntity account2 =
-        BankAccountEntity.builder()
-            .accountName("Test Bank Account 2")
-            .sortCode("201000")
-            .accountNumber("87654321")
-            .build();
-
-    bankAccountRepository.save(account1);
-    bankAccountRepository.save(account2);
+        bankAccountRepository.save(
+            BankAccountEntity.builder()
+                .accountName("Test Bank Account 2")
+                .sortCode("201000")
+                .accountNumber("87654321")
+                .build());
     log.info("Seeded {} BankAccount records", 2);
+    return new BankAccountEntity[] {account1, account2};
   }
 
-  private void seedProviders() {
+  private ProviderEntity[] seedProviders() {
     log.info("Seeding Provider table");
-    if (providerRepository.count() > 0) {
-      log.info("Provider already seeded - skipping");
-      return;
-    }
-
-    // Must not violate: firmNumber NOT NULL UNIQUE, firmType NOT NULL, name NOT NULL.
+    // firmNumber NOT NULL UNIQUE, firmType NOT NULL, name NOT NULL.
     ProviderEntity provider1 =
-        LspProviderEntity.builder()
-            .firmNumber("100001")
-            .name("Test Legal Services Provider Ltd")
-            .build();
-
+        providerRepository.save(
+            LspProviderEntity.builder()
+                .firmNumber(LSP_FIRM_NUMBER)
+                .name("Test Legal Services Provider Ltd")
+                .build());
     ProviderEntity provider2 =
-        ChamberProviderEntity.builder().firmNumber("100002").name("Test Chambers").build();
-
+        providerRepository.save(
+            ChamberProviderEntity.builder()
+                .firmNumber(CHAMBERS_FIRM_NUMBER)
+                .name("Test Chambers")
+                .build());
     ProviderEntity provider3 =
-        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Test Advocate").build();
-
-    providerRepository.save(provider1);
-    providerRepository.save(provider2);
-    providerRepository.save(provider3);
+        providerRepository.save(
+            AdvocatePractitionerEntity.builder()
+                .firmNumber(ADVOCATE_FIRM_NUMBER)
+                .name("Test Advocate")
+                .build());
     log.info("Seeded {} Provider records", 3);
+    return new ProviderEntity[] {provider1, provider2, provider3};
   }
 
-  private void seedOffices() {
+  private OfficeEntity[] seedOffices() {
     log.info("Seeding Office table");
-    if (officeRepository.count() > 0) {
-      log.info("Office already seeded - skipping");
-      return;
-    }
-
-    // Must not violate: addressLine1 NOT NULL, addressTownOrCity NOT NULL, addressPostCode NOT
-    // NULL.
+    // addressLine1 NOT NULL, addressTownOrCity NOT NULL, addressPostCode NOT NULL.
     OfficeEntity office1 =
-        OfficeEntity.builder()
-            .addressLine1("123 Test Street")
-            .addressLine2("Suite 100")
-            .addressTownOrCity("London")
-            .addressCounty("London")
-            .addressPostCode("SW1A 1AA")
-            .telephoneNumber("020 1234 5678")
-            .emailAddress("office@test.example.com")
-            .dxDetailsNumber("DX123")
-            .dxDetailsCentre("Test Centre")
-            .build();
-
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("123 Test Street")
+                .addressLine2("Suite 100")
+                .addressTownOrCity("London")
+                .addressCounty("London")
+                .addressPostCode("SW1A 1AA")
+                .telephoneNumber("020 1234 5678")
+                .emailAddress("office@test.example.com")
+                .dxDetailsNumber("DX123")
+                .dxDetailsCentre("Test Centre")
+                .build());
     OfficeEntity office2 =
-        OfficeEntity.builder()
-            .addressLine1("456 Test Avenue")
-            .addressTownOrCity("Manchester")
-            .addressCounty("Manchester")
-            .addressPostCode("M1 1AA")
-            .telephoneNumber("0161 123 4567")
-            .emailAddress("manchester@test.example.com")
-            .build();
-
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("456 Test Avenue")
+                .addressTownOrCity("Manchester")
+                .addressCounty("Manchester")
+                .addressPostCode("M1 1AA")
+                .telephoneNumber("0161 123 4567")
+                .emailAddress("manchester@test.example.com")
+                .build());
     OfficeEntity office3 =
-        OfficeEntity.builder()
-            .addressLine1("1 Barrister Court")
-            .addressTownOrCity("London")
-            .addressCounty("London")
-            .addressPostCode("EC4A 1AA")
-            .telephoneNumber("020 7000 1234")
-            .emailAddress("advocate@test.example.com")
-            .build();
-
-    officeRepository.save(office1);
-    officeRepository.save(office2);
-    officeRepository.save(office3);
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("1 Barrister Court")
+                .addressTownOrCity("London")
+                .addressCounty("London")
+                .addressPostCode("EC4A 1AA")
+                .telephoneNumber("020 7000 1234")
+                .emailAddress("advocate@test.example.com")
+                .build());
     log.info("Seeded {} Office records", 3);
+    return new OfficeEntity[] {office1, office2, office3};
   }
 
-  private void seedContractManagers() {
+  private ContractManagerEntity[] seedContractManagers() {
     log.info("Seeding ContractManager table");
-    if (contractManagerRepository.count() > 0) {
-      log.info("ContractManager already seeded - skipping");
-      return;
-    }
-
-    // Must not violate: contractManagerId NOT NULL UNIQUE; firstName/lastName NOT NULL.
+    // contractManagerId NOT NULL UNIQUE, firstName NOT NULL, lastName NOT NULL.
     ContractManagerEntity manager1 =
-        ContractManagerEntity.builder()
-            .contractManagerId("CM001")
-            .firstName("John")
-            .lastName("Smith")
-            .build();
-
+        contractManagerRepository.save(
+            ContractManagerEntity.builder()
+                .contractManagerId("CM001")
+                .firstName("John")
+                .lastName("Smith")
+                .build());
     ContractManagerEntity manager2 =
-        ContractManagerEntity.builder()
-            .contractManagerId("CM002")
-            .firstName("Jane")
-            .lastName("Doe")
-            .build();
-
-    contractManagerRepository.save(manager1);
-    contractManagerRepository.save(manager2);
+        contractManagerRepository.save(
+            ContractManagerEntity.builder()
+                .contractManagerId("CM002")
+                .firstName("Jane")
+                .lastName("Doe")
+                .build());
     log.info("Seeded {} ContractManager records", 2);
+    return new ContractManagerEntity[] {manager1, manager2};
   }
 
-  private void seedLiaisonManagers() {
+  private LiaisonManagerEntity[] seedLiaisonManagers() {
     log.info("Seeding LiaisonManager table");
-    if (liaisonManagerRepository.count() > 0) {
-      log.info("LiaisonManager already seeded - skipping");
-      return;
-    }
-
-    // Must not violate: firstName/lastName/emailAddress NOT NULL.
+    // firstName NOT NULL, lastName NOT NULL, emailAddress NOT NULL.
     LiaisonManagerEntity liaison1 =
-        LiaisonManagerEntity.builder()
-            .firstName("Alice")
-            .lastName("Johnson")
-            .emailAddress("alice@test.example.com")
-            .telephoneNumber("020 9876 5432")
-            .build();
-
+        liaisonManagerRepository.save(
+            LiaisonManagerEntity.builder()
+                .firstName("Alice")
+                .lastName("Johnson")
+                .emailAddress("alice@test.example.com")
+                .telephoneNumber("020 9876 5432")
+                .build());
     LiaisonManagerEntity liaison2 =
-        LiaisonManagerEntity.builder()
-            .firstName("Bob")
-            .lastName("Williams")
-            .emailAddress("bob@test.example.com")
-            .telephoneNumber("0161 5432 1098")
-            .build();
-
-    liaisonManagerRepository.save(liaison1);
-    liaisonManagerRepository.save(liaison2);
+        liaisonManagerRepository.save(
+            LiaisonManagerEntity.builder()
+                .firstName("Bob")
+                .lastName("Williams")
+                .emailAddress("bob@test.example.com")
+                .telephoneNumber("0161 5432 1098")
+                .build());
     log.info("Seeded {} LiaisonManager records", 2);
+    return new LiaisonManagerEntity[] {liaison1, liaison2};
   }
 
-  private void seedProviderBankAccountLinks() {
+  private void seedProviderBankAccountLinks(
+      ProviderEntity[] providers, BankAccountEntity[] bankAccounts) {
     log.info("Seeding ProviderBankAccountLink table");
-    if (providerBankAccountLinkRepository.count() > 0) {
-      log.info("ProviderBankAccountLink already seeded - skipping");
-      return;
-    }
-
-    var providers = providerRepository.findAll();
-    var bankAccounts = bankAccountRepository.findAll();
-
-    if (!providers.isEmpty() && !bankAccounts.isEmpty()) {
-      // Must not violate composite unique constraint (PROVIDER_GUID, BANK_ACCOUNT_GUID).
-      ProviderBankAccountLinkEntity link1 =
-          ProviderBankAccountLinkEntity.builder()
-              .provider(providers.get(0))
-              .bankAccount(bankAccounts.get(0))
-              .build();
-
-      providerBankAccountLinkRepository.save(link1);
-      log.info("Seeded {} ProviderBankAccountLink records", 1);
-    } else {
-      log.info("Skipping ProviderBankAccountLink seeding (missing providers or bank accounts)");
-    }
+    // composite unique constraint (PROVIDER_GUID, BANK_ACCOUNT_GUID).
+    providerBankAccountLinkRepository.save(
+        ProviderBankAccountLinkEntity.builder()
+            .provider(providers[0])
+            .bankAccount(bankAccounts[0])
+            .build());
+    log.info("Seeded {} ProviderBankAccountLink records", 1);
   }
 
-  private void seedProviderOfficeLinks() {
+  private LspProviderOfficeLinkEntity[] seedProviderOfficeLinks(
+      ProviderEntity[] providers, OfficeEntity[] offices) {
     log.info("Seeding ProviderOfficeLink table");
-    if (providerOfficeLinkRepository.count() > 0) {
-      log.info("ProviderOfficeLink already seeded - skipping");
-      return;
-    }
-
-    var providers = providerRepository.findAll();
-    var offices = officeRepository.findAll();
-
-    if (providers.size() >= 3 && offices.size() >= 3) {
-      // Must not violate:
-      // - accountNumber NOT NULL
-      // - headOfficeFlag NOT NULL
-      // - subtype flags/paymentMethod NOT NULL (LSP/Advocate)
-      // - composite unique constraint (PROVIDER_GUID, OFFICE_GUID, FIRM_TYPE)
-
-      // LSP Provider office link
-      LspProviderOfficeLinkEntity lspLink =
-          LspProviderOfficeLinkEntity.builder()
-              .provider(providers.get(0))
-              .office(offices.get(0))
-              .accountNumber("ACC001")
-              .headOfficeFlag(true)
-              .website("https://example-lsp.com")
-              .intervenedFlag(false)
-              .vatRegistrationNumber("GB123456789")
-              .paymentMethod("EFT")
-              .paymentHeldFlag(false)
-              .debtRecoveryFlag(false)
-              .falseBalanceFlag(false)
-              .build();
-
-      // Chambers Provider office link
-      ChamberProviderOfficeLinkEntity chamberLink =
-          ChamberProviderOfficeLinkEntity.builder()
-              .provider(providers.get(1))
-              .office(offices.get(1))
-              .accountNumber("ACC002")
-              .headOfficeFlag(true)
-              .website("https://example-chambers.com")
-              .build();
-
-      // Advocate Provider office link (uses the Chambers' office)
-      AdvocateProviderOfficeLinkEntity advocateLink =
-          AdvocateProviderOfficeLinkEntity.builder()
-              .provider(providers.get(2))
-              .office(offices.get(1))
-              .accountNumber("ACC003")
-              .headOfficeFlag(true)
-              .intervenedFlag(false)
-              .paymentMethod("BACS")
-              .paymentHeldFlag(false)
-              .debtRecoveryFlag(false)
-              .falseBalanceFlag(false)
-              .build();
-
-      providerOfficeLinkRepository.save(lspLink);
-      providerOfficeLinkRepository.save(chamberLink);
-      providerOfficeLinkRepository.save(advocateLink);
-      log.info("Seeded {} ProviderOfficeLink records", 3);
-    } else {
-      log.info("Skipping ProviderOfficeLink seeding (missing providers or offices)");
-    }
+    // composite unique constraint (PROVIDER_GUID, OFFICE_GUID, FIRM_TYPE).
+    // accountNumber NOT NULL, headOfficeFlag NOT NULL,
+    // LSP/Advocate: flags NOT NULL, paymentMethod NOT NULL.
+    providerOfficeLinkRepository.save(
+        ChamberProviderOfficeLinkEntity.builder()
+            .provider(providers[1])
+            .office(offices[1])
+            .accountNumber("ACC002")
+            .headOfficeFlag(true)
+            .website("https://example-chambers.com")
+            .build());
+    // Advocate office link uses the Chambers office.
+    providerOfficeLinkRepository.save(
+        AdvocateProviderOfficeLinkEntity.builder()
+            .provider(providers[2])
+            .office(offices[1])
+            .accountNumber("ACC003")
+            .headOfficeFlag(true)
+            .intervenedFlag(false)
+            .paymentMethod("BACS")
+            .paymentHeldFlag(false)
+            .debtRecoveryFlag(false)
+            .falseBalanceFlag(false)
+            .build());
+    LspProviderOfficeLinkEntity lspLink =
+        (LspProviderOfficeLinkEntity)
+            providerOfficeLinkRepository.save(
+                LspProviderOfficeLinkEntity.builder()
+                    .provider(providers[0])
+                    .office(offices[0])
+                    .accountNumber("ACC001")
+                    .headOfficeFlag(true)
+                    .website("https://example-lsp.com")
+                    .intervenedFlag(false)
+                    .vatRegistrationNumber("GB123456789")
+                    .paymentMethod("EFT")
+                    .paymentHeldFlag(false)
+                    .debtRecoveryFlag(false)
+                    .falseBalanceFlag(false)
+                    .build());
+    log.info("Seeded {} ProviderOfficeLink records", 3);
+    return new LspProviderOfficeLinkEntity[] {lspLink};
   }
 
-  private void seedProviderParentLinks() {
+  private void seedProviderParentLinks(ProviderEntity[] providers) {
     log.info("Seeding ProviderParentLink table");
-    if (providerParentLinkRepository.count() > 0) {
-      log.info("ProviderParentLink already seeded - skipping");
-      return;
-    }
-
-    var providers = providerRepository.findAll();
-
-    if (providers.size() >= 3) {
-      // Must not violate composite unique constraint (PROVIDER_GUID, PARENT_GUID).
-      // Advocate (100003) has Chambers (100002) as its parent
-      ProviderParentLinkEntity parentLink =
-          ProviderParentLinkEntity.builder()
-              .provider(providers.get(2))
-              .parent(providers.get(1))
-              .build();
-
-      providerParentLinkRepository.save(parentLink);
-      log.info("Seeded {} ProviderParentLink records", 1);
-    } else {
-      log.info("Skipping ProviderParentLink seeding (missing providers)");
-    }
+    // composite unique constraint (PROVIDER_GUID, PARENT_GUID).
+    // Advocate (100003) has Chambers (100002) as its parent.
+    providerParentLinkRepository.save(
+        ProviderParentLinkEntity.builder().provider(providers[2]).parent(providers[1]).build());
+    log.info("Seeded {} ProviderParentLink records", 1);
   }
 
-  private void seedOfficeBankAccountLinks() {
+  private void seedOfficeBankAccountLinks(
+      LspProviderOfficeLinkEntity[] officeLinks, BankAccountEntity[] bankAccounts) {
     log.info("Seeding OfficeBankAccountLink table");
-    if (officeBankAccountLinkRepository.count() > 0) {
-      log.info("OfficeBankAccountLink already seeded - skipping");
-      return;
-    }
-
-    var providerOfficeLinks = providerOfficeLinkRepository.findAll();
-    var bankAccounts = bankAccountRepository.findAll();
-
-    if (!providerOfficeLinks.isEmpty() && !bankAccounts.isEmpty()) {
-      // Must not violate:
-      // - primaryFlag NOT NULL
-      // - activeDateFrom NOT NULL
-      // - composite unique constraint (PROVIDER_OFFICE_LINK_GUID, BANK_ACCOUNT_GUID)
-      OfficeBankAccountLinkEntity link =
-          OfficeBankAccountLinkEntity.builder()
-              .providerOfficeLink(providerOfficeLinks.get(0))
-              .bankAccount(bankAccounts.get(0))
-              .primaryFlag(true)
-              .activeDateFrom(java.time.LocalDate.now())
-              .build();
-
-      officeBankAccountLinkRepository.save(link);
-      log.info("Seeded {} OfficeBankAccountLink records", 1);
-    } else {
-      log.info(
-          "Skipping OfficeBankAccountLink seeding (missing provider office links or accounts)");
-    }
+    // composite unique constraint (PROVIDER_OFFICE_LINK_GUID, BANK_ACCOUNT_GUID).
+    // primaryFlag NOT NULL, activeDateFrom NOT NULL.
+    officeBankAccountLinkRepository.save(
+        OfficeBankAccountLinkEntity.builder()
+            .providerOfficeLink(officeLinks[0])
+            .bankAccount(bankAccounts[0])
+            .primaryFlag(true)
+            .activeDateFrom(LocalDate.now())
+            .build());
+    log.info("Seeded {} OfficeBankAccountLink records", 1);
   }
 
-  private void seedOfficeContractManagerLinks() {
+  private void seedOfficeContractManagerLinks(
+      LspProviderOfficeLinkEntity[] officeLinks, ContractManagerEntity[] contractManagers) {
     log.info("Seeding OfficeContractManagerLink table");
-    if (officeContractManagerLinkRepository.count() > 0) {
-      log.info("OfficeContractManagerLink already seeded - skipping");
-      return;
-    }
-
-    var officeLinks = providerOfficeLinkRepository.findAll();
-    var contractManagers = contractManagerRepository.findAll();
-
-    if (!officeLinks.isEmpty() && !contractManagers.isEmpty()) {
-      OfficeContractManagerLinkEntity link =
-          OfficeContractManagerLinkEntity.builder()
-              .officeLink(officeLinks.get(0))
-              .contractManager(contractManagers.get(0))
-              .build();
-
-      officeContractManagerLinkRepository.save(link);
-      log.info("Seeded {} OfficeContractManagerLink records", 1);
-    } else {
-      log.info("Skipping OfficeContractManagerLink seeding (missing offices or contract managers)");
-    }
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(officeLinks[0])
+            .contractManager(contractManagers[0])
+            .build());
+    log.info("Seeded {} OfficeContractManagerLink records", 1);
   }
 
-  private void seedOfficeLiaisonManagerLinks() {
+  private void seedOfficeLiaisonManagerLinks(
+      LspProviderOfficeLinkEntity[] officeLinks, LiaisonManagerEntity[] liaisonManagers) {
     log.info("Seeding OfficeLiaisonManagerLink table");
-    if (officeLiaisonManagerLinkRepository.count() > 0) {
-      log.info("OfficeLiaisonManagerLink already seeded - skipping");
-      return;
-    }
-
-    var officeLinks = providerOfficeLinkRepository.findAll();
-    var liaisonManagers = liaisonManagerRepository.findAll();
-
-    if (!officeLinks.isEmpty() && !liaisonManagers.isEmpty()) {
-      OfficeLiaisonManagerLinkEntity link =
-          OfficeLiaisonManagerLinkEntity.builder()
-              .officeLink(officeLinks.get(0))
-              .liaisonManager(liaisonManagers.get(0))
-              .activeDateFrom(LocalDate.now())
-              .linkedFlag(true)
-              .build();
-
-      officeLiaisonManagerLinkRepository.save(link);
-      log.info("Seeded {} OfficeLiaisonManagerLink records", 1);
-    } else {
-      log.info("Skipping OfficeLiaisonManagerLink seeding (missing offices or liaison managers)");
-    }
+    officeLiaisonManagerLinkRepository.save(
+        OfficeLiaisonManagerLinkEntity.builder()
+            .officeLink(officeLinks[0])
+            .liaisonManager(liaisonManagers[0])
+            .activeDateFrom(LocalDate.now())
+            .linkedFlag(true)
+            .build());
+    log.info("Seeded {} OfficeLiaisonManagerLink records", 1);
   }
 }

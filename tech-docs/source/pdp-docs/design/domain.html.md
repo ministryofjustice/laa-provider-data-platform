@@ -29,9 +29,16 @@ Definitive sources:
 
 ## Aggregates
 
-There are five aggregates. Each has a single root entity. All access and mutation flows through
-it. Cross-aggregate references use the root entity's GUID only - no object references across
-boundaries.
+The domain is organised around five aggregates. Each has a single root entity. Other aggregates
+refer to it by GUID only, with no object references crossing boundaries in the read model.
+
+Write operations are an exception to this. Creation endpoints such as `POST /provider-firms`
+and `POST /provider-firms/{id}/offices` span multiple aggregate boundaries in a single database
+transaction to maintain atomicity. `BankAccount` and `LiaisonManager` are modelled as separate
+aggregates because a single instance can be shared across two distinct `ProviderOffice`
+instances (for example, an advocate inherits its parent chambers' liaison manager). Neither has
+a standalone creation endpoint - both are always written as a side effect of another aggregate's
+operation.
 
 | Aggregate         | Root entity / table                                 | Member entities / tables                                                                                                                                                                         |
 |-------------------|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -47,8 +54,9 @@ boundaries.
 ## ProviderFirm
 
 `ProviderFirm` represents a legal services provider, chambers, or advocate practitioner. The
-root entity `ProviderEntity` uses JPA single-table inheritance, with firm type stored in a
-`firmType` discriminator column. Concrete subtypes are `LspProviderEntity`,
+root entity `ProviderEntity` uses JPA single-table inheritance with a `@DiscriminatorFormula`
+that combines the `FIRM_TYPE` and `ADVOCATE_TYPE` columns. The advocate subtypes share an
+intermediate abstract class `PractitionerEntity`. Concrete subtypes are `LspProviderEntity`,
 `ChamberProviderEntity`, `AdvocatePractitionerEntity`, and `BarristerPractitionerEntity`.
 
 Members:
@@ -77,6 +85,9 @@ type-specific sub-objects for the head office relationship and, for practitioner
 basic details, and practitioner parent firm (including re-linking the office and liaison manager
 on parent change). Some use cases described in the spec - such as changing the head office of
 an LSP - are still in development.
+
+`GET /provider-firms/{id}/practitioners` returns a paginated list of practitioners belonging to
+a given chambers.
 
 ## ProviderOffice
 

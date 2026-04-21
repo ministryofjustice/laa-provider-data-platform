@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 
 /**
@@ -22,5 +21,8 @@ public interface AdvocateProviderOfficeLinkRepository
   Optional<AdvocateProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(
       ProviderEntity provider);
 
-  List<AdvocateProviderOfficeLinkEntity> findByOffice(OfficeEntity office);
+  List<AdvocateProviderOfficeLinkEntity> findByProvider(ProviderEntity provider);
+
+  List<AdvocateProviderOfficeLinkEntity> findByProviderAndActiveDateToIsNull(
+      ProviderEntity provider);
 }

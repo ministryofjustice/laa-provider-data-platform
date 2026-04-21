@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -75,7 +73,7 @@ public class ProviderService {
    * @throws ItemNotFoundException if no provider matches the given identifier
    */
   public ProviderEntity getProvider(String providerFirmGUIDorFirmNumber) {
-    Optional<UUID> guid = UuidUtils.parseUuid(providerFirmGUIDorFirmNumber);
+    var guid = UuidUtils.parseUuid(providerFirmGUIDorFirmNumber);
     return (guid.isPresent()
             ? providerRepository.findById(guid.get())
             : providerRepository.findByFirmNumber(providerFirmGUIDorFirmNumber))
@@ -96,44 +94,43 @@ public class ProviderService {
       provider.setName(patch.getName());
     }
 
-    LSPDetailsPatchV2 lspPatch = patch.getLegalServicesProvider();
+    var lspPatch = patch.getLegalServicesProvider();
     if (lspPatch != null) {
       applyLspPatch(provider, providerFirmGUIDorFirmNumber, lspPatch);
     }
 
-    PractitionerDetailsPatchV2 practitionerPatch = patch.getPractitioner();
+    var practitionerPatch = patch.getPractitioner();
     if (practitionerPatch != null) {
       applyPractitionerPatch(provider, providerFirmGUIDorFirmNumber, practitionerPatch);
     }
 
-    ProviderEntity saved = providerRepository.save(provider);
+    var saved = providerRepository.save(provider);
 
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 
   private static void applyLspPatch(
       ProviderEntity provider, String providerFirmGUIDorFirmNumber, LSPDetailsPatchV2 lspPatch) {
-    if (!(provider instanceof LspProviderEntity lspProvider)) {
-      throw new IllegalArgumentException(
-          "legalServicesProvider updates require a Legal Services Provider: "
-              + providerFirmGUIDorFirmNumber);
-    }
-
-    if (lspPatch.getHeadOffice() != null) {
-      throw new IllegalArgumentException(
-          "Head office reassignment is not supported on this endpoint");
-    }
-
-    if (lspPatch.getConstitutionalStatus() != null) {
-      lspProvider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
-    }
-
-    if (lspPatch.getIndemnityReceivedDate() != null) {
-      lspProvider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
-    }
-
-    if (lspPatch.getCompaniesHouseNumber() != null) {
-      lspProvider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
+    switch (provider) {
+      case LspProviderEntity lspProvider -> {
+        if (lspPatch.getHeadOffice() != null) {
+          throw new IllegalArgumentException(
+              "Head office reassignment is not supported on this endpoint");
+        }
+        if (lspPatch.getConstitutionalStatus() != null) {
+          lspProvider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
+        }
+        if (lspPatch.getIndemnityReceivedDate() != null) {
+          lspProvider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
+        }
+        if (lspPatch.getCompaniesHouseNumber() != null) {
+          lspProvider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
+        }
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "legalServicesProvider updates require a Legal Services Provider: "
+                  + providerFirmGUIDorFirmNumber);
     }
   }
 
@@ -141,23 +138,16 @@ public class ProviderService {
       ProviderEntity provider,
       String providerFirmGUIDorFirmNumber,
       PractitionerDetailsPatchV2 practitionerPatch) {
-    if (!(provider instanceof PractitionerEntity practitionerProvider)) {
-      throw new IllegalArgumentException(
-          "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
-    }
-
     if (practitionerPatch.getLiaisonManager() != null) {
       throw new IllegalArgumentException(
           "Practitioner liaison manager updates are not supported on this endpoint");
     }
-
     if (practitionerPatch.getParentFirms() != null
         && !practitionerPatch.getParentFirms().isEmpty()) {
       throw new IllegalArgumentException(
           "Practitioner parent-firm updates are not supported on this endpoint");
     }
-
-    switch (practitionerProvider) {
+    switch (provider) {
       case AdvocatePractitionerEntity advocate -> {
         if (practitionerPatch.getAdvocateLevel() != null) {
           advocate.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
@@ -176,11 +166,8 @@ public class ProviderService {
         }
       }
       default ->
-          throw new IllegalStateException(
-              "Unhandled PractitionerEntity subtype for provider "
-                  + providerFirmGUIDorFirmNumber
-                  + " with advocateType="
-                  + practitionerProvider.getAdvocateType());
+          throw new IllegalArgumentException(
+              "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
   }
 

@@ -1017,6 +1017,9 @@ paths:
            is still active. If office is made inactive this flag should be reset to false.
         7) Setting `falseBalanceFlag` for LSP/Advocate. Can only be set to true if the firm office
            is inactive. If office is made active this flag should be reset to false.
+        8) Re-activating an office by setting `clearActiveDateTo: true`. This clears `activeDateTo`
+           and resets `falseBalanceFlag` to false for LSP and Advocate/Barrister offices.
+           Must not be combined with `activeDateTo` in the same request.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1047,6 +1050,12 @@ paths:
                         $ref: "#/components/schemas/BaseEntityGUIDV2"
                       officeCode:
                         $ref: "#/components/schemas/OfficeAccountNumberV2"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
         "403":
           description: Forbidden
           content:
@@ -2152,10 +2161,20 @@ components:
         When `activeDateTo` is set on an LSP office or an Advocate/Barrister office, the
         `debtRecoveryFlag` should be set to false.
 
-        When `activeDateTo` is unset (office made active) on an LSP office or an Advocate/Barrister
-        office, the `falseBalanceFlag` should be set to false.
+        When an office is made active (using `clearActiveDateTo: true`) on an LSP office or an
+        Advocate/Barrister office, the `falseBalanceFlag` should be set to false.
 
         CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
+
+    ClearActiveDateToV2:
+      type: boolean
+      description: |
+        When `true`, clears `activeDateTo` back to `null`, re-activating the office. Also resets
+        `falseBalanceFlag` to `false` for LSP and Advocate/Barrister offices.
+
+        This field exists because a PATCH request cannot otherwise distinguish an explicit
+        `activeDateTo: null` (meaning "clear the value") from the field being absent (meaning
+        "no change"). Must not be combined with `activeDateTo` in the same request.
 
     DebtRecoveryFlagV2:
       type: boolean
@@ -2292,6 +2311,8 @@ components:
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
+        clearActiveDateTo:
+          $ref: "#/components/schemas/ClearActiveDateToV2"
         debtRecoveryFlag:
           $ref: "#/components/schemas/DebtRecoveryFlagV2"
         falseBalanceFlag:
@@ -2318,6 +2339,8 @@ components:
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
+        clearActiveDateTo:
+          $ref: "#/components/schemas/ClearActiveDateToV2"
         address:
           $ref: "#/components/schemas/OfficeAddressV2"
         telephoneNumber:
@@ -2334,6 +2357,8 @@ components:
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
+        clearActiveDateTo:
+          $ref: "#/components/schemas/ClearActiveDateToV2"
         debtRecoveryFlag:
           $ref: "#/components/schemas/DebtRecoveryFlagV2"
         falseBalanceFlag:

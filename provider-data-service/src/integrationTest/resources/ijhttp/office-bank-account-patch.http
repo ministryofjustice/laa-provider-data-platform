@@ -1,0 +1,176 @@
+### Office bank account — PATCH reassignment demo
+#
+# Run steps in order. Steps 1–3 create a provider and an Edinburgh office; steps 4–7 demo
+# bank account reassignment on the Edinburgh office.
+#
+# NOTE: This file is not idempotent. Steps 1, 2 and 5 create bank accounts using hardcoded
+# sort codes and account numbers; on a second run those steps return HTTP 409 because the
+# accounts already exist. Steps 3, 4, 6 and 7 will still work correctly using the GUIDs
+# captured from the first run (held in client.global).
+
+### 1. Create a Legal Services Provider firm (Newcastle head office)
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Legal Services Provider",
+  "name": "Westgate Legal Services LLP",
+  "legalServicesProvider": {
+    "address": {
+      "line1": "56 Westgate Road",
+      "townOrCity": "Newcastle upon Tyne",
+      "postcode": "NE1 1TT"
+    },
+    "telephoneNumber": "0191 498 0100",
+    "emailAddress": "admin@westgatelegal.example",
+    "payment": {
+      "paymentMethod": "EFT",
+      "bankAccountDetails": {
+        "accountName": "Westgate Legal LLP - NEWCASTLE",
+        "sortCode": "200000",
+        "accountNumber": "11112222"
+      }
+    },
+    "liaisonManager": {
+      "firstName": "Alice",
+      "lastName": "Patel",
+      "emailAddress": "a.patel@westgatelegal.example",
+      "telephoneNumber": "0191 498 0101",
+      "activeDateFrom": "2024-04-01"
+    }
+  }
+}
+
+> {%
+  client.test("Step 1: provider firm created", function() {
+    client.assert(
+      response.status === 201,
+      "Expected 201; got " + response.status + ". If 409, bank account 200000/11112222 already " +
+      "exists — re-runs are not supported. Use a fresh database or environment."
+    );
+  });
+  if (response.status === 201) {
+    client.global.set("providerFirmGUID", response.body.data.providerFirmGUID);
+    client.global.set("providerFirmNumber", response.body.data.providerFirmNumber);
+  }
+%}
+
+### 2. Create an Edinburgh office (EFT payment — Edinburgh bank account)
+POST http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices
+Content-Type: application/json
+
+{
+  "address": {
+    "line1": "12 Charlotte Square",
+    "townOrCity": "Edinburgh",
+    "postcode": "EH2 4DR"
+  },
+  "telephoneNumber": "0131 226 0100",
+  "emailAddress": "edinburgh@westgatelegal.example",
+  "payment": {
+    "paymentMethod": "EFT",
+    "bankAccountDetails": {
+      "accountName": "Westgate Legal LLP - EDINBURGH",
+      "sortCode": "830000",
+      "accountNumber": "33334444"
+    }
+  },
+  "liaisonManager": {
+    "useHeadOfficeLiaisonManager": true
+  }
+}
+
+> {%
+  client.test("Step 2: Edinburgh office created", function() {
+    client.assert(
+      response.status === 201,
+      "Expected 201; got " + response.status + ". If 409, bank account 830000/33334444 already " +
+      "exists — re-runs are not supported. Use a fresh database or environment."
+    );
+  });
+  if (response.status === 201) {
+    client.global.set("officeGUID", response.body.data.officeGUID);
+    client.global.set("officeCode", response.body.data.officeCode);
+  }
+%}
+
+### 3. Fetch the Newcastle bank account GUID for use in step 4
+# Filtering by account number avoids any ambiguity about which account is content[0].
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/bank-details?bankAccountNumber=11112222
+
+> {%
+  client.global.set("newcastleBankAccountGUID", response.body.data.content[0].guid);
+%}
+
+### 4. PATCH Edinburgh office — link the existing Newcastle bank account
+# End-dates the EDINBURGH primary link and creates a new primary link to the NEWCASTLE account.
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "type": "link",
+      "bankAccountGUID": "{{newcastleBankAccountGUID}}"
+    }
+  }
+}
+
+> {%
+  client.test("Link existing bank account — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.providerFirmGUID !== undefined, "providerFirmGUID missing");
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 5. PATCH Edinburgh office — create and link a new Glasgow bank account
+# Creates a new BankAccount, links it to the provider and the Edinburgh office, and
+# end-dates the previously primary OfficeBankAccountLink.
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "accountName": "Westgate Legal LLP - GLASGOW",
+      "sortCode": "832100",
+      "accountNumber": "55556666"
+    }
+  }
+}
+
+> {%
+  client.test("Create and link new bank account — 200", function() {
+    client.assert(
+      response.status === 200,
+      "Expected 200; got " + response.status + ". If 409, bank account 832100/55556666 already " +
+      "exists — re-runs are not supported. Use a fresh database or environment."
+    );
+    client.assert(response.body.data.providerFirmGUID !== undefined, "providerFirmGUID missing");
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 6. Verify — list bank accounts for the Edinburgh office
+# Expect EDINBURGH and NEWCASTLE as historical records, GLASGOW as current primary.
+GET http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}/bank-details
+
+### 7. PATCH Edinburgh office — unknown bank account GUID (expect 404)
+PATCH http://localhost:8080/provider-firms/{{providerFirmGUID}}/offices/{{officeGUID}}
+Content-Type: application/json
+
+{
+  "payment": {
+    "paymentMethod": "EFT",
+    "paymentHeldFlag": false,
+    "bankAccountDetails": {
+      "type": "link",
+      "bankAccountGUID": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}

@@ -40,8 +40,7 @@ class ProviderFirmOfficesGlobalE2eTest {
   }
 
   @Test
-  void
-      getOffices_filterByOfficeCodeWithAllProviderOffices_returnsAllOfficesForProviderAndEchoesCriteria() {
+  void getOffices_filterByOfficeCodeWithAllProviderOffices_returnsAllOfficesAndEchoesCriteria() {
     given()
         .queryParam("officeCode", E2eConfig.lspOfficeCode())
         .queryParam("allProviderOffices", "true")

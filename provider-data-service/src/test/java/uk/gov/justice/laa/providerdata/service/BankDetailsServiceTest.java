@@ -115,6 +115,7 @@ class BankDetailsServiceTest {
         .thenReturn(false);
     when(officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink))
         .thenReturn(Optional.of(existing));
+    when(officeBankAccountLinkRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
     when(officeBankAccountLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     ProviderEntity provider = providerEntity(FirmType.LEGAL_SERVICES_PROVIDER);
@@ -125,9 +126,9 @@ class BankDetailsServiceTest {
     assertThat(existing.getPrimaryFlag()).isFalse();
     assertThat(existing.getActiveDateTo()).isEqualTo(newDate);
 
-    // save called twice: once for the old record end-dating, once for the new link
-    verify(officeBankAccountLinkRepository, org.mockito.Mockito.times(2))
-        .save(any(OfficeBankAccountLinkEntity.class));
+    // saveAndFlush called once for the end-dated old record; save called once for the new link
+    verify(officeBankAccountLinkRepository).saveAndFlush(any(OfficeBankAccountLinkEntity.class));
+    verify(officeBankAccountLinkRepository).save(any(OfficeBankAccountLinkEntity.class));
   }
 
   @Test

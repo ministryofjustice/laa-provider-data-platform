@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -51,6 +53,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return problemDetail(HttpStatus.NOT_FOUND, ex.getMessage());
   }
 
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    return problemDetail(
+        HttpStatus.CONFLICT, "A unique or referential constraint was violated.", "P00DK");
+  }
+
+  /** Maps an optimistic locking failure (stale {@code @Version}) to HTTP 409 Conflict. */
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ProblemDetail handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
+    return problemDetail(
+        HttpStatus.CONFLICT,
+        "The resource was modified by a concurrent request; please retry with the latest version.",
+        "P00OL");
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
     return problemDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -73,6 +90,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail pd = ProblemDetail.forStatus(status);
     pd.setDetail(detail);
     pd.setProperty(ERROR_PROPERTY, errorFor(status));
+    return pd;
+  }
+
+  private static ProblemDetail problemDetail(HttpStatus status, String detail, String errorCode) {
+    ProblemDetail pd = ProblemDetail.forStatus(status);
+    pd.setDetail(detail);
+    pd.setProperty(ERROR_PROPERTY, new ErrorResponseError().errorCode(errorCode));
     return pd;
   }
 

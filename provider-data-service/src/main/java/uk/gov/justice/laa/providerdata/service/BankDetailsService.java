@@ -231,13 +231,16 @@ public class BankDetailsService {
     LocalDate resolvedFrom = activeDateFrom != null ? activeDateFrom : LocalDate.now();
 
     // End-date the existing primary record before making the new one primary.
+    // saveAndFlush is required here: Hibernate's default flush order processes inserts before
+    // updates, so without an explicit flush the new link would be INSERTed before this UPDATE
+    // reaches the database, transiently violating the partial unique index.
     officeBankAccountLinkRepository
         .findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink)
         .ifPresent(
             existing -> {
               existing.setPrimaryFlag(Boolean.FALSE);
               existing.setActiveDateTo(resolvedFrom);
-              officeBankAccountLinkRepository.save(existing);
+              officeBankAccountLinkRepository.saveAndFlush(existing);
             });
 
     OfficeBankAccountLinkEntity newLink =

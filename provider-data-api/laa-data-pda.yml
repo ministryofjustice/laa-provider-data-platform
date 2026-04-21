@@ -5,9 +5,9 @@ info:
   description: |
     API for managing legal service providers, including solicitors, chambers, and advocates.
 
-    Unless explicitly stated otherwise, `officeGUID` values identify the provider-office
-    link record, not the underlying office record. The underlying office GUID is mainly
-    an internal identifier used to associate an office record with a provider-office link.
+    Unless explicitly stated otherwise, `officeGUID` values identify the provider-office link
+    record, not the underlying office record. The underlying office GUID is mainly an internal
+    identifier used to associate an office record with a provider-office link.
 
 paths:
   /provider-events:
@@ -24,8 +24,8 @@ paths:
         Provides capability to view all events that have been emitted by the microservice.
 
         Use cases:
-        1) Search event header history
-        2) Identify event GUID for a given correlationId
+        1) Search event header history.
+        2) Identify event GUID for a given correlationId.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -80,7 +80,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -159,11 +159,13 @@ paths:
       tags:
         - Contract Managers
       description: |
-        Retrieve a list of contract managers. 
+        Retrieve a list of contract managers.
 
-        These are employee records in CWA and potentially we need to get this information from SiLAS.
+        These are employee records in CWA and potentially we need to get this information from
+        SiLAS.
 
-        Contract managers are required for assigning contracts and schedules to a provider firm in CWA.
+        Contract managers are required for assigning contracts and schedules to a provider firm in
+        CWA.
 
         Use cases:
         1) List available contract managers to get the GUID before assigning them to an office
@@ -222,7 +224,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -248,12 +250,12 @@ paths:
       description: |
         Create a provider firm (e.g., legal service provider, chambers, advocates).
 
-        Each provider must include a name, type, and other type specific data. 
+        Each provider must include a name, type, and other type specific data.
 
-        The request body should contain either `legalServicesProvider`, `chambers` or `practitioner`
-        element depending on the type.
+        The request body should contain either `legalServicesProvider`, `chambers` or
+        `practitioner` element depending on the type.
 
-        `practitioner` is further sub divided into `Advocate` or `Barrister`.
+        `practitioner` is further sub-divided into `Advocate` or `Barrister`.
 
         Each entity will have its own specific schema and data requirement for a complete record.
 
@@ -270,7 +272,7 @@ paths:
               $ref: "#/components/schemas/ProviderCreateV2"
       responses:
         "201":
-          description: Provider created successfully
+          description: Created successfully
           content:
             application/json:
               schema:
@@ -446,7 +448,7 @@ paths:
       tags:
         - Provider Firms
       description: |
-        Retrieve basic provider details. Use sub resources to retrieve other information.
+        Retrieve basic provider details. Use sub-resources to retrieve other information.
 
         Use cases:
         1) Retrieve provider firm details when GUID or firm number is available
@@ -456,7 +458,7 @@ paths:
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -472,7 +474,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -493,14 +495,14 @@ paths:
       tags:
         - Provider Firms
       description: |
-        Use cases: 
+        Use cases:
         1) Updating firm name
         2) Updating Legal Service Provider's basic details
         3) Changing head office of a Legal Service Provider basic.
         4) Updating Barrister's or Advocate's basic details
-        5) Changing parent firm of a Barrister or an Advocate. 
-           Note that changing parent chamber should also re-link office details and 
-           liaison manager. There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
+        5) Changing parent firm of a Barrister or an Advocate.
+           Note that changing parent chamber should also re-link office details and liaison manager.
+           There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -513,7 +515,7 @@ paths:
               $ref: "#/components/schemas/ProviderPatchV2"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -535,7 +537,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -558,7 +560,7 @@ paths:
       tags:
         - Provider Firm Bank Accounts
       description: |
-        Retrieve bank account details for a given provider. 
+        Retrieve bank account details for a given provider.
 
         For `Legal Service Provider` or `Advocate` firm type the response returns bank accounts
         associated with that provider only.
@@ -566,10 +568,12 @@ paths:
         For `Chambers` firm type the response returns bank accounts for all Advocates in that
         Chambers.
 
-        Note that bank account details are created only via creating or updating office details using the `payment` element.
+        Note that bank account details are created only via creating or updating office details
+        using the `payment` element.
 
         Use cases:
-        1) Retrieve the list of bank accounts available for office assignment. Use `GUID` in office payment PATCH operation to set alternative bank account details.
+        1) Retrieve the list of bank accounts available for office assignment. Use `GUID` in office
+           payment PATCH operation to set alternative bank account details.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -618,7 +622,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -642,12 +646,14 @@ paths:
       tags:
         - Provider Firm Bank Accounts
       description: |
-        Retrieve bank account details for a given provider's office. 
+        Retrieve bank account details for a given provider's office.
 
-        Note that bank account details are created only via creating or updating office details using the `payment` element.
+        Note that bank account details are created only via creating or updating office details
+        using the `payment` element.
 
         Use cases:
-        1) Retrieve the list of bank accounts assigned to office. Use `GUID` in office payment PATCH operation to set alternative bank account details.
+        1) Retrieve the list of bank accounts assigned to office. Use `GUID` in office payment
+           PATCH operation to set alternative bank account details.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -697,7 +703,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -721,7 +727,8 @@ paths:
       tags:
         - Provider Firm Offices
       description: |
-        Create new office details used by given provider firm. Only applicable for `firmType=Legal Service Provider`.
+        Create new office details used by given provider firm. Only applicable for
+        `firmType=Legal Service Provider`.
 
         Use cases:
         1) Create additional office details for Legal Service Provider firm
@@ -768,7 +775,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -790,14 +797,17 @@ paths:
       tags:
         - Provider Firm Offices
       description: |
-        Retrieve office details for a given provider. Use this endpoint when you have `providerFirmGUID`.
+        Retrieve office details for a given provider. Use this endpoint when you have
+        `providerFirmGUID`.
 
-        When you do not have `providerFirmGUID` but only `officeGUID` or `officeCode` - use `/provider-firms-offices?officeGUID=12345&allProviderOffices=true`
+        When you do not have `providerFirmGUID` but only `officeGUID` or `officeCode` - use
+        `/provider-firms-offices?officeGUID=123e4567-e89b-12d3-a456-426614174000&allProviderOffices=true`
 
         Use cases:
         1) Browse all offices belonging to a Legal Service Provider firm
         2) Show details of the Chambers office
-        3) Show details of the Advocate's office (which is the Chambers office they are currently assigned to)
+        3) Show details of the Advocate's office (which is the Chambers office they are currently
+           assigned to)
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -836,7 +846,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -859,11 +869,12 @@ paths:
       tags:
         - Provider Firm Offices
       description: |
-        Retrieve office details when you do not have `providerFirmGUID` or `FirmNumber`. 
+        Retrieve office details when you do not have `providerFirmGUID` or `FirmNumber`.
 
         Use cases:
         1) Browse all active offices
-        2) Browse all offices of a specific provider using when only `officeGUID` or `officeCode` is known.
+        2) Browse all offices of a specific provider using when only `officeGUID` or `officeCode`
+           is known.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -887,7 +898,9 @@ paths:
           in: query
           schema:
             type: boolean
-          description: use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for the provider that the office with specified guid belongs to
+          description: >-
+            Use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for
+            the provider that the office with specified GUID belongs to.
         - $ref: "#/components/parameters/QPageNumber"
         - $ref: "#/components/parameters/QPageSize"
       responses:
@@ -950,7 +963,7 @@ paths:
         - $ref: "#/components/parameters/OfficeGUIDorCode"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -965,7 +978,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -991,19 +1004,19 @@ paths:
         Note that `firmType=Advocate` can't patch Chamber office details.
 
         Use cases:
-        1) Deactivating office details by setting `activeDateTo`. 
-          Note that if the office is a head office of Legal Service Provider firm, `activeDateTo` should 
-          be set on all other offices which are not yet de-activated.
-          Similarly if the office is a Chambers' office , `activeDateTo` should 
-          be set on all Advocate/Barrister offices which are not yet de-activated.
+        1) Deactivating office details by setting `activeDateTo`.
+           Note that if the office is a head office of Legal Service Provider firm, `activeDateTo`
+           should be set on all other offices which are not yet de-activated.
+           Similarly if the office is a Chambers' office, `activeDateTo` should be set on all
+           Advocate/Barrister offices which are not yet de-activated.
         2) Holding payments using `paymentHeldFlag`
         3) Updating office details
         4) Setting `intervened` flag
         5) Creating or assigning different bank details using `payment.bankAccountDetails`
-        6) Setting `debtRecoveryFlag` for LSP/Advocate. Can only be set to true if the firm office is still active. 
-           If office is made inactive this flag should be reset to false.
-        7) Setting `falseBalanceFlag` for LSP/Advocate. Can only be set to true if the firm office is inactive. 
-           If office is made active this flag should be reset to false.
+        6) Setting `debtRecoveryFlag` for LSP/Advocate. Can only be set to true if the firm office
+           is still active. If office is made inactive this flag should be reset to false.
+        7) Setting `falseBalanceFlag` for LSP/Advocate. Can only be set to true if the firm office
+           is inactive. If office is made active this flag should be reset to false.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1017,7 +1030,7 @@ paths:
               $ref: "#/components/schemas/OfficePatchV2"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -1041,7 +1054,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -1055,7 +1068,8 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/liaison-managers:
     post:
-      summary: Create a liaison manager for office. Creating new manager end-dates all other managers.
+      summary: >-
+        Create a liaison manager for office. Creating new manager end-dates all other managers.
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1064,15 +1078,16 @@ paths:
       tags:
         - Provider Firm Offices Liaison Managers
       description: |
-        Create new liaison manager for an office. There can be only one active liaison manager and all firm types
-        are able to have liaison manager independently set at the office level. 
+        Create new liaison manager for an office. There can be only one active liaison manager and
+        all firm types are able to have liaison manager independently set at the office level.
 
         Use cases:
-        1) Create a new Liaison manager entry specific to given LSP office.
+        1) Create a new liaison manager entry specific to given LSP office.
         2) Choose to use LSP's head office liaison manager for given LSP office.
-        3) Create a new Liaison manager entry specific to Chambers office.
-        3) Create a new Liaison manager entry specific to Advocate/Barrister for a given Chambers office.
-        4) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
+        3) Create a new liaison manager entry specific to Chambers office.
+        4) Create a new liaison manager entry specific to Advocate/Barrister for a given Chambers
+           office.
+        5) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1121,7 +1136,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "404":
-          description: Provider firm or office not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -1157,7 +1172,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -1181,7 +1196,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -1195,7 +1210,8 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
     post:
-      summary: Assign a contract manager for office. Assigning a new manager removes the previous manager.
+      summary: >-
+        Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1208,11 +1224,11 @@ paths:
 
         There should be only a maximum of one assignment (MVP scope).
 
-        Applicable only for LSP's. 
+        Applicable only for LSPs.
 
-        Note that in CWA there are currently fake contract manager entries assigned as it is a mandatory field. 
-        In addition business users used some of these entries to mark debt recovery and false balance flags. 
-        This is no longer necessary in the new model.
+        Note that in CWA there are currently fake contract manager entries assigned as it is a
+        mandatory field. In addition business users used some of these entries to mark debt
+        recovery and false balance flags. This is no longer necessary in the new model.
 
         Use cases:
         1) Assign new contract manager to a given office.
@@ -1272,7 +1288,7 @@ paths:
                 $ref: "#/components/schemas/InternalServerError"
 
     get:
-      summary: Retrieve contract managers for a given office
+      summary: Retrieve contract managers for a given provider office
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1281,7 +1297,7 @@ paths:
       tags:
         - Provider Firm Offices Contract Managers
       description: |
-        Retrieve provider office contract managers. Applicable only for LSP's.
+        Retrieve provider office contract managers. Applicable only for LSPs.
       parameters:
         - $ref: "#/components/parameters/XCorrelationId"
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -1291,7 +1307,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -1315,7 +1331,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -1340,9 +1356,11 @@ paths:
       description: |
         Retrieve chamber office practitioners.
 
-        Note that to create new practitioner you need to create new provider firm of type `Barrister` or `Advocate`.
+        Note that to create new practitioner you need to create new provider firm of type
+        `Barrister` or `Advocate`.
 
-        To re-assign Advocate/Barrister to a different Chamber, use the PATCH `/provider-firms?providerFirmGUIDorFirmNumber=ABC` to change parent firms. 
+        To re-assign Advocate/Barrister to a different Chamber, use the PATCH
+        `/provider-firms?providerFirmGUIDorFirmNumber=ABC` to change parent firms.
 
         Use cases:
         1) List all Advocates and Barristers assigned to given Chamber.
@@ -1354,7 +1372,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: Provider details retrieved successfully
+          description: Details retrieved successfully
           content:
             application/json:
               schema:
@@ -1378,7 +1396,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
         "404":
-          description: Provider not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -1411,7 +1429,7 @@ components:
       type: string
       format: uuid
       description: "GUID is the primary key for entity"
-      example: "ABCD-DEFG-1234-5678"
+      example: "123e4567-e89b-12d3-a456-426614174000"
 
     BaseEntityV2:
       type: object
@@ -1500,12 +1518,12 @@ components:
     ProviderFirmNumberV2:
       type: string
       description: |
-        Unique provider firm identifier. CWA ref: PO_VENDOR_CONTACTS.SEGMENT1 
+        Unique provider firm identifier. CWA ref: PO_VENDOR_CONTACTS.SEGMENT1
 
-        `TODO: check which one to use, SiLAS uses segment1` but all V1 endpoints use VENDOR_ID as path variable???.       
-        `TODO: is this the same as account number? CWA ref, is it segment 1?`
-        `TODO: do we need ccmsFirmId?? xxccms_provider_offices_v.providerfirm_id`
-        `TODO: check rules for generating these numbers and check what sequence number to start from at go live`
+        *TODO: Check which to use, SiLAS uses segment1, but all V1 endpoints use VENDOR_ID in path*
+        *TODO: Is this the same as account number. CWA ref, is it segment 1*
+        *TODO: Do we need ccmsFirmId. xxccms_provider_offices_v.providerfirm_id*
+        *TODO: Check rules for generating these and what sequence number to start from at go live*
       example: "3856"
 
     ProviderFirmTypeV2:
@@ -1517,14 +1535,14 @@ components:
       description: |
         Type of the provider firm. Barristers are entered as Advocates.
 
-        CWA ref: PO_VENDORS.ATTRIBUTE4. 
+        CWA ref: PO_VENDORS.ATTRIBUTE4.
 
-        `TODO: check if these are all valid types.`
+        *TODO: Check if these are all valid types*
 
     ProviderFirmNameV2:
       type: string
       description: |
-        Name of the provider firm. 
+        Name of the provider firm.
 
         CWA ref: PO_VENDORS.VENDOR_NAME
       example: "Legal Services Co."
@@ -1581,8 +1599,7 @@ components:
             - $ref: "#/components/schemas/PractitionerDetailsCreateV2"
             - $ref: "#/components/schemas/PractitionerHeadOfficeCreateV2"
       description: |
-        Create provider of `firmType=Advocate`. Office is linked to the 
-        parent Chambers office.
+        Create provider of `firmType=Advocate`. Office is linked to the parent Chambers office.
 
     ProviderV2:
       allOf:
@@ -1682,24 +1699,25 @@ components:
         - Charity
         - Government Funded Organisation
       description: |
-        N/A for Firm type Advocate or Chambers. 
+        N/A for Firm type Advocate or Chambers.
 
-        For Legal Services provider, options are: `TODO: check the enum values`
-          - Partnership, 
-          - Limited Company, 
-          - Sole Practitioner, 
-          - LLAP, `TODO: check why in MAPD documentation it is Limited Liability Partnership (LLP)`
-          - Charity, 
+        For Legal Services provider, options are: *TODO: Check the enum values*
+          - Partnership,
+          - Limited Company,
+          - Sole Practitioner,
+          - LLAP, *TODO: Check why in MAPD documentation it is Limited Liability Partnership (LLP)*
+          - Charity,
           - Government Funded Organisation.
 
-        When constitutional status is set to 'Charity' `notForProfitOrganisationFlag` must be set to true.
+        When constitutional status is set to 'Charity' `notForProfitOrganisationFlag` must be set
+        to true.
 
         CWA ref: PO_VENDORS.ATTRIBUTE1.
 
     LSPDetailsNotForProfitOrganisationFlagV2:
       type: boolean
       description: |
-        `TODO: check if this flag is true for LSP with constitutionalStatus=Charity ???`
+        *TODO: Check if this flag is true for LSP with constitutionalStatus=Charity*
 
         CWA ref: PO_VENDORS.ATTRIBUTE3.
 
@@ -1707,19 +1725,19 @@ components:
       type: string
       format: date
       description: |
-        `TODO: Need better description of this field`
+        *TODO: Need better description of this field*
 
         CWA ref: PO_VENDORS.ATTRIBUTE2.
 
     LSPDetailsCompaniesHouseNumberV2:
       type: string
       description: |
-        `TODO: Need better description of this field`
+        *TODO: Need better description of this field*
 
-        WARNING: same field is used for Advocates for bar council roll number. 
+        WARNING: same field is used by Advocates for Bar Council roll number.
 
         CWA ref: PO_VENDORS.ATTRIBUTE11
-      example: "`TODO: provide example`"
+      example: "*TODO: Provide example*"
 
     LSPDetailsCreateV2:
       type: object
@@ -1808,15 +1826,15 @@ components:
         - Advocate
         - Barrister
       description: |
-        Advocate sub type can be Advocate or Barrister. 
+        Advocate sub-type can be Advocate or Barrister.
 
         Derived from advocateSolicitor flag in CWA.
-        If advocateSolicitor=Y -> Advocate, 
+        If advocateSolicitor=Y -> Advocate,
         if advocateSolicitor=N -> Barrister
 
-        CWA ref: PO_VENDORS.ATTRIBUTE9. 
+        CWA ref: PO_VENDORS.ATTRIBUTE9.
 
-        `TODO: Need better description of this field, any business rules?`
+        *TODO: Need better description of this field, any business rules*
 
     PractitionerDetailsAdvocateLevelV2:
       type: string
@@ -1824,13 +1842,13 @@ components:
         - Junior
         - KC
       description: |
-        Advocate level. 
+        Advocate level.
 
         WARNING: Same field as Barrister level in CWA
 
-        CWA ref: PO_VENDORS.ATTRIBUTE10. 
+        CWA ref: PO_VENDORS.ATTRIBUTE10.
 
-        `TODO: Need better description of this field, any business rules?`
+        *TODO: Need better description of this field, any business rules*
 
     PractitionerDetailsBarristerLevelV2:
       type: string
@@ -1838,33 +1856,35 @@ components:
         - Junior
         - KC
       description: |
-        Advocate level. 
+        Advocate level.
 
         WARNING: Same field as Advocate level in CWA
 
-        CWA ref: PO_VENDORS.ATTRIBUTE10. 
+        CWA ref: PO_VENDORS.ATTRIBUTE10.
 
-        `TODO: Need better description of this field, any business rules?`
+        *TODO: Need better description of this field, any business rules*
 
     PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2:
       type: string
       description: |
-        Bar Council or Solicitors Regulation Authority roll number. 
+        Bar Council or Solicitors Regulation Authority roll number.
 
-        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Company house number). 
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Companies House
+        number).
 
-        `TODO: Need better description of this field, any business rules?`
-      example: "`TODO: provide example`"
+        *TODO: Need better description of this field, any business rules*
+      example: "*TODO: Provide example*"
 
     PractitionerDetailsBarCouncilRollNumberV2:
       type: string
       description: |
-        Bar Council or Solicitors Regulation Authority roll number. 
+        Bar Council or Solicitors Regulation Authority roll number.
 
-        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Company house number). 
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Companies House
+        number).
 
-        `TODO: Need better description of this field, any business rules?`
-      example: "`TODO: provide example`"
+        *TODO: Need better description of this field, any business rules*
+      example: "*TODO: Provide example*"
 
     PractitionerDetailsAdvocateDetailsV2:
       type: object
@@ -2110,7 +2130,7 @@ components:
     OfficeAccountNumberV2:
       type: string
       description: |
-        Unique provider office identifier. 
+        Unique provider office identifier.
 
         CWA ref: PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE
       example: "0Q731M"
@@ -2119,24 +2139,28 @@ components:
       type: string
       format: date
       description: |
-        End date of activity. 
+        End date of activity.
 
-        When activeDateTo is set on the head office for LSP all child offices that do not have activeDateTo set should be updated 
-        to the same value (i.e. deactivating head office deactivates all active child offices).
+        When `activeDateTo` is set on the head office for LSP all child offices that do not have
+        `activeDateTo` set should be updated to the same value (i.e. deactivating head office
+        deactivates all active child offices).
 
-        When activeDateTo is set on the Chambers' office all assigned advocates/barristers that do not have activeDateTo set should 
-        be updated to the same value (i.e. deactivating chambers office deactivates all active advocate/barrister offices).
+        When `activeDateTo` is set on the Chambers' office all assigned advocates/barristers that
+        do not have `activeDateTo` set should be updated to the same value (i.e. deactivating
+        a chambers office deactivates all active advocate/barrister offices).
 
-        When activeDateTo is set on an LSP office or an Advocate/Barrister office `debtRecoveryFlag` should be set to false.
+        When `activeDateTo` is set on an LSP office or an Advocate/Barrister office, the
+        `debtRecoveryFlag` should be set to false.
 
-        When activeDateTo is unset (office made active) on an LSP office or an Advocate/Barrister office `falseBalanceFlag` should be set to false.
+        When `activeDateTo` is unset (office made active) on an LSP office or an Advocate/Barrister
+        office, the `falseBalanceFlag` should be set to false.
 
         CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
 
     DebtRecoveryFlagV2:
       type: boolean
       description: |
-        Can only be set to true if the firm office is still active. 
+        Can only be set to true if the firm office is still active.
         If office is made inactive this flag should be reset to false.
 
         CWA ref: via fake contract manager.
@@ -2144,7 +2168,7 @@ components:
     FalseBalanceFlagV2:
       type: boolean
       description: |
-        Can only be set to true if the firm office is inactive. 
+        Can only be set to true if the firm office is inactive.
         If office is made active this flag should be reset to false.
 
         CWA ref: via fake contract manager.
@@ -2350,17 +2374,17 @@ components:
     IntervenedOfficeDetailsIntervenedFlagV2:
       type: boolean
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE11 (this is an enum in CWA "Y"/"N"). 
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE11 (this is an enum in CWA "Y"/"N").
 
-        `TODO: Need better description of this field, any business rules?`
+        *TODO: Need better description of this field, any business rules*
 
     IntervenedOfficeDetailsIntervenedChangeDateV2:
       type: string
       format: date
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE12. 
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE12.
 
-        `TODO: Need better description of this field, any business rules?`
+        *TODO: Need better description of this field, any business rules*
 
     IntervenedOfficeDetailsV2:
       type: object
@@ -2392,56 +2416,56 @@ components:
         line1:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1. 
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1.
 
-            `TODO: find out what address info is stored in this attribute`'
+            *TODO: Find out what address info is stored in this attribute*
           example: "OLD COUNTY COURT"
         line2:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2. 
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2.
 
-            `TODO: find out what address info is stored in this attribute`
+            *TODO: Find out what address info is stored in this attribute*
           example: "56 WESTGATE ROAD"
         line3:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE3. 
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE3.
 
-            `TODO: find out what address info is stored in this attribute`
+            *TODO: Find out what address info is stored in this attribute*
         line4:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE4. 
+            CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE4.
 
-            `TODO: find out what address info is stored in this attribute`
+            *TODO: Find out what address info is stored in this attribute*
         townOrCity:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.CITY. 
+            CWA ref: PO_VENDOR_SITES_ALL.CITY.
 
-            `TODO: any business rules for verifying data?`
+            *TODO: Any business rules for verifying data*
           example: "NEWCASTLE-UPON-TYNE"
         county:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.COUNTY. 
+            CWA ref: PO_VENDOR_SITES_ALL.COUNTY.
 
-            `TODO: any business rules for verifying data?`
+            *TODO: Any business rules for verifying data*
         postcode:
           type: string
           description: |
-            CWA ref: PO_VENDOR_SITES_ALL.ZIP. 
+            CWA ref: PO_VENDOR_SITES_ALL.ZIP.
 
-            `TODO: any business rules for verifying data?`
+            *TODO: Any business rules for verifying data*
           example: "NE1 5XU"
 
     OfficePhoneV2:
       type: string
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE. 
+        CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE.
 
-        `TODO: any business rules for verifying data? do we need it as a separate field?`
+        *TODO: Any business rules for verifying data. Do we need it as a separate field*
       example: "0121 232 1111"
 
     OfficeEmailAddressV2:
@@ -2460,16 +2484,16 @@ components:
     DXdxNumberV2:
       type: string
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE6. 
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE6.
 
-        `TODO: need better description of this field`
+        *TODO: Need better description of this field*
 
     DXdxCentreV2:
       type: string
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE7. 
+        CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE7.
 
-        `TODO: need better description of this field`
+        *TODO: Need better description of this field*
 
     DXCreateV2:
       type: object
@@ -2532,23 +2556,23 @@ components:
         - CHECK
         - EFT
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD. 
+        CWA ref: PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD.
 
-        `TODO: check the enum values. Any business rules?`
+        *TODO: Check the enum values. Any business rules*
 
     PaymentDetailsPaymentHeldFlagV2:
       type: boolean
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.HOLD_ALL_PAYMENTS_FLAG (this is an enum in CWA "Y"/"N"). 
+        CWA ref: PO_VENDOR_SITES_ALL.HOLD_ALL_PAYMENTS_FLAG (this is an enum in CWA "Y"/"N").
 
-        `TODO: check the enum values. Any business rules?`
+        *TODO: Check the enum values. Any business rules*
 
     PaymentDetailsPaymentHeldReasonV2:
       type: string
       description: |
-        CWA ref: PO_VENDOR_SITES_ALL.HOLD_REASON. 
+        CWA ref: PO_VENDOR_SITES_ALL.HOLD_REASON.
 
-        `TODO: check if this is mandatory when paymentHeldFlag=Y`
+        *TODO: Check if this is mandatory when paymentHeldFlag=Y*
       example: "Under investigation"
 
     PaymentDetailsCreateV2:
@@ -2633,13 +2657,14 @@ components:
       description: |
         CWA ref: AP_BANK_ACCOUNT_USES_ALL.END_DATE
 
-        Absent from the response for the currently active record (i.e. where the underlying value is null).
+        Absent from the response for the currently active record (i.e. where the underlying value
+        is null).
 
     BankAccountPrimaryFlagV2:
       type: boolean
       description: |
         Marks currently active bank account details for given provider office.
-        Bank account details which are not primary are considered historical 
+        Bank account details which are not primary are considered historical
         selections.
 
         If this flag is set to true and there is an 'old' bank details record
@@ -2667,8 +2692,8 @@ components:
         Only applicable for `paymentMethod=EFT`.
 
         `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
-        Record that previously had primary flag set must be updated so that activeDateTo is set to new primary
-        record's activeDateFrom and primary flag is set to false.
+        Record that previously had primary flag set must be updated so that `activeDateTo` is set
+        to new primary record's activeDateFrom and primary flag is set to false.
 
     BankAccountProviderOfficeLinkV2:
       type: object
@@ -2685,10 +2710,11 @@ components:
         Only applicable for `paymentMethod=EFT`.
 
         `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
-        Record that previously had primary flag set must be updated so that activeDateTo is set to new primary
-        record's activeDateFrom and primary flag is set to false. 
+        Record that previously had primary flag set must be updated so that `activeDateTo` is set
+        to new primary record's `activeDateFrom` and primary flag is set to false.
 
-        `bankAccountGUID` can be obtained using `GET /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details`
+        `bankAccountGUID` can be obtained using
+        `GET /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details`
 
     BankAccountV2:
       allOf:
@@ -2752,9 +2778,9 @@ components:
     LiaisonManagerPhoneV2:
       type: string
       description: |
-        CWA ref: PO_VENDOR_CONTACTS.AREA_CODE + PO_VENDOR_CONTACTS.PHONE. 
+        CWA ref: PO_VENDOR_CONTACTS.AREA_CODE + PO_VENDOR_CONTACTS.PHONE.
 
-        `TODO: any business rules for verifying data? do we need it as a separate field?`
+        *TODO: Any business rules for verifying data. Do we need it as a separate field*
       example: "0121 232 1111"
 
     LiaisonManagerActiveDateFromV2:
@@ -2809,7 +2835,8 @@ components:
           $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
       description: |
         activeDateFrom by default is set to today's date. Previously 'active' liaison manager
-        assignment activeDateTo's value should be set to activeDateFrom's date minus one day of the new assignment.
+        assignment activeDateTo's value should be set to activeDateFrom's date minus one day of the
+        new assignment.
 
     LiaisonManagerLinkHeadOfficeV2:
       type: object
@@ -2819,10 +2846,12 @@ components:
         useHeadOfficeLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks Liaison manager record from the head office (or Chambers)
+            Setting this flag to true interlinks liaison manager record from the head office (or
+            Chambers)
       description: |
-        Applicable only for LSP offices. Indicates that new Liaison manager assignment should be to the Liaison manager that 
-        is currently specified at the head office. This update only links the data (no duplicate is created).
+        Applicable only for LSP offices. Indicates that new liaison manager assignment should be to
+        the liaison manager that is currently specified at the head office. This update only links
+        the data (no duplicate is created).
 
     LiaisonManagerLinkChambersV2:
       type: object
@@ -2832,21 +2861,26 @@ components:
         useChambersLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks Liaison manager record from the head office (or Chambers)
+            Setting this flag to true interlinks liaison manager record from the head office (or
+            Chambers)
       description: |
-        Applicable only for Advocate/Barrister. Indicates that new Liaison manager assignment should be to the Liaison manager that 
-        is currently specified at the Chambers' office. This update only links the data (no duplicate is created).
+        Applicable only for Advocate/Barrister. Indicates that new liaison manager assignment
+        should be to the liaison manager that is currently specified at the Chambers' office. This
+        update only links the data (no duplicate is created).
 
     LiaisonManagerLinkedFlagV2:
       type: boolean
       description: |
         Indicates whether this liaison manager entry is specific to given provider or is linked.
 
-        If the office is LSP and this flag is set to true it indicates that `useHeadOfficeLiaisonManager` option was used to create this entry.
+        If the office is LSP and this flag is set to true it indicates that
+        `useHeadOfficeLiaisonManager` option was used to create this entry.
 
-        If the office is Advocate/Barrister and this flag is set to true it indicates that `useChambersLiaisonManager` option was used to create this entry.
+        If the office is Advocate/Barrister and this flag is set to true it indicates that
+        `useChambersLiaisonManager` option was used to create this entry.
 
-        Note that if this attribute is set to true then updates at the parent entity should cascade to create new linked assignment.
+        Note that if this attribute is set to true then updates at the parent entity should cascade
+        to create new linked assignment.
 
     LiaisonManagerV2:
       allOf:
@@ -2901,9 +2935,10 @@ components:
 
     ContractManagerContractManagerIdV2:
       type: string
-      example: "`TODO: provide example`"
+      example: "*TODO: Provide example*"
       description: |
-        CWA ref: PER_ALL_PEOPLE_F.PERSON_ID (for provider firms' offices ID is stored in PO_VENDOR_SITES_ALL.ATTRIBUTE4)
+        CWA ref: PER_ALL_PEOPLE_F.PERSON_ID (for provider firms' offices ID is stored in
+        PO_VENDOR_SITES_ALL.ATTRIBUTE4)
 
     ContractManagerFirstNameV2:
       type: string
@@ -2992,7 +3027,7 @@ components:
           type: array
           items:
             type: string
-            example: "ABCD-EFGH-1234-5678"
+            example: "123e4567-e89b-12d3-a456-426614174000"
             description: "Filter value(s) used for this search"
 
     PaginationV2:
@@ -3152,9 +3187,9 @@ components:
       required: true
       schema:
         type: string
-      description: >
-        GUID of the provider-office link (not of the underlying office record),
-        or the office code (unique account number).
+      description: >-
+        GUID of the provider-office link (not of the underlying office record), or the office code
+        (unique account number).
     QPageNumber:
       name: page
       in: query

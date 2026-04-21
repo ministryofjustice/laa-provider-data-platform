@@ -13,9 +13,9 @@ pluginManagement {
     plugins {
         id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.5'
         id 'org.openapi.generator' version '7.21.0'
-        id 'io.freefair.lombok' version '9.2.0'
+        id 'io.freefair.lombok' version '9.4.0'
         id 'com.diffplug.spotless' version '8.4.0'
-        id 'com.github.ben-manes.versions' version '0.53.0'
+        id 'com.github.ben-manes.versions' version '0.54.0'
     }
 }
 

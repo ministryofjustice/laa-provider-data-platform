@@ -25,7 +25,6 @@ import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
@@ -335,16 +334,22 @@ class BankDetailsServiceTest {
 
   @Test
   void getOfficeBankAccounts_chambersOfficeLink_aggregatesAdvocateOfficeLinks() {
-    OfficeEntity office = new OfficeEntity();
-    ChamberProviderOfficeLinkEntity chambersLink = new ChamberProviderOfficeLinkEntity();
-    chambersLink.setOffice(office);
+    var chambersFirm = providerEntity(FirmType.CHAMBERS);
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setProvider(chambersFirm);
 
-    AdvocateProviderOfficeLinkEntity advocate1Link = new AdvocateProviderOfficeLinkEntity();
-    AdvocateProviderOfficeLinkEntity advocate2Link = new AdvocateProviderOfficeLinkEntity();
+    var advocateFirm = providerEntity(FirmType.ADVOCATE);
+    var parentLink = new ProviderParentLinkEntity();
+    parentLink.setProvider(advocateFirm);
+    parentLink.setParent(chambersFirm);
+
+    var advocate1Link = new AdvocateProviderOfficeLinkEntity();
+    var advocate2Link = new AdvocateProviderOfficeLinkEntity();
     var pageable = PageRequest.of(0, 10);
     var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
 
-    when(advocateProviderOfficeLinkRepository.findByOffice(office))
+    when(providerParentLinkRepository.findByParent(chambersFirm)).thenReturn(List.of(parentLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(advocateFirm))
         .thenReturn(List.of(advocate1Link, advocate2Link));
     when(officeBankAccountLinkRepository.findByProviderOfficeLinkIn(
             List.of(advocate1Link, advocate2Link), pageable))
@@ -353,20 +358,27 @@ class BankDetailsServiceTest {
     var result = service.getOfficeBankAccounts(chambersLink, null, pageable);
 
     assertThat(result).isEqualTo(page);
-    verify(advocateProviderOfficeLinkRepository).findByOffice(office);
+    verify(providerParentLinkRepository).findByParent(chambersFirm);
+    verify(advocateProviderOfficeLinkRepository).findByProvider(advocateFirm);
   }
 
   @Test
   void getOfficeBankAccounts_chambersOfficeLink_withFilter_aggregatesAdvocateOfficeLinks() {
-    OfficeEntity office = new OfficeEntity();
-    ChamberProviderOfficeLinkEntity chambersLink = new ChamberProviderOfficeLinkEntity();
-    chambersLink.setOffice(office);
+    var chambersFirm = providerEntity(FirmType.CHAMBERS);
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setProvider(chambersFirm);
 
-    AdvocateProviderOfficeLinkEntity advocateLink = new AdvocateProviderOfficeLinkEntity();
+    var advocateFirm = providerEntity(FirmType.ADVOCATE);
+    var parentLink = new ProviderParentLinkEntity();
+    parentLink.setProvider(advocateFirm);
+    parentLink.setParent(chambersFirm);
+
+    var advocateLink = new AdvocateProviderOfficeLinkEntity();
     var pageable = PageRequest.of(0, 10);
     var page = new PageImpl<OfficeBankAccountLinkEntity>(List.of());
 
-    when(advocateProviderOfficeLinkRepository.findByOffice(office))
+    when(providerParentLinkRepository.findByParent(chambersFirm)).thenReturn(List.of(parentLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(advocateFirm))
         .thenReturn(List.of(advocateLink));
     when(officeBankAccountLinkRepository
             .findByProviderOfficeLinkInAndBankAccount_AccountNumberContainingIgnoreCase(

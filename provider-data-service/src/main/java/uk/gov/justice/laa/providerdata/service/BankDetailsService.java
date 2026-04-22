@@ -160,8 +160,9 @@ public class BankDetailsService {
    * Returns a paginated page of bank accounts linked to the given office link.
    *
    * <p>For a {@link ChamberProviderOfficeLinkEntity}, returns bank accounts across all {@link
-   * AdvocateProviderOfficeLinkEntity} rows that point to the same office, since Advocates store
-   * their bank accounts against their own office link rather than the Chambers link.
+   * AdvocateProviderOfficeLinkEntity} for practitioners belonging to the same Chambers firm (via
+   * {@code PROVIDER_PARENT_LINK}) as the provider-office, since Advocates store their bank accounts
+   * against their own {@link AdvocateProviderOfficeLinkEntity} rather than the Chambers link.
    *
    * @param officeLink the office link whose bank accounts to retrieve
    * @param accountNumberFilter optional partial match on account number (case-insensitive)
@@ -187,17 +188,24 @@ public class BankDetailsService {
   /**
    * Resolves the set of office links whose bank accounts should be returned for a given link.
    *
-   * <p>For a Chambers office link, returns all Advocate office links pointing to the same office,
-   * since Advocates store their bank accounts against their own {@link
-   * AdvocateProviderOfficeLinkEntity} rather than the Chambers link. For all other firm types,
-   * returns just the supplied link.
+   * <p>For a Chambers office link, returns all Advocate office links for practitioners belonging to
+   * that Chambers firm (via {@code PROVIDER_PARENT_LINK}), since Advocates store their bank
+   * accounts against their own {@link AdvocateProviderOfficeLinkEntity} rather than the Chambers
+   * link. For all other firm types, returns just the supplied link.
    */
   private Collection<ProviderOfficeLinkEntity> resolveOfficeLinkScope(
       ProviderOfficeLinkEntity officeLink) {
-    if (!(officeLink instanceof ChamberProviderOfficeLinkEntity)) {
-      return List.of(officeLink);
-    }
-    return List.copyOf(advocateProviderOfficeLinkRepository.findByOffice(officeLink.getOffice()));
+    return switch (officeLink) {
+      case ChamberProviderOfficeLinkEntity ignored ->
+          providerParentLinkRepository.findByParent(officeLink.getProvider()).stream()
+              .<ProviderOfficeLinkEntity>flatMap(
+                  ppl ->
+                      advocateProviderOfficeLinkRepository
+                          .findByProvider(ppl.getProvider())
+                          .stream())
+              .toList();
+      default -> List.of(officeLink);
+    };
   }
 
   /**

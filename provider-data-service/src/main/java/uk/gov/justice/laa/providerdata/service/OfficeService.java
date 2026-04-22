@@ -32,6 +32,7 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
@@ -692,18 +693,7 @@ public class OfficeService {
         || payment.getBankAccountDetails() == null) {
       return;
     }
-    switch (payment.getBankAccountDetails()) {
-      case BankAccountProviderOfficeCreateV2 create -> {
-        var template = bankAccountMapper.toBankAccountEntity(create);
-        bankDetailsService.createAndLink(
-            template, provider, officeLink, create.getActiveDateFrom());
-      }
-      case BankAccountProviderOfficeLinkV2 link ->
-          bankDetailsService.linkExisting(
-              link.getBankAccountGUID(), provider, officeLink, link.getActiveDateFrom());
-      default -> { // unknown bankAccountDetails subtype — no-op
-      }
-    }
+    persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {
@@ -751,7 +741,14 @@ public class OfficeService {
         || payment.getBankAccountDetails() == null) {
       return;
     }
-    switch (payment.getBankAccountDetails()) {
+    persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
+  }
+
+  private void persistBankAccountDetails(
+      PaymentDetailsCreateOrLinkV2BankAccountDetails bankAccountDetails,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity officeLink) {
+    switch (bankAccountDetails) {
       case BankAccountProviderOfficeCreateV2 create -> {
         var template = bankAccountMapper.toBankAccountEntity(create);
         bankDetailsService.createAndLink(

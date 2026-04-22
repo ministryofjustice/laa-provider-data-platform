@@ -173,6 +173,7 @@ class PatchOfficeActivationE2eTest {
   }
 
   @Test
+  @Order(8)
   void patchOffice_unknownOfficeCode_returns404() {
     given()
         .contentType(ContentType.JSON)

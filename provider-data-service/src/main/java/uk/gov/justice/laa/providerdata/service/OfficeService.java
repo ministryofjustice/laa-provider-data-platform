@@ -326,20 +326,22 @@ public class OfficeService {
    * replaced as whole objects when provided. Website is stored on the {@link
    * ProviderOfficeLinkEntity}; all other fields are stored on the {@link OfficeEntity}.
    *
-   * <p>Activation rules (LSP and Advocate offices only):
+   * <p>Activation rules:
    *
    * <ul>
-   *   <li>Setting {@code activeDateTo} deactivates the office and auto-resets {@code
-   *       debtRecoveryFlag} to {@code false}.
+   *   <li>Setting {@code activeDateTo} deactivates the office and, for LSP and Advocate offices,
+   *       auto-resets {@code debtRecoveryFlag} to {@code false}.
    *   <li>Deactivating the LSP head office cascades the same {@code activeDateTo} to all active
    *       child offices.
    *   <li>Deactivating a Chambers office cascades to all active linked Advocate offices.
-   *   <li>{@code debtRecoveryFlag} may only be set to {@code true} when the office is active (no
-   *       {@code activeDateTo}).
-   *   <li>{@code falseBalanceFlag} may only be set to {@code true} when the office is inactive
-   *       ({@code activeDateTo} set).
-   *   <li>Invalid flag combinations throw {@link IllegalArgumentException}, which is mapped to HTTP
-   *       400 by {@link uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler}.
+   *   <li>{@code debtRecoveryFlag} and {@code falseBalanceFlag} apply to LSP and Advocate offices
+   *       only. {@code debtRecoveryFlag} may only be {@code true} when the office is active; {@code
+   *       falseBalanceFlag} may only be {@code true} when the office is inactive.
+   *   <li>Setting {@code clearActiveDateTo: true} re-activates the office and resets {@code
+   *       falseBalanceFlag} to {@code false} for LSP and Advocate offices. It must not be combined
+   *       with {@code activeDateTo} in the same request.
+   *   <li>Invalid combinations throw {@link IllegalArgumentException}, which is mapped to HTTP 400
+   *       by {@link uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler}.
    * </ul>
    *
    * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
@@ -424,7 +426,7 @@ public class OfficeService {
    * <p>For LSP and Advocate links: validates and applies flag constraints; auto-resets {@code
    * debtRecoveryFlag} to {@code false} when the office is deactivated. For LSP head offices,
    * cascades the deactivation date to all active child offices. For Chambers links, cascades to all
-   * active linked Advocate offices. No-op if all three arguments are {@code null}.
+   * active linked Advocate offices. No-op if all arguments are {@code null}/{@code false}.
    *
    * @throws IllegalArgumentException if flag combinations conflict with the effective activation
    *     state

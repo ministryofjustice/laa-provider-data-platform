@@ -160,8 +160,9 @@ public class BankDetailsService {
    * Returns a paginated page of bank accounts linked to the given office link.
    *
    * <p>For a {@link ChamberProviderOfficeLinkEntity}, returns bank accounts across all {@link
-   * AdvocateProviderOfficeLinkEntity} rows that point to the same office, since Advocates store
-   * their bank accounts against their own office link rather than the Chambers link.
+   * AdvocateProviderOfficeLinkEntity} for practitioners belonging to the same Chambers firm (via
+   * {@code PROVIDER_PARENT_LINK}) as the provider-office, since Advocates store their bank accounts
+   * against their own {@link AdvocateProviderOfficeLinkEntity} rather than the Chambers link.
    *
    * @param officeLink the office link whose bank accounts to retrieve
    * @param accountNumberFilter optional partial match on account number (case-insensitive)

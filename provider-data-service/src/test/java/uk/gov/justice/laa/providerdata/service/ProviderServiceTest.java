@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -240,10 +241,9 @@ class ProviderServiceTest {
 
     service.patchProvider(guid.toString(), patch);
 
-    org.mockito.ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
+    ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
         org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
-    org.mockito.Mockito.verify(providerParentLinkRepository, org.mockito.Mockito.times(2))
-        .save(linkCaptor.capture());
+    verify(providerParentLinkRepository, org.mockito.Mockito.times(2)).save(linkCaptor.capture());
 
     List<ProviderParentLinkEntity> savedLinks = linkCaptor.getAllValues();
     assertThat(savedLinks).hasSize(2);
@@ -251,8 +251,7 @@ class ProviderServiceTest {
     assertThat(savedLinks.get(0).getParent()).isEqualTo(parentByGuid);
     assertThat(savedLinks.get(1).getProvider()).isEqualTo(existing);
     assertThat(savedLinks.get(1).getParent()).isEqualTo(parentByFirmNumber);
-
-    org.mockito.Mockito.verify(providerParentLinkRepository).deleteAll(any());
+    verify(providerParentLinkRepository).deleteAll(any());
   }
 
   @Test

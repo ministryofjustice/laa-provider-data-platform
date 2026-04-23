@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +29,6 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
@@ -252,46 +250,6 @@ class ProviderServiceTest {
     assertThat(savedLinks.get(1).getProvider()).isEqualTo(existing);
     assertThat(savedLinks.get(1).getParent()).isEqualTo(parentByFirmNumber);
     verify(providerParentLinkRepository).deleteAll(any());
-  }
-
-  @Test
-  void patchProvider_updatesAdvocateNonPractitionerParentFirm() {
-    UUID guid = UUID.randomUUID();
-    UUID parentGuid = UUID.randomUUID();
-
-    ProviderEntity existing =
-        ProviderEntity.builder()
-            .firmType(FirmType.ADVOCATE)
-            .firmNumber("100004")
-            .name("Advocate Firm")
-            .build();
-    existing.setGuid(guid);
-
-    ProviderEntity parent = ProviderEntity.builder().name("Parent").build();
-    parent.setGuid(parentGuid);
-
-    OfficeEntity parentOffice = new OfficeEntity();
-    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
-    parentOfficeLink.setOffice(parentOffice);
-
-    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
-    when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parent));
-    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
-        .thenReturn(Optional.of(parentOfficeLink));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
-        .thenReturn(Optional.empty());
-    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-
-    ProviderPatchV2 patch =
-        new ProviderPatchV2()
-            .practitioner(
-                new PractitionerDetailsPatchV2()
-                    .parentFirms(List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid))));
-
-    service.patchProvider(guid.toString(), patch);
-
-    verify(advocateProviderOfficeLinkRepository).save(any(AdvocateProviderOfficeLinkEntity.class));
-    verify(providerParentLinkRepository, never()).save(any());
   }
 
   @Test

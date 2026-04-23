@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -27,5 +28,8 @@ public interface LspProviderOfficeLinkRepository
       ProviderEntity provider, String accountNumber);
 
   Optional<LspProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagTrue(
+      ProviderEntity provider);
+
+  List<LspProviderOfficeLinkEntity> findByProviderAndHeadOfficeFlagFalseAndActiveDateToIsNull(
       ProviderEntity provider);
 }

@@ -21,7 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -29,6 +31,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -40,11 +43,13 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +58,8 @@ class OfficeServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
+  @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
@@ -593,14 +600,14 @@ class OfficeServiceTest {
 
   @Test
   void patchOffice_updatesContactFields_forLspPatch() {
-    UUID providerGuid = UUID.randomUUID();
-    UUID linkGuid = UUID.randomUUID();
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
-    OfficeEntity office = new OfficeEntity();
-    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    var office = new OfficeEntity();
+    var link = new LspProviderOfficeLinkEntity();
     link.setGuid(linkGuid);
     link.setAccountNumber("ABC123");
     link.setOffice(office);
@@ -611,7 +618,7 @@ class OfficeServiceTest {
     when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    LSPOfficePatchV2 patch =
+    var patch =
         new LSPOfficePatchV2()
             .address(
                 new OfficeAddressV2().line1("1 High St").townOrCity("London").postcode("SW1A 1AA"))
@@ -620,8 +627,7 @@ class OfficeServiceTest {
             .website(java.net.URI.create("https://www.example.com"))
             .dxDetails(new DXPatchV2().dxNumber("DX 1234").dxCentre("London"));
 
-    OfficeCreationResult result =
-        service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
 
     assertThat(office.getAddressLine1()).isEqualTo("1 High St");
     assertThat(office.getAddressTownOrCity()).isEqualTo("London");
@@ -638,14 +644,14 @@ class OfficeServiceTest {
 
   @Test
   void patchOffice_updatesContactFields_forChambersPatch() {
-    UUID providerGuid = UUID.randomUUID();
-    UUID linkGuid = UUID.randomUUID();
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("100002").build();
+    var provider = ProviderEntity.builder().firmNumber("100002").build();
     provider.setGuid(providerGuid);
 
-    OfficeEntity office = new OfficeEntity();
-    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    var office = new OfficeEntity();
+    var link = new LspProviderOfficeLinkEntity();
     link.setGuid(linkGuid);
     link.setAccountNumber("DEF456");
     link.setOffice(office);
@@ -656,7 +662,7 @@ class OfficeServiceTest {
     when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    ChambersOfficePatchV2 patch = new ChambersOfficePatchV2().telephoneNumber("0161 999 8888");
+    var patch = new ChambersOfficePatchV2().telephoneNumber("0161 999 8888");
 
     service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
 
@@ -665,15 +671,15 @@ class OfficeServiceTest {
 
   @Test
   void patchOffice_doesNotModifyOffice_forAdvocatePatch() {
-    UUID providerGuid = UUID.randomUUID();
-    UUID linkGuid = UUID.randomUUID();
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("100003").build();
+    var provider = ProviderEntity.builder().firmNumber("100003").build();
     provider.setGuid(providerGuid);
 
-    OfficeEntity office = new OfficeEntity();
+    var office = new OfficeEntity();
     office.setAddressLine1("Original");
-    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    var link = new LspProviderOfficeLinkEntity();
     link.setGuid(linkGuid);
     link.setAccountNumber("GHI789");
     link.setOffice(office);
@@ -691,10 +697,10 @@ class OfficeServiceTest {
 
   @Test
   void patchOffice_throwsItemNotFound_whenOfficeNotFound() {
-    UUID providerGuid = UUID.randomUUID();
-    UUID linkGuid = UUID.randomUUID();
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
 
-    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
@@ -709,5 +715,330 @@ class OfficeServiceTest {
                     providerGuid.toString(), linkGuid.toString(), new ChambersOfficePatchV2()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("Office not found");
+  }
+
+  // patchOffice — activation, flags, cascade
+
+  private LspProviderOfficeLinkEntity lspLinkWithOffice(UUID linkGuid, String accountNumber) {
+    var office = new OfficeEntity();
+    var link = new LspProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber(accountNumber);
+    link.setOffice(office);
+    link.setDebtRecoveryFlag(Boolean.FALSE);
+    link.setFalseBalanceFlag(Boolean.FALSE);
+    return link;
+  }
+
+  private void stubProviderAndLink(
+      ProviderEntity provider, UUID linkGuid, ProviderOfficeLinkEntity link) {
+    when(providerRepository.findById(provider.getGuid())).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+  }
+
+  private void stubSaves() {
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+  }
+
+  @Test
+  void patchOffice_setsActiveDateTo_andResetsDebtRecoveryFlag() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setDebtRecoveryFlag(Boolean.TRUE);
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    var deactivationDate = LocalDate.of(2025, 6, 30);
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+
+    assertThat(link.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(link.getDebtRecoveryFlag()).isFalse();
+  }
+
+  @Test
+  void patchOffice_cascadesDeactivation_toLspChildOffices() {
+    var providerGuid = UUID.randomUUID();
+    var headLinkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var headLink = lspLinkWithOffice(headLinkGuid, "ACC001");
+    headLink.setHeadOfficeFlag(Boolean.TRUE);
+
+    var childLink = lspLinkWithOffice(UUID.randomUUID(), "ACC002");
+    childLink.setDebtRecoveryFlag(Boolean.TRUE);
+
+    stubProviderAndLink(provider, headLinkGuid, headLink);
+    stubSaves();
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagFalseAndActiveDateToIsNull(
+            provider))
+        .thenReturn(List.of(childLink));
+
+    var deactivationDate = LocalDate.of(2025, 6, 30);
+    service.patchOffice(
+        providerGuid.toString(),
+        headLinkGuid.toString(),
+        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+
+    assertThat(headLink.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(childLink.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(childLink.getDebtRecoveryFlag()).isFalse();
+    verify(lspProviderOfficeLinkRepository).save(childLink);
+  }
+
+  @Test
+  void patchOffice_cascadesDeactivation_toAdvocateOfficesViaChambers() {
+    var chambersProviderGuid = UUID.randomUUID();
+    var chambersLinkGuid = UUID.randomUUID();
+
+    var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
+    chambersProvider.setGuid(chambersProviderGuid);
+
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setGuid(chambersLinkGuid);
+    chambersLink.setAccountNumber("CHM001");
+    chambersLink.setOffice(new OfficeEntity());
+    chambersLink.setProvider(chambersProvider);
+
+    var advocateProvider = ProviderEntity.builder().firmNumber("100003").build();
+    advocateProvider.setGuid(UUID.randomUUID());
+
+    stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
+    stubSaves();
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    var parentLink =
+        ProviderParentLinkEntity.builder()
+            .provider(advocateProvider)
+            .parent(chambersProvider)
+            .build();
+    when(providerParentLinkRepository.findByParent(chambersProvider))
+        .thenReturn(List.of(parentLink));
+    var advocateLink = new AdvocateProviderOfficeLinkEntity();
+    advocateLink.setGuid(UUID.randomUUID());
+    advocateLink.setAccountNumber("ADV001");
+    advocateLink.setOffice(new OfficeEntity());
+    advocateLink.setDebtRecoveryFlag(Boolean.TRUE);
+    when(advocateProviderOfficeLinkRepository.findByProviderAndActiveDateToIsNull(advocateProvider))
+        .thenReturn(List.of(advocateLink));
+
+    var deactivationDate = LocalDate.of(2025, 6, 30);
+    service.patchOffice(
+        chambersProviderGuid.toString(),
+        chambersLinkGuid.toString(),
+        new ChambersOfficePatchV2().activeDateTo(deactivationDate));
+
+    assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(advocateLink.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(advocateLink.getDebtRecoveryFlag()).isFalse();
+    verify(advocateProviderOfficeLinkRepository).save(advocateLink);
+  }
+
+  @Test
+  void patchOffice_throwsIllegalArgument_whenDebtRecoverySetTrueOnInactiveOffice() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID linkGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 1, 1));
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2().debtRecoveryFlag(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("debtRecoveryFlag");
+  }
+
+  @Test
+  void patchOffice_throwsIllegalArgument_whenFalseBalanceSetTrueOnActiveOffice() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("falseBalanceFlag");
+  }
+
+  @Test
+  void patchOffice_throwsIllegalArgument_whenDeactivatingAndDebtRecoverySetTrue() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2()
+                        .activeDateTo(LocalDate.of(2025, 6, 30))
+                        .debtRecoveryFlag(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("debtRecoveryFlag");
+  }
+
+  @Test
+  void patchOffice_setsFalseBalanceFlag_onInactiveOffice() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 1, 1));
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE));
+
+    assertThat(link.getFalseBalanceFlag()).isTrue();
+  }
+
+  @Test
+  void patchOffice_reactivatesLspOffice_clearsActiveDateToAndResetsFalseBalanceFlag() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+    link.setFalseBalanceFlag(Boolean.TRUE);
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+
+    assertThat(link.getActiveDateTo()).isNull();
+    assertThat(link.getFalseBalanceFlag()).isFalse();
+  }
+
+  @Test
+  void patchOffice_reactivatesAdvocateOffice_clearsActiveDateToAndResetsFalseBalanceFlag() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = new AdvocateProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("ACC002");
+    link.setOffice(new OfficeEntity());
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+    link.setFalseBalanceFlag(Boolean.TRUE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new AdvocateOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+
+    assertThat(link.getActiveDateTo()).isNull();
+    assertThat(link.getFalseBalanceFlag()).isFalse();
+  }
+
+  @Test
+  void patchOffice_reactivatesChambersOffice_clearsActiveDateTo() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = new ChamberProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("ACC003");
+    link.setOffice(new OfficeEntity());
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new ChambersOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+
+    assertThat(link.getActiveDateTo()).isNull();
+  }
+
+  @Test
+  void patchOffice_throwsIllegalArgument_whenActiveDateToAndClearActiveDateToSetTogether() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2()
+                        .activeDateTo(LocalDate.of(2025, 6, 30))
+                        .clearActiveDateTo(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("clearActiveDateTo");
   }
 }

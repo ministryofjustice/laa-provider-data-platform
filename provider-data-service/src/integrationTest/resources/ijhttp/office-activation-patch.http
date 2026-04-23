@@ -1,0 +1,207 @@
+### Office activation — PATCH demo
+#
+# Run steps in order. Steps 1–2 create an LSP firm and a non-head office.
+# Steps 3–9 demo activation/flag rules; step 10 demos a 404 error.
+#
+# This file is idempotent with respect to constraint violations: step 1 uses a unique
+# bank account sort code/account number. If re-running, use a fresh database or environment.
+#
+# Flag rules enforced by the service:
+#   - Active office  (activeDateTo is null): debtRecoveryFlag may be true; falseBalanceFlag must be false.
+#   - Inactive office (activeDateTo is set): debtRecoveryFlag must be false; falseBalanceFlag may be true.
+#   - Deactivating (setting activeDateTo) clears debtRecoveryFlag automatically.
+#   - Invalid combinations return 400 Bad Request.
+
+### 1. Create a Legal Services Provider firm
+POST http://localhost:8080/provider-firms
+Content-Type: application/json
+
+{
+  "firmType": "Legal Services Provider",
+  "name": "Westgate Legal Services LLP",
+  "legalServicesProvider": {
+    "address": {
+      "line1": "56 Westgate Road",
+      "townOrCity": "Newcastle upon Tyne",
+      "postcode": "NE1 1TT"
+    },
+    "telephoneNumber": "0191 498 0100",
+    "emailAddress": "admin@westgatelegal.example",
+    "payment": {
+      "paymentMethod": "EFT",
+      "bankAccountDetails": {
+        "accountName": "Westgate Legal LLP - NEWCASTLE",
+        "sortCode": "601113",
+        "accountNumber": "99990002"
+      }
+    },
+    "liaisonManager": {
+      "firstName": "Alice",
+      "lastName": "Patel",
+      "emailAddress": "a.patel@westgatelegal.example",
+      "telephoneNumber": "0191 498 0101",
+      "activeDateFrom": "2024-04-01"
+    }
+  }
+}
+
+> {%
+  client.test("Step 1: provider firm created", function() {
+    client.assert(
+      response.status === 201,
+      "Expected 201; got " + response.status + ". If 409, bank account 601113/99990002 already " +
+      "exists — re-runs are not supported. Use a fresh database or environment."
+    );
+  });
+  if (response.status === 201) {
+    client.global.set("actProviderFirmGUID", response.body.data.providerFirmGUID);
+    client.global.set("actProviderFirmNumber", response.body.data.providerFirmNumber);
+  }
+%}
+
+### 2. Create a non-head LSP office
+POST http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices
+Content-Type: application/json
+
+{
+  "address": {
+    "line1": "14 Park Row",
+    "townOrCity": "Bristol",
+    "postcode": "BS1 5LJ"
+  },
+  "telephoneNumber": "0117 900 0001",
+  "emailAddress": "bristol@westgatelegal.example",
+  "payment": {
+    "paymentMethod": "EFT"
+  },
+  "liaisonManager": {
+    "useHeadOfficeLiaisonManager": true
+  }
+}
+
+> {%
+  client.test("Step 2: Bristol office created", function() {
+    client.assert(response.status === 201, "Expected 201, got " + response.status);
+  });
+  if (response.status === 201) {
+    client.global.set("actOfficeGUID", response.body.data.officeGUID);
+    client.global.set("actOfficeCode", response.body.data.officeCode);
+  }
+%}
+
+### 3. PATCH — set debtRecoveryFlag=true on active office (expect 200)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "debtRecoveryFlag": true
+}
+
+> {%
+  client.test("Set debtRecoveryFlag=true on active office — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 4. PATCH — set falseBalanceFlag=true on active office (expect 400 — rule violation)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "falseBalanceFlag": true
+}
+
+> {%
+  client.test("Set falseBalanceFlag=true on active office — 400 (expected rule violation)", function() {
+    client.assert(response.status === 400, "Expected 400, got " + response.status);
+  });
+%}
+
+### 5. PATCH — deactivate the office (expect 200; auto-clears debtRecoveryFlag)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "activeDateTo": "2025-06-30"
+}
+
+> {%
+  client.test("Deactivate office — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 6. PATCH — set debtRecoveryFlag=true on inactive office (expect 400 — rule violation)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "debtRecoveryFlag": true
+}
+
+> {%
+  client.test("Set debtRecoveryFlag=true on inactive office — 400 (expected rule violation)", function() {
+    client.assert(response.status === 400, "Expected 400, got " + response.status);
+  });
+%}
+
+### 7. PATCH — set falseBalanceFlag=true on inactive office (expect 200)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "falseBalanceFlag": true
+}
+
+> {%
+  client.test("Set falseBalanceFlag=true on inactive office — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 8. PATCH — re-activate the office using clearActiveDateTo (expect 200; resets falseBalanceFlag)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "clearActiveDateTo": true
+}
+
+> {%
+  client.test("Re-activate office (clearActiveDateTo) — 200", function() {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(response.body.data.officeGUID !== undefined, "officeGUID missing");
+  });
+%}
+
+### 9. PATCH — activeDateTo and clearActiveDateTo together (expect 400 — conflict)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/{{actOfficeGUID}}
+Content-Type: application/json
+
+{
+  "activeDateTo": "2025-12-31",
+  "clearActiveDateTo": true
+}
+
+> {%
+  client.test("activeDateTo + clearActiveDateTo together — 400 (expected conflict)", function() {
+    client.assert(response.status === 400, "Expected 400, got " + response.status);
+  });
+%}
+
+### 10. PATCH — unknown office GUID (expect 404)
+PATCH http://localhost:8080/provider-firms/{{actProviderFirmGUID}}/offices/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "debtRecoveryFlag": true
+}
+
+> {%
+  client.test("Unknown office GUID — 404", function() {
+    client.assert(response.status === 404, "Expected 404, got " + response.status);
+  });
+%}

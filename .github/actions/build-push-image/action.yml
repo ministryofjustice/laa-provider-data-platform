@@ -73,10 +73,18 @@ runs:
       if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
       shell: bash
       run: |
-        # Snyk occasionally emits null for security-severity; GitHub Code Scanning rejects that.
+        # Snyk occasionally omits or nulls security-severity; GitHub Code Scanning rejects that.
+        # Replace explicit nulls, then add a default wherever the field is still absent.
+        echo "=== security-severity values before patch ==="
+        jq '[.. | objects | select(has("security-severity")) | .["security-severity"]] | unique' snyk.sarif
+
         jq 'walk(if type == "object" and has("security-severity") and .["security-severity"] == null
-                 then .["security-severity"] = "0.0" else . end)' snyk.sarif > snyk-fixed.sarif
-        mv snyk-fixed.sarif snyk.sarif
+                 then .["security-severity"] = "0.0" else . end)' snyk.sarif \
+          | jq '(.runs[].tool | .driver, .extensions[]?).rules[].properties["security-severity"] //= "0.0"' \
+          > snyk-fixed.sarif && mv snyk-fixed.sarif snyk.sarif
+
+        echo "=== security-severity values after patch ==="
+        jq '[.. | objects | select(has("security-severity")) | .["security-severity"]] | unique' snyk.sarif
 
     - name: "Upload Snyk SARIF results"
       if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'

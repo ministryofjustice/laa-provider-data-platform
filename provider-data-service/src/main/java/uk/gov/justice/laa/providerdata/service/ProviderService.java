@@ -19,6 +19,9 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
@@ -103,7 +106,12 @@ public class ProviderService {
 
     PractitionerDetailsPatchV2 practitionerPatch = patch.getPractitioner();
     if (practitionerPatch != null) {
-      applyPractitionerPatch(provider, providerFirmGUIDorFirmNumber, practitionerPatch);
+      applyPractitionerPatch(
+          provider,
+          providerFirmGUIDorFirmNumber,
+          practitionerPatch,
+          providerParentLinkRepository,
+          providerRepository);
     }
 
     ProviderEntity saved = providerRepository.save(provider);
@@ -137,10 +145,49 @@ public class ProviderService {
     }
   }
 
+  private static void applyParentFirmPatch(
+      ProviderEntity provider,
+      List<PractitionerDetailsParentUpdateV2> parentFirms,
+      ProviderParentLinkRepository providerParentLinkRepository,
+      ProviderRepository providerRepository) {
+    List<ProviderParentLinkEntity> existingLinks =
+        providerParentLinkRepository.findByProvider(provider);
+    providerParentLinkRepository.deleteAll(existingLinks);
+
+    for (PractitionerDetailsParentUpdateV2 parentUpdate : parentFirms) {
+      ProviderEntity parent =
+          switch (parentUpdate) {
+            case PractitionerDetailsParentUpdateV2OneOf guidUpdate ->
+                providerRepository
+                    .findById(guidUpdate.getParentGuid())
+                    .orElseThrow(
+                        () ->
+                            new ItemNotFoundException(
+                                "Parent provider not found: " + guidUpdate.getParentGuid()));
+            case PractitionerDetailsParentUpdateV2OneOf1 firmNumberUpdate ->
+                providerRepository
+                    .findByFirmNumber(firmNumberUpdate.getParentFirmNumber())
+                    .orElseThrow(
+                        () ->
+                            new ItemNotFoundException(
+                                "Parent provider not found: "
+                                    + firmNumberUpdate.getParentFirmNumber()));
+            default ->
+                throw new IllegalArgumentException(
+                    "Unsupported parent firm update type: " + parentUpdate.getClass().getName());
+          };
+
+      providerParentLinkRepository.save(
+          ProviderParentLinkEntity.builder().provider(provider).parent(parent).build());
+    }
+  }
+
   private static void applyPractitionerPatch(
       ProviderEntity provider,
       String providerFirmGUIDorFirmNumber,
-      PractitionerDetailsPatchV2 practitionerPatch) {
+      PractitionerDetailsPatchV2 practitionerPatch,
+      ProviderParentLinkRepository providerParentLinkRepository,
+      ProviderRepository providerRepository) {
     if (!(provider instanceof PractitionerEntity practitionerProvider)) {
       throw new IllegalArgumentException(
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
@@ -151,10 +198,12 @@ public class ProviderService {
           "Practitioner liaison manager updates are not supported on this endpoint");
     }
 
-    if (practitionerPatch.getParentFirms() != null
-        && !practitionerPatch.getParentFirms().isEmpty()) {
-      throw new IllegalArgumentException(
-          "Practitioner parent-firm updates are not supported on this endpoint");
+    if (practitionerPatch.getParentFirms() != null) {
+      applyParentFirmPatch(
+          provider,
+          practitionerPatch.getParentFirms(),
+          providerParentLinkRepository,
+          providerRepository);
     }
 
     switch (practitionerProvider) {

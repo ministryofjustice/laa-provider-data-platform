@@ -69,6 +69,15 @@ runs:
       run: |
         cat snyk.json
 
+    - name: "Sanitise Snyk SARIF (replace null security-severity values)"
+      if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
+      shell: bash
+      run: |
+        # Snyk occasionally emits the string "null" for security-severity; GitHub Code Scanning rejects that.
+        jq 'walk(if type == "object" and has("security-severity") and (.["security-severity"] == null or .["security-severity"] == "null")
+                 then .["security-severity"] = "0.0" else . end)' snyk.sarif > snyk-fixed.sarif
+        mv snyk-fixed.sarif snyk.sarif
+
     - name: "Upload Snyk SARIF results"
       if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
       uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2

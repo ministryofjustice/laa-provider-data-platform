@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,6 +34,8 @@ import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
@@ -39,6 +43,7 @@ import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepo
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
@@ -50,9 +55,8 @@ class ProviderServiceTest {
   @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
-
-  // ✅ NEW MOCK (minimal addition)
   @Mock private ProviderFirmRepository providerFirmRepository;
+  @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
 
   @InjectMocks private ProviderService service;
 
@@ -198,6 +202,54 @@ class ProviderServiceTest {
     assertThat(existing.getSolicitorRegulationAuthorityRollNumber()).isEqualTo("SRA-123");
     assertThat(result.providerFirmGUID()).isEqualTo(guid);
     assertThat(result.firmNumber()).isEqualTo("100003");
+  }
+
+  @Test
+  void patchProvider_updatesParentFirms() {
+    UUID guid = UUID.randomUUID();
+    UUID parentGuid = UUID.randomUUID();
+    String parentFirmNumber = "200001";
+
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+
+    ProviderEntity parentByGuid = ProviderEntity.builder().name("Parent 1").build();
+    parentByGuid.setGuid(parentGuid);
+
+    ProviderEntity parentByFirmNumber =
+        ProviderEntity.builder().firmNumber(parentFirmNumber).name("Parent 2").build();
+    parentByFirmNumber.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parentByGuid));
+    when(providerRepository.findByFirmNumber(parentFirmNumber))
+        .thenReturn(Optional.of(parentByFirmNumber));
+    when(providerParentLinkRepository.findByProvider(existing)).thenReturn(List.of());
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .parentFirms(
+                        List.of(
+                            new PractitionerDetailsParentUpdateV2OneOf(parentGuid),
+                            new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
+
+    service.patchProvider(guid.toString(), patch);
+
+    ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
+        org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
+    verify(providerParentLinkRepository, org.mockito.Mockito.times(2)).save(linkCaptor.capture());
+
+    List<ProviderParentLinkEntity> savedLinks = linkCaptor.getAllValues();
+    assertThat(savedLinks).hasSize(2);
+    assertThat(savedLinks.get(0).getProvider()).isEqualTo(existing);
+    assertThat(savedLinks.get(0).getParent()).isEqualTo(parentByGuid);
+    assertThat(savedLinks.get(1).getProvider()).isEqualTo(existing);
+    assertThat(savedLinks.get(1).getParent()).isEqualTo(parentByFirmNumber);
+    verify(providerParentLinkRepository).deleteAll(any());
   }
 
   @Test

@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -56,6 +58,12 @@ public class ProviderCreationService {
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final Counter lspFirmCreationCounter;
+  private final Counter chambersFirmCreationCounter;
+  private final Counter practitionerFirmCreationCounter;
+  private final Timer lspFirmCreationTimer;
+  private final Timer chambersFirmCreationTimer;
+  private final Timer practitionerFirmCreationTimer;
 
   /**
    * Inject dependencies.
@@ -71,6 +79,12 @@ public class ProviderCreationService {
    * @param providerParentLinkRepository to save practitioner parent links
    * @param bankDetailsService to create and link bank accounts
    * @param bankAccountMapper to map bank account request DTOs to entities
+   * @param lspFirmCreationCounter for tracking LSP firm creations
+   * @param chambersFirmCreationCounter for tracking Chambers firm creations
+   * @param practitionerFirmCreationCounter for tracking Practitioner firm creations
+   * @param lspFirmCreationTimer for recording LSP firm creation latency
+   * @param chambersFirmCreationTimer for recording Chambers firm creation latency
+   * @param practitionerFirmCreationTimer for recording Practitioner firm creation latency
    */
   public ProviderCreationService(
       ProviderRepository providerRepository,
@@ -83,7 +97,13 @@ public class ProviderCreationService {
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       BankDetailsService bankDetailsService,
-      BankAccountMapper bankAccountMapper) {
+      BankAccountMapper bankAccountMapper,
+      Counter lspFirmCreationCounter,
+      Counter chambersFirmCreationCounter,
+      Counter practitionerFirmCreationCounter,
+      Timer lspFirmCreationTimer,
+      Timer chambersFirmCreationTimer,
+      Timer practitionerFirmCreationTimer) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
@@ -95,6 +115,12 @@ public class ProviderCreationService {
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
+    this.lspFirmCreationCounter = lspFirmCreationCounter;
+    this.chambersFirmCreationCounter = chambersFirmCreationCounter;
+    this.practitionerFirmCreationCounter = practitionerFirmCreationCounter;
+    this.lspFirmCreationTimer = lspFirmCreationTimer;
+    this.chambersFirmCreationTimer = chambersFirmCreationTimer;
+    this.practitionerFirmCreationTimer = practitionerFirmCreationTimer;
   }
 
   /**
@@ -137,6 +163,10 @@ public class ProviderCreationService {
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
+    var sample = io.micrometer.core.instrument.Timer.start();
+    sample.stop(lspFirmCreationTimer);
+    lspFirmCreationCounter.increment();
+
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -175,6 +205,10 @@ public class ProviderCreationService {
     ProviderOfficeLinkEntity savedLink = chamberProviderOfficeLinkRepository.save(linkTemplate);
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
+
+    var sample = io.micrometer.core.instrument.Timer.start();
+    sample.stop(chambersFirmCreationTimer);
+    chambersFirmCreationCounter.increment();
 
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
@@ -216,6 +250,9 @@ public class ProviderCreationService {
 
     if (officeLink != null) {
       persistBankDetailsForOffice(payment, saved, officeLink);
+      var sample = io.micrometer.core.instrument.Timer.start();
+      sample.stop(practitionerFirmCreationTimer);
+      practitionerFirmCreationCounter.increment();
       return new ProviderCreationResult(
           saved.getGuid(),
           saved.getFirmNumber(),
@@ -224,6 +261,9 @@ public class ProviderCreationService {
     }
 
     persistBankDetailsForPractitioner(payment, saved);
+    var sample = io.micrometer.core.instrument.Timer.start();
+    sample.stop(practitionerFirmCreationTimer);
+    practitionerFirmCreationCounter.increment();
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 

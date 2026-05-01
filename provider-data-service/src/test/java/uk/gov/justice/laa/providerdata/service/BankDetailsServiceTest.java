@@ -7,6 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +46,10 @@ class BankDetailsServiceTest {
   @Mock private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
+  @Mock private Counter bankAccountCreationCounter;
+  @Mock private Timer bankAccountCreationTimer;
+  @Mock private Counter bankAccountLinkCounter;
+  @Mock private Timer bankAccountLinkTimer;
 
   @InjectMocks private BankDetailsService service;
 

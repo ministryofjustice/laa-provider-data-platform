@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +42,10 @@ public class BankDetailsService {
   private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
+  private final Counter bankAccountCreationCounter;
+  private final Timer bankAccountCreationTimer;
+  private final Counter bankAccountLinkCounter;
+  private final Timer bankAccountLinkTimer;
 
   /**
    * Inject dependencies.
@@ -49,18 +55,30 @@ public class BankDetailsService {
    * @param officeBankAccountLinkRepository to save and query office-bank account links
    * @param providerParentLinkRepository to resolve chambers membership for Advocate providers
    * @param advocateProviderOfficeLinkRepository to find Advocate office links by office
+   * @param bankAccountCreationCounter for tracking bank account creations
+   * @param bankAccountCreationTimer for recording bank account creation latency
+   * @param bankAccountLinkCounter for tracking bank account links
+   * @param bankAccountLinkTimer for recording bank account link latency
    */
   public BankDetailsService(
       BankAccountRepository bankAccountRepository,
       ProviderBankAccountLinkRepository providerBankAccountLinkRepository,
       OfficeBankAccountLinkRepository officeBankAccountLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
-      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository) {
+      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
+      Counter bankAccountCreationCounter,
+      Timer bankAccountCreationTimer,
+      Counter bankAccountLinkCounter,
+      Timer bankAccountLinkTimer) {
     this.bankAccountRepository = bankAccountRepository;
     this.providerBankAccountLinkRepository = providerBankAccountLinkRepository;
     this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
+    this.bankAccountCreationCounter = bankAccountCreationCounter;
+    this.bankAccountCreationTimer = bankAccountCreationTimer;
+    this.bankAccountLinkCounter = bankAccountLinkCounter;
+    this.bankAccountLinkTimer = bankAccountLinkTimer;
   }
 
   /**
@@ -81,10 +99,14 @@ public class BankDetailsService {
       ProviderEntity provider,
       ProviderOfficeLinkEntity officeLink,
       @Nullable LocalDate activeDateFrom) {
-
     BankAccountEntity savedAccount = bankAccountRepository.save(accountTemplate);
     linkToProvider(savedAccount, provider);
-    return saveOfficeBankAccountLink(savedAccount, officeLink, activeDateFrom);
+    io.micrometer.core.instrument.Timer.start().stop(bankAccountCreationTimer);
+    bankAccountCreationCounter.increment();
+    bankAccountLinkCounter.increment();
+    OfficeBankAccountLinkEntity result =
+        saveOfficeBankAccountLink(savedAccount, officeLink, activeDateFrom);
+    return result;
   }
 
   /**
@@ -114,7 +136,13 @@ public class BankDetailsService {
                 () -> new ItemNotFoundException("Bank account not found: " + bankAccountGuid));
 
     linkToProvider(account, provider);
-    return saveOfficeBankAccountLink(account, officeLink, activeDateFrom);
+    var sample = io.micrometer.core.instrument.Timer.start();
+    OfficeBankAccountLinkEntity result =
+        saveOfficeBankAccountLink(account, officeLink, activeDateFrom);
+    sample.stop(bankAccountLinkTimer);
+    bankAccountLinkCounter.increment();
+
+    return result;
   }
 
   /**

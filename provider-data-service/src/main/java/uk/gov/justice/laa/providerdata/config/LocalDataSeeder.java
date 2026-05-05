@@ -61,12 +61,14 @@ public class LocalDataSeeder implements CommandLineRunner {
   private static final String LSP_FIRM_NUMBER = "100001";
   private static final String CHAMBERS_FIRM_NUMBER = "100002";
   private static final String ADVOCATE_FIRM_NUMBER = "100003";
+  private static final String CHAMBERS_DX_FIRM_NUMBER = "100004";
 
   @Override
   @Transactional
   public void run(String... args) {
     if (providerRepository.findByFirmNumber(LSP_FIRM_NUMBER).isPresent()) {
       log.info("Test data already seeded - skipping");
+      seedDxChambersIfMissing();
       return;
     }
     log.info("Starting local data seeding for foundation tables");
@@ -82,6 +84,38 @@ public class LocalDataSeeder implements CommandLineRunner {
     var contractManagers = seedContractManagers();
     seedOfficeContractManagerLinks(officeLinks, contractManagers);
     log.info("Local data seeding completed successfully");
+    seedDxChambersIfMissing();
+  }
+
+  private void seedDxChambersIfMissing() {
+    if (providerRepository.findByFirmNumber(CHAMBERS_DX_FIRM_NUMBER).isPresent()) {
+      return;
+    }
+    log.info("Seeding DX Chambers (firmNumber {})", CHAMBERS_DX_FIRM_NUMBER);
+    OfficeEntity dxOffice =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("789 DX Street")
+                .addressTownOrCity("Birmingham")
+                .addressPostCode("B2 2BB")
+                .dxDetailsNumber("DX456")
+                .dxDetailsCentre("Birmingham DX Centre")
+                .build());
+    ChamberProviderEntity dxChambers =
+        (ChamberProviderEntity)
+            providerRepository.save(
+                ChamberProviderEntity.builder()
+                    .firmNumber(CHAMBERS_DX_FIRM_NUMBER)
+                    .name("Test Chambers DX")
+                    .build());
+    providerOfficeLinkRepository.save(
+        ChamberProviderOfficeLinkEntity.builder()
+            .provider(dxChambers)
+            .office(dxOffice)
+            .accountNumber("ACC004")
+            .headOfficeFlag(true)
+            .build());
+    log.info("Seeded DX Chambers (firmNumber {})", CHAMBERS_DX_FIRM_NUMBER);
   }
 
   private BankAccountEntity[] seedBankAccounts() {

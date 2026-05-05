@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
@@ -108,9 +109,9 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOfficeByGUID_returnsOk() throws Exception {
-    LspProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
-    when(officeService.getLspOfficeLink("100001", "ABC123")).thenReturn(link);
-    when(officeMapper.toLspOfficeV2(link)).thenReturn(new OfficeV2());
+    ProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
+    when(officeService.getProviderOfficeLink("100001", "ABC123")).thenReturn(link);
+    when(officeMapper.toOfficeV2(link)).thenReturn(new OfficeV2());
 
     mockMvc
         .perform(get("/provider-firms/{id}/offices/{officeId}", "100001", "ABC123"))
@@ -119,7 +120,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOfficeByGUID_returnsNotFound_whenOfficeMissing() throws Exception {
-    when(officeService.getLspOfficeLink("100001", "NOTEXIST"))
+    when(officeService.getProviderOfficeLink("100001", "NOTEXIST"))
         .thenThrow(new ItemNotFoundException("Office not found: NOTEXIST"));
 
     mockMvc

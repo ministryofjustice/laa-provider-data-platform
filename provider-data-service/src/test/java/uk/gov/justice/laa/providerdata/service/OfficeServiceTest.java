@@ -372,6 +372,55 @@ class OfficeServiceTest {
     return link;
   }
 
+  // --- getProviderOfficeLink(String, String) ---
+
+  @Test
+  void getProviderOfficeLink_byString_byOfficeLinkGuid_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
+        .isSameAs(link);
+  }
+
+  @Test
+  void getProviderOfficeLink_byString_byAccountNumber_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, "CH001"))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getProviderOfficeLink(providerGuid.toString(), "CH001")).isSameAs(link);
+  }
+
+  @Test
+  void getProviderOfficeLink_byString_throwsWhenOfficeNotFound() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () -> service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining(officeLinkGuid.toString());
+  }
+
   // --- getOfficeLink ---
 
   @Test

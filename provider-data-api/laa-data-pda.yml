@@ -529,6 +529,13 @@ paths:
                       providerFirmNumber:
                         $ref: "#/components/schemas/ProviderFirmNumberV2"
 
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
         "403":
           description: Forbidden
           content:

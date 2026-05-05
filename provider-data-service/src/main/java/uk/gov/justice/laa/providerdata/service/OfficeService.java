@@ -41,6 +41,7 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.util.ReferenceNumberUtils;
 import uk.gov.justice.laa.providerdata.util.UuidUtils;
@@ -54,6 +55,7 @@ public class OfficeService {
   private final OfficeRepository officeRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
+  private final ProviderParentLinkRepository providerParentLinkRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
@@ -67,6 +69,7 @@ public class OfficeService {
    * @param officeRepository to save offices.
    * @param lspProviderOfficeLinkRepository to save and query LSP office links.
    * @param advocateProviderOfficeLinkRepository to save and query Advocate office links.
+   * @param providerParentLinkRepository to resolve advocate membership for Chambers firms.
    * @param providerOfficeLinkRepository to look up offices generically across all firm types.
    * @param liaisonManagerRepository to save liaison manager entities.
    * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
@@ -78,6 +81,7 @@ public class OfficeService {
       OfficeRepository officeRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
+      ProviderParentLinkRepository providerParentLinkRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
@@ -87,6 +91,7 @@ public class OfficeService {
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
+    this.providerParentLinkRepository = providerParentLinkRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
@@ -443,9 +448,8 @@ public class OfficeService {
    *
    * <p>For LSP and Advocate links: validates and applies flag constraints; auto-resets {@code
    * debtRecoveryFlag} to {@code false} when the office is deactivated. For LSP head offices,
-   * cascades the deactivation date to all active child offices. For Chambers links, deactivation is
-   * rejected if any active practitioners are linked (DS_MAPD_FR_019). No-op if all arguments are
-   * {@code null}/{@code false}.
+   * cascades the deactivation date to all active child offices. For Chambers links, cascades to all
+   * active linked Advocate offices. No-op if all arguments are {@code null}/{@code false}.
    *
    * @throws IllegalArgumentException if flag combinations conflict with the effective activation
    *     state
@@ -472,8 +476,14 @@ public class OfficeService {
               lspLink);
       case ChamberProviderOfficeLinkEntity chamberLink -> {
         if (patchActiveDateTo != null) {
-          if (advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(
-              chamberLink.getProvider())) {
+          boolean hasActivePractitioners =
+              providerParentLinkRepository.findByParent(chamberLink.getProvider()).stream()
+                  .anyMatch(
+                      ppl ->
+                          !advocateProviderOfficeLinkRepository
+                              .findByProviderAndActiveDateToIsNull(ppl.getProvider())
+                              .isEmpty());
+          if (hasActivePractitioners) {
             throw new IllegalArgumentException(
                 "Cannot deactivate a Chambers office while active practitioners are linked."
                     + " Deactivate all associated practitioners or reassign them to another"

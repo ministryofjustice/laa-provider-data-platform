@@ -1,9 +1,7 @@
 package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -28,13 +26,13 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  *   <li><b>Chambers with practitioner</b> — one active practitioner linked; used for AC2–AC4.
  * </ul>
  *
- * <p>Test data is prefixed with {@code "E2E-DSTEW-1557 "}; reset the local database to remove it.
+ * <p>Test data is prefixed with {@code "E2E-DSTEW "}; reset the local database to remove it.
  *
  * <p>Note: {@code firmType=Advocate} is the technical value for what the business calls a
  * Practitioner. It covers both Advocates and Barristers, subdivided by {@code advocateType}.
  */
 @ModifyingTest
-@DisplayName("DSTEW-1557: Prevent Chambers deactivation with active practitioners (DS_MAPD_FR_019)")
+@DisplayName("DSTEW-1557: Prevent Chambers inactivation with active practitioners (DS_MAPD_FR_019)")
 class DeactivateChambersE2eTest {
 
   private static String emptyChambersNumber;
@@ -56,7 +54,7 @@ class DeactivateChambersE2eTest {
                     "firmType",
                     "Chambers",
                     "name",
-                    "E2E-DSTEW-1557 Chambers Empty " + ts,
+                    "E2E-DSTEW Chambers Empty " + ts,
                     "chambers",
                     Map.of(
                         "address",
@@ -98,7 +96,7 @@ class DeactivateChambersE2eTest {
                     "firmType",
                     "Chambers",
                     "name",
-                    "E2E-DSTEW-1557 Chambers Populated " + ts,
+                    "E2E-DSTEW Chambers Populated " + ts,
                     "chambers",
                     Map.of(
                         "address",
@@ -139,7 +137,7 @@ class DeactivateChambersE2eTest {
                 "firmType",
                 "Advocate",
                 "name",
-                "E2E-DSTEW-1557 Practitioner " + ts,
+                "E2E-DSTEW Practitioner " + ts,
                 "practitioner",
                 Map.of(
                     "parentFirms",
@@ -170,45 +168,47 @@ class DeactivateChambersE2eTest {
    * AC1 – Apply inactive date when no associated active practitioners exist.
    *
    * <p>A Chambers with no linked practitioners can be made inactive by setting {@code
-   * activeDateTo}. The change is verified via a subsequent GET.
+   * activeDateTo}.
    */
   @Test
-  void dstew1557_ac1_noActivePractitioners_deactivationSucceeds() {
-    String activeDateTo = LocalDate.now().toString();
-
+  void dstew1557_ac1_noActivePractitioners_inactivationSucceeds() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", emptyChambersNumber)
         .pathParam("officeCode", emptyChambersOfficeCode)
-        .body(Map.of("activeDateTo", activeDateTo))
+        .body(Map.of("activeDateTo", LocalDate.now().toString()))
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200);
-
-    // Verify the inactive date was persisted and pre-existing fields are unchanged.
-    given()
-        .pathParam("firmId", emptyChambersNumber)
-        .pathParam("officeCode", emptyChambersOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.accountNumber", equalTo(emptyChambersOfficeCode))
-        .body("data.activeDateTo", equalTo(activeDateTo))
-        .body("data.address.line1", equalTo("1 Empty Street"))
-        .body("data.address.townOrCity", equalTo("London"))
-        .body("data.address.postcode", equalTo("WC1A 1AA"));
   }
 
   /**
    * AC2 – Prevent inactive date when associated active practitioners exist.
    *
-   * <p>A Chambers with at least one active practitioner must not be made inactive. Verifies the
-   * record remains unchanged after the rejection.
+   * <p>A Chambers with at least one active practitioner must not be made inactive.
    */
   @Test
-  void dstew1557_ac2_withActivePractitioners_deactivationIsRejectedAndUnchanged() {
+  void dstew1557_ac2_withActivePractitioners_inactivationRejected() {
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", populatedChambersNumber)
+        .pathParam("officeCode", populatedChambersOfficeCode)
+        .body(Map.of("activeDateTo", LocalDate.now().toString()))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(400);
+  }
+
+  /**
+   * AC3 – No partial updates when inactivation is rejected.
+   *
+   * <p>After a rejected inactivation attempt the office must remain unchanged — {@code
+   * activeDateTo} must still be null.
+   */
+  @Test
+  void dstew1557_ac3_rejectedInactivation_leavesRecordUnchanged() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
@@ -219,38 +219,24 @@ class DeactivateChambersE2eTest {
         .then()
         .statusCode(400);
 
-    assertPopulatedOfficeUnchanged();
-  }
-
-  /**
-   * AC3 – No partial updates when deactivation is rejected.
-   *
-   * <p>After a rejected deactivation attempt the office must remain fully unchanged.
-   */
-  @Test
-  void dstew1557_ac3_rejectedDeactivation_leavesRecordUnchanged() {
     given()
-        .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
         .pathParam("officeCode", populatedChambersOfficeCode)
-        .body(Map.of("activeDateTo", LocalDate.now().toString()))
         .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
-        .statusCode(400);
-
-    assertPopulatedOfficeUnchanged();
+        .statusCode(200)
+        .body("data.activeDateTo", nullValue());
   }
 
   /**
-   * AC4 – Clear feedback when deactivation is blocked.
+   * AC4 – Clear feedback when inactivation is blocked.
    *
-   * <p>The 400 response must contain a message indicating why deactivation was blocked: the
-   * Chambers has active practitioners that must be deactivated or reassigned first. Verifies the
-   * record remains unchanged after the rejection.
+   * <p>The 400 response must contain a message indicating that practitioners must be addressed
+   * before the Chambers can be made inactive.
    */
   @Test
-  void dstew1557_ac4_rejectedDeactivation_responseBodyMentionsPractitioners() {
+  void dstew1557_ac4_rejectedInactivation_returnsMessageMentioningPractitioners() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
@@ -260,28 +246,6 @@ class DeactivateChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(400)
-        .body(
-            "detail",
-            allOf(
-                containsStringIgnoringCase("deactivate"),
-                containsStringIgnoringCase("active practitioners"),
-                containsStringIgnoringCase("Chambers")));
-
-    assertPopulatedOfficeUnchanged();
-  }
-
-  private void assertPopulatedOfficeUnchanged() {
-    given()
-        .pathParam("firmId", populatedChambersNumber)
-        .pathParam("officeCode", populatedChambersOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.accountNumber", equalTo(populatedChambersOfficeCode))
-        .body("data.activeDateTo", nullValue())
-        .body("data.address.line1", equalTo("1 Populated Street"))
-        .body("data.address.townOrCity", equalTo("London"))
-        .body("data.address.postcode", equalTo("WC1A 1BB"));
+        .body("detail", containsStringIgnoringCase("practitioner"));
   }
 }

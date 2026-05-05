@@ -856,7 +856,7 @@ class OfficeServiceTest {
   }
 
   @Test
-  void patchOffice_cascadesDeactivation_toAdvocateOfficesViaChambers() {
+  void patchOffice_throwsIllegalArgument_whenChambersHasActivePractitioners() {
     var chambersProviderGuid = UUID.randomUUID();
     var chambersLinkGuid = UUID.randomUUID();
 
@@ -873,8 +873,6 @@ class OfficeServiceTest {
     advocateProvider.setGuid(UUID.randomUUID());
 
     stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
-    stubSaves();
-    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     var parentLink =
         ProviderParentLinkEntity.builder()
             .provider(advocateProvider)
@@ -886,9 +884,36 @@ class OfficeServiceTest {
     advocateLink.setGuid(UUID.randomUUID());
     advocateLink.setAccountNumber("ADV001");
     advocateLink.setOffice(new OfficeEntity());
-    advocateLink.setDebtRecoveryFlag(Boolean.TRUE);
     when(advocateProviderOfficeLinkRepository.findByProviderAndActiveDateToIsNull(advocateProvider))
         .thenReturn(List.of(advocateLink));
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    chambersProviderGuid.toString(),
+                    chambersLinkGuid.toString(),
+                    new ChambersOfficePatchV2().activeDateTo(LocalDate.of(2025, 6, 30))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("practitioner");
+  }
+
+  @Test
+  void patchOffice_deactivatesChambers_whenNoPractitionersLinked() {
+    var chambersProviderGuid = UUID.randomUUID();
+    var chambersLinkGuid = UUID.randomUUID();
+
+    var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
+    chambersProvider.setGuid(chambersProviderGuid);
+
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setGuid(chambersLinkGuid);
+    chambersLink.setAccountNumber("CHM001");
+    chambersLink.setOffice(new OfficeEntity());
+    chambersLink.setProvider(chambersProvider);
+
+    stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
+    stubSaves();
+    when(providerParentLinkRepository.findByParent(chambersProvider)).thenReturn(List.of());
 
     var deactivationDate = LocalDate.of(2025, 6, 30);
     service.patchOffice(
@@ -897,9 +922,6 @@ class OfficeServiceTest {
         new ChambersOfficePatchV2().activeDateTo(deactivationDate));
 
     assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getDebtRecoveryFlag()).isFalse();
-    verify(advocateProviderOfficeLinkRepository).save(advocateLink);
   }
 
   @Test

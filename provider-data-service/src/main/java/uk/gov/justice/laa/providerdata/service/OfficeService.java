@@ -354,7 +354,9 @@ public class OfficeService {
    *       auto-resets {@code debtRecoveryFlag} to {@code false}.
    *   <li>Deactivating the LSP head office cascades the same {@code activeDateTo} to all active
    *       child offices.
-   *   <li>Deactivating a Chambers office cascades to all active linked Advocate offices.
+   *   <li>Deactivating a Chambers office is rejected if any active practitioners are linked to it
+   *       (DS_MAPD_FR_019). All practitioners must be deactivated or reassigned to another Chambers
+   *       first.
    *   <li>{@code debtRecoveryFlag} and {@code falseBalanceFlag} apply to LSP and Advocate offices
    *       only. {@code debtRecoveryFlag} may only be {@code true} when the office is active; {@code
    *       falseBalanceFlag} may only be {@code true} when the office is inactive.
@@ -474,8 +476,20 @@ public class OfficeService {
               lspLink);
       case ChamberProviderOfficeLinkEntity chamberLink -> {
         if (patchActiveDateTo != null) {
+          boolean hasActivePractitioners =
+              providerParentLinkRepository.findByParent(chamberLink.getProvider()).stream()
+                  .anyMatch(
+                      ppl ->
+                          !advocateProviderOfficeLinkRepository
+                              .findByProviderAndActiveDateToIsNull(ppl.getProvider())
+                              .isEmpty());
+          if (hasActivePractitioners) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate a Chambers office while active practitioners are linked."
+                    + " Deactivate all associated practitioners or reassign them to another"
+                    + " Chambers first.");
+          }
           chamberLink.setActiveDateTo(patchActiveDateTo);
-          cascadeDeactivationToAdvocates(chamberLink.getProvider(), patchActiveDateTo);
         } else if (clearActiveDateTo) {
           chamberLink.setActiveDateTo(null);
         }
@@ -611,26 +625,6 @@ public class OfficeService {
               child.setActiveDateTo(activeDateTo);
               child.setDebtRecoveryFlag(Boolean.FALSE);
               lspProviderOfficeLinkRepository.save(child);
-            });
-  }
-
-  /**
-   * Sets {@code activeDateTo} on all active Advocate office links for practitioners belonging to
-   * the given Chambers firm (resolved via {@code PROVIDER_PARENT_LINK}), and auto-resets their
-   * {@code debtRecoveryFlag} to {@code false}.
-   */
-  private void cascadeDeactivationToAdvocates(ProviderEntity chambersFirm, LocalDate activeDateTo) {
-    providerParentLinkRepository.findByParent(chambersFirm).stream()
-        .flatMap(
-            ppl ->
-                advocateProviderOfficeLinkRepository
-                    .findByProviderAndActiveDateToIsNull(ppl.getProvider())
-                    .stream())
-        .forEach(
-            advocateLink -> {
-              advocateLink.setActiveDateTo(activeDateTo);
-              advocateLink.setDebtRecoveryFlag(Boolean.FALSE);
-              advocateProviderOfficeLinkRepository.save(advocateLink);
             });
   }
 

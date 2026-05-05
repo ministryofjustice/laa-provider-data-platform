@@ -109,8 +109,9 @@ jobs:
           set -eu
           echo "Upgrade Helm release - canary_role: [${CANARY_ROLE}], chart: [${CHART}], datacfg_secret: [${DATACFG_SECRET}]"
           echo "  hostname_suffix: [${HOSTNAME_SUFFIX}], image: [${IMAGE}], release: [${RELEASE}], tag: [${PTAG}${RTAG}], target: [${TARGET}]"
+          BASE_IPS=$(printf '%s' "${{ secrets.IP_ALLOWLIST }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
           PINGDOM_IPS=$(curl -s https://my.pingdom.com/probes/ipv4 | tr -d ' ' | tr '\n' ',' | sed 's/,$//')
-          IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d'),${PINGDOM_IPS}"
+          IP_ALLOWLIST="${BASE_IPS},${PINGDOM_IPS}"
           HELM_OPTS=(
               -f "${CHART}/values.yaml"
               -f "${CHART}/values-${TARGET}.yaml"

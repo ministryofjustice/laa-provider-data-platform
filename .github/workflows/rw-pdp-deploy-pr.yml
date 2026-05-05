@@ -76,7 +76,8 @@ jobs:
         run: |
           set -eu
           echo "Upgrade Helm release - chart: [${CHART}], image: [${IMAGE}], tag: [${PTAG}${RTAG}], target: [${{ inputs.target }}], release: [${RELEASE}]"
-          IP_ALLOWLIST="$(kubectl get secret app-secrets -o json | jq -r '.data["IP_ALLOWLIST"] | @base64d')"
+          BASE_IPS=$(printf '%s' "${{ secrets.IP_ALLOWLIST }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
+          IP_ALLOWLIST="${BASE_IPS}"
           PG_PASSWORD="$(openssl rand -hex 16)"
           HELM_OPTS=(
               -f "${CHART}/values.yaml"

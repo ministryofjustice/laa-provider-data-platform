@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -32,7 +33,7 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Practitioner. It covers both Advocates and Barristers, subdivided by {@code advocateType}.
  */
 @ModifyingTest
-@DisplayName("DSTEW-1557: Prevent Chambers inactivation with active practitioners (DS_MAPD_FR_019)")
+@DisplayName("DSTEW-1557: Prevent Chambers deactivation with active practitioners (DS_MAPD_FR_019)")
 class DeactivateChambersE2eTest {
 
   private static String emptyChambersNumber;
@@ -168,19 +169,35 @@ class DeactivateChambersE2eTest {
    * AC1 – Apply inactive date when no associated active practitioners exist.
    *
    * <p>A Chambers with no linked practitioners can be made inactive by setting {@code
-   * activeDateTo}.
+   * activeDateTo}. The change is verified via a subsequent GET.
    */
   @Test
-  void dstew1557_ac1_noActivePractitioners_inactivationSucceeds() {
+  void dstew1557_ac1_noActivePractitioners_deactivationSucceeds() {
+    String activeDateTo = LocalDate.now().toString();
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", emptyChambersNumber)
         .pathParam("officeCode", emptyChambersOfficeCode)
-        .body(Map.of("activeDateTo", LocalDate.now().toString()))
+        .body(Map.of("activeDateTo", activeDateTo))
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200);
+
+    // Verify the inactive date was persisted and pre-existing fields are unchanged.
+    given()
+        .pathParam("firmId", emptyChambersNumber)
+        .pathParam("officeCode", emptyChambersOfficeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.accountNumber", equalTo(emptyChambersOfficeCode))
+        .body("data.activeDateTo", equalTo(activeDateTo))
+        .body("data.address.line1", equalTo("1 Empty Street"))
+        .body("data.address.townOrCity", equalTo("London"))
+        .body("data.address.postcode", equalTo("WC1A 1AA"));
   }
 
   /**
@@ -189,7 +206,7 @@ class DeactivateChambersE2eTest {
    * <p>A Chambers with at least one active practitioner must not be made inactive.
    */
   @Test
-  void dstew1557_ac2_withActivePractitioners_inactivationRejected() {
+  void dstew1557_ac2_withActivePractitioners_deactivationIsRejected() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
@@ -202,13 +219,13 @@ class DeactivateChambersE2eTest {
   }
 
   /**
-   * AC3 – No partial updates when inactivation is rejected.
+   * AC3 – No partial updates when deactivation is rejected.
    *
-   * <p>After a rejected inactivation attempt the office must remain unchanged — {@code
+   * <p>After a rejected deactivation attempt the office must remain unchanged — {@code
    * activeDateTo} must still be null.
    */
   @Test
-  void dstew1557_ac3_rejectedInactivation_leavesRecordUnchanged() {
+  void dstew1557_ac3_rejectedDeactivation_leavesRecordUnchanged() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
@@ -230,13 +247,13 @@ class DeactivateChambersE2eTest {
   }
 
   /**
-   * AC4 – Clear feedback when inactivation is blocked.
+   * AC4 – Clear feedback when deactivation is blocked.
    *
    * <p>The 400 response must contain a message indicating that practitioners must be addressed
    * before the Chambers can be made inactive.
    */
   @Test
-  void dstew1557_ac4_rejectedInactivation_returnsMessageMentioningPractitioners() {
+  void dstew1557_ac4_rejectedDeactivation_responseBodyMentionsPractitioners() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)

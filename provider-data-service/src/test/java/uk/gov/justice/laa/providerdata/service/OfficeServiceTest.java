@@ -31,7 +31,6 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -863,23 +862,9 @@ class OfficeServiceTest {
     chambersLink.setOffice(new OfficeEntity());
     chambersLink.setProvider(chambersProvider);
 
-    var advocateProvider = ProviderEntity.builder().firmNumber("100003").build();
-    advocateProvider.setGuid(UUID.randomUUID());
-
     stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
-    var parentLink =
-        ProviderParentLinkEntity.builder()
-            .provider(advocateProvider)
-            .parent(chambersProvider)
-            .build();
-    when(providerParentLinkRepository.findByParent(chambersProvider))
-        .thenReturn(List.of(parentLink));
-    var advocateLink = new AdvocateProviderOfficeLinkEntity();
-    advocateLink.setGuid(UUID.randomUUID());
-    advocateLink.setAccountNumber("ADV001");
-    advocateLink.setOffice(new OfficeEntity());
-    when(advocateProviderOfficeLinkRepository.findByProviderAndActiveDateToIsNull(advocateProvider))
-        .thenReturn(List.of(advocateLink));
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(true);
 
     assertThatThrownBy(
             () ->
@@ -907,7 +892,8 @@ class OfficeServiceTest {
 
     stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
     stubSaves();
-    when(providerParentLinkRepository.findByParent(chambersProvider)).thenReturn(List.of());
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(false);
 
     var deactivationDate = LocalDate.of(2025, 6, 30);
     service.patchOffice(

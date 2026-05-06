@@ -26,7 +26,7 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  *   <li><b>Chambers with practitioner</b> — one active practitioner linked; used for AC2–AC4.
  * </ul>
  *
- * <p>Test data is prefixed with {@code "E2E-DSTEW "}; reset the local database to remove it.
+ * <p>Test data is prefixed with {@code "E2E-DSTEW-1557 "}; reset the local database to remove it.
  *
  * <p>Note: {@code firmType=Advocate} is the technical value for what the business calls a
  * Practitioner. It covers both Advocates and Barristers, subdivided by {@code advocateType}.
@@ -54,7 +54,7 @@ class DeactivateChambersE2eTest {
                     "firmType",
                     "Chambers",
                     "name",
-                    "E2E-DSTEW Chambers Empty " + ts,
+                    "E2E-DSTEW-1557 Chambers Empty " + ts,
                     "chambers",
                     Map.of(
                         "address",
@@ -96,7 +96,7 @@ class DeactivateChambersE2eTest {
                     "firmType",
                     "Chambers",
                     "name",
-                    "E2E-DSTEW Chambers Populated " + ts,
+                    "E2E-DSTEW-1557 Chambers Populated " + ts,
                     "chambers",
                     Map.of(
                         "address",
@@ -137,7 +137,7 @@ class DeactivateChambersE2eTest {
                 "firmType",
                 "Advocate",
                 "name",
-                "E2E-DSTEW Practitioner " + ts,
+                "E2E-DSTEW-1557 Practitioner " + ts,
                 "practitioner",
                 Map.of(
                     "parentFirms",

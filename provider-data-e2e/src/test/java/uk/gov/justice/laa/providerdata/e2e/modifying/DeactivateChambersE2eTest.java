@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -249,8 +250,8 @@ class DeactivateChambersE2eTest {
   /**
    * AC4 – Clear feedback when deactivation is blocked.
    *
-   * <p>The 400 response must contain a message indicating that practitioners must be addressed
-   * before the Chambers can be made inactive.
+   * <p>The 400 response must contain a message indicating why deactivation was blocked: the
+   * Chambers has active practitioners that must be deactivated or reassigned first.
    */
   @Test
   void dstew1557_ac4_rejectedDeactivation_responseBodyMentionsPractitioners() {
@@ -263,6 +264,11 @@ class DeactivateChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(400)
-        .body("detail", containsStringIgnoringCase("practitioner"));
+        .body(
+            "detail",
+            allOf(
+                containsStringIgnoringCase("deactivate"),
+                containsStringIgnoringCase("active practitioners"),
+                containsStringIgnoringCase("Chambers")));
   }
 }

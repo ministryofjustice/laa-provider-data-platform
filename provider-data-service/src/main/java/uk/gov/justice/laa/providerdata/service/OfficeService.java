@@ -448,8 +448,9 @@ public class OfficeService {
    *
    * <p>For LSP and Advocate links: validates and applies flag constraints; auto-resets {@code
    * debtRecoveryFlag} to {@code false} when the office is deactivated. For LSP head offices,
-   * cascades the deactivation date to all active child offices. For Chambers links, cascades to all
-   * active linked Advocate offices. No-op if all arguments are {@code null}/{@code false}.
+   * cascades the deactivation date to all active child offices. For Chambers links, deactivation is
+   * rejected if any active practitioners are linked (DS_MAPD_FR_019). No-op if all arguments are
+   * {@code null}/{@code false}.
    *
    * @throws IllegalArgumentException if flag combinations conflict with the effective activation
    *     state
@@ -476,14 +477,8 @@ public class OfficeService {
               lspLink);
       case ChamberProviderOfficeLinkEntity chamberLink -> {
         if (patchActiveDateTo != null) {
-          boolean hasActivePractitioners =
-              providerParentLinkRepository.findByParent(chamberLink.getProvider()).stream()
-                  .anyMatch(
-                      ppl ->
-                          !advocateProviderOfficeLinkRepository
-                              .findByProviderAndActiveDateToIsNull(ppl.getProvider())
-                              .isEmpty());
-          if (hasActivePractitioners) {
+          if (advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(
+              chamberLink.getProvider())) {
             throw new IllegalArgumentException(
                 "Cannot deactivate a Chambers office while active practitioners are linked."
                     + " Deactivate all associated practitioners or reassign them to another"

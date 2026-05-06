@@ -17,7 +17,7 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for amending an existing Legal Organisation (Chambers) record
  * (DS_MAPD_FR_017).
  *
- * <p>A "Legal Organization (Chambers) record" in business terms spans:
+ * <p>A "Legal Organisation (Chambers) record" in business terms spans:
  *
  * <ul>
  *   <li>the {@code Provider} entity ({@code firmType=Chambers}) — carries the legal organisation
@@ -98,7 +98,7 @@ class AmendChambersE2eTest {
    * email address), verifying both the response and the persisted state via GET.
    */
   @Test
-  void dstew1555_ac1_withMandatoryDataPreserved_returns200() {
+  void dstew1555_ac1_withMandatoryDataPreserved_amendmentIsAcceptedAndPersisted() {
     // Update the legal organisation name
     given()
         .contentType(ContentType.JSON)
@@ -141,23 +141,79 @@ class AmendChambersE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200)
+        .body("data.accountNumber", equalTo(officeCode))
+        .body("data.address.line1", equalTo("2 Amended Street"))
         .body("data.address.townOrCity", equalTo("Manchester"))
+        .body("data.address.postcode", equalTo("M1 1AA"))
         .body("data.telephoneNumber", equalTo("0161 222 3333"))
         .body("data.emailAddress", equalTo("amended@example.com"));
   }
 
   /**
-   * AC2 – Provider type cannot be changed.
+   * AC2 – Provider type cannot be changed: LSP patch body rejected.
    *
    * <p>Sending a {@code legalServicesProvider} patch body to a Chambers firm must be rejected. The
    * provider type is determined by the entity subtype and cannot be changed via an amendment.
    */
   @Test
-  void dstew1555_ac2_sendingLspPatchToChambersProvider_returns400() {
+  void dstew1555_ac2_sendingLspPatchToChambersProvider_amendmentIsRejectedWith400() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
         .body(Map.of("legalServicesProvider", Map.of("constitutionalStatus", "Partnership")))
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(400);
+  }
+
+  /**
+   * AC2 – Provider type cannot be changed: Advocate patch body rejected.
+   *
+   * <p>Sending an {@code advocate} patch body to a Chambers firm must likewise be rejected.
+   */
+  @Test
+  void dstew1555_ac2_sendingAdvocatePatchToChambersProvider_amendmentIsRejectedWith400() {
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(Map.of("advocate", Map.of("advocateType", "Barrister")))
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(400);
+  }
+
+  /**
+   * AC2 – Provider type cannot be changed: null chambers body rejected.
+   *
+   * <p>Attempting to nullify the {@code chambers} discriminator must be rejected and must not leave
+   * the record in an inconsistent state.
+   */
+  @Test
+  void dstew1555_ac2_sendingNullChambersPatchToChambersProvider_amendmentIsRejectedWith400() {
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body("{\"chambers\": null}")
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(400);
+  }
+
+  /**
+   * AC2 – Provider type cannot be changed: empty body rejected.
+   *
+   * <p>Sending no provider-type discriminator at all must be rejected. Kept distinct from the
+   * {@code chambers: null} case because the two could diverge if the implementation changes.
+   */
+  @Test
+  void dstew1555_ac2_sendingEmptyBodyToChambersProvider_amendmentIsRejectedWith400() {
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body("{}")
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
@@ -170,7 +226,7 @@ class AmendChambersE2eTest {
    * <p>Both DX fields are conditional on each other. Providing both is valid (BR11).
    */
   @Test
-  void dstew1555_ac3_withBothDxFields_returns200() {
+  void dstew1555_ac3_withBothDxFields_amendmentIsAccepted() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -188,7 +244,7 @@ class AmendChambersE2eTest {
    * <p>Omitting {@code dxDetails} entirely is valid (BR11).
    */
   @Test
-  void dstew1555_ac4_withNoDxFields_returns200() {
+  void dstew1555_ac4_withNoDxFields_amendmentIsAccepted() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -206,7 +262,7 @@ class AmendChambersE2eTest {
    * <p>Both DX fields are required when the {@code dxDetails} object is present (BR11).
    */
   @Test
-  void dstew1555_ac5_withDxNumberButNoDxCentre_returns400() {
+  void dstew1555_ac5_withDxNumberButNoDxCentre_amendmentIsRejectedWith400() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -224,7 +280,7 @@ class AmendChambersE2eTest {
    * <p>Both DX fields are required when the {@code dxDetails} object is present (BR11).
    */
   @Test
-  void dstew1555_ac6_withDxCentreButNoDxNumber_returns400() {
+  void dstew1555_ac6_withDxCentreButNoDxNumber_amendmentIsRejectedWith400() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)

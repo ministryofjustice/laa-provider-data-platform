@@ -67,7 +67,7 @@ public class LocalDataSeeder implements CommandLineRunner {
   @Transactional
   public void run(String... args) {
     if (providerRepository.findByFirmNumber(LSP_FIRM_NUMBER).isPresent()) {
-      log.info("Test data already seeded - skipping");
+      log.info("Base test data already seeded");
       seedDxChambersIfMissing();
       return;
     }
@@ -101,13 +101,12 @@ public class LocalDataSeeder implements CommandLineRunner {
                 .dxDetailsNumber("DX456")
                 .dxDetailsCentre("Birmingham DX Centre")
                 .build());
-    ChamberProviderEntity dxChambers =
-        (ChamberProviderEntity)
-            providerRepository.save(
-                ChamberProviderEntity.builder()
-                    .firmNumber(CHAMBERS_DX_FIRM_NUMBER)
-                    .name("Test Chambers DX")
-                    .build());
+    var dxChambers =
+        providerRepository.save(
+            ChamberProviderEntity.builder()
+                .firmNumber(CHAMBERS_DX_FIRM_NUMBER)
+                .name("Test Chambers DX")
+                .build());
     providerOfficeLinkRepository.save(
         ChamberProviderOfficeLinkEntity.builder()
             .provider(dxChambers)

@@ -28,11 +28,11 @@ import org.junit.jupiter.api.Test;
 class ViewChambersE2eTest {
 
   /**
-   * AC1 - View an existing Chambers record. Verifies both the provider-level and office-level
-   * endpoints return all available data for the seeded Chambers (firm 100002, office ACC002).
+   * AC1 - View an existing Chambers record. Verifies the provider, office, and liaison-manager
+   * endpoints all return available data for the seeded Chambers (firm 100002, office ACC002).
    */
   @Test
-  void dstew1556_ac1_existingChambers_returnsProviderAndOfficeFields() {
+  void dstew1556_ac1_existingChambers_allAvailableDataIsDisplayed() {
     given()
         .pathParam("firmId", E2eConfig.chambersFirmNumber())
         .when()

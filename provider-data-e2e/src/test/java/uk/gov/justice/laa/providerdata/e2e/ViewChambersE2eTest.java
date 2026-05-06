@@ -1,8 +1,10 @@
 package uk.gov.justice.laa.providerdata.e2e;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -37,9 +39,11 @@ class ViewChambersE2eTest {
         .get("/provider-firms/{firmId}")
         .then()
         .statusCode(200)
+        .body("data.guid", not(blankOrNullString()))
         .body("data.firmNumber", equalTo(E2eConfig.chambersFirmNumber()))
-        .body("data.name", notNullValue())
+        .body("data.name", not(blankOrNullString()))
         .body("data.firmType", equalTo("Chambers"))
+        .body("data.chambers.office.officeGUID", not(blankOrNullString()))
         .body("data.chambers.office.accountNumber", equalTo(E2eConfig.chambersOfficeCode()));
 
     given()
@@ -49,13 +53,32 @@ class ViewChambersE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200)
-        .body("data.address.line1", notNullValue())
-        .body("data.address.townOrCity", notNullValue())
-        .body("data.address.postcode", notNullValue())
-        .body("data.telephoneNumber", notNullValue())
-        .body("data.emailAddress", notNullValue())
+        .body("data.firmType", equalTo("Chambers"))
+        .body("data.accountNumber", equalTo(E2eConfig.chambersOfficeCode()))
+        .body("data.address.line1", not(blankOrNullString()))
+        .body("data.address.townOrCity", not(blankOrNullString()))
+        .body("data.address.postcode", not(blankOrNullString()))
+        .body("data.address.county", not(blankOrNullString()))
+        .body("data.telephoneNumber", not(blankOrNullString()))
+        .body("data.emailAddress", not(blankOrNullString()))
+        .body("data.website", not(blankOrNullString()))
         .body("data.activeDateTo", nullValue())
         .body("data.dxDetails", nullValue());
+
+    given()
+        .pathParam("firmId", E2eConfig.chambersFirmNumber())
+        .pathParam("officeCode", E2eConfig.chambersOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", not(empty()))
+        .body("data.content[0].firstName", not(blankOrNullString()))
+        .body("data.content[0].lastName", not(blankOrNullString()))
+        .body("data.content[0].emailAddress", not(blankOrNullString()))
+        .body("data.content[0].telephoneNumber", not(blankOrNullString()))
+        .body("data.content[0].activeDateFrom", not(blankOrNullString()))
+        .body("data.content[0].linkedFlag", equalTo(false));
   }
 
   /**
@@ -71,8 +94,8 @@ class ViewChambersE2eTest {
         .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200)
-        .body("data.dxDetails.dxNumber", notNullValue())
-        .body("data.dxDetails.dxCentre", notNullValue());
+        .body("data.dxDetails.dxNumber", not(blankOrNullString()))
+        .body("data.dxDetails.dxCentre", not(blankOrNullString()));
   }
 
   /**
@@ -95,7 +118,7 @@ class ViewChambersE2eTest {
 
   /** AC3 - Non-existent Chambers returns 404. */
   @Test
-  void dstew1556_ac3_nonExistentChambers_returns404() {
+  void dstew1556_ac3_nonExistentChambers_recordNotFoundResponseReturned() {
     given()
         .pathParam("firmId", E2eConfig.invalidFirmNumber())
         .when()

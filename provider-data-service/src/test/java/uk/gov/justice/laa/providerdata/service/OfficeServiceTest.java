@@ -385,6 +385,8 @@ class OfficeServiceTest {
 
     assertThat(service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
         .isSameAs(link);
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository, never()).findByProviderAndAccountNumber(any(), any());
   }
 
   @Test
@@ -399,6 +401,8 @@ class OfficeServiceTest {
         .thenReturn(Optional.of(link));
 
     assertThat(service.getProviderOfficeLink(providerGuid.toString(), "CH001")).isSameAs(link);
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository, never()).findByProviderAndGuid(any(), any());
   }
 
   @Test
@@ -416,6 +420,8 @@ class OfficeServiceTest {
             () -> service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining(officeLinkGuid.toString());
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository).findByProviderAndGuid(provider, officeLinkGuid);
   }
 
   // --- getOfficeLink ---

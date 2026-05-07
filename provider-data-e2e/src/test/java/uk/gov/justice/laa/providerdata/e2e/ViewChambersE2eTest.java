@@ -101,7 +101,7 @@ class ViewChambersE2eTest {
   /**
    * AC2 - Omit optional DX fields when absent. The standard seeded Chambers (100002) has no DX
    * fields; verifies the office is returned successfully with dxDetails absent (null). See also
-   * {@link #dstew1556_ac1_existingChambers_returnsProviderAndOfficeFields()} which also covers this
+   * {@link #dstew1556_ac1_existingChambers_allAvailableDataIsDisplayed()} which also covers this
    * case.
    */
   @Test

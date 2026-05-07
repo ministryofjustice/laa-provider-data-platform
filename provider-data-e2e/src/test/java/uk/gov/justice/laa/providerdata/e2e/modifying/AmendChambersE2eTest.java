@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -150,13 +151,15 @@ class AmendChambersE2eTest {
   }
 
   /**
-   * AC2 – Provider type cannot be changed: LSP patch body rejected.
+   * AC2 – Provider type cannot be changed: LSP patch body rejected and record unchanged.
    *
    * <p>Sending a {@code legalServicesProvider} patch body to a Chambers firm must be rejected. The
    * provider type is determined by the entity subtype and cannot be changed via an amendment.
    */
   @Test
-  void dstew1555_ac2_sendingLspPatchToChambersProvider_amendmentIsRejectedWith400() {
+  void dstew1555_ac2_sendingLspPatchToChambersProvider_amendmentIsRejectedAndUnchanged() {
+    String originalName = fetchProviderName();
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -165,15 +168,19 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(400);
+
+    assertProviderUnchanged(originalName);
   }
 
   /**
-   * AC2 – Provider type cannot be changed: Advocate patch body rejected.
+   * AC2 – Provider type cannot be changed: Advocate patch body rejected and record unchanged.
    *
    * <p>Sending an {@code advocate} patch body to a Chambers firm must likewise be rejected.
    */
   @Test
-  void dstew1555_ac2_sendingAdvocatePatchToChambersProvider_amendmentIsRejectedWith400() {
+  void dstew1555_ac2_sendingAdvocatePatchToChambersProvider_amendmentIsRejectedAndUnchanged() {
+    String originalName = fetchProviderName();
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -182,16 +189,20 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(400);
+
+    assertProviderUnchanged(originalName);
   }
 
   /**
-   * AC2 – Provider type cannot be changed: null chambers body rejected.
+   * AC2 – Provider type cannot be changed: null chambers body rejected and record unchanged.
    *
    * <p>Attempting to nullify the {@code chambers} discriminator must be rejected and must not leave
    * the record in an inconsistent state.
    */
   @Test
-  void dstew1555_ac2_sendingNullChambersPatchToChambersProvider_amendmentIsRejectedWith400() {
+  void dstew1555_ac2_sendingNullChambersPatchToChambersProvider_amendmentIsRejectedAndUnchanged() {
+    String originalName = fetchProviderName();
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -200,16 +211,20 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(400);
+
+    assertProviderUnchanged(originalName);
   }
 
   /**
-   * AC2 – Provider type cannot be changed: empty body rejected.
+   * AC2 – Provider type cannot be changed: empty body rejected and record unchanged.
    *
    * <p>Sending no provider-type discriminator at all must be rejected. Kept distinct from the
    * {@code chambers: null} case because the two could diverge if the implementation changes.
    */
   @Test
-  void dstew1555_ac2_sendingEmptyBodyToChambersProvider_amendmentIsRejectedWith400() {
+  void dstew1555_ac2_sendingEmptyBodyToChambersProvider_amendmentIsRejectedAndUnchanged() {
+    String originalName = fetchProviderName();
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -218,15 +233,17 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(400);
+
+    assertProviderUnchanged(originalName);
   }
 
   /**
-   * AC3 – DX Number and DX Centre provided together: amendment accepted.
+   * AC3 – DX Number and DX Centre provided together: amendment accepted and persisted.
    *
    * <p>Both DX fields are conditional on each other. Providing both is valid (BR11).
    */
   @Test
-  void dstew1555_ac3_withBothDxFields_amendmentIsAccepted() {
+  void dstew1555_ac3_withBothDxFields_amendmentIsAcceptedAndPersisted() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -236,15 +253,26 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.dxDetails.dxNumber", equalTo("DX 12345 LONDON"))
+        .body("data.dxDetails.dxCentre", equalTo("London 1"));
   }
 
   /**
-   * AC4 – Neither DX Number nor DX Centre provided: amendment accepted.
+   * AC4 – Neither DX Number nor DX Centre provided: amendment accepted and persisted.
    *
-   * <p>Omitting {@code dxDetails} entirely is valid (BR11).
+   * <p>Omitting {@code dxDetails} entirely is valid (BR11). Verifies the amendment is persisted and
+   * no DX fields are introduced.
    */
   @Test
-  void dstew1555_ac4_withNoDxFields_amendmentIsAccepted() {
+  void dstew1555_ac4_withNoDxFields_amendmentIsAcceptedAndPersisted() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -254,15 +282,29 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.telephoneNumber", equalTo("020 9999 8888"))
+        .body("data.dxDetails", nullValue());
   }
 
   /**
-   * AC5 – DX Number provided without DX Centre: amendment rejected.
+   * AC5 – DX Number provided without DX Centre: amendment rejected and record unchanged.
    *
    * <p>Both DX fields are required when the {@code dxDetails} object is present (BR11).
    */
   @Test
-  void dstew1555_ac5_withDxNumberButNoDxCentre_amendmentIsRejectedWith400() {
+  void dstew1555_ac5_withDxNumberButNoDxCentre_amendmentIsRejectedAndUnchanged() {
+    Response before = fetchOfficeResponse();
+    String originalDxNumber = before.path("data.dxDetails.dxNumber");
+    String originalDxCentre = before.path("data.dxDetails.dxCentre");
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -272,15 +314,29 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.dxDetails.dxNumber", equalTo(originalDxNumber))
+        .body("data.dxDetails.dxCentre", equalTo(originalDxCentre));
   }
 
   /**
-   * AC6 – DX Centre provided without DX Number: amendment rejected.
+   * AC6 – DX Centre provided without DX Number: amendment rejected and record unchanged.
    *
    * <p>Both DX fields are required when the {@code dxDetails} object is present (BR11).
    */
   @Test
-  void dstew1555_ac6_withDxCentreButNoDxNumber_amendmentIsRejectedWith400() {
+  void dstew1555_ac6_withDxCentreButNoDxNumber_amendmentIsRejectedAndUnchanged() {
+    Response before = fetchOfficeResponse();
+    String originalDxNumber = before.path("data.dxDetails.dxNumber");
+    String originalDxCentre = before.path("data.dxDetails.dxCentre");
+
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", firmNumber)
@@ -290,6 +346,16 @@ class AmendChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.dxDetails.dxNumber", equalTo(originalDxNumber))
+        .body("data.dxDetails.dxCentre", equalTo(originalDxCentre));
   }
 
   /**
@@ -341,5 +407,39 @@ class AmendChambersE2eTest {
         .then()
         .statusCode(200)
         .body("data.address.townOrCity", equalTo(addressBeforePatch));
+  }
+
+  private String fetchProviderName() {
+    return given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .extract()
+        .path("data.name");
+  }
+
+  private void assertProviderUnchanged(String expectedName) {
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .body("data.firmNumber", equalTo(firmNumber))
+        .body("data.name", equalTo(expectedName));
+  }
+
+  private Response fetchOfficeResponse() {
+    return given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .extract()
+        .response();
   }
 }

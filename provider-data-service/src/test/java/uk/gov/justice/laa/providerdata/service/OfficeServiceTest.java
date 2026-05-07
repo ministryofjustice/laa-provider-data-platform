@@ -900,6 +900,8 @@ class OfficeServiceTest {
         new ChambersOfficePatchV2().activeDateTo(deactivationDate));
 
     assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
+    verify(advocateProviderOfficeLinkRepository)
+        .existsActivePractitionerForChambers(chambersProvider);
   }
 
   @Test

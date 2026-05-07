@@ -204,10 +204,11 @@ class DeactivateChambersE2eTest {
   /**
    * AC2 – Prevent inactive date when associated active practitioners exist.
    *
-   * <p>A Chambers with at least one active practitioner must not be made inactive.
+   * <p>A Chambers with at least one active practitioner must not be made inactive. Verifies the
+   * record remains unchanged after the rejection.
    */
   @Test
-  void dstew1557_ac2_withActivePractitioners_deactivationIsRejected() {
+  void dstew1557_ac2_withActivePractitioners_deactivationIsRejectedAndUnchanged() {
     given()
         .contentType(ContentType.JSON)
         .pathParam("firmId", populatedChambersNumber)
@@ -217,13 +218,14 @@ class DeactivateChambersE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(400);
+
+    assertPopulatedOfficeUnchanged();
   }
 
   /**
    * AC3 – No partial updates when deactivation is rejected.
    *
-   * <p>After a rejected deactivation attempt the office must remain unchanged — {@code
-   * activeDateTo} must still be null.
+   * <p>After a rejected deactivation attempt the office must remain fully unchanged.
    */
   @Test
   void dstew1557_ac3_rejectedDeactivation_leavesRecordUnchanged() {
@@ -237,21 +239,15 @@ class DeactivateChambersE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", populatedChambersNumber)
-        .pathParam("officeCode", populatedChambersOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.activeDateTo", nullValue());
+    assertPopulatedOfficeUnchanged();
   }
 
   /**
    * AC4 – Clear feedback when deactivation is blocked.
    *
    * <p>The 400 response must contain a message indicating why deactivation was blocked: the
-   * Chambers has active practitioners that must be deactivated or reassigned first.
+   * Chambers has active practitioners that must be deactivated or reassigned first. Verifies the
+   * record remains unchanged after the rejection.
    */
   @Test
   void dstew1557_ac4_rejectedDeactivation_responseBodyMentionsPractitioners() {
@@ -270,5 +266,22 @@ class DeactivateChambersE2eTest {
                 containsStringIgnoringCase("deactivate"),
                 containsStringIgnoringCase("active practitioners"),
                 containsStringIgnoringCase("Chambers")));
+
+    assertPopulatedOfficeUnchanged();
+  }
+
+  private void assertPopulatedOfficeUnchanged() {
+    given()
+        .pathParam("firmId", populatedChambersNumber)
+        .pathParam("officeCode", populatedChambersOfficeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.accountNumber", equalTo(populatedChambersOfficeCode))
+        .body("data.activeDateTo", nullValue())
+        .body("data.address.line1", equalTo("1 Populated Street"))
+        .body("data.address.townOrCity", equalTo("London"))
+        .body("data.address.postcode", equalTo("WC1A 1BB"));
   }
 }

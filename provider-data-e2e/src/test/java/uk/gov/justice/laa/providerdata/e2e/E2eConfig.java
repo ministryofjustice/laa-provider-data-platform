@@ -66,6 +66,22 @@ public final class E2eConfig {
     return require("chambers.firmNumber");
   }
 
+  // --- Chambers head office ---
+
+  public static String chambersOfficeCode() {
+    return require("chambers.office.code");
+  }
+
+  // --- Chambers with DX fields (for AC2) ---
+
+  public static String chambersDxFirmNumber() {
+    return require("chambers.dx.firmNumber");
+  }
+
+  public static String chambersDxOfficeCode() {
+    return require("chambers.dx.office.code");
+  }
+
   // --- Contract managers ---
 
   public static String contractManagerId() {

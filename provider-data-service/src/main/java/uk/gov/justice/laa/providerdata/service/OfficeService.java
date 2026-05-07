@@ -281,6 +281,27 @@ public class OfficeService {
   }
 
   /**
+   * Returns a single office by GUID or account number, regardless of firm type (LSP, Chambers, or
+   * Advocate/Practitioner).
+   *
+   * <p>The {@code officeGUIDorCode} parameter is first tried as a UUID (the {@code
+   * ProviderOfficeLinkEntity.guid}); if that fails it is treated as an account number.
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeGUIDorCode {@link ProviderOfficeLinkEntity} GUID or account number
+   * @return the matching {@link ProviderOfficeLinkEntity}
+   * @throws ItemNotFoundException if no provider or office matches the given identifiers
+   */
+  @Transactional(readOnly = true)
+  public ProviderOfficeLinkEntity getProviderOfficeLink(
+      String providerFirmGUIDorFirmNumber, String officeGUIDorCode) {
+
+    ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
+    return findProviderOfficeLink(provider, officeGUIDorCode)
+        .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
+  }
+
+  /**
    * Returns the office link for the given provider and office identifier, regardless of firm type.
    *
    * <p>The {@code officeGUIDorCode} parameter is first tried as a UUID (the {@code

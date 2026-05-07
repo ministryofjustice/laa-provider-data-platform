@@ -31,7 +31,6 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -49,7 +48,6 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,7 +57,6 @@ class OfficeServiceTest {
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
-  @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
@@ -856,7 +853,7 @@ class OfficeServiceTest {
   }
 
   @Test
-  void patchOffice_cascadesDeactivation_toAdvocateOfficesViaChambers() {
+  void patchOffice_throwsIllegalArgument_whenChambersHasActivePractitioners() {
     var chambersProviderGuid = UUID.randomUUID();
     var chambersLinkGuid = UUID.randomUUID();
 
@@ -869,26 +866,38 @@ class OfficeServiceTest {
     chambersLink.setOffice(new OfficeEntity());
     chambersLink.setProvider(chambersProvider);
 
-    var advocateProvider = ProviderEntity.builder().firmNumber("100003").build();
-    advocateProvider.setGuid(UUID.randomUUID());
+    stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(true);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    chambersProviderGuid.toString(),
+                    chambersLinkGuid.toString(),
+                    new ChambersOfficePatchV2().activeDateTo(LocalDate.of(2025, 6, 30))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("practitioner");
+  }
+
+  @Test
+  void patchOffice_deactivatesChambers_whenNoPractitionersLinked() {
+    var chambersProviderGuid = UUID.randomUUID();
+    var chambersLinkGuid = UUID.randomUUID();
+
+    var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
+    chambersProvider.setGuid(chambersProviderGuid);
+
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setGuid(chambersLinkGuid);
+    chambersLink.setAccountNumber("CHM001");
+    chambersLink.setOffice(new OfficeEntity());
+    chambersLink.setProvider(chambersProvider);
 
     stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
     stubSaves();
-    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    var parentLink =
-        ProviderParentLinkEntity.builder()
-            .provider(advocateProvider)
-            .parent(chambersProvider)
-            .build();
-    when(providerParentLinkRepository.findByParent(chambersProvider))
-        .thenReturn(List.of(parentLink));
-    var advocateLink = new AdvocateProviderOfficeLinkEntity();
-    advocateLink.setGuid(UUID.randomUUID());
-    advocateLink.setAccountNumber("ADV001");
-    advocateLink.setOffice(new OfficeEntity());
-    advocateLink.setDebtRecoveryFlag(Boolean.TRUE);
-    when(advocateProviderOfficeLinkRepository.findByProviderAndActiveDateToIsNull(advocateProvider))
-        .thenReturn(List.of(advocateLink));
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(false);
 
     var deactivationDate = LocalDate.of(2025, 6, 30);
     service.patchOffice(
@@ -897,9 +906,8 @@ class OfficeServiceTest {
         new ChambersOfficePatchV2().activeDateTo(deactivationDate));
 
     assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getDebtRecoveryFlag()).isFalse();
-    verify(advocateProviderOfficeLinkRepository).save(advocateLink);
+    verify(advocateProviderOfficeLinkRepository)
+        .existsActivePractitionerForChambers(chambersProvider);
   }
 
   @Test

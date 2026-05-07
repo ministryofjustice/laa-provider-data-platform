@@ -1014,8 +1014,9 @@ paths:
         1) Deactivating office details by setting `activeDateTo`.
            Note that if the office is a head office of Legal Service Provider firm, `activeDateTo`
            should be set on all other offices which are not yet de-activated.
-           Similarly if the office is a Chambers' office, `activeDateTo` should be set on all
-           Advocate/Barrister offices which are not yet de-activated.
+           For a Chambers office, `activeDateTo` can only be applied if no active practitioners
+           are linked to the Chambers (DS_MAPD_FR_019). All associated practitioners must be
+           deactivated or reassigned to another Chambers before this Chambers can be made inactive.
         2) Holding payments using `paymentHeldFlag`
         3) Updating office details
         4) Setting `intervened` flag

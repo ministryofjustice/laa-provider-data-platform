@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -255,37 +256,44 @@ class CreateProviderFirmE2eTest {
    */
   @Test
   void createChambersConditionalMutuallyInclusiveDXDetailsMissing_returns400() {
-    Map<String, Object> body =
-        Map.of(
-            "firmType",
-            "",
-            "name",
-            "E2E-DSTEW Chambers " + System.currentTimeMillis(),
-            "chambers",
-            Map.of(
-                "address",
-                Map.of(
-                    "line1", "2 Chambers Court",
-                    "townOrCity", "London",
-                    "postcode", "WC2A 3EB"),
-                "headOffice",
-                true,
-                "dxDetails",
-                Map.of("dxNumber", "1234567890"),
-                "liaisonManager",
-                Map.of(
-                    "firstName", "Test",
-                    "lastName", "Manager",
-                    "emailAddress", "test@example.com",
-                    "telephoneNumber", "020 1111 2222")));
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
+    // Both dxNumber and dxCentre must be provided
+    List<Map> dxDetails =
+        List.of(Map.of("dxNumber", "1234567890"), Map.of("dxCentre", "Birmingham"));
+    dxDetails.forEach(
+        dxDetail -> {
+          Map<String, Object> body =
+              Map.of(
+                  "firmType",
+                  "",
+                  "name",
+                  firmName,
+                  "chambers",
+                  Map.of(
+                      "address",
+                      Map.of(
+                          "line1", "2 Chambers Court",
+                          "townOrCity", "London",
+                          "postcode", "WC2A 3EB"),
+                      "headOffice",
+                      true,
+                      "dxDetails",
+                      dxDetail,
+                      "liaisonManager",
+                      Map.of(
+                          "firstName", "Test",
+                          "lastName", "Manager",
+                          "emailAddress", "test@example.com",
+                          "telephoneNumber", "020 1111 2222")));
 
-    given()
-        .contentType(ContentType.JSON)
-        .body(body)
-        .when()
-        .post("/provider-firms")
-        .then()
-        .statusCode(400);
+          given()
+              .contentType(ContentType.JSON)
+              .body(body)
+              .when()
+              .post("/provider-firms")
+              .then()
+              .statusCode(400);
+        });
   }
 
   /**

@@ -40,9 +40,9 @@ import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
+import uk.gov.justice.laa.providerdata.service.ProviderCommandService;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
-import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -60,8 +60,8 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 @RestController
 public class ProviderFirmController {
 
-  private final ProviderCreationService providerFirmCreationService;
-  private final ProviderService providerFirmService;
+  private final ProviderCommandService providerFirmCreationService;
+  private final ProviderQueryService providerFirmService;
   private final OfficeMapper officeMapper;
   private final ProviderMapper providerFirmMapper;
 
@@ -74,8 +74,8 @@ public class ProviderFirmController {
    * @param providerFirmMapper maps provider entities to response models
    */
   public ProviderFirmController(
-      ProviderCreationService providerFirmCreationService,
-      ProviderService providerFirmService,
+      ProviderCommandService providerFirmCreationService,
+      ProviderQueryService providerFirmService,
       OfficeMapper officeMapper,
       ProviderMapper providerFirmMapper) {
     this.providerFirmCreationService = providerFirmCreationService;
@@ -216,7 +216,7 @@ public class ProviderFirmController {
     validatePatchRequest(request);
 
     ProviderCreationResult result =
-        providerFirmService.patchProvider(providerFirmGUIDorFirmNumber, request);
+        providerFirmCreationService.patchProvider(providerFirmGUIDorFirmNumber, request);
 
     return ResponseEntity.ok(
         new CreateProviderFirm201Response()

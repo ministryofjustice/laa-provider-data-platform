@@ -1,13 +1,17 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
+import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -20,11 +24,14 @@ import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
@@ -35,15 +42,17 @@ import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.util.ReferenceNumberUtils;
+import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /**
- * Orchestrates atomic provider firm creation, including the head office where applicable.
+ * Orchestrates atomic provider firm creation and mutation, including the head office where
+ * applicable.
  *
  * <p>LSP and Chambers firms always have a head office created in the same transaction.
  * Practitioners have no head office.
  */
 @Service
-public class ProviderCreationService {
+public class ProviderCommandService {
 
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
@@ -60,19 +69,19 @@ public class ProviderCreationService {
   /**
    * Inject dependencies.
    *
-   * @param providerRepository to save provider entities
-   * @param officeRepository to save office entities
-   * @param lspProviderOfficeLinkRepository to save LSP office links
-   * @param chamberProviderOfficeLinkRepository to save Chambers office links
-   * @param advocateProviderOfficeLinkRepository to save Advocate office links
-   * @param providerOfficeLinkRepository to look up parent head offices generically
-   * @param liaisonManagerRepository to save liaison manager entities
-   * @param officeLiaisonManagerLinkRepository to save office liaison manager links
-   * @param providerParentLinkRepository to save practitioner parent links
-   * @param bankDetailsService to create and link bank accounts
-   * @param bankAccountMapper to map bank account request DTOs to entities
+   * @param providerRepository to save and query provider entities.
+   * @param officeRepository to save office entities.
+   * @param lspProviderOfficeLinkRepository to save and query LSP office links.
+   * @param chamberProviderOfficeLinkRepository to save and query Chambers office links.
+   * @param advocateProviderOfficeLinkRepository to save and query Advocate office links.
+   * @param providerOfficeLinkRepository to look up offices generically across all firm types.
+   * @param liaisonManagerRepository to save liaison manager entities.
+   * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
+   * @param providerParentLinkRepository to save and query provider parent links.
+   * @param bankDetailsService to create and link bank accounts.
+   * @param bankAccountMapper to map bank account request DTOs to entities.
    */
-  public ProviderCreationService(
+  public ProviderCommandService(
       ProviderRepository providerRepository,
       OfficeRepository officeRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
@@ -225,6 +234,138 @@ public class ProviderCreationService {
 
     persistBankDetailsForPractitioner(payment, saved);
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+  }
+
+  /** Applies supported provider PATCH fields for the resolved provider subtype. */
+  @Transactional
+  public ProviderCreationResult patchProvider(
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch) {
+    ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
+
+    if (patch.getName() != null) {
+      if (patch.getName().isBlank()) {
+        throw new IllegalArgumentException("name must not be blank");
+      }
+      provider.setName(patch.getName());
+    }
+
+    if (patch.getLegalServicesProvider() != null) {
+      applyLspPatch(provider, providerFirmGUIDorFirmNumber, patch.getLegalServicesProvider());
+    }
+
+    if (patch.getPractitioner() != null) {
+      applyPractitionerPatch(provider, providerFirmGUIDorFirmNumber, patch.getPractitioner());
+    }
+
+    var saved = providerRepository.save(provider);
+    return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+  }
+
+  private ProviderEntity getProvider(String providerFirmGUIDorFirmNumber) {
+    var guid = UuidUtils.parseUuid(providerFirmGUIDorFirmNumber);
+    return (guid.isPresent()
+            ? providerRepository.findById(guid.get())
+            : providerRepository.findByFirmNumber(providerFirmGUIDorFirmNumber))
+        .orElseThrow(
+            () -> new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
+  }
+
+  private static void applyLspPatch(
+      ProviderEntity provider, String providerFirmGUIDorFirmNumber, LSPDetailsPatchV2 lspPatch) {
+    switch (provider) {
+      case LspProviderEntity lspProvider -> {
+        if (lspPatch.getHeadOffice() != null) {
+          throw new IllegalArgumentException(
+              "Head office reassignment is not supported on this endpoint");
+        }
+        if (lspPatch.getConstitutionalStatus() != null) {
+          lspProvider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
+        }
+        if (lspPatch.getIndemnityReceivedDate() != null) {
+          lspProvider.setIndemnityReceivedDate(lspPatch.getIndemnityReceivedDate());
+        }
+        if (lspPatch.getCompaniesHouseNumber() != null) {
+          lspProvider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
+        }
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "legalServicesProvider updates require a Legal Services Provider: "
+                  + providerFirmGUIDorFirmNumber);
+    }
+  }
+
+  private void applyPractitionerPatch(
+      ProviderEntity provider,
+      String providerFirmGUIDorFirmNumber,
+      PractitionerDetailsPatchV2 practitionerPatch) {
+    if (!FirmType.ADVOCATE.equals(provider.getFirmType())) {
+      throw new IllegalArgumentException(
+          "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
+    }
+    if (practitionerPatch.getLiaisonManager() != null) {
+      throw new IllegalArgumentException(
+          "Practitioner liaison manager updates are not supported on this endpoint");
+    }
+    if (practitionerPatch.getParentFirms() != null) {
+      applyParentFirmPatch(provider, practitionerPatch.getParentFirms());
+    }
+    switch (provider) {
+      case AdvocatePractitionerEntity advocate -> {
+        if (practitionerPatch.getAdvocateLevel() != null) {
+          advocate.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
+        }
+        if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
+          advocate.setSolicitorRegulationAuthorityRollNumber(
+              practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
+        }
+      }
+      case BarristerPractitionerEntity barrister -> {
+        if (practitionerPatch.getBarristerLevel() != null) {
+          barrister.setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
+        }
+        if (practitionerPatch.getBarCouncilRollNumber() != null) {
+          barrister.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
+        }
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
+    }
+  }
+
+  private void applyParentFirmPatch(
+      ProviderEntity provider, List<PractitionerDetailsParentUpdateV2> parentFirms) {
+    if (provider instanceof PractitionerEntity) {
+      List<ProviderParentLinkEntity> existingLinks =
+          providerParentLinkRepository.findByProvider(provider);
+      providerParentLinkRepository.deleteAll(existingLinks);
+      for (PractitionerDetailsParentUpdateV2 parentUpdate : parentFirms) {
+        ProviderEntity parent = resolveParent(parentUpdate);
+        providerParentLinkRepository.save(
+            ProviderParentLinkEntity.builder().provider(provider).parent(parent).build());
+      }
+    } else {
+      Optional<AdvocateProviderOfficeLinkEntity> existingLink =
+          advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
+      existingLink.ifPresent(advocateProviderOfficeLinkRepository::delete);
+      if (!parentFirms.isEmpty()) {
+        ProviderEntity parent = resolveParent(parentFirms.get(0));
+        ProviderOfficeLinkEntity parentOfficeLink =
+            providerOfficeLinkRepository
+                .findByProviderAndHeadOfficeFlagTrue(parent)
+                .orElseThrow(
+                    () ->
+                        new ItemNotFoundException(
+                            "Parent provider has no head office: " + parent.getGuid()));
+        advocateProviderOfficeLinkRepository.save(
+            AdvocateProviderOfficeLinkEntity.builder()
+                .provider(provider)
+                .office(parentOfficeLink.getOffice())
+                .headOfficeFlag(true)
+                .build());
+      }
+    }
   }
 
   private AdvocateProviderOfficeLinkEntity createAdvocateOfficeLink(

@@ -21,14 +21,14 @@ import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 
 /** Web layer tests for {@link ProviderFirmBankAccountsController}. */
 @WebMvcTest(ProviderFirmBankAccountsController.class)
 class ProviderFirmBankAccountsControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private ProviderService providerService;
+  @MockitoBean private ProviderQueryService providerService;
   @MockitoBean private OfficeService officeService;
   @MockitoBean private BankDetailsService bankDetailsService;
   @MockitoBean private BankAccountMapper bankAccountMapper;

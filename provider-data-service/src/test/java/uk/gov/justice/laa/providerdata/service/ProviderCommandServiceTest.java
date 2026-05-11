@@ -23,6 +23,7 @@ import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -34,10 +35,15 @@ import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
@@ -49,7 +55,7 @@ import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
-class ProviderCreationServiceTest {
+class ProviderCommandServiceTest {
 
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
@@ -63,7 +69,7 @@ class ProviderCreationServiceTest {
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
-  @InjectMocks private ProviderCreationService service;
+  @InjectMocks private ProviderCommandService service;
 
   @Test
   void createLspFirm_savesProviderOfficeAndLink_returnsAllIdentifiers() {
@@ -479,5 +485,177 @@ class ProviderCreationServiceTest {
         payment);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  @Test
+  void patchProvider_updatesLspNameAndBasicFields_andReturnsIdentifiers() {
+    UUID guid = UUID.randomUUID();
+
+    LspProviderEntity existing =
+        LspProviderEntity.builder().firmNumber("100001").name("Old Name").build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .name("New Name")
+            .legalServicesProvider(
+                new LSPDetailsPatchV2()
+                    .constitutionalStatus(LSPDetailsConstitutionalStatusV2.PARTNERSHIP)
+                    .indemnityReceivedDate(LocalDate.of(2024, 1, 2))
+                    .companiesHouseNumber("12345678"));
+
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(existing.getName()).isEqualTo("New Name");
+    assertThat(existing.getConstitutionalStatus()).isEqualTo("Partnership");
+    assertThat(existing.getIndemnityReceivedDate()).isEqualTo(LocalDate.of(2024, 1, 2));
+    assertThat(existing.getCompaniesHouseNumber()).isEqualTo("12345678");
+
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("100001");
+  }
+
+  @Test
+  void patchProvider_whenProviderNotLsp_rejectsLspPatch() {
+    UUID guid = UUID.randomUUID();
+
+    ProviderEntity existing =
+        ProviderEntity.builder()
+            .firmType(FirmType.CHAMBERS)
+            .firmNumber("100002")
+            .name("Chambers")
+            .build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .name("New")
+            .legalServicesProvider(new LSPDetailsPatchV2().companiesHouseNumber("X"));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("legalServicesProvider updates require a Legal Services Provider");
+  }
+
+  @Test
+  void patchProvider_headOfficeReassignmentRejected() {
+    UUID guid = UUID.randomUUID();
+
+    LspProviderEntity existing =
+        LspProviderEntity.builder().firmNumber("100001").name("Old Name").build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .legalServicesProvider(
+                new LSPDetailsPatchV2()
+                    .headOffice(
+                        new uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2()));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Head office reassignment is not supported");
+  }
+
+  @Test
+  void patchProvider_updatesAdvocatePractitionerFields() {
+    UUID guid = UUID.randomUUID();
+
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Old Name").build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .advocateLevel(PractitionerDetailsAdvocateLevelV2.KC)
+                    .solicitorRegulationAuthorityRollNumber("SRA-123"));
+
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(existing.getAdvocateLevel()).isEqualTo("KC");
+    assertThat(existing.getSolicitorRegulationAuthorityRollNumber()).isEqualTo("SRA-123");
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("100003");
+  }
+
+  @Test
+  void patchProvider_updatesParentFirms() {
+    UUID guid = UUID.randomUUID();
+    UUID parentGuid = UUID.randomUUID();
+    String parentFirmNumber = "200001";
+
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+
+    ProviderEntity parentByGuid = ProviderEntity.builder().name("Parent 1").build();
+    parentByGuid.setGuid(parentGuid);
+
+    ProviderEntity parentByFirmNumber =
+        ProviderEntity.builder().firmNumber(parentFirmNumber).name("Parent 2").build();
+    parentByFirmNumber.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parentByGuid));
+    when(providerRepository.findByFirmNumber(parentFirmNumber))
+        .thenReturn(Optional.of(parentByFirmNumber));
+    when(providerParentLinkRepository.findByProvider(existing)).thenReturn(List.of());
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .parentFirms(
+                        List.of(
+                            new PractitionerDetailsParentUpdateV2OneOf(parentGuid),
+                            new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
+
+    service.patchProvider(guid.toString(), patch);
+
+    org.mockito.ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
+        org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
+    verify(providerParentLinkRepository, org.mockito.Mockito.times(2)).save(linkCaptor.capture());
+
+    List<ProviderParentLinkEntity> savedLinks = linkCaptor.getAllValues();
+    assertThat(savedLinks).hasSize(2);
+    assertThat(savedLinks.get(0).getProvider()).isEqualTo(existing);
+    assertThat(savedLinks.get(0).getParent()).isEqualTo(parentByGuid);
+    assertThat(savedLinks.get(1).getProvider()).isEqualTo(existing);
+    assertThat(savedLinks.get(1).getParent()).isEqualTo(parentByFirmNumber);
+    verify(providerParentLinkRepository).deleteAll(any());
+  }
+
+  @Test
+  void patchProvider_ignoresBarristerFieldsForAdvocatePractitioner() {
+    UUID guid = UUID.randomUUID();
+
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Old Name").build();
+    existing.setGuid(guid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(new PractitionerDetailsPatchV2().barCouncilRollNumber("BAR-123"));
+
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("100003");
   }
 }

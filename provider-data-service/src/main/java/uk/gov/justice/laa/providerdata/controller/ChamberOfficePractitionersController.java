@@ -9,7 +9,7 @@ import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficePractitioners200ResponseData;
 import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -18,11 +18,11 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 @RestController
 public class ChamberOfficePractitionersController implements ChamberOfficePractitionersApi {
 
-  private final ProviderService providerService;
+  private final ProviderQueryService providerService;
   private final ProviderMapper providerMapper;
 
   public ChamberOfficePractitionersController(
-      ProviderService providerService, ProviderMapper providerMapper) {
+      ProviderQueryService providerService, ProviderMapper providerMapper) {
     this.providerService = providerService;
     this.providerMapper = providerMapper;
   }

@@ -35,7 +35,7 @@ class ContractManagerServiceTest {
 
   @Mock private ContractManagerMapper mapper;
 
-  @Mock private ProviderService providerService;
+  @Mock private ProviderQueryService providerService;
 
   @Mock private OfficeService officeService;
 

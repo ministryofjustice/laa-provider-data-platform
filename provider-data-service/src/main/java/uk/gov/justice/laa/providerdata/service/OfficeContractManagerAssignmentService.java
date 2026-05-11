@@ -27,7 +27,7 @@ public class OfficeContractManagerAssignmentService {
 
   private final ContractManagerRepository contractManagerRepository;
   private final OfficeContractManagerLinkRepository linkRepository;
-  private final ProviderService providerService;
+  private final ProviderQueryService providerService;
   private final OfficeService officeService;
 
   /**
@@ -41,7 +41,7 @@ public class OfficeContractManagerAssignmentService {
   public OfficeContractManagerAssignmentService(
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
-      ProviderService providerService,
+      ProviderQueryService providerService,
       OfficeService officeService) {
     this.contractManagerRepository = contractManagerRepository;
     this.linkRepository = linkRepository;

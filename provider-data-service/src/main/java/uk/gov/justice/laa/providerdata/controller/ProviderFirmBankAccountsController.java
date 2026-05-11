@@ -16,7 +16,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts20
 import uk.gov.justice.laa.providerdata.model.OfficeBankAccountV2;
 import uk.gov.justice.laa.providerdata.service.BankDetailsService;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -25,7 +25,7 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 @RestController
 public class ProviderFirmBankAccountsController implements ProviderFirmBankAccountsApi {
 
-  private final ProviderService providerService;
+  private final ProviderQueryService providerService;
   private final OfficeService officeService;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
@@ -39,7 +39,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
    * @param bankAccountMapper to map bank account entities to response models
    */
   public ProviderFirmBankAccountsController(
-      ProviderService providerService,
+      ProviderQueryService providerService,
       OfficeService officeService,
       BankDetailsService bankDetailsService,
       BankAccountMapper bankAccountMapper) {

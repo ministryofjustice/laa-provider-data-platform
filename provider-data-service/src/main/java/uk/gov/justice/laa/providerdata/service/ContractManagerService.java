@@ -17,7 +17,7 @@ public class ContractManagerService {
 
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final ContractManagerMapper mapper;
-  private final ProviderService providerService;
+  private final ProviderQueryService providerService;
   private final OfficeService officeService;
 
   /**

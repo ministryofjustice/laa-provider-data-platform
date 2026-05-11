@@ -28,16 +28,16 @@ import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
+import uk.gov.justice.laa.providerdata.service.ProviderCommandService;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
-import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 
 @WebMvcTest(ProviderFirmController.class)
 class ProviderFirmControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private ProviderCreationService providerFirmCreationService;
-  @MockitoBean private ProviderService providerFirmService;
+  @MockitoBean private ProviderCommandService providerFirmCreationService;
+  @MockitoBean private ProviderQueryService providerFirmService;
   @MockitoBean private OfficeMapper officeMapper;
   @MockitoBean private ProviderMapper providerFirmMapper;
 
@@ -201,7 +201,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
+    when(providerFirmCreationService.patchProvider(anyString(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
 
     mockMvc
@@ -227,7 +227,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
+    when(providerFirmCreationService.patchProvider(anyString(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
 
     mockMvc

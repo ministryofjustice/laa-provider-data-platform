@@ -200,6 +200,25 @@ public class ProviderFirmController {
   }
 
   /**
+   * Submits a synchronous command to update supported provider basic details.
+   *
+   * <p>Phase 1 CQRS migration endpoint. Behaviour intentionally mirrors the existing PATCH
+   * endpoint while clients migrate to an explicit command-style write operation.
+   *
+   * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
+   * @param request command payload using the existing ProviderPatchV2 schema
+   * @return 200 with the updated identifiers (GUID + firm number)
+   */
+  @PostMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}",
+      consumes = "application/json",
+      produces = "application/json")
+  public ResponseEntity<CreateProviderFirm201Response> commandUpdateProviderFirm(
+      @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
+    return ResponseEntity.ok(updateProviderFirmCommand(providerFirmGUIDorFirmNumber, request));
+  }
+
+  /**
    * Updates supported provider basic details for the resolved provider subtype.
    *
    * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
@@ -213,17 +232,21 @@ public class ProviderFirmController {
   public ResponseEntity<CreateProviderFirm201Response> patchProviderFirm(
       @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
 
+    return ResponseEntity.ok(updateProviderFirmCommand(providerFirmGUIDorFirmNumber, request));
+  }
+
+  private CreateProviderFirm201Response updateProviderFirmCommand(
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 request) {
     validatePatchRequest(request);
 
     ProviderCreationResult result =
         providerFirmService.patchProvider(providerFirmGUIDorFirmNumber, request);
 
-    return ResponseEntity.ok(
-        new CreateProviderFirm201Response()
-            .data(
-                new CreateProviderFirm201ResponseData()
-                    .providerFirmGUID(result.providerFirmGUID())
-                    .providerFirmNumber(result.firmNumber())));
+    return new CreateProviderFirm201Response()
+        .data(
+            new CreateProviderFirm201ResponseData()
+                .providerFirmGUID(result.providerFirmGUID())
+                .providerFirmNumber(result.firmNumber()));
   }
 
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {

@@ -225,6 +225,33 @@ class ProviderFirmControllerTest {
   }
 
   @Test
+  void commandUpdateProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers()
+      throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmService.patchProvider(anyString(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
+
+    mockMvc
+        .perform(
+            post("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "name": "Updated Firm Name",
+                                          "legalServicesProvider": {
+                                            "constitutionalStatus": "Partnership",
+                                            "indemnityReceivedDate": "2024-01-02",
+                                            "companiesHouseNumber": "12345678"
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100001"));
+  }
+
+  @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
     when(providerFirmService.patchProvider(anyString(), any()))
@@ -291,6 +318,19 @@ class ProviderFirmControllerTest {
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "100001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        { }
+                                        """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void commandUpdateProviderFirm_emptyPatchRejected_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """

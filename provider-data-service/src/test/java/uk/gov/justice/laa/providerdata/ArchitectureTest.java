@@ -13,37 +13,75 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.mapstruct.Mapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.repository.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RestController;
 
 @AnalyzeClasses(
     packages = "uk.gov.justice.laa.providerdata",
     importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
-  /** Services must not depend on controllers. */
+  /** Use cases must not depend on web controllers. */
   @ArchTest
-  static final ArchRule services_do_not_depend_on_controllers =
+  static final ArchRule usecases_do_not_depend_on_web =
       noClasses()
           .that()
-          .resideInAPackage("..service..")
+          .resideInAPackage("..usecase")
           .should()
           .dependOnClassesThat()
-          .resideInAPackage("..controller..");
+          .resideInAPackage("..usecase.web..");
 
-  /** Controllers must not depend on repositories directly. */
+  /** Web controllers must not depend on repositories directly. */
   @ArchTest
-  static final ArchRule controllers_do_not_depend_on_repositories =
+  static final ArchRule web_do_not_depend_on_repositories =
       noClasses()
           .that()
-          .resideInAPackage("..controller..")
+          .resideInAPackage("..web..")
           .should()
           .dependOnClassesThat()
-          .resideInAPackage("..repository..");
+          .resideInAPackage("..repository..")
+          .because("web-layer classes must go via a service, not access repositories directly");
 
-  /** Mappers must reside in a package named 'mapper'. */
+  /** Spring Data repositories must reside in a {@code ..repository..} sub-package. */
+  @ArchTest
+  static final ArchRule repositories_reside_in_repository_packages =
+      classes()
+          .that()
+          .areAssignableTo(Repository.class)
+          .should()
+          .resideInAPackage("..repository..")
+          .because("Spring Data repositories must live in a ..repository.. sub-package");
+
+  /** REST controllers must reside in a {@code ..web..} sub-package. */
+  @ArchTest
+  static final ArchRule rest_controllers_reside_in_web_packages =
+      classes()
+          .that()
+          .areAnnotatedWith(RestController.class)
+          .should()
+          .resideInAPackage("..web..")
+          .because("REST controllers must live in a ..web.. sub-package");
+
+  /** No production class may use {@code @Autowired} field injection; use constructor injection. */
+  @ArchTest static final ArchRule no_field_injection = noClasses().should(haveAutowiredFields());
+
+  /**
+   * Mappers must reside in a 'mapper' package, a 'usecase' package, or directly within their
+   * feature module root.
+   */
   @ArchTest
   static final ArchRule mappers_reside_in_mapper_package =
-      classes().that().areAnnotatedWith(Mapper.class).should().resideInAPackage("..mapper..");
+      classes()
+          .that()
+          .areAnnotatedWith(Mapper.class)
+          .should()
+          .resideInAPackage("..mapper..")
+          .orShould()
+          .resideInAPackage("..usecase..")
+          .orShould()
+          .resideInAPackage("uk.gov.justice.laa.providerdata.*");
 
   /**
    * Query services must declare {@code @Transactional(readOnly = true)} at the class level.
@@ -88,6 +126,24 @@ class ArchitectureTest {
           .because(
               "write operations must not override a class-level @Transactional(readOnly = true);"
                   + " extract them to a command service");
+
+  private static ArchCondition<JavaClass> haveAutowiredFields() {
+    return new ArchCondition<>("not have @Autowired field injection") {
+      @Override
+      public void check(JavaClass clazz, ConditionEvents events) {
+        clazz.getFields().stream()
+            .filter(f -> f.isAnnotatedWith(Autowired.class))
+            .forEach(
+                f ->
+                    events.add(
+                        SimpleConditionEvent.violated(
+                            clazz,
+                            f.getDescription()
+                                + " uses @Autowired field injection;"
+                                + " use constructor injection instead")));
+      }
+    };
+  }
 
   private static ArchCondition<JavaClass> haveReadOnlyTransactional() {
     return new ArchCondition<>("be annotated @Transactional(readOnly = true)") {

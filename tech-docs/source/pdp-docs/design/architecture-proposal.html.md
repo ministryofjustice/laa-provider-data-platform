@@ -85,6 +85,23 @@ layer between them. For this service:
 - The existing entity-to-API-model mapping via MapStruct already exists. Adding a
   domain-object-to-JPA layer on top would double the mapping overhead for no current benefit.
 
+The project already has a meaningful separation between its two contracts:
+the OpenAPI specification defines what the API exposes, the Flyway DDL defines what the database
+stores, and the MapStruct mapping layer translates between the two. That translation is
+non-trivial. This is the part of Hexagonal that actually makes it worthwhile.
+
+What Hexagonal would add on top is a third model layer: pure domain objects with no JPA
+annotations, sitting between the API model and the JPA entities, with two rounds of mapping
+instead of one. For this service those pure domain objects would be identical to the JPA entities
+in all but their annotations, because the entities already model the domain directly.
+
+There is also a more fundamental issue with the Hexagonal framing: it treats the API as a
+swappable input adapter, one that you might replace with a CLI or a message queue. That does not
+describe this service. The REST API is the Data Stewardship contract. It is what downstream
+systems are built against; the OpenAPI spec is versioned and published as a library. It encodes
+domain business logic - which fields are required, what formats are valid, what relationships
+between resources mean. It is not a port to be swapped.
+
 A ports-and-adapters architecture pattern would not simplify a possible ERP migration. An ERP
 integration would need to translate the domain models in a way that no abstract repository interface
 would isolate you from. The stable API and event contracts are the best bet.
@@ -118,6 +135,16 @@ However, more significantly, Option 4 has no boundary between the domains. Nothi
 `OfficeService` importing any of the repositories or entities. Spring Modulith enforces that
 sub-packages of `{module-name}/` cannot be accessed by other modules to allow this constraint to
 be implemented.
+
+The cost also grows non-linearly. The current service has around 20 entity classes. With four or
+five more on the way (contracts, schedules, NMS authorisations, schedule lines), the flat packages
+will be navigating 60-plus top-level classes with nothing to indicate what belongs together.
+
+When audit logging and event publishing arrive, flat layers have no natural home for them. The answer ends up
+being "into the nearest service method", which is how `OfficeCommandService` grew to 600 lines.
+
+`ApplicationModulesTest.verify()` enforces module boundaries at CI time - a permanent guard that
+costs nothing to maintain once it is in place.
 
 ## Pre-refactoring structure
 

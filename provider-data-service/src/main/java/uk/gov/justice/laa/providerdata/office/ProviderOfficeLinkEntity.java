@@ -1,0 +1,87 @@
+package uk.gov.justice.laa.providerdata.office;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDate;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import uk.gov.justice.laa.providerdata.provider.ProviderEntity;
+import uk.gov.justice.laa.providerdata.shared.AuditableEntity;
+
+/**
+ * Provider Office Link entity representing a link between provider and office. There is always only
+ * one head office. For Advocate type the office is the Chambers' office. Advocate can however have
+ * an alternative bank account, intervention etc. Base entity for LSP ProviderOfficeLink and
+ * Advocate ProviderOfficeLink subtypes.
+ */
+@SuperBuilder
+@NoArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
+@Entity
+@Table(
+    name = "PROVIDER_OFFICE_LINK",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "UK_PROVIDER_OFFICE_LINK_PROVIDER_OFFICE_FIRMTYPE",
+            columnNames = {"PROVIDER_GUID", "OFFICE_GUID", "FIRM_TYPE"}))
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "FIRM_TYPE", discriminatorType = DiscriminatorType.STRING)
+public class ProviderOfficeLinkEntity extends AuditableEntity {
+
+  /** PO.PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE VARCHAR2(15) not null. */
+  @Column(name = "ACCOUNT_NUMBER", nullable = false, unique = true, updatable = false)
+  private String accountNumber;
+
+  @ManyToOne
+  @JoinColumn(
+      name = "PROVIDER_GUID",
+      nullable = false,
+      foreignKey = @ForeignKey(name = "FK_PROVIDER_OFFICE_LINK_PROVIDER"))
+  private ProviderEntity provider;
+
+  @ManyToOne
+  @JoinColumn(
+      name = "OFFICE_GUID",
+      nullable = false,
+      foreignKey = @ForeignKey(name = "FK_PROVIDER_OFFICE_LINK_OFFICE"))
+  private OfficeEntity office;
+
+  /** PO.PO_VENDORS.ATTRIBUTE4 VARCHAR2(150). */
+  @Column(name = "FIRM_TYPE", nullable = false, insertable = false, updatable = false)
+  private String firmType;
+
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE1 VARCHAR2(150). */
+  @Column(name = "HEAD_OFFICE_FLAG", nullable = false)
+  private Boolean headOfficeFlag;
+
+  /** PO.PO_VENDOR_CONTACTS.URL VARCHAR2(2000). */
+  @Column(name = "WEBSITE")
+  private String website;
+
+  /** PO.PO_VENDOR_SITES_ALL.INACTIVE_DATE DATE. */
+  @Column(name = "ACTIVE_DATE_TO")
+  private LocalDate activeDateTo;
+
+  /** The database column is NOT NULL, so default it here (some tests/mappers don't set it). */
+  @PrePersist
+  void prePersistDefaults() {
+    if (headOfficeFlag == null) {
+      headOfficeFlag = Boolean.FALSE;
+    }
+  }
+}

@@ -1,0 +1,13 @@
+package uk.gov.justice.laa.providerdata.provider.repository;
+
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import uk.gov.justice.laa.providerdata.provider.ProviderEntity;
+
+/** Repository for ProviderEntity. */
+@Repository
+public interface ProviderRepository extends JpaRepository<ProviderEntity, UUID> {
+  Optional<ProviderEntity> findByFirmNumber(String firmNumber);
+}

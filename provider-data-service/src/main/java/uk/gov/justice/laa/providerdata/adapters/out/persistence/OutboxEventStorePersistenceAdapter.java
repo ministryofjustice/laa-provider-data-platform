@@ -58,10 +58,12 @@ public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort 
   private OutboxEventMessage toMessage(OutboxEventEntity event) {
     return new OutboxEventMessage(
         event.getGuid(),
+        event.getAggregateId(),
         event.getEventType(),
         event.getFirmNumber(),
         event.getEventPayload(),
-        event.getAttemptCount());
+        event.getAttemptCount(),
+        event.getOccurredAt());
   }
 }
 

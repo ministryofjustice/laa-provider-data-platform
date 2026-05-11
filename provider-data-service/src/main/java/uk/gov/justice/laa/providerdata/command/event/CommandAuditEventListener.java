@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -14,14 +13,12 @@ import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.CommandAuditLogRepository;
 
 /**
- * Handles {@link ProviderFirmUpdatedEvent} after the originating transaction commits.
+ * Legacy helper for mapping provider patch payloads into audit field summaries.
  *
- * <p>Using {@link TransactionPhase#AFTER_COMMIT} guarantees the audit record is only written
- * when the command's database changes are durable. The listener runs in a fresh transaction
- * ({@link Propagation#REQUIRES_NEW}) so that an audit failure never rolls back the command.
+ * <p>Consumer-based outbox processing now drives audit writes. This class remains for unit-tested
+ * field-summary behaviour used by older tests.
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class CommandAuditEventListener {
 

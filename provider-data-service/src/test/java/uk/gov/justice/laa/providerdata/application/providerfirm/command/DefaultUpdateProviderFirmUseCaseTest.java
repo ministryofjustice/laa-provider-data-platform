@@ -2,7 +2,6 @@ package uk.gov.justice.laa.providerdata.application.providerfirm.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmPatchPort;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedOutboxPort;
-import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedEventPort;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
@@ -24,7 +22,6 @@ class DefaultUpdateProviderFirmUseCaseTest {
 
   @Mock private ProviderFirmPatchPort providerFirmPatchPort;
   @Mock private ProviderFirmUpdatedOutboxPort providerFirmUpdatedOutboxPort;
-  @Mock private ProviderFirmUpdatedEventPort providerFirmUpdatedEventPort;
 
   @InjectMocks private DefaultUpdateProviderFirmUseCase useCase;
 
@@ -47,7 +44,7 @@ class DefaultUpdateProviderFirmUseCaseTest {
   }
 
   @Test
-  void execute_validCommand_publishesProviderFirmUpdatedEvent() {
+  void execute_validCommand_enqueuesOutboxEvent() {
     UUID providerGuid = UUID.randomUUID();
     String providerId = providerGuid.toString();
     ProviderPatchV2 patch = new ProviderPatchV2().name("Event Test");
@@ -58,7 +55,6 @@ class DefaultUpdateProviderFirmUseCaseTest {
     useCase.execute(new UpdateProviderFirmCommand(providerId, patch));
 
     verify(providerFirmUpdatedOutboxPort).enqueue(providerGuid, "100001", patch);
-    verify(providerFirmUpdatedEventPort).publish(providerGuid, "100001", patch);
   }
 
   @Test
@@ -108,7 +104,6 @@ class DefaultUpdateProviderFirmUseCaseTest {
     assertThat(result).isEqualTo(expectedResult);
     verify(providerFirmUpdatedOutboxPort).enqueue(providerGuid, "100001", patch);
     verify(providerFirmPatchPort).patchProvider(providerId, patch);
-    verify(providerFirmUpdatedEventPort).publish(any(UUID.class), any(String.class), any(ProviderPatchV2.class));
   }
 }
 

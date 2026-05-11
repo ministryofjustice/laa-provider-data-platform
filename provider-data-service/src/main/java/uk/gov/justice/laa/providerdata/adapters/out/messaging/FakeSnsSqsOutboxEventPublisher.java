@@ -1,7 +1,9 @@
 package uk.gov.justice.laa.providerdata.adapters.out.messaging;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.providerdata.application.outbox.OutboxEventConsumerUseCase;
 import uk.gov.justice.laa.providerdata.application.outbox.model.OutboxEventMessage;
 import uk.gov.justice.laa.providerdata.application.outbox.port.out.OutboxEventPublisherPort;
 
@@ -10,7 +12,10 @@ import uk.gov.justice.laa.providerdata.application.outbox.port.out.OutboxEventPu
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class FakeSnsSqsOutboxEventPublisher implements OutboxEventPublisherPort {
+
+  private final OutboxEventConsumerUseCase outboxEventConsumerUseCase;
 
   @Override
   public void publish(OutboxEventMessage event) {
@@ -23,6 +28,8 @@ public class FakeSnsSqsOutboxEventPublisher implements OutboxEventPublisherPort 
         event.guid(),
         event.eventType(),
         event.firmNumber());
+
+    outboxEventConsumerUseCase.consume(event);
   }
 }
 

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmPatchPort;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedOutboxPort;
-import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedEventPort;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 
 /**
@@ -20,7 +19,6 @@ public class DefaultUpdateProviderFirmUseCase implements UpdateProviderFirmUseCa
 
   private final ProviderFirmPatchPort providerFirmPatchPort;
   private final ProviderFirmUpdatedOutboxPort providerFirmUpdatedOutboxPort;
-  private final ProviderFirmUpdatedEventPort providerFirmUpdatedEventPort;
 
   @Override
   public ProviderCreationResult execute(UpdateProviderFirmCommand command) {
@@ -34,7 +32,6 @@ public class DefaultUpdateProviderFirmUseCase implements UpdateProviderFirmUseCa
     providerFirmUpdatedOutboxPort.enqueue(
         result.providerFirmGUID(), result.firmNumber(), command.patch());
 
-    providerFirmUpdatedEventPort.publish(result.providerFirmGUID(), result.firmNumber(), command.patch());
 
     return result;
   }

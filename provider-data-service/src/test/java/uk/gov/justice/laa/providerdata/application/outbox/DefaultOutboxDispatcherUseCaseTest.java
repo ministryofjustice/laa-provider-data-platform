@@ -29,7 +29,14 @@ class DefaultOutboxDispatcherUseCaseTest {
   void dispatchPendingEvents_publishSuccess_marksSent() {
     UUID eventGuid = UUID.randomUUID();
     OutboxEventMessage event =
-        new OutboxEventMessage(eventGuid, "ProviderFirmUpdated", "100001", "payload", 0);
+        new OutboxEventMessage(
+            eventGuid,
+            UUID.randomUUID(),
+            "ProviderFirmUpdated",
+            "100001",
+            "payload",
+            0,
+            OffsetDateTime.now());
     when(outboxEventStorePort.fetchPending(100)).thenReturn(List.of(event));
 
     useCase.dispatchPendingEvents(100);
@@ -44,7 +51,14 @@ class DefaultOutboxDispatcherUseCaseTest {
   void dispatchPendingEvents_publishFailure_marksFailed() {
     UUID eventGuid = UUID.randomUUID();
     OutboxEventMessage event =
-        new OutboxEventMessage(eventGuid, "ProviderFirmUpdated", "100001", "payload", 1);
+        new OutboxEventMessage(
+            eventGuid,
+            UUID.randomUUID(),
+            "ProviderFirmUpdated",
+            "100001",
+            "payload",
+            1,
+            OffsetDateTime.now());
     when(outboxEventStorePort.fetchPending(50)).thenReturn(List.of(event));
     org.mockito.Mockito.doThrow(new IllegalStateException("Publish failed"))
         .when(outboxEventPublisherPort)

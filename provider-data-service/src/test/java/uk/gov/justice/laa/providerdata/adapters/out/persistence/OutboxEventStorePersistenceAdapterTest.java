@@ -28,16 +28,18 @@ class OutboxEventStorePersistenceAdapterTest {
   @Test
   void fetchPending_mapsToApplicationMessages() {
     UUID guid = UUID.randomUUID();
+    UUID aggregateId = UUID.randomUUID();
+    OffsetDateTime occurredAt = OffsetDateTime.now();
     OutboxEventEntity entity =
         OutboxEventEntity.builder()
             .aggregateType("ProviderFirm")
-            .aggregateId(UUID.randomUUID())
+            .aggregateId(aggregateId)
             .eventType("ProviderFirmUpdated")
             .firmNumber("100001")
             .eventPayload("payload")
             .status(OutboxEventStatus.PENDING)
             .attemptCount(0)
-            .occurredAt(OffsetDateTime.now())
+            .occurredAt(occurredAt)
             .build();
     entity.setGuid(guid);
 
@@ -48,8 +50,10 @@ class OutboxEventStorePersistenceAdapterTest {
 
     assertThat(result).hasSize(1);
     assertThat(result.getFirst().guid()).isEqualTo(guid);
+    assertThat(result.getFirst().aggregateId()).isEqualTo(aggregateId);
     assertThat(result.getFirst().eventType()).isEqualTo("ProviderFirmUpdated");
     assertThat(result.getFirst().firmNumber()).isEqualTo("100001");
+    assertThat(result.getFirst().occurredAt()).isEqualTo(occurredAt);
   }
 
   @Test

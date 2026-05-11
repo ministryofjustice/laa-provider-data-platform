@@ -22,6 +22,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.repository.BankAccountRepository;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
@@ -61,12 +62,14 @@ public class LocalDataSeeder implements CommandLineRunner {
   private static final String LSP_FIRM_NUMBER = "100001";
   private static final String CHAMBERS_FIRM_NUMBER = "100002";
   private static final String ADVOCATE_FIRM_NUMBER = "100003";
+  private static final String CHAMBERS_DX_FIRM_NUMBER = "100004";
 
   @Override
   @Transactional
   public void run(String... args) {
     if (providerRepository.findByFirmNumber(LSP_FIRM_NUMBER).isPresent()) {
-      log.info("Test data already seeded - skipping");
+      log.info("Base test data already seeded");
+      seedDxChambersIfMissing();
       return;
     }
     log.info("Starting local data seeding for foundation tables");
@@ -74,14 +77,47 @@ public class LocalDataSeeder implements CommandLineRunner {
     seedProviderParentLinks(providers);
     var offices = seedOffices();
     var officeLinks = seedProviderOfficeLinks(providers, offices);
+    var lspLink = (LspProviderOfficeLinkEntity) officeLinks[0];
+    var chambersLink = (ChamberProviderOfficeLinkEntity) officeLinks[1];
     var bankAccounts = seedBankAccounts();
     seedProviderBankAccountLinks(providers, bankAccounts);
-    seedOfficeBankAccountLinks(officeLinks, bankAccounts);
+    seedOfficeBankAccountLinks(lspLink, bankAccounts);
     var liaisonManagers = seedLiaisonManagers();
-    seedOfficeLiaisonManagerLinks(officeLinks, liaisonManagers);
+    seedOfficeLiaisonManagerLinks(lspLink, chambersLink, liaisonManagers);
     var contractManagers = seedContractManagers();
-    seedOfficeContractManagerLinks(officeLinks, contractManagers);
+    seedOfficeContractManagerLinks(lspLink, contractManagers);
     log.info("Local data seeding completed successfully");
+    seedDxChambersIfMissing();
+  }
+
+  private void seedDxChambersIfMissing() {
+    if (providerRepository.findByFirmNumber(CHAMBERS_DX_FIRM_NUMBER).isPresent()) {
+      return;
+    }
+    log.info("Seeding DX Chambers (firmNumber {})", CHAMBERS_DX_FIRM_NUMBER);
+    OfficeEntity dxOffice =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("789 DX Street")
+                .addressTownOrCity("Birmingham")
+                .addressPostCode("B2 2BB")
+                .dxDetailsNumber("DX456")
+                .dxDetailsCentre("Birmingham DX Centre")
+                .build());
+    var dxChambers =
+        providerRepository.save(
+            ChamberProviderEntity.builder()
+                .firmNumber(CHAMBERS_DX_FIRM_NUMBER)
+                .name("Test Chambers DX")
+                .build());
+    providerOfficeLinkRepository.save(
+        ChamberProviderOfficeLinkEntity.builder()
+            .provider(dxChambers)
+            .office(dxOffice)
+            .accountNumber("ACC004")
+            .headOfficeFlag(true)
+            .build());
+    log.info("Seeded DX Chambers (firmNumber {})", CHAMBERS_DX_FIRM_NUMBER);
   }
 
   private BankAccountEntity[] seedBankAccounts() {
@@ -226,20 +262,22 @@ public class LocalDataSeeder implements CommandLineRunner {
     log.info("Seeded {} ProviderBankAccountLink records", 1);
   }
 
-  private LspProviderOfficeLinkEntity[] seedProviderOfficeLinks(
+  private ProviderOfficeLinkEntity[] seedProviderOfficeLinks(
       ProviderEntity[] providers, OfficeEntity[] offices) {
     log.info("Seeding ProviderOfficeLink table");
     // composite unique constraint (PROVIDER_GUID, OFFICE_GUID, FIRM_TYPE).
     // accountNumber NOT NULL, headOfficeFlag NOT NULL,
     // LSP/Advocate: flags NOT NULL, paymentMethod NOT NULL.
-    providerOfficeLinkRepository.save(
-        ChamberProviderOfficeLinkEntity.builder()
-            .provider(providers[1])
-            .office(offices[1])
-            .accountNumber("ACC002")
-            .headOfficeFlag(true)
-            .website("https://example-chambers.com")
-            .build());
+    ChamberProviderOfficeLinkEntity chambersLink =
+        (ChamberProviderOfficeLinkEntity)
+            providerOfficeLinkRepository.save(
+                ChamberProviderOfficeLinkEntity.builder()
+                    .provider(providers[1])
+                    .office(offices[1])
+                    .accountNumber("ACC002")
+                    .headOfficeFlag(true)
+                    .website("https://example-chambers.com")
+                    .build());
     // Advocate office link uses the Chambers office.
     providerOfficeLinkRepository.save(
         AdvocateProviderOfficeLinkEntity.builder()
@@ -270,7 +308,7 @@ public class LocalDataSeeder implements CommandLineRunner {
                     .falseBalanceFlag(false)
                     .build());
     log.info("Seeded {} ProviderOfficeLink records", 3);
-    return new LspProviderOfficeLinkEntity[] {lspLink};
+    return new ProviderOfficeLinkEntity[] {lspLink, chambersLink};
   }
 
   private void seedProviderParentLinks(ProviderEntity[] providers) {
@@ -283,13 +321,13 @@ public class LocalDataSeeder implements CommandLineRunner {
   }
 
   private void seedOfficeBankAccountLinks(
-      LspProviderOfficeLinkEntity[] officeLinks, BankAccountEntity[] bankAccounts) {
+      LspProviderOfficeLinkEntity lspLink, BankAccountEntity[] bankAccounts) {
     log.info("Seeding OfficeBankAccountLink table");
     // composite unique constraint (PROVIDER_OFFICE_LINK_GUID, BANK_ACCOUNT_GUID).
     // primaryFlag NOT NULL, activeDateFrom NOT NULL.
     officeBankAccountLinkRepository.save(
         OfficeBankAccountLinkEntity.builder()
-            .providerOfficeLink(officeLinks[0])
+            .providerOfficeLink(lspLink)
             .bankAccount(bankAccounts[0])
             .primaryFlag(true)
             .activeDateFrom(LocalDate.now())
@@ -298,26 +336,35 @@ public class LocalDataSeeder implements CommandLineRunner {
   }
 
   private void seedOfficeContractManagerLinks(
-      LspProviderOfficeLinkEntity[] officeLinks, ContractManagerEntity[] contractManagers) {
+      LspProviderOfficeLinkEntity lspLink, ContractManagerEntity[] contractManagers) {
     log.info("Seeding OfficeContractManagerLink table");
     officeContractManagerLinkRepository.save(
         OfficeContractManagerLinkEntity.builder()
-            .officeLink(officeLinks[0])
+            .officeLink(lspLink)
             .contractManager(contractManagers[0])
             .build());
     log.info("Seeded {} OfficeContractManagerLink records", 1);
   }
 
   private void seedOfficeLiaisonManagerLinks(
-      LspProviderOfficeLinkEntity[] officeLinks, LiaisonManagerEntity[] liaisonManagers) {
+      LspProviderOfficeLinkEntity lspLink,
+      ChamberProviderOfficeLinkEntity chambersLink,
+      LiaisonManagerEntity[] liaisonManagers) {
     log.info("Seeding OfficeLiaisonManagerLink table");
     officeLiaisonManagerLinkRepository.save(
         OfficeLiaisonManagerLinkEntity.builder()
-            .officeLink(officeLinks[0])
+            .officeLink(lspLink)
             .liaisonManager(liaisonManagers[0])
             .activeDateFrom(LocalDate.now())
             .linkedFlag(true)
             .build());
-    log.info("Seeded {} OfficeLiaisonManagerLink records", 1);
+    officeLiaisonManagerLinkRepository.save(
+        OfficeLiaisonManagerLinkEntity.builder()
+            .officeLink(chambersLink)
+            .liaisonManager(liaisonManagers[1])
+            .activeDateFrom(LocalDate.now())
+            .linkedFlag(false)
+            .build());
+    log.info("Seeded {} OfficeLiaisonManagerLink records", 2);
   }
 }

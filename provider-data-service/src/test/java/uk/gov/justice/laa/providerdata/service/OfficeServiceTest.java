@@ -33,7 +33,6 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -51,7 +50,6 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,7 +61,6 @@ class OfficeServiceTest {
   @Mock private Counter officeCreationCounter;
   @Mock private Timer officeCreationTimer;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
-  @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
@@ -374,6 +371,61 @@ class OfficeServiceTest {
     link.setAccountNumber("ABC123");
     link.setFirmType(FirmType.LEGAL_SERVICES_PROVIDER);
     return link;
+  }
+
+  // --- getProviderOfficeLink(String, String) ---
+
+  @Test
+  void getProviderOfficeLink_byString_byOfficeLinkGuid_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
+        .isSameAs(link);
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository, never()).findByProviderAndAccountNumber(any(), any());
+  }
+
+  @Test
+  void getProviderOfficeLink_byString_byAccountNumber_returnsEntity() {
+    UUID providerGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, "CH001"))
+        .thenReturn(Optional.of(link));
+
+    assertThat(service.getProviderOfficeLink(providerGuid.toString(), "CH001")).isSameAs(link);
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository, never()).findByProviderAndGuid(any(), any());
+  }
+
+  @Test
+  void getProviderOfficeLink_byString_throwsWhenOfficeNotFound() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () -> service.getProviderOfficeLink(providerGuid.toString(), officeLinkGuid.toString()))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining(officeLinkGuid.toString());
+    verify(providerRepository, never()).findByFirmNumber(any());
+    verify(providerOfficeLinkRepository).findByProviderAndGuid(provider, officeLinkGuid);
   }
 
   // --- getOfficeLink ---
@@ -805,7 +857,7 @@ class OfficeServiceTest {
   }
 
   @Test
-  void patchOffice_cascadesDeactivation_toAdvocateOfficesViaChambers() {
+  void patchOffice_throwsIllegalArgument_whenChambersHasActivePractitioners() {
     var chambersProviderGuid = UUID.randomUUID();
     var chambersLinkGuid = UUID.randomUUID();
 
@@ -818,26 +870,38 @@ class OfficeServiceTest {
     chambersLink.setOffice(new OfficeEntity());
     chambersLink.setProvider(chambersProvider);
 
-    var advocateProvider = ProviderEntity.builder().firmNumber("100003").build();
-    advocateProvider.setGuid(UUID.randomUUID());
+    stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(true);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    chambersProviderGuid.toString(),
+                    chambersLinkGuid.toString(),
+                    new ChambersOfficePatchV2().activeDateTo(LocalDate.of(2025, 6, 30))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("practitioner");
+  }
+
+  @Test
+  void patchOffice_deactivatesChambers_whenNoPractitionersLinked() {
+    var chambersProviderGuid = UUID.randomUUID();
+    var chambersLinkGuid = UUID.randomUUID();
+
+    var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
+    chambersProvider.setGuid(chambersProviderGuid);
+
+    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    chambersLink.setGuid(chambersLinkGuid);
+    chambersLink.setAccountNumber("CHM001");
+    chambersLink.setOffice(new OfficeEntity());
+    chambersLink.setProvider(chambersProvider);
 
     stubProviderAndLink(chambersProvider, chambersLinkGuid, chambersLink);
     stubSaves();
-    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    var parentLink =
-        ProviderParentLinkEntity.builder()
-            .provider(advocateProvider)
-            .parent(chambersProvider)
-            .build();
-    when(providerParentLinkRepository.findByParent(chambersProvider))
-        .thenReturn(List.of(parentLink));
-    var advocateLink = new AdvocateProviderOfficeLinkEntity();
-    advocateLink.setGuid(UUID.randomUUID());
-    advocateLink.setAccountNumber("ADV001");
-    advocateLink.setOffice(new OfficeEntity());
-    advocateLink.setDebtRecoveryFlag(Boolean.TRUE);
-    when(advocateProviderOfficeLinkRepository.findByProviderAndActiveDateToIsNull(advocateProvider))
-        .thenReturn(List.of(advocateLink));
+    when(advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(chambersProvider))
+        .thenReturn(false);
 
     var deactivationDate = LocalDate.of(2025, 6, 30);
     service.patchOffice(
@@ -846,9 +910,8 @@ class OfficeServiceTest {
         new ChambersOfficePatchV2().activeDateTo(deactivationDate));
 
     assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getActiveDateTo()).isEqualTo(deactivationDate);
-    assertThat(advocateLink.getDebtRecoveryFlag()).isFalse();
-    verify(advocateProviderOfficeLinkRepository).save(advocateLink);
+    verify(advocateProviderOfficeLinkRepository)
+        .existsActivePractitionerForChambers(chambersProvider);
   }
 
   @Test

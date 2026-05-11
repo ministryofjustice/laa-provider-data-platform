@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
-import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -116,10 +116,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String officeGUIDorCode,
       String xCorrelationId,
       String traceparent) {
-    LspProviderOfficeLinkEntity link =
-        officeService.getLspOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+    ProviderOfficeLinkEntity link =
+        officeService.getProviderOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
-        new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toLspOfficeV2(link)));
+        new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toOfficeV2(link)));
   }
 
   @Override

@@ -54,7 +54,7 @@ class OfficeCommandServiceTest {
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
-  @Mock private BankDetailsService bankDetailsService;
+  @Mock private BankAccountCommandService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
   @InjectMocks private OfficeCommandService service;

@@ -50,7 +50,7 @@ public class OfficeCommandService {
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
-  private final BankDetailsService bankDetailsService;
+  private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
 
   /**
@@ -74,7 +74,7 @@ public class OfficeCommandService {
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
-      BankDetailsService bankDetailsService,
+      BankAccountCommandService bankDetailsService,
       BankAccountMapper bankAccountMapper) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
@@ -527,7 +527,7 @@ public class OfficeCommandService {
    *
    * <p>Only acts when {@code paymentMethod=EFT} and {@code bankAccountDetails} is non-null. The
    * existing primary {@link OfficeBankAccountLinkEntity} is end-dated by {@link
-   * BankDetailsService#saveOfficeBankAccountLink} before the new one is saved.
+   * BankAccountCommandService#saveOfficeBankAccountLink} before the new one is saved.
    *
    * @throws ItemNotFoundException if the request links by GUID and no matching account exists
    */

@@ -63,7 +63,7 @@ public class ProviderCommandService {
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
-  private final BankDetailsService bankDetailsService;
+  private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
 
   /**
@@ -91,7 +91,7 @@ public class ProviderCommandService {
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
-      BankDetailsService bankDetailsService,
+      BankAccountCommandService bankDetailsService,
       BankAccountMapper bankAccountMapper) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;

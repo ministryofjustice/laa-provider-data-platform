@@ -66,7 +66,7 @@ class ProviderCommandServiceTest {
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
-  @Mock private BankDetailsService bankDetailsService;
+  @Mock private BankAccountCommandService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
   @InjectMocks private ProviderCommandService service;

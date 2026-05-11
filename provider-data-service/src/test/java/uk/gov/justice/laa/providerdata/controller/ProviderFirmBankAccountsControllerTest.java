@@ -19,7 +19,7 @@ import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
-import uk.gov.justice.laa.providerdata.service.BankDetailsService;
+import uk.gov.justice.laa.providerdata.service.BankAccountQueryService;
 import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 
@@ -30,7 +30,7 @@ class ProviderFirmBankAccountsControllerTest {
   @Autowired private MockMvc mockMvc;
   @MockitoBean private ProviderQueryService providerService;
   @MockitoBean private OfficeQueryService officeService;
-  @MockitoBean private BankDetailsService bankDetailsService;
+  @MockitoBean private BankAccountQueryService bankDetailsService;
   @MockitoBean private BankAccountMapper bankAccountMapper;
 
   // --- GET /provider-firms/{id}/bank-details ---

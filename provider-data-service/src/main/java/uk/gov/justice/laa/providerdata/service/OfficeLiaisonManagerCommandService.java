@@ -2,8 +2,6 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -22,17 +20,24 @@ import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
-/** Service responsible for Office Liaison Manager operations. */
+/** Service responsible for office liaison manager write operations. */
 @Service
-public class OfficeLiaisonManagerService {
+public class OfficeLiaisonManagerCommandService {
 
   private final ProviderRepository providerRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
-  /** java doc. */
-  public OfficeLiaisonManagerService(
+  /**
+   * Inject dependencies.
+   *
+   * @param providerRepository to find provider firms.
+   * @param providerOfficeLinkRepository to look up offices across all firm types.
+   * @param liaisonManagerRepository to save liaison manager entities.
+   * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
+   */
+  public OfficeLiaisonManagerCommandService(
       ProviderRepository providerRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
@@ -43,25 +48,21 @@ public class OfficeLiaisonManagerService {
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
   }
 
-  /** java doc. */
+  /**
+   * Result record returned after a successful liaison manager create or link operation.
+   *
+   * @param providerFirmGuid GUID of the resolved provider firm.
+   * @param providerFirmNumber firm number of the resolved provider.
+   * @param officeGuid GUID of the resolved office link.
+   * @param officeCode account number of the resolved office.
+   * @param liaisonManagerGuid GUID of the liaison manager now linked to the office.
+   */
   public record OfficeLiaisonManagerOperationResult(
       UUID providerFirmGuid,
       String providerFirmNumber,
       UUID officeGuid,
       String officeCode,
       UUID liaisonManagerGuid) {}
-
-  /** Returns liaison managers linked to a provider office (including historical) as a page. */
-  @Transactional(readOnly = true)
-  public Page<OfficeLiaisonManagerLinkEntity> getOfficeLiaisonManagers(
-      String providerFirmGuidOrNumber, String officeGuidOrCode, Pageable pageable) {
-
-    ProviderOfficeLinkEntity providerOfficeLink =
-        resolveProviderOfficeLink(providerFirmGuidOrNumber, officeGuidOrCode);
-
-    return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
-        providerOfficeLink.getGuid(), pageable);
-  }
 
   /** POST create/link liaison manager (end-dates existing links for target office). */
   @Transactional
@@ -147,11 +148,6 @@ public class OfficeLiaisonManagerService {
           throw new IllegalArgumentException(
               "Unsupported liaison manager request type: " + request);
     };
-  }
-
-  private ProviderOfficeLinkEntity resolveProviderOfficeLink(
-      String providerFirmGuidOrNumber, String officeGuidOrCode) {
-    return resolveProviderOfficeLink(resolveProvider(providerFirmGuidOrNumber), officeGuidOrCode);
   }
 
   private ProviderOfficeLinkEntity resolveProviderOfficeLink(

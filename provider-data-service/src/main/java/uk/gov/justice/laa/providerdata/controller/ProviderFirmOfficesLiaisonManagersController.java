@@ -15,7 +15,8 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
-import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
+import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerCommandService;
+import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -25,10 +26,20 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 public class ProviderFirmOfficesLiaisonManagersController
     implements ProviderFirmOfficesLiaisonManagersApi {
 
-  private final OfficeLiaisonManagerService service;
+  private final OfficeQueryService officeQueryService;
+  private final OfficeLiaisonManagerCommandService liaisonManagerCommandService;
 
-  public ProviderFirmOfficesLiaisonManagersController(OfficeLiaisonManagerService service) {
-    this.service = service;
+  /**
+   * Inject dependencies.
+   *
+   * @param officeQueryService to query provider offices and liaison managers.
+   * @param liaisonManagerCommandService to create and link liaison managers.
+   */
+  public ProviderFirmOfficesLiaisonManagersController(
+      OfficeQueryService officeQueryService,
+      OfficeLiaisonManagerCommandService liaisonManagerCommandService) {
+    this.officeQueryService = officeQueryService;
+    this.liaisonManagerCommandService = liaisonManagerCommandService;
   }
 
   /**
@@ -68,7 +79,7 @@ public class ProviderFirmOfficesLiaisonManagersController
 
     var pageParams = PageParamValidator.resolve(page, pageSize);
     Page<LiaisonManagerV2> managers =
-        service
+        officeQueryService
             .getOfficeLiaisonManagers(providerFirmGUIDorFirmNumber, officeGUIDorCode, pageParams)
             .map(ProviderFirmOfficesLiaisonManagersController::toLiaisonManagerV2);
     return ResponseEntity.ok(
@@ -125,7 +136,8 @@ public class ProviderFirmOfficesLiaisonManagersController
     validateRequest(request);
 
     var result =
-        service.postOfficeLiaisonManager(providerFirmGUIDorFirmNumber, officeGUIDorCode, request);
+        liaisonManagerCommandService.postOfficeLiaisonManager(
+            providerFirmGUIDorFirmNumber, officeGUIDorCode, request);
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(

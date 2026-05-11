@@ -12,10 +12,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.util.UuidUtils;
@@ -28,6 +30,7 @@ public class OfficeQueryService {
   private final ProviderRepository providerRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   /**
    * Inject dependencies.
@@ -35,14 +38,17 @@ public class OfficeQueryService {
    * @param providerRepository to find provider firms.
    * @param lspProviderOfficeLinkRepository to query LSP office links.
    * @param providerOfficeLinkRepository to query offices across all firm types.
+   * @param officeLiaisonManagerLinkRepository to query office liaison manager links.
    */
   public OfficeQueryService(
       ProviderRepository providerRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
-      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+      ProviderOfficeLinkRepository providerOfficeLinkRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
+    this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
   }
 
   /**
@@ -169,6 +175,24 @@ public class OfficeQueryService {
       ProviderEntity provider, String officeGUIDorCode) {
     return findProviderOfficeLink(provider, officeGUIDorCode)
         .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
+  }
+
+  /**
+   * Returns a paginated page of liaison managers linked to a provider office.
+   *
+   * @param providerFirmGuidOrNumber GUID or firm number identifying the parent provider.
+   * @param officeGuidOrCode GUID or account number identifying the office.
+   * @param pageable the page being requested.
+   * @return page of {@link OfficeLiaisonManagerLinkEntity} for the office, ordered by active date
+   *     descending.
+   * @throws ItemNotFoundException if no provider or office matches the given identifiers.
+   */
+  public Page<OfficeLiaisonManagerLinkEntity> getOfficeLiaisonManagers(
+      String providerFirmGuidOrNumber, String officeGuidOrCode, Pageable pageable) {
+    ProviderOfficeLinkEntity providerOfficeLink =
+        getProviderOfficeLink(providerFirmGuidOrNumber, officeGuidOrCode);
+    return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
+        providerOfficeLink.getGuid(), pageable);
   }
 
   private Optional<ProviderOfficeLinkEntity> findProviderOfficeLink(

@@ -27,6 +27,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
@@ -36,6 +37,7 @@ class OfficeQueryServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
 
   @InjectMocks private OfficeQueryService service;
 

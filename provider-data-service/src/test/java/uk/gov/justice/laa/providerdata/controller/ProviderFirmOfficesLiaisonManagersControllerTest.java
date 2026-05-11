@@ -29,7 +29,8 @@ import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
-import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
+import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerCommandService;
+import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 
 /** Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}. */
 @WebMvcTest(ProviderFirmOfficesLiaisonManagersController.class)
@@ -37,7 +38,8 @@ import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerService;
 class ProviderFirmOfficesLiaisonManagersControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private OfficeLiaisonManagerService service;
+  @MockitoBean private OfficeQueryService officeQueryService;
+  @MockitoBean private OfficeLiaisonManagerCommandService liaisonManagerCommandService;
 
   @Test
   void getOfficeLiaisonManagers_returns200_withPaginationMetadata() throws Exception {
@@ -71,7 +73,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     link2.setLinkedFlag(true);
     link2.setActiveDateFrom(LocalDate.of(2024, 2, 1));
 
-    when(service.getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100)))
+    when(officeQueryService.getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100)))
         .thenReturn(new PageImpl<>(List.of(link1, link2), PageRequest.of(0, 100), 2));
 
     mockMvc
@@ -113,12 +115,12 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(jsonPath("$.data.links.first", containsString("page=0&pageSize=100")))
         .andExpect(jsonPath("$.data.links.last", containsString("page=0&pageSize=100")));
 
-    verify(service).getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100));
+    verify(officeQueryService).getOfficeLiaisonManagers("100001", "ACC001", PageRequest.of(0, 100));
   }
 
   @Test
   void getOfficeLiaisonManagers_returns404_whenServiceThrowsNotFound() throws Exception {
-    when(service.getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100)))
+    when(officeQueryService.getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100)))
         .thenThrow(new ItemNotFoundException("Office not found for provider"));
 
     mockMvc
@@ -132,7 +134,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.detail").value("Office not found for provider"));
 
-    verify(service).getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100));
+    verify(officeQueryService).getOfficeLiaisonManagers("999404", "ACC404", PageRequest.of(0, 100));
   }
 
   @Test
@@ -177,10 +179,10 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
     var liaisonManagerGuid = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
 
     given(
-            service.postOfficeLiaisonManager(
+            liaisonManagerCommandService.postOfficeLiaisonManager(
                 eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
         .willReturn(
-            new OfficeLiaisonManagerService.OfficeLiaisonManagerOperationResult(
+            new OfficeLiaisonManagerCommandService.OfficeLiaisonManagerOperationResult(
                 providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
 
     String validJson =
@@ -210,7 +212,7 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .andExpect(jsonPath("$.data.officeCode").value("0Q731M"))
         .andExpect(jsonPath("$.data.liaisonManagerGUID").value(liaisonManagerGuid.toString()));
 
-    verify(service)
+    verify(liaisonManagerCommandService)
         .postOfficeLiaisonManager(
             eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
   }

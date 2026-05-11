@@ -16,9 +16,9 @@ import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
-class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
+class OfficeLiaisonManagerCommandServiceTest extends PostgresqlSpringBootTest {
 
-  @Autowired private OfficeLiaisonManagerService service;
+  @Autowired private OfficeLiaisonManagerCommandService service;
 
   @Autowired private ProviderRepository providerRepository;
   @Autowired private OfficeRepository officeRepository;

@@ -164,9 +164,9 @@ Notes on the table:
   public API of each module. Spring Modulith treats every sub-package as module-internal:
   packages under the module root cannot be accessed by other modules.
 
-## Current structure
+## Pre-refactoring structure
 
-The codebase follows a conventional layered arrangement:
+The codebase previously followed a conventional layered arrangement:
 
 ```
 uk.gov.justice.laa.providerdata
@@ -373,38 +373,47 @@ Further reading:
 
 ```
 uk.gov.justice.laa.providerdata
-  provider/                   <- ProviderCommandService, ProviderQueryService (module public API)
-    web/                      <- HTTP adapters; package-private classes
-    entity/                   <- JPA entities
-    repository/               <- Spring Data repositories
-    mapper/                   <- MapStruct mappers
-  office/
-    web/
-    entity/
-    repository/
-    mapper/
-  contract/                   <- new module; built domain-first from the outset
-    web/
-    entity/
-    repository/
-    mapper/
-  shared/                     <- AuditableEntity, pagination utilities, GlobalExceptionHandler
-  web/                        <- transitional; existing controllers until migrated to {module}/web/
+  shared/          AuditableEntity, ItemNotFoundException, PageLinks, PageMetadata,
+                   PageParamValidator, ProviderFirmTypeConverter, ReferenceNumberUtils,
+                   UuidUtils at ROOT (accessible to all modules). config/ and web/ internal
+  provider/        domain module. ProviderEntity + subtypes, ProviderQueryService,
+                   ProviderCommandService at ROOT. repository/ internal
+  office/          domain module. OfficeEntity + link entity types, OfficeCommandService,
+                   OfficeQueryService at ROOT. repository/ and web/ internal
+  bankaccount/     domain module; BankAccountEntity, BankAccountCommandService,
+                   BankAccountQueryService, BankAccountMapper at ROOT. entity/ and
+                   repository/ and web/ internal
+  liaisonmanager/  domain module. LiaisonManagerEntity, OfficeLiaisonManagerLinkEntity,
+                   OfficeLiaisonManagerCommandService, OfficeLiaisonManagerQueryService
+                   at ROOT. repository/ and web/ internal
+  contractmanager/ domain module. ContractManagerEntity and services at ROOT. entity/,
+                   mapper/, repository/, web/ internal
+  usecase/         orchestration module. ProviderFirmUseCase, OfficeFirmUseCase,
+                   OfficeMapper, ProviderMapper at ROOT; web/ internal
+  contract/        new module. built domain-first from the outset
 ```
 
+Sub-packages of a module (e.g. `provider/internal/`) are module-internal, meaning Spring Modulith
+prevents other modules from accessing them. Using sub-packages is a per-module decision. In a small
+and simple module, it might make sense to keep everything in the top level module package.
+
+When a single API operation creates or updates entities across multiple modules, an orchestration
+module (like `usecase/` above) can coordinate those calls within a single `@Transactional` call.
+This keeps the domain modules as single-responsibility while maintaining atomic behaviour.
+
 [Spring Modulith](https://docs.spring.io/spring-modulith/reference/) treats each top-level package
-as a module and enforces that all sub-packages are module-internal: packages under the module root
-cannot be accessed by other modules.
-Cross-module interaction goes via a module's public types or via Spring `ApplicationEvent`. The
-event publication registry records domain events atomically with entity changes, providing a
-transactional outbox without a custom implementation.
+as a module and enforces that all sub-packages are module-internal. Cross-module calls go to a
+module's public types or via Spring `ApplicationEvent`. The event publication registry records
+domain events atomically with entity changes, providing a transactional outbox without needing a
+custom implementation.
 
 **Pros:** module boundaries enforced at the framework level. New domain areas are self-contained.
 The event publication registry provides the transactional outbox. Scales naturally as the domain
 grows.
 
-**Cons:** requires package reorganisation from the current flat structure. Spring Modulith is a
-new framework dependency. The placement of controllers requires a deliberate decision.
+**Cons:** requires package reorganisation from the flat layer structure. Domain boundaries that are
+unclear initially may require an orchestration module to temporarily absorb several domains until
+they can be separated cleanly.
 
 Further reading:
 
@@ -455,13 +464,13 @@ Option 5 can be adopted incrementally alongside other work. New modules (for exa
 
 1. Complete Option 4, or skip directly to module reorganisation.
 2. Introduce Spring Modulith and add a module structure test.
-3. Create domain-oriented top-level packages: `provider/`, `office/`, `contract/`, `shared/`.
-4. Move entities, repositories, and mappers to `{module}/internal/`.
-5. Move command and query service classes to `{module}/` as the public module API.
-6. Move controllers to `web/` (or per-module if stricter isolation is preferred).
-7. Verify no code outside a module references its `internal/` types; the module structure test
-   will catch violations.
-8. Introduce domain events and the event publication registry for cross-cutting concerns.
+3. Create domain-oriented top-level packages. Where domain boundaries are unclear, combine related
+   domains in a single module initially and split later once the seams are visible.
+4. Move all classes for each domain into the module package. Sub-packages are optional; if used,
+   they are module-internal and cannot be accessed from outside.
+5. Where operations span multiple domain modules, extract an orchestration module above them.
+6. Once domain services are single-responsibility, split combined modules into finer-grained ones.
+7. Introduce domain events and the event publication registry for cross-cutting concerns.
 
 Each step can be committed independently and verified by the existing integration and
 end-to-end test suites.

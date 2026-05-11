@@ -119,9 +119,10 @@ However, more significantly, Option 4 has no boundary between the domains. Nothi
 sub-packages of `{module-name}/` cannot be accessed by other modules to allow this constraint to
 be implemented.
 
-## Current state
+## Pre-refactoring structure
 
-The codebase uses a flat layered package structure under `uk.gov.justice.laa.providerdata`:
+The codebase originally used a flat layered package structure under
+`uk.gov.justice.laa.providerdata`:
 
 ```
 config/       FlywayCleanMigrationStrategy, JacksonConfig, JpaAuditingConfig, LocalDataSeeder
@@ -163,105 +164,145 @@ PostgreSQL (`PostgresqlSpringBootTest`) for integration tests.
 The service is reorganised into domain-based top-level packages under
 `uk.gov.justice.laa.providerdata`. Spring Modulith
 (`org.springframework.modulith:spring-modulith-starter-core`) treats each top-level package as a
-module and enforces that all sub-packages are module-internal: packages under the module root cannot
-be accessed by other modules. Cross-module interaction goes via a module's public types or via
+module and enforces that all sub-packages are module-internal. Cross-module interaction goes via
+a module's public types (top-level classes in the module package) or via
 `ApplicationEventPublisher`.
 
-A module structure test using `ApplicationModulith.of(Application.class).verify()` (or
-`@ApplicationModuleTest`) should run as part of the standard Gradle `test` task.
+A module structure test using `ApplicationModules.of(Application.class).verify()` should run as part
+of the standard Gradle `test` task.
 
 Proposed layout:
 
 ```
 uk.gov.justice.laa.providerdata
 
-provider/
-  web/                        ProviderFirmController, ChamberOfficePractitionersController
-                              (package-private; migrated from web/)
-  ProviderCommandService        public; mutations: create, patch
-  ProviderQueryService          public; reads: get, search, head-office lookups, parent links
-  entity/                     ProviderEntity + subtypes (LspProviderEntity,
-                              ChamberProviderEntity, PractitionerEntity,
-                              AdvocatePractitionerEntity, BarristerPractitionerEntity),
-                              ProviderParentLinkEntity, ProviderBankAccountLinkEntity
-  repository/                 ProviderRepository, ProviderFirmRepository,
-                              ProviderParentLinkRepository,
-                              ProviderBankAccountLinkRepository,
-                              spec/ProviderSpecification
-  mapper/                     ProviderMapper
+  shared/
+    AuditableEntity               public ROOT; extended by all JPA entities
+    ItemNotFoundException         public ROOT; thrown by all services
+    PageLinks                     public ROOT; pagination link builder
+    PageMetadata                  public ROOT; pagination metadata DTO
+    PageParamValidator            public ROOT; page parameter validation
+    ProviderFirmTypeConverter     public ROOT; Spring MVC type converter
+    ReferenceNumberUtils          public ROOT; firm number generation
+    UuidUtils                     public ROOT; UUID utilities
+    config/                       module-internal; Spring @Configuration classes:
+                                  FlywayCleanMigrationStrategy, JacksonConfig,
+                                  JpaAuditingConfig, LocalDataSeeder, GlobalExceptionHandler
+    web/                          module-internal; TraceController (infrastructure endpoint)
 
-office/
-  web/                        ProviderFirmOfficesController, ProviderFirmBankAccountsController,
-                              ProviderFirmOfficeContractManagersController,
-                              ProviderFirmOfficesLiaisonManagersController,
-                              ProviderContractManagersController
-  OfficeCommandService          public; mutations: create, update, liaison manager assignment,
-                                contract manager assignment, bank account linking
-  OfficeQueryService            public; reads: get, search, liaison managers, contract managers,
-                                bank details
-  entity/                     OfficeEntity, ProviderOfficeLinkEntity + subtypes
-                              (LspProviderOfficeLinkEntity, ChamberProviderOfficeLinkEntity,
-                              AdvocateProviderOfficeLinkEntity), OfficeBankAccountLinkEntity,
-                              OfficeContractManagerLinkEntity, OfficeLiaisonManagerLinkEntity,
-                              BankAccountEntity, LiaisonManagerEntity, ContractManagerEntity
-  repository/                 OfficeRepository, OfficeBankAccountLinkRepository,
-                              OfficeContractManagerLinkRepository,
-                              OfficeLiaisonManagerLinkRepository, BankAccountRepository,
-                              LiaisonManagerRepository, ContractManagerRepository,
-                              AdvocateProviderOfficeLinkRepository,
-                              LspProviderOfficeLinkRepository,
-                              ChamberProviderOfficeLinkRepository,
-                              ProviderOfficeLinkRepository,
-                              ContractManagerSpecifications
-  mapper/                     OfficeMapper, BankAccountMapper, ContractManagerMapper
+  provider/                       depends on: shared/
+    ProviderQueryService          public; get, search, parent links
+    ProviderCommandService        public; save, update, replaceParentLinks, saveParentLink
+    ProviderEntity + subtypes     public ROOT (LspProviderEntity, ChamberProviderEntity,
+                                  PractitionerEntity, AdvocatePractitionerEntity,
+                                  BarristerPractitionerEntity)
+    ProviderParentLinkEntity      public ROOT
+    FirmType, AdvocateType        public ROOT
+    repository/                   module-internal; ProviderRepository, ProviderFirmRepository,
+                                  ProviderParentLinkRepository, ProviderSpecification
 
-contract/                       new module; built domain-first from the outset
-  web/                        ContractController (and others TBD)
-  ContractCommandService        public
-  ContractQueryService          public
-  ContractCreatedEvent          public domain event record
-  ContractUpdatedEvent          public domain event record
-  ScheduleCreatedEvent          public domain event record
-  entity/                     ContractEntity (aggregate root), ScheduleEntity,
-                              ScheduleLineEntity, NmsAuthorisationEntity
-  repository/                 ContractRepository (aggregate root only; no ScheduleRepository,
-                              ScheduleLineRepository, or NmsAuthorisationRepository)
-  mapper/                     ContractMapper
+  office/                         depends on: shared/, provider/
+    OfficeCommandService          public; create office/link, patch fields, patch payment
+    OfficeQueryService            public; get, search, head-office lookups, link resolution
+    OfficeCreationResult          public ROOT
+    OfficeEntity                  public ROOT
+    ProviderOfficeLinkEntity + subtypes  public ROOT (LspProviderOfficeLinkEntity,
+                                  ChamberProviderOfficeLinkEntity,
+                                  AdvocateProviderOfficeLinkEntity)
+    repository/                   module-internal; OfficeRepository, ProviderOfficeLinkRepository,
+                                  LspProviderOfficeLinkRepository,
+                                  ChamberProviderOfficeLinkRepository,
+                                  AdvocateProviderOfficeLinkRepository
+    web/                          module-internal; ChamberOfficePractitionersController
 
-shared/
-  entity/                       AuditableEntity
-  exception/                    GlobalExceptionHandler, ItemNotFoundException
-  util/                         PageLinks, PageMetadata, PageParamValidator, Pagination,
-                                ProviderFirmTypeConverter, ReferenceNumberUtils,
-                                SearchCriteria, UuidUtils
+  bankaccount/                    depends on: shared/, provider/, office/
+    BankAccountEntity             public ROOT
+    BankAccountMapper             public ROOT (accessed by usecase/)
+    BankAccountCommandService     public ROOT
+    BankAccountQueryService       public ROOT
+    entity/                       module-internal; OfficeBankAccountLinkEntity,
+                                  ProviderBankAccountLinkEntity
+    repository/                   module-internal; BankAccountRepository,
+                                  OfficeBankAccountLinkRepository,
+                                  ProviderBankAccountLinkRepository
+    web/                          module-internal; ProviderFirmBankAccountsController
 
-web/                            transitional; existing controllers until migrated to {module}/web/
+  liaisonmanager/                 depends on: shared/, provider/, office/
+    LiaisonManagerEntity          public ROOT
+    OfficeLiaisonManagerLinkEntity  public ROOT
+    OfficeLiaisonManagerCommandService  public ROOT
+    OfficeLiaisonManagerQueryService    public ROOT
+    repository/                   module-internal; LiaisonManagerRepository,
+                                  OfficeLiaisonManagerLinkRepository
+    web/                          module-internal; ProviderFirmOfficesLiaisonManagersController
 
-config/                         Spring configuration; FlywayCleanMigrationStrategy,
-                                JacksonConfig, JpaAuditingConfig, LocalDataSeeder
+  contractmanager/                depends on: shared/, provider/, office/
+    ContractManagerEntity         public ROOT
+    ContractManagerQueryService   public ROOT
+    OfficeContractManagerCommandService  public ROOT
+    OfficeContractManagerQueryService    public ROOT
+    entity/                       module-internal; OfficeContractManagerLinkEntity
+    mapper/                       module-internal; ContractManagerMapper
+    repository/                   module-internal; ContractManagerRepository,
+                                  ContractManagerSpecifications,
+                                  OfficeContractManagerLinkRepository
+    web/                          module-internal; ProviderContractManagersController,
+                                  ProviderFirmOfficeContractManagersController
+
+  usecase/                        depends on: all domain modules above
+    ProviderFirmUseCase           public; orchestrates createLspFirm, createChambersFirm,
+                                  createPractitionerFirm, patchProvider across modules
+    OfficeFirmUseCase             public; orchestrates createLspOffice (with LM + bank account)
+                                  and patchOffice (with payment details)
+    ProviderCreationResult        public ROOT
+    OfficeMapper                  public ROOT (uses types from office/ and liaisonmanager/)
+    ProviderMapper                public ROOT (uses types from provider/ and office/)
+    web/                          module-internal; ProviderFirmController,
+                                  ProviderFirmOfficesController
+
+  contract/                       new module; to be built domain-first (pending BA input)
+    ContractCommandService        public
+    ContractQueryService          public
+    ContractCreatedEvent          public domain event record
+    ContractUpdatedEvent          public domain event record
+    ScheduleCreatedEvent          public domain event record
+    entity/                       ContractEntity (aggregate root), ScheduleEntity,
+                                  ScheduleLineEntity, NmsAuthorisationEntity
+    repository/                   ContractRepository (aggregate root only)
+    mapper/                       ContractMapper
+    web/                          ContractController (and others TBD)
+```
+
+Module dependency rules (enforced by Spring Modulith):
+
+```
+shared/          no domain deps (includes utility classes at ROOT)
+provider/        → shared/
+office/          → shared/, provider/
+bankaccount/     → shared/, provider/, office/
+liaisonmanager/  → shared/, provider/, office/
+contractmanager/ → shared/, provider/, office/
+usecase/         → all modules above
+contract/        → shared/, provider/, office/ (and usecase/ if needed)
 ```
 
 Notes:
 
-- The `contract/` module is new and can be built on this structure from the start.
-- Existing modules (`provider/`, `office/`) could migrate incrementally alongside other work,
-  without requiring a dedicated refactoring sprint.
-- **Controller placement:** controllers live in a `web/` sub-package within their module
-  (e.g. `provider/web/`), alongside any web-layer DTOs and web-specific configuration. They are
-  declared **package-private** (no `public` modifier): Spring discovers them via component scan
-  and invokes handler methods via reflection, both of which bypass Java visibility. Spring Modulith
-  already treats `web/` as module-internal (all sub-packages are); package-private adds a second
-  layer that prevents even intra-module references. This `{module}/web/` convention follows
-  [spring-restbucks](https://github.com/odrotbohm/spring-restbucks), a reference application by
-  the Spring Modulith author, and is confirmed by community projects.
-- BankAccount, LiaisonManager, and ContractManager are separate aggregates per the
-  [domain model](domain-model.html) but are placed in `office/` for practical reasons, since they
-  have no standalone creation endpoints and are accessed via office operations (in fact contract
-  managers are managed outside PDA). They can be moved to their own modules as needed.
-- The exact boundary between `provider/` and `office/` for shared entities (such as
-  `ProviderOfficeLinkEntity`) may not be exactly as above, but each entity should live in exactly
-  one module's sub-packages. Multi-aggregate creation (`POST /provider-firms`) spans boundaries
-  and will need resolving.
+- **`shared/` ROOT contains both domain-shared types and utility classes** — `AuditableEntity`,
+  `ItemNotFoundException`, and all former `util/` classes (`PageLinks`, `UuidUtils`, etc.) live
+  here.
+- **Mapper placement:** `OfficeMapper` and `ProviderMapper` live in `usecase/` ROOT (not
+  `office/` or `provider/`) because each uses types from two modules. Placing either in a single
+  domain module would introduce a forbidden upward dependency. `ContractManagerMapper` lives in
+  `contractmanager/mapper/` (module-internal; only used within `contractmanager/`).
+  `BankAccountMapper` lives at `bankaccount/` ROOT (not `bankaccount/mapper/`) because
+  `usecase/` needs to call it.
+- **Controller placement:** controllers live in `{module}/web/` alongside any web-layer types.
+  Spring Modulith treats `web/` as module-internal; controllers should also be declared
+  package-private where practical. See the
+  [spring-restbucks](https://github.com/odrotbohm/spring-restbucks) reference application.
+- **`contract/` module** is not part of the Phase 3 restructure; it will be built
+  domain-first once BA input on the aggregate structure is confirmed.
 
 ### Command/query separation
 
@@ -275,15 +316,15 @@ repository method that causes a change (`save`, `delete`, `deleteAll`, `deleteBy
 
 Changes to existing services:
 
-| Current class                            | Issue                                              | Action                                                                                                 |
-|------------------------------------------|----------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| `ProviderCreationService`                | Correctly write-only                               | Move to `provider/`; rename `ProviderCommandService`; absorb `patchProvider()`                         |
-| `ProviderService`                        | Declared `readOnly` but contains `patchProvider()` | Move `patchProvider()` to `ProviderCommandService`; rename `ProviderQueryService`; move to `provider/` |
-| `OfficeService`                          | Mixed read and write                               | Split into `OfficeCommandService` and `OfficeQueryService`; move both to `office/`                     |
-| `BankDetailsService`                     | Mixed                                              | Split; move to `office/`                                                                               |
-| `OfficeLiaisonManagerService`            | Write-only, reads move to `OfficeQueryService`     | Rename `OfficeLiaisonManagerCommandService`; move to `office/`                                         |
-| `OfficeContractManagerAssignmentService` | Write-only                                         | Rename `OfficeContractManagerCommandService`; move to `office/`                                        |
-| `ProviderContractManagersService`        | Read-only                                          | Rename `ContractManagerQueryService`; move to `office/`                                                |
+| Pre-refactoring class                    | Issue                                              | Action                                                                     |
+|------------------------------------------|----------------------------------------------------|----------------------------------------------------------------------------|
+| `ProviderCreationService`                | Correctly write-only                               | Rename `ProviderCommandService`. Absorb `patchProvider()`                  |
+| `ProviderService`                        | Declared `readOnly` but contains `patchProvider()` | Rename `ProviderQueryService`. Move `patchProvider()` to command           |
+| `OfficeService`                          | Mixed read and write                               | Split into `OfficeCommandService` and `OfficeQueryService`                 |
+| `BankDetailsService`                     | Mixed                                              | Split into `BankAccountCommandService`. Move reads to `OfficeQueryService` |
+| `OfficeLiaisonManagerService`            | Write-only, reads in `OfficeQueryService`          | Rename `OfficeLiaisonManagerCommandService`                                |
+| `OfficeContractManagerAssignmentService` | Write-only                                         | Rename `OfficeContractManagerCommandService`                               |
+| `ProviderContractManagersService`        | Read-only                                          | Rename `ContractManagerQueryService`                                       |
 
 Explicit command objects - Java records carrying the validated input for a single update,
 instantiated by the web layer - should exist for all write operations. They make the intent of a

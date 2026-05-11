@@ -13,7 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
+import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
 
 class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
@@ -27,7 +27,7 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
 
   @Autowired private ProviderOfficeLinkRepository providerOfficeLinkRepository;
 
-  @Autowired private OfficeContractManagerAssignmentService service;
+  @Autowired private OfficeContractManagerCommandService service;
 
   @Test
   @Transactional

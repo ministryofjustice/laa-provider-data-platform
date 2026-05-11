@@ -19,15 +19,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
-import uk.gov.justice.laa.providerdata.service.ContractManagerService;
-import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
+import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
+import uk.gov.justice.laa.providerdata.service.OfficeContractManagerQueryService;
 
 /**
  * Unit tests for {@link ProviderFirmOfficeContractManagersController}.
  *
  * <p>This suite exercises the POST endpoint that assigns a contract manager to an office. It uses
  * {@link MockMvc} in standalone mode along with a mocked {@link
- * OfficeContractManagerAssignmentService} and the {@link GlobalExceptionHandler} to validate status
+ * OfficeContractManagerCommandService} and the {@link GlobalExceptionHandler} to validate status
  * codes and response payloads for both success and error conditions.
  *
  * <p>Covered scenarios:
@@ -42,8 +42,8 @@ import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentSe
 class ProviderFirmOfficeContractManagersControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private OfficeContractManagerAssignmentService assignmentService;
-  @MockitoBean private ContractManagerService contractManagerService;
+  @MockitoBean private OfficeContractManagerCommandService assignmentService;
+  @MockitoBean private OfficeContractManagerQueryService contractManagerService;
 
   /**
    * Verifies a successful POST request.
@@ -68,7 +68,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
             eq(providerOfficeLinkGuid.toString()),
             eq(contractManagerGuid)))
         .thenReturn(
-            new OfficeContractManagerAssignmentService.AssignmentResult(
+            new OfficeContractManagerCommandService.AssignmentResult(
                 providerOfficeLinkGuid, "CM-001"));
 
     mockMvc
@@ -102,7 +102,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
 
     when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
         .thenReturn(
-            new OfficeContractManagerAssignmentService.AssignmentResult(
+            new OfficeContractManagerCommandService.AssignmentResult(
                 providerOfficeLinkGuid, "CM-001"));
 
     mockMvc

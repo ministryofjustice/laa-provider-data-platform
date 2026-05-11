@@ -23,7 +23,7 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  * any previous assignment for the office and persist the new link or roll back on failure.
  */
 @Service
-public class OfficeContractManagerAssignmentService {
+public class OfficeContractManagerCommandService {
 
   private final ContractManagerRepository contractManagerRepository;
   private final OfficeContractManagerLinkRepository linkRepository;
@@ -31,14 +31,14 @@ public class OfficeContractManagerAssignmentService {
   private final OfficeQueryService officeService;
 
   /**
-   * Constructs a new {@code OfficeContractManagerAssignmentService}.
+   * Constructs a new {@code OfficeContractManagerCommandService}.
    *
    * @param contractManagerRepository repository for querying {@link ContractManagerEntity} records
    * @param linkRepository repository for managing {@link OfficeContractManagerLinkEntity} links
    * @param providerService service for resolving provider identifiers
    * @param officeService service for resolving provider office identifiers
    */
-  public OfficeContractManagerAssignmentService(
+  public OfficeContractManagerCommandService(
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
       ProviderQueryService providerService,

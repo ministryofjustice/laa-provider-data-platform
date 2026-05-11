@@ -10,7 +10,7 @@ import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderContractManagers200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderContractManagers200ResponseData;
-import uk.gov.justice.laa.providerdata.service.ProviderContractManagersService;
+import uk.gov.justice.laa.providerdata.service.ContractManagerQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -23,7 +23,7 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 @RequiredArgsConstructor
 public class ProviderContractManagersController implements ContractManagersApi {
 
-  private final ProviderContractManagersService providerContractManagersService;
+  private final ContractManagerQueryService providerContractManagersService;
   private final ContractManagerMapper contractManagerMapper;
 
   @Override

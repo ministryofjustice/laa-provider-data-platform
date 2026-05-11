@@ -23,13 +23,13 @@ import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 
 /**
- * Unit tests for {@link ContractManagerService}.
+ * Unit tests for {@link OfficeContractManagerQueryService}.
  *
  * <p>Verifies that contract managers linked to an office are retrieved from the repository and
  * correctly mapped to API DTO objects.
  */
 @ExtendWith(MockitoExtension.class)
-class ContractManagerServiceTest {
+class OfficeContractManagerQueryServiceTest {
 
   @Mock private OfficeContractManagerLinkRepository linkRepository;
 
@@ -39,7 +39,7 @@ class ContractManagerServiceTest {
 
   @Mock private OfficeQueryService officeService;
 
-  @InjectMocks private ContractManagerService service;
+  @InjectMocks private OfficeContractManagerQueryService service;
 
   private UUID officeGuid;
   private UUID providerGuid;

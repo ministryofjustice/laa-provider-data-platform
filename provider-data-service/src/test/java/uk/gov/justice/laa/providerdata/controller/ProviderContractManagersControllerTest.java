@@ -17,13 +17,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.ContractManagerV2;
-import uk.gov.justice.laa.providerdata.service.ProviderContractManagersService;
+import uk.gov.justice.laa.providerdata.service.ContractManagerQueryService;
 
 @WebMvcTest(ProviderContractManagersController.class)
 class ProviderContractManagersControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private ProviderContractManagersService providerContractManagersService;
+  @MockitoBean private ContractManagerQueryService providerContractManagersService;
   @MockitoBean private ContractManagerMapper contractManagerMapper;
 
   @Test

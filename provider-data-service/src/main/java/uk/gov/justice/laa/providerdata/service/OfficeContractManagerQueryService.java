@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.mapper.ContractManagerMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
@@ -13,7 +14,8 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ContractManagerService {
+@Transactional(readOnly = true)
+public class OfficeContractManagerQueryService {
 
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final ContractManagerMapper mapper;

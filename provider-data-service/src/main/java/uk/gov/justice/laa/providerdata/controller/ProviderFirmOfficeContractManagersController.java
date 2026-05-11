@@ -10,8 +10,8 @@ import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractMan
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200ResponseData;
-import uk.gov.justice.laa.providerdata.service.ContractManagerService;
-import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
+import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
+import uk.gov.justice.laa.providerdata.service.OfficeContractManagerQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -24,9 +24,9 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 public class ProviderFirmOfficeContractManagersController
     implements ProviderFirmOfficesContractManagersApi {
 
-  private final OfficeContractManagerAssignmentService assignmentService;
+  private final OfficeContractManagerCommandService assignmentService;
 
-  private final ContractManagerService contractManagerService;
+  private final OfficeContractManagerQueryService contractManagerService;
 
   /**
    * Constructs the controller with required dependencies.
@@ -34,8 +34,8 @@ public class ProviderFirmOfficeContractManagersController
    * @param assignmentService service handling creation of office-to-contract-manager assignments
    */
   public ProviderFirmOfficeContractManagersController(
-      OfficeContractManagerAssignmentService assignmentService,
-      ContractManagerService contractManagerService) {
+      OfficeContractManagerCommandService assignmentService,
+      OfficeContractManagerQueryService contractManagerService) {
     this.assignmentService = assignmentService;
     this.contractManagerService = contractManagerService;
   }
@@ -73,7 +73,7 @@ public class ProviderFirmOfficeContractManagersController
       throw new IllegalArgumentException("contractManagerGUID must be provided");
     }
 
-    OfficeContractManagerAssignmentService.AssignmentResult result =
+    OfficeContractManagerCommandService.AssignmentResult result =
         assignmentService.assign(
             providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGuid);
 

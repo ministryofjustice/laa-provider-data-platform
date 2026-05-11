@@ -28,7 +28,7 @@ public class OfficeContractManagerAssignmentService {
   private final ContractManagerRepository contractManagerRepository;
   private final OfficeContractManagerLinkRepository linkRepository;
   private final ProviderQueryService providerService;
-  private final OfficeService officeService;
+  private final OfficeQueryService officeService;
 
   /**
    * Constructs a new {@code OfficeContractManagerAssignmentService}.
@@ -42,7 +42,7 @@ public class OfficeContractManagerAssignmentService {
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
       ProviderQueryService providerService,
-      OfficeService officeService) {
+      OfficeQueryService officeService) {
     this.contractManagerRepository = contractManagerRepository;
     this.linkRepository = linkRepository;
     this.providerService = providerService;

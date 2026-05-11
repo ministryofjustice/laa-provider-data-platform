@@ -15,7 +15,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts20
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeBankAccounts200ResponseData;
 import uk.gov.justice.laa.providerdata.model.OfficeBankAccountV2;
 import uk.gov.justice.laa.providerdata.service.BankDetailsService;
-import uk.gov.justice.laa.providerdata.service.OfficeService;
+import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 import uk.gov.justice.laa.providerdata.service.ProviderQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
@@ -26,7 +26,7 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 public class ProviderFirmBankAccountsController implements ProviderFirmBankAccountsApi {
 
   private final ProviderQueryService providerService;
-  private final OfficeService officeService;
+  private final OfficeQueryService officeService;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
 
@@ -40,7 +40,7 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
    */
   public ProviderFirmBankAccountsController(
       ProviderQueryService providerService,
-      OfficeService officeService,
+      OfficeQueryService officeService,
       BankDetailsService bankDetailsService,
       BankAccountMapper bankAccountMapper) {
     this.providerService = providerService;

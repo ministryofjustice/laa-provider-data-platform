@@ -18,7 +18,7 @@ public class ContractManagerService {
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final ContractManagerMapper mapper;
   private final ProviderQueryService providerService;
-  private final OfficeService officeService;
+  private final OfficeQueryService officeService;
 
   /**
    * Retrieves all contract managers assigned to a given office and provider.

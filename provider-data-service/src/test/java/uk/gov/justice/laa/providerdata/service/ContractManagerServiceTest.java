@@ -37,7 +37,7 @@ class ContractManagerServiceTest {
 
   @Mock private ProviderQueryService providerService;
 
-  @Mock private OfficeService officeService;
+  @Mock private OfficeQueryService officeService;
 
   @InjectMocks private ContractManagerService service;
 

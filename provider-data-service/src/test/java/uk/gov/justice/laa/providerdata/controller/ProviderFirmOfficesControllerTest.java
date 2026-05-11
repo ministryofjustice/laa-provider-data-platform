@@ -25,8 +25,9 @@ import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.service.OfficeCommandService;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
-import uk.gov.justice.laa.providerdata.service.OfficeService;
+import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 
 /**
@@ -35,14 +36,16 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
  * <p>Note: a full 201 happy-path test is not included here because {@code
  * LSPOfficeLiaisonManagerCreateOrLinkV2} is an untagged interface with no {@code @JsonSubTypes}
  * annotation, so Jackson cannot deserialise a value for the required {@code liaisonManager} field.
- * The happy path is covered by {@link uk.gov.justice.laa.providerdata.service.OfficeServiceTest}.
+ * The happy path is covered by {@link
+ * uk.gov.justice.laa.providerdata.service.OfficeCommandServiceTest}.
  */
 @WebMvcTest(ProviderFirmOfficesController.class)
 @Import(JacksonConfig.class)
 class ProviderFirmOfficesControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private OfficeService officeService;
+  @MockitoBean private OfficeCommandService officeCommandService;
+  @MockitoBean private OfficeQueryService officeQueryService;
   @MockitoBean private OfficeMapper officeMapper;
 
   @Test
@@ -91,7 +94,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOffices_returnsOk() throws Exception {
-    when(officeService.getOffices("100001", PageParamValidator.resolve(null, null)))
+    when(officeQueryService.getOffices("100001", PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
     mockMvc.perform(get("/provider-firms/{id}/offices", "100001")).andExpect(status().isOk());
@@ -99,7 +102,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOffices_returnsNotFound_whenProviderMissing() throws Exception {
-    when(officeService.getOffices("UNKNOWN", PageParamValidator.resolve(null, null)))
+    when(officeQueryService.getOffices("UNKNOWN", PageParamValidator.resolve(null, null)))
         .thenThrow(new ItemNotFoundException("Provider not found: UNKNOWN"));
 
     mockMvc
@@ -110,7 +113,7 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getProviderFirmOfficeByGUID_returnsOk() throws Exception {
     ProviderOfficeLinkEntity link = new LspProviderOfficeLinkEntity();
-    when(officeService.getProviderOfficeLink("100001", "ABC123")).thenReturn(link);
+    when(officeQueryService.getProviderOfficeLink("100001", "ABC123")).thenReturn(link);
     when(officeMapper.toOfficeV2(link)).thenReturn(new OfficeV2());
 
     mockMvc
@@ -120,7 +123,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getProviderFirmOfficeByGUID_returnsNotFound_whenOfficeMissing() throws Exception {
-    when(officeService.getProviderOfficeLink("100001", "NOTEXIST"))
+    when(officeQueryService.getProviderOfficeLink("100001", "NOTEXIST"))
         .thenThrow(new ItemNotFoundException("Office not found: NOTEXIST"));
 
     mockMvc
@@ -144,7 +147,8 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getOffices_noFilters_returnsOk() throws Exception {
-    when(officeService.getOfficesGlobal(null, null, null, PageParamValidator.resolve(null, null)))
+    when(officeQueryService.getOfficesGlobal(
+            null, null, null, PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
     mockMvc
@@ -156,7 +160,7 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getOffices_withGuidFilter_returnsOk() throws Exception {
     var guid = UUID.randomUUID().toString();
-    when(officeService.getOfficesGlobal(
+    when(officeQueryService.getOfficesGlobal(
             List.of(guid), null, null, PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
@@ -170,7 +174,7 @@ class ProviderFirmOfficesControllerTest {
 
   @Test
   void getOffices_withCodeFilter_returnsOk() throws Exception {
-    when(officeService.getOfficesGlobal(
+    when(officeQueryService.getOfficesGlobal(
             null, List.of("ABC001"), null, PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
@@ -186,7 +190,7 @@ class ProviderFirmOfficesControllerTest {
   @Test
   void getOffices_withAllProviderOffices_returnsOk() throws Exception {
     var guid = UUID.randomUUID().toString();
-    when(officeService.getOfficesGlobal(
+    when(officeQueryService.getOfficesGlobal(
             List.of(guid), null, true, PageParamValidator.resolve(null, null)))
         .thenReturn(Page.empty());
 
@@ -214,7 +218,7 @@ class ProviderFirmOfficesControllerTest {
     var providerGuid = UUID.randomUUID();
     var officeGuid = UUID.randomUUID();
 
-    when(officeService.patchOffice(eq("100001"), eq(officeGuid.toString()), any()))
+    when(officeCommandService.patchOffice(eq("100001"), eq(officeGuid.toString()), any()))
         .thenReturn(new OfficeCreationResult(providerGuid, "100001", officeGuid, "ABC123"));
 
     mockMvc

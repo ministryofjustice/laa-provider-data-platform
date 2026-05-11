@@ -19,8 +19,9 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.service.OfficeCommandService;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
-import uk.gov.justice.laa.providerdata.service.OfficeService;
+import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -28,16 +29,29 @@ import uk.gov.justice.laa.providerdata.util.PageParamValidator;
 /**
  * REST controller implementing the Provider Firm Offices API.
  *
- * <p>Delegates to {@link OfficeService}. Operations not yet implemented return 501.
+ * <p>Delegates to {@link OfficeCommandService} and {@link OfficeQueryService}. Operations not yet
+ * implemented return 501.
  */
 @RestController
 public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
-  private final OfficeService officeService;
+  private final OfficeCommandService officeCommandService;
+  private final OfficeQueryService officeQueryService;
   private final OfficeMapper officeMapper;
 
-  public ProviderFirmOfficesController(OfficeService officeService, OfficeMapper officeMapper) {
-    this.officeService = officeService;
+  /**
+   * Inject dependencies.
+   *
+   * @param officeCommandService to create and mutate offices
+   * @param officeQueryService to query offices
+   * @param officeMapper to map between entities and API models
+   */
+  public ProviderFirmOfficesController(
+      OfficeCommandService officeCommandService,
+      OfficeQueryService officeQueryService,
+      OfficeMapper officeMapper) {
+    this.officeCommandService = officeCommandService;
+    this.officeQueryService = officeQueryService;
     this.officeMapper = officeMapper;
   }
 
@@ -61,7 +75,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
     }
 
     OfficeCreationResult result =
-        officeService.createLspOffice(
+        officeCommandService.createLspOffice(
             providerFirmGUIDorFirmNumber,
             officeMapper.toOfficeEntity(lspOfficeCreateV2),
             officeMapper.toLinkTemplate(lspOfficeCreateV2),
@@ -92,7 +106,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<OfficeV2> results =
-        officeService
+        officeQueryService
             .getOfficesGlobal(officeGUID, officeCode, allProviderOffices, pageParams)
             .map(officeMapper::toOfficeV2);
 
@@ -117,7 +131,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String xCorrelationId,
       String traceparent) {
     ProviderOfficeLinkEntity link =
-        officeService.getProviderOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
+        officeQueryService.getProviderOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
         new GetProviderFirmOfficeByGUID200Response().data(officeMapper.toOfficeV2(link)));
   }
@@ -132,7 +146,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<OfficeV2> results =
-        officeService
+        officeQueryService
             .getOffices(providerFirmGUIDorFirmNumber, pageParams)
             .map(officeMapper::toOfficeV2);
 
@@ -153,7 +167,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String xCorrelationId,
       String traceparent) {
     OfficeCreationResult result =
-        officeService.patchOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);
+        officeCommandService.patchOffice(
+            providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);
     return ResponseEntity.ok(
         new CreateProviderFirmOffice201Response()
             .data(

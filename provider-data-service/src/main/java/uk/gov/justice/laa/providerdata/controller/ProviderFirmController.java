@@ -43,6 +43,8 @@ import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
 import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
 import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
@@ -65,6 +67,7 @@ public class ProviderFirmController {
   private final ProviderCreationService providerFirmCreationService;
   private final ProviderService providerFirmService;
   private final ProviderFirmCommandService providerFirmCommandService;
+  private final CommandAuditLogQueryService auditLogQueryService;
   private final OfficeMapper officeMapper;
   private final ProviderMapper providerFirmMapper;
 
@@ -74,6 +77,7 @@ public class ProviderFirmController {
    * @param providerFirmCreationService orchestrates provider and head office creation
    * @param providerFirmService handles provider firm read operations
    * @param providerFirmCommandService dispatches commands to handlers
+   * @param auditLogQueryService reads the command audit log
    * @param officeMapper maps request DTOs to office entity templates
    * @param providerFirmMapper maps provider entities to response models
    */
@@ -81,11 +85,13 @@ public class ProviderFirmController {
       ProviderCreationService providerFirmCreationService,
       ProviderService providerFirmService,
       ProviderFirmCommandService providerFirmCommandService,
+      CommandAuditLogQueryService auditLogQueryService,
       OfficeMapper officeMapper,
       ProviderMapper providerFirmMapper) {
     this.providerFirmCreationService = providerFirmCreationService;
     this.providerFirmService = providerFirmService;
     this.providerFirmCommandService = providerFirmCommandService;
+    this.auditLogQueryService = auditLogQueryService;
     this.officeMapper = officeMapper;
     this.providerFirmMapper = providerFirmMapper;
   }
@@ -203,6 +209,25 @@ public class ProviderFirmController {
                     providerFirmService.getChambersHeadOffice(provider).orElse(null),
                     providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
                     providerFirmService.getParentLinks(provider))));
+  }
+
+  /**
+   * Returns the command audit log for a provider firm, ordered chronologically.
+   *
+   * <p>Only records commands that have been successfully processed and committed. An empty list
+   * is returned for firms with no audit history.
+   *
+   * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
+   * @return 200 with the list of audit entries
+   */
+  @GetMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}/audit-log",
+      produces = "application/json")
+  public ResponseEntity<List<CommandAuditLogEntry>> getAuditLog(
+      @PathVariable String providerFirmGUIDorFirmNumber) {
+    List<CommandAuditLogEntry> entries =
+        auditLogQueryService.getAuditLog(providerFirmGUIDorFirmNumber);
+    return ResponseEntity.ok(entries);
   }
 
   /**

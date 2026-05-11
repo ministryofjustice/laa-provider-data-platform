@@ -21,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
 import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
 import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -41,6 +43,7 @@ class ProviderFirmControllerTest {
   @MockitoBean private ProviderCreationService providerFirmCreationService;
   @MockitoBean private ProviderService providerFirmService;
   @MockitoBean private ProviderFirmCommandService providerFirmCommandService;
+  @MockitoBean private CommandAuditLogQueryService auditLogQueryService;
   @MockitoBean private OfficeMapper officeMapper;
   @MockitoBean private ProviderMapper providerFirmMapper;
 
@@ -458,4 +461,38 @@ class ProviderFirmControllerTest {
         .andExpect(
             jsonPath("$.data.content[0].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()));
   }
+
+  @Test
+  void getAuditLog_byGuid_returns200WithEntries() throws Exception {
+    UUID firmGuid = UUID.randomUUID();
+    UUID entryGuid = UUID.randomUUID();
+    java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+
+    CommandAuditLogEntry entry =
+        new CommandAuditLogEntry(
+            entryGuid, firmGuid, "100001", "UpdateProviderFirm", now, "name");
+
+    when(auditLogQueryService.getAuditLog(firmGuid.toString())).thenReturn(List.of(entry));
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/audit-log", firmGuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].guid").value(entryGuid.toString()))
+        .andExpect(jsonPath("$[0].providerFirmGuid").value(firmGuid.toString()))
+        .andExpect(jsonPath("$[0].commandType").value("UpdateProviderFirm"))
+        .andExpect(jsonPath("$[0].changedFields").value("name"));
+  }
+
+  @Test
+  void getAuditLog_noEntries_returns200WithEmptyArray() throws Exception {
+    UUID firmGuid = UUID.randomUUID();
+    when(auditLogQueryService.getAuditLog(firmGuid.toString())).thenReturn(List.of());
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/audit-log", firmGuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
 }
+

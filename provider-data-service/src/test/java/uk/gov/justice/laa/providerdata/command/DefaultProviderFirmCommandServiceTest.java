@@ -2,6 +2,9 @@ package uk.gov.justice.laa.providerdata.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -9,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import uk.gov.justice.laa.providerdata.command.event.ProviderFirmUpdatedEvent;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
@@ -18,6 +23,7 @@ import uk.gov.justice.laa.providerdata.service.ProviderService;
 class DefaultProviderFirmCommandServiceTest {
 
   @Mock private ProviderService providerService;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private DefaultProviderFirmCommandService commandService;
 
@@ -29,14 +35,26 @@ class DefaultProviderFirmCommandServiceTest {
     ProviderCreationResult expectedResult =
         ProviderCreationResult.withoutOffice(providerGuid, "100001");
 
-    org.mockito.Mockito.when(providerService.patchProvider(providerId, patch))
-        .thenReturn(expectedResult);
+    when(providerService.patchProvider(providerId, patch)).thenReturn(expectedResult);
 
     UpdateProviderFirmCommand command = new UpdateProviderFirmCommand(providerId, patch);
     ProviderCreationResult result = commandService.handle(command);
 
     assertThat(result).isEqualTo(expectedResult);
-    org.mockito.Mockito.verify(providerService).patchProvider(providerId, patch);
+    verify(providerService).patchProvider(providerId, patch);
+  }
+
+  @Test
+  void handle_validCommand_publishesProviderFirmUpdatedEvent() {
+    UUID providerGuid = UUID.randomUUID();
+    String providerId = providerGuid.toString();
+    ProviderPatchV2 patch = new ProviderPatchV2().name("Event Test");
+    when(providerService.patchProvider(providerId, patch))
+        .thenReturn(ProviderCreationResult.withoutOffice(providerGuid, "100001"));
+
+    commandService.handle(new UpdateProviderFirmCommand(providerId, patch));
+
+    verify(eventPublisher).publishEvent(any(ProviderFirmUpdatedEvent.class));
   }
 
   @Test
@@ -81,14 +99,13 @@ class DefaultProviderFirmCommandServiceTest {
     ProviderCreationResult expectedResult =
         ProviderCreationResult.withoutOffice(providerGuid, "100001");
 
-    org.mockito.Mockito.when(providerService.patchProvider(providerId, patch))
-        .thenReturn(expectedResult);
+    when(providerService.patchProvider(providerId, patch)).thenReturn(expectedResult);
 
     UpdateProviderFirmCommand command = new UpdateProviderFirmCommand(providerId, patch);
     ProviderCreationResult result = commandService.handle(command);
 
     assertThat(result).isEqualTo(expectedResult);
-    org.mockito.Mockito.verify(providerService).patchProvider(providerId, patch);
+    verify(providerService).patchProvider(providerId, patch);
   }
 }
 

@@ -12,5 +12,7 @@ import uk.gov.justice.laa.providerdata.entity.OutboxEventStatus;
 public interface OutboxEventRepository extends JpaRepository<OutboxEventEntity, UUID> {
 
   List<OutboxEventEntity> findByStatusOrderByOccurredAtAsc(OutboxEventStatus status);
+
+  List<OutboxEventEntity> findTop100ByStatusOrderByOccurredAtAsc(OutboxEventStatus status);
 }
 

@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.application.providerfirm.command.UpdateProviderFirmCommand;
+import uk.gov.justice.laa.providerdata.application.providerfirm.command.UpdateProviderFirmUseCase;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -45,8 +47,6 @@ import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
 import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
-import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
-import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -66,7 +66,7 @@ public class ProviderFirmController {
 
   private final ProviderCreationService providerFirmCreationService;
   private final ProviderService providerFirmService;
-  private final ProviderFirmCommandService providerFirmCommandService;
+  private final UpdateProviderFirmUseCase updateProviderFirmUseCase;
   private final CommandAuditLogQueryService auditLogQueryService;
   private final OfficeMapper officeMapper;
   private final ProviderMapper providerFirmMapper;
@@ -76,7 +76,7 @@ public class ProviderFirmController {
    *
    * @param providerFirmCreationService orchestrates provider and head office creation
    * @param providerFirmService handles provider firm read operations
-   * @param providerFirmCommandService dispatches commands to handlers
+   * @param updateProviderFirmUseCase executes provider update commands
    * @param auditLogQueryService reads the command audit log
    * @param officeMapper maps request DTOs to office entity templates
    * @param providerFirmMapper maps provider entities to response models
@@ -84,13 +84,13 @@ public class ProviderFirmController {
   public ProviderFirmController(
       ProviderCreationService providerFirmCreationService,
       ProviderService providerFirmService,
-      ProviderFirmCommandService providerFirmCommandService,
+      UpdateProviderFirmUseCase updateProviderFirmUseCase,
       CommandAuditLogQueryService auditLogQueryService,
       OfficeMapper officeMapper,
       ProviderMapper providerFirmMapper) {
     this.providerFirmCreationService = providerFirmCreationService;
     this.providerFirmService = providerFirmService;
-    this.providerFirmCommandService = providerFirmCommandService;
+    this.updateProviderFirmUseCase = updateProviderFirmUseCase;
     this.auditLogQueryService = auditLogQueryService;
     this.officeMapper = officeMapper;
     this.providerFirmMapper = providerFirmMapper;
@@ -272,7 +272,7 @@ public class ProviderFirmController {
 
     UpdateProviderFirmCommand command =
         new UpdateProviderFirmCommand(providerFirmGUIDorFirmNumber, request);
-    ProviderCreationResult result = providerFirmCommandService.handle(command);
+    ProviderCreationResult result = updateProviderFirmUseCase.execute(command);
 
     return new CreateProviderFirm201Response()
         .data(

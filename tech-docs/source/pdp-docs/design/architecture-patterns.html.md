@@ -1,14 +1,16 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/architecture.html.md
-title: Architecture
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/architecture-patterns.html.md
+title: Architecture patterns
 weight: 20
 ---
 
-# Architecture
+# Architecture patterns
 
-Three architectural options for `provider-data-service`. All three enforce the same
+Five architectural options for `provider-data-service`. Options 1 to 3 enforce the same
 inward-dependency rule and are compatible with use-case-level CQRS. No framework or technology
-changes are required for any of them. The team has not yet decided which approach to take.
+changes are required for any of them. Options 4 and 5 are layered variants that do not invert
+the dependency direction. See [Proposed architecture](architecture-proposal.html) for a recommended
+approach.
 
 ## Patterns
 
@@ -20,7 +22,7 @@ The current codebase uses **layered architecture** (*n-tier* or *three-tier*) - 
 services, repositories, each depending only on the layer below. It's the default Spring
 structure and described in Fowler's
 *[Patterns of Enterprise Application Architecture](https://martinfowler.com/books/eaa.html)*
-(2002). The main drawback is that business logic gets coupled to persistence, which makes it
+(2002). Its main drawback is that business logic can become coupled to persistence, making it
 harder to test in isolation.
 
 ### Hexagonal architecture
@@ -84,10 +86,32 @@ Further reading:
 - Greg Young, [CQRS Documents](https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf) (2010)
 - Microsoft, [CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) - Azure Architecture Center
 
+### Spring Modulith
+
+[Spring Modulith](https://docs.spring.io/spring-modulith/reference/) treats top-level packages as
+application modules and verifies their boundaries at test time. Types in an `internal` sub-package
+are inaccessible to code outside that module. Cross-module interaction goes via the module's
+public types (non-`internal`) or via Spring `ApplicationEvent`.
+
+Spring Modulith also provides an **event publication registry**: domain events published inside a
+`@Transactional` method are recorded in an `event_publication` table in the same transaction. A
+background process retries any events whose listeners did not acknowledge them, providing a
+transactional outbox without a custom implementation.
+
+[jMolecules](https://github.com/xmolecules/jmolecules) is a companion library providing
+annotations for DDD building blocks (`@AggregateRoot`, `@Entity`, `@ValueObject`) that integrate
+with Spring Modulith's architecture verification.
+
+Further reading:
+
+- [Spring Modulith reference documentation](https://docs.spring.io/spring-modulith/reference/)
+- [jMolecules](https://github.com/xmolecules/jmolecules) - DDD annotations for Java
+
 ## Naming conventions
 
-All three patterns enforce the same rule - dependencies point inward - but use different
-vocabularies.
+Options 1, 2 and 3 have patterns that enforce the same rule - dependencies point inward - but use
+different vocabularies. Options 4 and 5 have no port abstractions; several rows in the table below
+are not applicable to them.
 
 **Onion architecture** (Jeffrey Palermo,
 [2008](https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/)) expresses the same
@@ -109,17 +133,17 @@ established in Tom Hombergs'
 (2nd ed., 2023) and indicates direction relative to the application core: `in` adapters drive
 the application (HTTP requests), `out` adapters are driven by it (database calls).
 
-Concept mapping across the three conventions:
+Concept mapping across all five options:
 
-| Concept                        | Onion                                      | Clean architecture                 | Hexagonal                                  |
-|--------------------------------|--------------------------------------------|------------------------------------|--------------------------------------------|
-| HTTP controllers + web mappers | `infrastructure/web`                       | `adapter/web`                      | `adapter/in/web`                           |
-| Command and query objects      | `application/command`, `application/query` | `usecase/command`, `usecase/query` | `application/command`, `application/query` |
-| Inbound port interfaces        | `application` (no sub-package)             | `usecase/boundary`                 | `application/port/in`                      |
-| Outbound port interfaces       | `domain/service`                           | `usecase/boundary`                 | `application/port/out`                     |
-| Use case implementations       | `application`                              | `usecase/interactor`               | `application/usecase`                      |
-| JPA entity classes             | `domain/model`                             | `entity/`                          | `domain/`                                  |
-| Spring Data repositories       | `infrastructure/persistence`               | `adapter/persistence`              | `adapter/out/persistence`                  |
+| Concept                        | Onion (Option 1)                           | Clean architecture (Option 2)      | Hexagonal (Option 3)                       | Layered (Option 4)                   | Modular layered (Option 5) |
+|--------------------------------|--------------------------------------------|------------------------------------|--------------------------------------------|--------------------------------------|----------------------------|
+| HTTP controllers + web mappers | `infrastructure/web`                       | `adapter/web`                      | `adapter/in/web`                           | `controller/`                        | `{module}/web/`            |
+| Command and query objects      | `application/command`, `application/query` | `usecase/command`, `usecase/query` | `application/command`, `application/query` | `service/command/`, `service/query/` | `{module}/`                |
+| Inbound port interfaces        | `application` (no sub-package)             | `usecase/boundary`                 | `application/port/in`                      | -                                    | -                          |
+| Outbound port interfaces       | `domain/service`                           | `usecase/boundary`                 | `application/port/out`                     | -                                    | -                          |
+| Use case implementations       | `application`                              | `usecase/interactor`               | `application/usecase`                      | `service/command/`, `service/query/` | `{module}/`                |
+| JPA entity classes             | `domain/model`                             | `entity/`                          | `domain/`                                  | `entity/`                            | `{module}/entity/`         |
+| Spring Data repositories       | `infrastructure/persistence`               | `adapter/persistence`              | `adapter/out/persistence`                  | `repository/`                        | `{module}/repository/`     |
 
 Notes on the table:
 
@@ -131,6 +155,14 @@ Notes on the table:
 - In clean architecture, both input and output boundaries are in `usecase/boundary` (the Use
   Cases ring). Gateway implementations sit in `adapter/persistence` (Interface Adapters +
   Frameworks & Drivers).
+- In layered architecture (Option 4), there are no port abstractions. Controllers call service
+  classes directly; services call Spring Data repositories directly. Command and query objects
+  act as the data contract between the web and service layers.
+- In modular layered architecture (Option 5), `{module}` is a domain-oriented top-level package
+  such as `provider`, `office`, or `contract`. There are no port abstractions; Spring Modulith
+  module boundaries take their place. Command and query service classes in `{module}/` form the
+  public API of each module. Spring Modulith treats every sub-package as module-internal:
+  packages under the module root cannot be accessed by other modules.
 
 ## Current structure
 
@@ -303,12 +335,96 @@ further delivery mechanisms (messaging, CLI) as additional `adapter/in/...` pack
 **Cons:** `adapter/in`, `adapter/out`, `port/in`, `port/out` are unfamiliar to developers who
 haven't encountered Cockburn's terminology. Packages are deeply nested.
 
+### Option 4: Layered architecture (technical layers)
+
+```
+uk.gov.justice.laa.providerdata
+  config/
+  controller/
+  entity/
+  exception/
+  mapper/
+  repository/
+  service/
+    command/     write services
+    query/       read services
+  util/
+```
+
+Retains the current layer-based package structure. The CQRS constraint from
+[Command/query separation](#cqrs-at-use-case-level) is made explicit by splitting the `service`
+package into `command` and `query` sub-packages. ArchUnit enforces layer boundaries: controllers
+may not call repositories directly; services may not import Spring MVC types. No additional
+framework dependencies are required.
+
+**Pros:** minimal structural change from the current codebase. No new framework dependencies.
+Familiar to all Spring developers.
+
+**Cons:** no module isolation. All packages are globally visible. As the domain grows, `entity/`,
+`repository/`, and `service/` packages grow without internal structure. A change in one domain
+area is not isolated from another at the package level.
+
+Further reading:
+
+- Fowler, *[Patterns of Enterprise Application Architecture](https://martinfowler.com/books/eaa.html)* (2002) - chapter 1 introduces the layered architecture
+- [Spring MVC reference documentation](https://docs.spring.io/spring-framework/reference/web/webmvc.html) - the conventional Spring layered structure
+
+### Option 5: Modular layered architecture
+
+```
+uk.gov.justice.laa.providerdata
+  provider/                   <- ProviderCommandService, ProviderQueryService (module public API)
+    web/                      <- HTTP adapters; package-private classes
+    entity/                   <- JPA entities
+    repository/               <- Spring Data repositories
+    mapper/                   <- MapStruct mappers
+  office/
+    web/
+    entity/
+    repository/
+    mapper/
+  contract/                   <- new module; built domain-first from the outset
+    web/
+    entity/
+    repository/
+    mapper/
+  shared/                     <- AuditableEntity, pagination utilities, GlobalExceptionHandler
+  web/                        <- transitional; existing controllers until migrated to {module}/web/
+```
+
+[Spring Modulith](https://docs.spring.io/spring-modulith/reference/) treats each top-level package
+as a module and enforces that all sub-packages are module-internal: packages under the module root
+cannot be accessed by other modules.
+Cross-module interaction goes via a module's public types or via Spring `ApplicationEvent`. The
+event publication registry records domain events atomically with entity changes, providing a
+transactional outbox without a custom implementation.
+
+**Pros:** module boundaries enforced at the framework level. New domain areas are self-contained.
+The event publication registry provides the transactional outbox. Scales naturally as the domain
+grows.
+
+**Cons:** requires package reorganisation from the current flat structure. Spring Modulith is a
+new framework dependency. The placement of controllers requires a deliberate decision.
+
+Further reading:
+
+- Evans, *[Domain-Driven Design](https://www.domainlanguage.com/ddd/)* (2003) - bounded contexts
+  and aggregate roots are the conceptual basis for domain-oriented modules
+- Vernon, *[Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven-design/9780133039900/)*
+  (2013) - practical guidance on applying DDD in Java
+- Drotbohm, [Sliced Onion Architecture](https://odrotbohm.de/2023/07/sliced-onion-architecture/)
+  (2023) - application modules as a practical bounded-context implementation (Spring Modulith
+  author's own framing of Option 5)
+- [Spring Modulith reference documentation](https://docs.spring.io/spring-modulith/reference/)
+
 ## Migration approach
 
-The migration steps are the same regardless of which option is chosen. Only the destination
-package names differ. The existing services - `ProviderCreationService`, `OfficeService`,
-`BankDetailsService`, `OfficeLiaisonManagerService`, `OfficeContractManagerAssignmentService`
- - map naturally to use cases in all three structures without changing their internal logic.
+**Options 1, 2 and 3**
+
+The migration steps are the same regardless of which is chosen. Only the destination package names
+differ. The existing services - `ProviderCreationService`, `OfficeService`, `BankDetailsService`,
+`OfficeLiaisonManagerService`, `OfficeContractManagerAssignmentService` - map naturally to use cases
+in all three structures without changing their internal logic.
 
 1. Introduce repository interfaces (the outbound port/domain service/output boundary),
    backed by thin wrappers around the existing Spring Data repositories.
@@ -319,6 +435,33 @@ package names differ. The existing services - `ProviderCreationService`, `Office
 5. Relocate packages to match the chosen structure.
 6. Move web mappers to the web adapter (`infrastructure/web`, `adapter/web`, or `adapter/in/web`
    depending on the option).
+
+Each step can be committed independently and verified by the existing integration and
+end-to-end test suites.
+
+**Option 4**
+
+1. Move `ProviderService.patchProvider()` into a dedicated command service in `service/command/`.
+2. Reorganise remaining services: creation and mutation services to `service/command/`; read
+   services to `service/query/`.
+3. Introduce command and query objects (see [Constraints](#constraints)) and update controllers
+   to construct and pass them.
+4. Introduce ArchUnit rules enforcing layer boundaries and the command/query split.
+
+**Option 5**
+
+Option 5 can be adopted incrementally alongside other work. New modules (for example,
+`contract/`) can be built domain-first immediately; existing modules migrate as time allows.
+
+1. Complete Option 4, or skip directly to module reorganisation.
+2. Introduce Spring Modulith and add a module structure test.
+3. Create domain-oriented top-level packages: `provider/`, `office/`, `contract/`, `shared/`.
+4. Move entities, repositories, and mappers to `{module}/internal/`.
+5. Move command and query service classes to `{module}/` as the public module API.
+6. Move controllers to `web/` (or per-module if stricter isolation is preferred).
+7. Verify no code outside a module references its `internal/` types; the module structure test
+   will catch violations.
+8. Introduce domain events and the event publication registry for cross-cutting concerns.
 
 Each step can be committed independently and verified by the existing integration and
 end-to-end test suites.

@@ -1,10 +1,10 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/events.html.md
-title: Async commands and events
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/event-patterns.html.md
+title: Async event patterns
 weight: 30
 ---
 
-# Async commands and events
+# Async event patterns
 
 Options for introducing asynchronous command processing and domain event publishing in
 `provider-data-service`. The team has not yet decided which approach to take.
@@ -143,10 +143,12 @@ mechanism - Envers, a dedicated `audit_log` table, or capturing events at the br
 
 ## Options
 
-These options are independent of the architecture choice in [Architecture](architecture.html) -
-the `EventPublisher` port and outbox adapter slot into Onion, Clean, and Hexagonal equally. Option
-3 is the one exception: if using Hexagonal, the command queue worker fits as `adapter/in/queue`
-alongside `adapter/in/web`.
+These options are independent of the architecture choice in
+[Architecture patterns](architecture-patterns.html) - the `EventPublisher` port and outbox adapter
+slot into Onion, Clean, and Hexagonal equally. Option 3 is the one exception: if using Hexagonal,
+the command queue worker fits as `adapter/in/queue` alongside `adapter/in/web`. For modular
+layered architecture (Option 5), Spring Modulith's event publication registry replaces the outbox
+adapter entirely, and the command queue worker (if used) is a dedicated module listener bean.
 
 ### Option 1: Direct publish (simplest)
 
@@ -197,12 +199,12 @@ CREATE TABLE outbox (
 The background job can be a polling `@Scheduled` bean or an external change-data-capture tool.
 That choice is independent of the option selected here.
 
-Package additions per architecture option (see [Architecture](architecture.html)):
+Package additions per architecture option (see [Architecture patterns](architecture-patterns.html)):
 
-|                            | Onion                  | Clean              | Hexagonal              |
-|----------------------------|------------------------|--------------------|------------------------|
-| `EventPublisher` interface | `domain/service`       | `usecase/boundary` | `application/port/out` |
-| Outbox writer adapter      | `infrastructure/event` | `adapter/event`    | `adapter/out/event`    |
+| | Onion | Clean | Hexagonal | Layered (Option 4) | Modular layered (Option 5) |
+|---|---|---|---|---|---|
+| `EventPublisher` interface | `domain/service` | `usecase/boundary` | `application/port/out` | `service/` | `ApplicationEventPublisher` (built-in; no custom interface) |
+| Outbox writer adapter | `infrastructure/event` | `adapter/event` | `adapter/out/event` | `service/` | Spring Modulith event publication registry (no custom code) |
 
 **Pros:** API contracts unchanged. Reliable at-least-once delivery. No distributed transaction.
 

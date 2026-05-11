@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmPatchPort;
+import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedOutboxPort;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedEventPort;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 class DefaultUpdateProviderFirmUseCaseTest {
 
   @Mock private ProviderFirmPatchPort providerFirmPatchPort;
+  @Mock private ProviderFirmUpdatedOutboxPort providerFirmUpdatedOutboxPort;
   @Mock private ProviderFirmUpdatedEventPort providerFirmUpdatedEventPort;
 
   @InjectMocks private DefaultUpdateProviderFirmUseCase useCase;
@@ -41,6 +43,7 @@ class DefaultUpdateProviderFirmUseCaseTest {
 
     assertThat(result).isEqualTo(expectedResult);
     verify(providerFirmPatchPort).patchProvider(providerId, patch);
+    verify(providerFirmUpdatedOutboxPort).enqueue(providerGuid, "100001", patch);
   }
 
   @Test
@@ -54,6 +57,7 @@ class DefaultUpdateProviderFirmUseCaseTest {
 
     useCase.execute(new UpdateProviderFirmCommand(providerId, patch));
 
+    verify(providerFirmUpdatedOutboxPort).enqueue(providerGuid, "100001", patch);
     verify(providerFirmUpdatedEventPort).publish(providerGuid, "100001", patch);
   }
 
@@ -102,6 +106,7 @@ class DefaultUpdateProviderFirmUseCaseTest {
     ProviderCreationResult result = useCase.execute(new UpdateProviderFirmCommand(providerId, patch));
 
     assertThat(result).isEqualTo(expectedResult);
+    verify(providerFirmUpdatedOutboxPort).enqueue(providerGuid, "100001", patch);
     verify(providerFirmPatchPort).patchProvider(providerId, patch);
     verify(providerFirmUpdatedEventPort).publish(any(UUID.class), any(String.class), any(ProviderPatchV2.class));
   }

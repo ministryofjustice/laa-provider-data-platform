@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmPatchPort;
+import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedOutboxPort;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedEventPort;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 
@@ -18,6 +19,7 @@ import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 public class DefaultUpdateProviderFirmUseCase implements UpdateProviderFirmUseCase {
 
   private final ProviderFirmPatchPort providerFirmPatchPort;
+  private final ProviderFirmUpdatedOutboxPort providerFirmUpdatedOutboxPort;
   private final ProviderFirmUpdatedEventPort providerFirmUpdatedEventPort;
 
   @Override
@@ -28,6 +30,9 @@ public class DefaultUpdateProviderFirmUseCase implements UpdateProviderFirmUseCa
 
     ProviderCreationResult result =
         providerFirmPatchPort.patchProvider(command.providerFirmId(), command.patch());
+
+    providerFirmUpdatedOutboxPort.enqueue(
+        result.providerFirmGUID(), result.firmNumber(), command.patch());
 
     providerFirmUpdatedEventPort.publish(result.providerFirmGUID(), result.firmNumber(), command.patch());
 

@@ -21,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
+import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -38,6 +40,7 @@ class ProviderFirmControllerTest {
   @Autowired private MockMvc mockMvc;
   @MockitoBean private ProviderCreationService providerFirmCreationService;
   @MockitoBean private ProviderService providerFirmService;
+  @MockitoBean private ProviderFirmCommandService providerFirmCommandService;
   @MockitoBean private OfficeMapper officeMapper;
   @MockitoBean private ProviderMapper providerFirmMapper;
 
@@ -201,8 +204,9 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100001");
+    when(providerFirmCommandService.handle(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
 
     mockMvc
         .perform(
@@ -228,8 +232,9 @@ class ProviderFirmControllerTest {
   void commandUpdateProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers()
       throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100001");
+    when(providerFirmCommandService.handle(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
 
     mockMvc
         .perform(
@@ -254,8 +259,9 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100003");
+    when(providerFirmCommandService.handle(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
 
     mockMvc
         .perform(
@@ -338,8 +344,6 @@ class ProviderFirmControllerTest {
                                         """))
         .andExpect(status().isBadRequest());
   }
-
-  @Test
   void getProviderFirms_withTypeFilter_returns200WithFilteredList() throws Exception {
     UUID guid1 = UUID.randomUUID();
     UUID guid2 = UUID.randomUUID();

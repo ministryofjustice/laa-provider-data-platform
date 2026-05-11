@@ -43,6 +43,8 @@ import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
+import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -62,6 +64,7 @@ public class ProviderFirmController {
 
   private final ProviderCreationService providerFirmCreationService;
   private final ProviderService providerFirmService;
+  private final ProviderFirmCommandService providerFirmCommandService;
   private final OfficeMapper officeMapper;
   private final ProviderMapper providerFirmMapper;
 
@@ -70,16 +73,19 @@ public class ProviderFirmController {
    *
    * @param providerFirmCreationService orchestrates provider and head office creation
    * @param providerFirmService handles provider firm read operations
+   * @param providerFirmCommandService dispatches commands to handlers
    * @param officeMapper maps request DTOs to office entity templates
    * @param providerFirmMapper maps provider entities to response models
    */
   public ProviderFirmController(
       ProviderCreationService providerFirmCreationService,
       ProviderService providerFirmService,
+      ProviderFirmCommandService providerFirmCommandService,
       OfficeMapper officeMapper,
       ProviderMapper providerFirmMapper) {
     this.providerFirmCreationService = providerFirmCreationService;
     this.providerFirmService = providerFirmService;
+    this.providerFirmCommandService = providerFirmCommandService;
     this.officeMapper = officeMapper;
     this.providerFirmMapper = providerFirmMapper;
   }
@@ -239,8 +245,9 @@ public class ProviderFirmController {
       String providerFirmGUIDorFirmNumber, ProviderPatchV2 request) {
     validatePatchRequest(request);
 
-    ProviderCreationResult result =
-        providerFirmService.patchProvider(providerFirmGUIDorFirmNumber, request);
+    UpdateProviderFirmCommand command =
+        new UpdateProviderFirmCommand(providerFirmGUIDorFirmNumber, request);
+    ProviderCreationResult result = providerFirmCommandService.handle(command);
 
     return new CreateProviderFirm201Response()
         .data(

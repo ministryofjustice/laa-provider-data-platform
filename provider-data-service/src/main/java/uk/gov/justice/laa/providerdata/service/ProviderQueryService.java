@@ -20,7 +20,7 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
-import uk.gov.justice.laa.providerdata.repository.spec.ProviderSpecification;
+import uk.gov.justice.laa.providerdata.repository.ProviderSpecification;
 import uk.gov.justice.laa.providerdata.util.UuidUtils;
 
 /** Service responsible for provider firm read operations. */

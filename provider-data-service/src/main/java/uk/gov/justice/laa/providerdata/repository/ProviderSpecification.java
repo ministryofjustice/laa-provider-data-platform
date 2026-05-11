@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.repository.spec;
+package uk.gov.justice.laa.providerdata.repository;
 
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;

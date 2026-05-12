@@ -102,10 +102,10 @@ public class BankDetailsService {
     BankAccountEntity savedAccount = bankAccountRepository.save(accountTemplate);
     linkToProvider(savedAccount, provider);
     io.micrometer.core.instrument.Timer.start().stop(bankAccountCreationTimer);
-    bankAccountCreationCounter.increment();
-    bankAccountLinkCounter.increment();
     OfficeBankAccountLinkEntity result =
         saveOfficeBankAccountLink(savedAccount, officeLink, activeDateFrom);
+    bankAccountCreationCounter.increment();
+    bankAccountLinkCounter.increment();
     return result;
   }
 

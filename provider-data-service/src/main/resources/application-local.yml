@@ -1,7 +1,7 @@
 ### This application properties YAML provides specific overrides for the `local` profile.
 ###
-### The datasource configuration is **deliberately omitted** so that it gets autoconfigured
-### by Spring Boot Docker Compose support from the PostgreSQL service in `compose.yaml`.
+### The datasource and Redis configuration are **deliberately omitted** so that they get
+### autoconfigured by Spring Boot Docker Compose support from the services in `compose.yaml`.
 ###
 ### For more details, see **Service Connections** in the Spring Boot reference documentation:
 ###     https://docs.spring.io/spring-boot/reference/features/dev-services.html

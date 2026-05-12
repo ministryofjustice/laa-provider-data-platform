@@ -12,6 +12,11 @@ services:
 
   # Local developer Zipkin. A deployed environment would normally use an externally managed Zipkin
   # service, configured with `management.tracing.export.zipkin.endpoint`.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost so Redis is local-only
+
   zipkin:
     image: openzipkin/zipkin:latest
     ports:

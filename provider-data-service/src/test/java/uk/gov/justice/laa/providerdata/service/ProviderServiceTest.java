@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -57,6 +58,7 @@ class ProviderServiceTest {
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderFirmRepository providerFirmRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private ProviderService service;
 

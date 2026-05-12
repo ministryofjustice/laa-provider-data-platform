@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
@@ -17,6 +18,7 @@ import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.event.ProviderFirmUpdatedEvent;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
@@ -56,6 +58,7 @@ public class ProviderCreationService {
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   /**
    * Inject dependencies.
@@ -71,6 +74,7 @@ public class ProviderCreationService {
    * @param providerParentLinkRepository to save practitioner parent links
    * @param bankDetailsService to create and link bank accounts
    * @param bankAccountMapper to map bank account request DTOs to entities
+   * @param eventPublisher to publish {@link ProviderFirmUpdatedEvent} after successful persistence
    */
   public ProviderCreationService(
       ProviderRepository providerRepository,
@@ -83,7 +87,8 @@ public class ProviderCreationService {
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       BankDetailsService bankDetailsService,
-      BankAccountMapper bankAccountMapper) {
+      BankAccountMapper bankAccountMapper,
+      ApplicationEventPublisher eventPublisher) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
@@ -95,6 +100,7 @@ public class ProviderCreationService {
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -137,8 +143,14 @@ public class ProviderCreationService {
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
-    return new ProviderCreationResult(
-        savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
+    ProviderCreationResult result =
+        new ProviderCreationResult(
+            savedProvider.getGuid(),
+            savedProvider.getFirmNumber(),
+            savedLink.getGuid(),
+            accountNumber);
+    eventPublisher.publishEvent(new ProviderFirmUpdatedEvent(savedProvider.getGuid()));
+    return result;
   }
 
   /**
@@ -176,8 +188,14 @@ public class ProviderCreationService {
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
 
-    return new ProviderCreationResult(
-        savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
+    ProviderCreationResult result =
+        new ProviderCreationResult(
+            savedProvider.getGuid(),
+            savedProvider.getFirmNumber(),
+            savedLink.getGuid(),
+            accountNumber);
+    eventPublisher.publishEvent(new ProviderFirmUpdatedEvent(savedProvider.getGuid()));
+    return result;
   }
 
   /**
@@ -216,14 +234,18 @@ public class ProviderCreationService {
 
     if (officeLink != null) {
       persistBankDetailsForOffice(payment, saved, officeLink);
-      return new ProviderCreationResult(
-          saved.getGuid(),
-          saved.getFirmNumber(),
-          officeLink.getGuid(),
-          officeLink.getAccountNumber());
+      ProviderCreationResult result =
+          new ProviderCreationResult(
+              saved.getGuid(),
+              saved.getFirmNumber(),
+              officeLink.getGuid(),
+              officeLink.getAccountNumber());
+      eventPublisher.publishEvent(new ProviderFirmUpdatedEvent(saved.getGuid()));
+      return result;
     }
 
     persistBankDetailsForPractitioner(payment, saved);
+    eventPublisher.publishEvent(new ProviderFirmUpdatedEvent(saved.getGuid()));
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 

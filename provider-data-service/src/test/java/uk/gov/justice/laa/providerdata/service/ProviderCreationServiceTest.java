@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
@@ -62,6 +63,7 @@ class ProviderCreationServiceTest {
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private ProviderCreationService service;
 

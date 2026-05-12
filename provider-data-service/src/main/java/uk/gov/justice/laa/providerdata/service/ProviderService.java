@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.service;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.event.ProviderFirmUpdatedEvent;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
@@ -47,6 +49,7 @@ public class ProviderService {
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final ProviderFirmRepository providerFirmRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   /**
    * Inject dependencies.
@@ -57,6 +60,7 @@ public class ProviderService {
    * @param advocateProviderOfficeLinkRepository to find Advocate office links
    * @param providerParentLinkRepository to find Advocate parent links
    * @param providerOfficeLinkRepository to find general office links
+   * @param eventPublisher to publish {@link ProviderFirmUpdatedEvent} after successful patch
    */
   public ProviderService(
       ProviderRepository providerRepository,
@@ -65,7 +69,8 @@ public class ProviderService {
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       ProviderFirmRepository providerFirmRepository,
-      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+      ProviderOfficeLinkRepository providerOfficeLinkRepository,
+      ApplicationEventPublisher eventPublisher) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
@@ -73,6 +78,7 @@ public class ProviderService {
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.providerFirmRepository = providerFirmRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -123,6 +129,7 @@ public class ProviderService {
 
     var saved = providerRepository.save(provider);
 
+    eventPublisher.publishEvent(new ProviderFirmUpdatedEvent(saved.getGuid()));
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 

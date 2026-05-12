@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +64,12 @@ class ProviderCreationServiceTest {
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
+  @Mock private Counter lspFirmCreationCounter;
+  @Mock private Counter chambersFirmCreationCounter;
+  @Mock private Counter practitionerFirmCreationCounter;
+  @Mock private Timer lspFirmCreationTimer;
+  @Mock private Timer chambersFirmCreationTimer;
+  @Mock private Timer practitionerFirmCreationTimer;
 
   @InjectMocks private ProviderCreationService service;
 

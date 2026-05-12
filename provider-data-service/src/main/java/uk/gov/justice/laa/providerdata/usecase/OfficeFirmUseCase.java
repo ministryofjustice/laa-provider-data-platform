@@ -1,0 +1,608 @@
+package uk.gov.justice.laa.providerdata.usecase;
+
+import java.net.URI;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.bankaccount.BankAccountCommandService;
+import uk.gov.justice.laa.providerdata.bankaccount.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.contractmanager.OfficeContractManagerCommandService;
+import uk.gov.justice.laa.providerdata.liaisonmanager.LiaisonManagerEntity;
+import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerCommandService;
+import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.DXPatchV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
+import uk.gov.justice.laa.providerdata.office.AdvocateProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.office.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.office.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.office.OfficeCommandService;
+import uk.gov.justice.laa.providerdata.office.OfficeCreationResult;
+import uk.gov.justice.laa.providerdata.office.OfficeEntity;
+import uk.gov.justice.laa.providerdata.office.OfficeQueryService;
+import uk.gov.justice.laa.providerdata.office.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.provider.ProviderEntity;
+import uk.gov.justice.laa.providerdata.provider.ProviderQueryService;
+import uk.gov.justice.laa.providerdata.shared.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.shared.ReferenceNumberUtils;
+
+/** Orchestrates provider firm office creation and mutation. */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class OfficeFirmUseCase {
+
+  private final ProviderQueryService providerQueryService;
+  private final OfficeCommandService officeCommandService;
+  private final OfficeQueryService officeQueryService;
+  private final OfficeLiaisonManagerCommandService officeLiaisonManagerCommandService;
+  private final OfficeContractManagerCommandService officeContractManagerCommandService;
+  private final BankAccountCommandService bankDetailsService;
+  private final BankAccountMapper bankAccountMapper;
+  private final ProviderEventPublisher providerEventPublisher;
+
+  /**
+   * Creates a new office for an LSP provider firm, links it to the provider, and optionally creates
+   * or links a liaison manager and bank account.
+   *
+   * <p>If {@code lmTemplate} and {@code lmLinkTemplate} are non-null, a new liaison manager is
+   * created for the office. If {@code linkToHeadOfficeLiaisonManager} is {@code true}, the existing
+   * active liaison manager from the provider's head office is linked to the new office instead. At
+   * most one of these two options should be active per call.
+   *
+   * <p>If {@code payment} is non-null and its {@code paymentMethod} is {@code EFT}, a bank account
+   * is created (or an existing one linked) and associated with the office.
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeTemplate unpersisted office entity with address and contact fields populated
+   * @param linkTemplate unpersisted link entity with payment and VAT fields populated
+   * @param lmTemplate liaison manager entity to create, or {@code null}
+   * @param lmLinkTemplate LM link template with activeDateFrom set, or {@code null}
+   * @param linkToHeadOfficeLiaisonManager if {@code true}, link the head office's active LM to this
+   *     office
+   * @param payment payment details from the request, or {@code null}
+   * @return identifiers for the created provider, office, and link
+   * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
+   *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found
+   */
+  public OfficeCreationResult createLspOffice(
+      String providerFirmGUIDorFirmNumber,
+      OfficeEntity officeTemplate,
+      LspProviderOfficeLinkEntity linkTemplate,
+      @Nullable LiaisonManagerEntity lmTemplate,
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      boolean linkToHeadOfficeLiaisonManager,
+      @Nullable PaymentDetailsCreateOrLinkV2 payment,
+      EventContext eventContext) {
+
+    ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
+
+    var savedOffice = officeCommandService.save(officeTemplate);
+
+    String accountNumber = ReferenceNumberUtils.generateAccountNumber(provider.getFirmType(), null);
+    linkTemplate.setProvider(provider);
+    linkTemplate.setOffice(savedOffice);
+    linkTemplate.setAccountNumber(accountNumber);
+    var savedLink = officeCommandService.saveLspOfficeLink(linkTemplate);
+
+    if (lmTemplate != null && lmLinkTemplate != null) {
+      lmLinkTemplate.setOfficeLink(savedLink);
+      officeLiaisonManagerCommandService.createAndLink(lmTemplate, lmLinkTemplate);
+    } else if (linkToHeadOfficeLiaisonManager) {
+      officeLiaisonManagerCommandService.copyFromHeadOfficeToOffice(provider, savedLink);
+    }
+
+    persistBankDetails(payment, provider, savedLink);
+
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new OfficeCreationResult(
+        provider.getGuid(), provider.getFirmNumber(), savedLink.getGuid(), accountNumber);
+  }
+
+  /**
+   * Convenience overload that creates an LSP office with no liaison manager.
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeTemplate unpersisted office entity with address and contact fields populated
+   * @param linkTemplate unpersisted link entity with payment and VAT fields populated
+   * @return identifiers for the created provider, office, and link
+   * @throws ItemNotFoundException if no provider matches the given identifier
+   */
+  public OfficeCreationResult createLspOffice(
+      String providerFirmGUIDorFirmNumber,
+      OfficeEntity officeTemplate,
+      LspProviderOfficeLinkEntity linkTemplate,
+      EventContext eventContext) {
+    return createLspOffice(
+        providerFirmGUIDorFirmNumber,
+        officeTemplate,
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        eventContext);
+  }
+
+  /**
+   * Patches the contact details, activation state, financial flags, and payment details of an
+   * office.
+   *
+   * <p>Only fields present in the patch request (non-null) are applied. Address and DX details are
+   * replaced as whole objects when provided. Website is stored on the {@link
+   * ProviderOfficeLinkEntity}; all other fields are stored on the {@link OfficeEntity}.
+   *
+   * <p>Activation rules:
+   *
+   * <ul>
+   *   <li>Setting {@code activeDateTo} deactivates the office and, for LSP and Advocate offices,
+   *       auto-resets {@code debtRecoveryFlag} to {@code false}.
+   *   <li>Deactivating the LSP head office cascades the same {@code activeDateTo} to all active
+   *       child offices.
+   *   <li>Deactivating a Chambers office is rejected if any active practitioners are linked to it
+   *       (DS_MAPD_FR_019). All practitioners must be deactivated or reassigned to another Chambers
+   *       first.
+   *   <li>{@code debtRecoveryFlag} and {@code falseBalanceFlag} apply to LSP and Advocate offices
+   *       only. {@code debtRecoveryFlag} may only be {@code true} when the office is active; {@code
+   *       falseBalanceFlag} may only be {@code true} when the office is inactive.
+   *   <li>Setting {@code clearActiveDateTo: true} re-activates the office and resets {@code
+   *       falseBalanceFlag} to {@code false} for LSP and Advocate offices. It must not be combined
+   *       with {@code activeDateTo} in the same request.
+   *   <li>Invalid combinations throw {@link IllegalArgumentException}, which is mapped to HTTP 400
+   *       by {@link uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler}.
+   * </ul>
+   *
+   * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
+   * @param officeGUIDorCode office-link GUID or account number identifying the office
+   * @param patch the patch request
+   * @return identifiers for the provider and office
+   * @throws ItemNotFoundException if no provider or office matches the given identifiers
+   * @throws IllegalArgumentException if flag combinations conflict with the office activation state
+   */
+  public OfficeCreationResult patchOffice(
+      String providerFirmGUIDorFirmNumber,
+      String officeGUIDorCode,
+      OfficePatchV2 patch,
+      EventContext eventContext) {
+
+    ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
+    ProviderOfficeLinkEntity link =
+        findProviderOfficeLink(provider, officeGUIDorCode)
+            .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
+
+    switch (patch) {
+      case LSPOfficePatchV2 lsp -> {
+        applyContactPatch(
+            link.getOffice(),
+            link,
+            lsp.getAddress(),
+            lsp.getTelephoneNumber(),
+            lsp.getEmailAddress(),
+            lsp.getWebsite(),
+            lsp.getDxDetails());
+        applyActivationPatchToLink(
+            lsp.getActiveDateTo(),
+            Boolean.TRUE.equals(lsp.getClearActiveDateTo()),
+            lsp.getDebtRecoveryFlag(),
+            lsp.getFalseBalanceFlag(),
+            provider,
+            link);
+        applyPaymentPatchToLink(lsp.getPayment(), provider, link);
+      }
+      case ChambersOfficePatchV2 chambers -> {
+        applyContactPatch(
+            link.getOffice(),
+            link,
+            chambers.getAddress(),
+            chambers.getTelephoneNumber(),
+            chambers.getEmailAddress(),
+            chambers.getWebsite(),
+            chambers.getDxDetails());
+        applyActivationPatchToLink(
+            chambers.getActiveDateTo(),
+            Boolean.TRUE.equals(chambers.getClearActiveDateTo()),
+            null,
+            null,
+            provider,
+            link);
+      }
+      case AdvocateOfficePatchV2 advocate -> {
+        applyActivationPatchToLink(
+            advocate.getActiveDateTo(),
+            Boolean.TRUE.equals(advocate.getClearActiveDateTo()),
+            advocate.getDebtRecoveryFlag(),
+            advocate.getFalseBalanceFlag(),
+            provider,
+            link);
+        applyPaymentPatchToLink(advocate.getPayment(), provider, link);
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unhandled OfficePatchV2 subtype: " + patch.getClass().getSimpleName());
+    }
+
+    officeCommandService.save(link.getOffice());
+    officeCommandService.saveProviderOfficeLink(link);
+
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new OfficeCreationResult(
+        provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());
+  }
+
+  /**
+   * Applies activation-related fields ({@code activeDateTo}, {@code debtRecoveryFlag}, {@code
+   * falseBalanceFlag}) to the link entity, dispatching on the entity type. This handles the case
+   * where the Jackson discriminator cannot distinguish LSP from Advocate patches and deserialises
+   * an activation-only request as {@link ChambersOfficePatchV2} or {@link AdvocateOfficePatchV2}.
+   *
+   * <p>For LSP and Advocate links: validates and applies flag constraints; auto-resets {@code
+   * debtRecoveryFlag} to {@code false} when the office is deactivated. For LSP head offices,
+   * cascades the deactivation date to all active child offices. For Chambers links, deactivation is
+   * rejected if any active practitioners are linked (DS_MAPD_FR_019). No-op if all arguments are
+   * {@code null}/{@code false}.
+   *
+   * @throws IllegalArgumentException if flag combinations conflict with the effective activation
+   *     state
+   */
+  private void applyActivationPatchToLink(
+      @Nullable LocalDate patchActiveDateTo,
+      boolean clearActiveDateTo,
+      @Nullable Boolean patchDebtRecoveryFlag,
+      @Nullable Boolean patchFalseBalanceFlag,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity link) {
+    if (patchActiveDateTo != null && clearActiveDateTo) {
+      throw new IllegalArgumentException(
+          "activeDateTo and clearActiveDateTo must not both be set in the same request");
+    }
+    switch (link) {
+      case LspProviderOfficeLinkEntity lspLink ->
+          applyActivationPatchToLspLink(
+              patchActiveDateTo,
+              clearActiveDateTo,
+              patchDebtRecoveryFlag,
+              patchFalseBalanceFlag,
+              provider,
+              lspLink);
+      case ChamberProviderOfficeLinkEntity chamberLink -> {
+        if (patchActiveDateTo != null) {
+          if (officeQueryService.existsActivePractitionerForChambers(chamberLink.getProvider())) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate a Chambers office while active practitioners are linked."
+                    + " Deactivate all associated practitioners or reassign them to another"
+                    + " Chambers first.");
+          }
+          chamberLink.setActiveDateTo(patchActiveDateTo);
+        } else if (clearActiveDateTo) {
+          chamberLink.setActiveDateTo(null);
+        }
+      }
+      case AdvocateProviderOfficeLinkEntity advocateLink ->
+          applyActivationPatchToAdvocateLink(
+              patchActiveDateTo,
+              clearActiveDateTo,
+              patchDebtRecoveryFlag,
+              patchFalseBalanceFlag,
+              advocateLink);
+      default ->
+          throw new IllegalStateException(
+              "Unhandled ProviderOfficeLinkEntity subtype: " + link.getClass().getSimpleName());
+    }
+  }
+
+  /**
+   * Validates and applies activation patch fields to an LSP office link.
+   *
+   * <p>Validates the effective post-patch state before mutating the entity. Auto-resets {@code
+   * debtRecoveryFlag} to {@code false} when {@code activeDateTo} is set (deactivation). Cascades
+   * the deactivation date to all active child offices when the patched link is the head office.
+   *
+   * @throws IllegalArgumentException if flag combinations conflict with the effective state
+   */
+  private void applyActivationPatchToLspLink(
+      @Nullable LocalDate patchActiveDateTo,
+      boolean clearActiveDateTo,
+      @Nullable Boolean patchDebtRecoveryFlag,
+      @Nullable Boolean patchFalseBalanceFlag,
+      ProviderEntity provider,
+      LspProviderOfficeLinkEntity link) {
+    LocalDate effectiveActiveDateTo =
+        patchActiveDateTo != null
+            ? patchActiveDateTo
+            : clearActiveDateTo ? null : link.getActiveDateTo();
+    boolean willBeInactive = effectiveActiveDateTo != null;
+
+    validateFlagCombinations(patchDebtRecoveryFlag, patchFalseBalanceFlag, willBeInactive);
+
+    if (patchActiveDateTo != null) {
+      link.setActiveDateTo(patchActiveDateTo);
+      link.setDebtRecoveryFlag(Boolean.FALSE);
+      if (Boolean.TRUE.equals(link.getHeadOfficeFlag())) {
+        cascadeDeactivationToLspChildren(provider, patchActiveDateTo);
+      }
+    } else if (clearActiveDateTo) {
+      applyReactivationToLspLink(link);
+    }
+    if (patchDebtRecoveryFlag != null) {
+      link.setDebtRecoveryFlag(patchDebtRecoveryFlag);
+    }
+    if (patchFalseBalanceFlag != null) {
+      link.setFalseBalanceFlag(patchFalseBalanceFlag);
+    }
+  }
+
+  /**
+   * Validates and applies activation patch fields to an Advocate office link.
+   *
+   * <p>Auto-resets {@code debtRecoveryFlag} to {@code false} when {@code activeDateTo} is set.
+   *
+   * @throws IllegalArgumentException if flag combinations conflict with the effective state
+   */
+  private static void applyActivationPatchToAdvocateLink(
+      @Nullable LocalDate patchActiveDateTo,
+      boolean clearActiveDateTo,
+      @Nullable Boolean patchDebtRecoveryFlag,
+      @Nullable Boolean patchFalseBalanceFlag,
+      AdvocateProviderOfficeLinkEntity link) {
+    LocalDate effectiveActiveDateTo =
+        patchActiveDateTo != null
+            ? patchActiveDateTo
+            : clearActiveDateTo ? null : link.getActiveDateTo();
+    boolean willBeInactive = effectiveActiveDateTo != null;
+
+    validateFlagCombinations(patchDebtRecoveryFlag, patchFalseBalanceFlag, willBeInactive);
+
+    if (patchActiveDateTo != null) {
+      link.setActiveDateTo(patchActiveDateTo);
+      link.setDebtRecoveryFlag(Boolean.FALSE);
+    } else if (clearActiveDateTo) {
+      applyReactivationToAdvocateLink(link);
+    }
+    if (patchDebtRecoveryFlag != null) {
+      link.setDebtRecoveryFlag(patchDebtRecoveryFlag);
+    }
+    if (patchFalseBalanceFlag != null) {
+      link.setFalseBalanceFlag(patchFalseBalanceFlag);
+    }
+  }
+
+  private static void applyReactivationToLspLink(LspProviderOfficeLinkEntity link) {
+    link.setActiveDateTo(null);
+    link.setFalseBalanceFlag(Boolean.FALSE);
+  }
+
+  private static void applyReactivationToAdvocateLink(AdvocateProviderOfficeLinkEntity link) {
+    link.setActiveDateTo(null);
+    link.setFalseBalanceFlag(Boolean.FALSE);
+  }
+
+  /**
+   * Validates that the requested flag values are consistent with the effective activation state.
+   *
+   * @param debtRecoveryFlag requested debt recovery flag value, or {@code null} if not patched
+   * @param falseBalanceFlag requested false balance flag value, or {@code null} if not patched
+   * @param willBeInactive {@code true} if the office will be inactive after this patch
+   * @throws IllegalArgumentException if a flag is set to {@code true} in a disallowed state
+   */
+  private static void validateFlagCombinations(
+      @Nullable Boolean debtRecoveryFlag,
+      @Nullable Boolean falseBalanceFlag,
+      boolean willBeInactive) {
+    if (Boolean.TRUE.equals(debtRecoveryFlag) && willBeInactive) {
+      throw new IllegalArgumentException(
+          "debtRecoveryFlag cannot be set to true for an inactive office");
+    }
+    if (Boolean.TRUE.equals(falseBalanceFlag) && !willBeInactive) {
+      throw new IllegalArgumentException(
+          "falseBalanceFlag cannot be set to true for an active office");
+    }
+  }
+
+  /**
+   * Sets {@code activeDateTo} on all active (non-head) LSP office links for the provider and
+   * auto-resets their {@code debtRecoveryFlag} to {@code false}.
+   */
+  private void cascadeDeactivationToLspChildren(ProviderEntity provider, LocalDate activeDateTo) {
+    officeQueryService
+        .getLspActiveChildOffices(provider)
+        .forEach(
+            child -> {
+              child.setActiveDateTo(activeDateTo);
+              child.setDebtRecoveryFlag(Boolean.FALSE);
+              officeCommandService.saveLspOfficeLink(child);
+            });
+  }
+
+  private static void applyContactPatch(
+      OfficeEntity office,
+      ProviderOfficeLinkEntity link,
+      @Nullable OfficeAddressV2 address,
+      @Nullable String telephoneNumber,
+      @Nullable String emailAddress,
+      @Nullable URI website,
+      @Nullable DXPatchV2 dxDetails) {
+    if (address != null) {
+      office.setAddressLine1(address.getLine1());
+      office.setAddressLine2(address.getLine2());
+      office.setAddressLine3(address.getLine3());
+      office.setAddressLine4(address.getLine4());
+      office.setAddressTownOrCity(address.getTownOrCity());
+      office.setAddressCounty(address.getCounty());
+      office.setAddressPostCode(address.getPostcode());
+    }
+    if (telephoneNumber != null) {
+      office.setTelephoneNumber(telephoneNumber);
+    }
+    if (emailAddress != null) {
+      office.setEmailAddress(emailAddress);
+    }
+    if (website != null) {
+      link.setWebsite(website.toString());
+    }
+    if (dxDetails != null) {
+      office.setDxDetailsNumber(dxDetails.getDxNumber());
+      office.setDxDetailsCentre(dxDetails.getDxCentre());
+    }
+  }
+
+  /**
+   * Applies payment fields and persists bank account changes for a patch request, dispatching on
+   * the actual link entity type rather than the patch DTO subtype. This handles cases where the
+   * {@link JacksonConfig} discriminator cannot distinguish LSP from Advocate patches when only
+   * {@code payment} fields are present.
+   *
+   * <p>No-op if {@code payment} is null or the link type does not support payment fields.
+   */
+  private void applyPaymentPatchToLink(
+      @Nullable PaymentDetailsPatchOrLinkV2 payment,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity link) {
+    if (payment == null) {
+      return;
+    }
+    switch (link) {
+      case LspProviderOfficeLinkEntity lspLink -> {
+        lspLink.setPaymentMethod(payment.getPaymentMethod().getValue());
+        lspLink.setPaymentHeldFlag(payment.getPaymentHeldFlag());
+        lspLink.setPaymentHeldReason(payment.getPaymentHeldReason());
+        persistBankDetailsForPatch(payment, provider, link);
+      }
+      case AdvocateProviderOfficeLinkEntity advocateLink -> {
+        advocateLink.setPaymentMethod(payment.getPaymentMethod().getValue());
+        advocateLink.setPaymentHeldFlag(payment.getPaymentHeldFlag());
+        advocateLink.setPaymentHeldReason(payment.getPaymentHeldReason());
+        persistBankDetailsForPatch(payment, provider, link);
+      }
+      default -> { // Chambers offices have no payment details
+      }
+    }
+  }
+
+  /**
+   * Creates or links a bank account from a patch payment request.
+   *
+   * <p>Only acts when {@code paymentMethod=EFT} and {@code bankAccountDetails} is non-null. The
+   * existing primary {@link OfficeBankAccountLinkEntity} is end-dated by {@link
+   * BankAccountCommandService#saveOfficeBankAccountLink} before the new one is saved.
+   *
+   * @throws ItemNotFoundException if the request links by GUID and no matching account exists
+   */
+  private void persistBankDetailsForPatch(
+      PaymentDetailsPatchOrLinkV2 payment,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity officeLink) {
+    if (!PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
+        || payment.getBankAccountDetails() == null) {
+      return;
+    }
+    persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
+  }
+
+  /**
+   * Creates or links a liaison manager for a provider firm office.
+   *
+   * <p>Delegates to {@link OfficeLiaisonManagerCommandService#postOfficeLiaisonManager}. Any
+   * existing active liaison manager links for the office are end-dated before the new link is
+   * created.
+   *
+   * @param providerFirmGuidOrNumber provider GUID or firm number
+   * @param officeGuidOrCode provider office link GUID or office account number
+   * @param request one-of request body describing whether to create or link a liaison manager
+   * @return identifiers for the provider, office, and newly linked liaison manager
+   */
+  public LiaisonManagerLinkResult postOfficeLiaisonManager(
+      String providerFirmGuidOrNumber,
+      String officeGuidOrCode,
+      OfficeLiaisonManagerCreateOrLinkV2 request,
+      EventContext eventContext) {
+    ProviderEntity provider = providerQueryService.getProvider(providerFirmGuidOrNumber);
+    var r =
+        officeLiaisonManagerCommandService.postOfficeLiaisonManager(
+            providerFirmGuidOrNumber, officeGuidOrCode, request);
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new LiaisonManagerLinkResult(
+        r.providerFirmGuid(),
+        r.providerFirmNumber(),
+        r.officeGuid(),
+        r.officeCode(),
+        r.liaisonManagerGuid());
+  }
+
+  /**
+   * Assigns a contract manager to a provider firm office, replacing any existing assignment.
+   *
+   * <p>Delegates to {@link OfficeContractManagerCommandService#assign}. Re-assigning the same
+   * contract manager to the same office is treated as idempotent.
+   *
+   * @param providerFirmGuidOrNumber provider GUID or firm number
+   * @param officeGuidOrCode provider office link GUID or office account number
+   * @param contractManagerGuid GUID of the contract manager to assign
+   * @return the provider office link GUID and the contract manager's business identifier
+   * @throws IllegalArgumentException if no contract manager exists with the given GUID
+   */
+  public ContractManagerAssignmentResult assignContractManager(
+      String providerFirmGuidOrNumber,
+      String officeGuidOrCode,
+      UUID contractManagerGuid,
+      EventContext eventContext) {
+    ProviderEntity provider = providerQueryService.getProvider(providerFirmGuidOrNumber);
+    var r =
+        officeContractManagerCommandService.assign(
+            providerFirmGuidOrNumber, officeGuidOrCode, contractManagerGuid);
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new ContractManagerAssignmentResult(r.officeGuid(), r.contractManagerId());
+  }
+
+  private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {
+    return providerQueryService.getProvider(providerFirmGUIDorFirmNumber);
+  }
+
+  private Optional<ProviderOfficeLinkEntity> findProviderOfficeLink(
+      ProviderEntity provider, String officeGUIDorCode) {
+    return officeQueryService.findProviderOfficeLink(provider, officeGUIDorCode);
+  }
+
+  private void persistBankDetails(
+      @Nullable PaymentDetailsCreateOrLinkV2 payment,
+      ProviderEntity provider,
+      LspProviderOfficeLinkEntity officeLink) {
+    if (payment == null
+        || !PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
+        || payment.getBankAccountDetails() == null) {
+      return;
+    }
+    persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
+  }
+
+  private void persistBankAccountDetails(
+      PaymentDetailsCreateOrLinkV2BankAccountDetails bankAccountDetails,
+      ProviderEntity provider,
+      ProviderOfficeLinkEntity officeLink) {
+    switch (bankAccountDetails) {
+      case BankAccountProviderOfficeCreateV2 create -> {
+        var template = bankAccountMapper.toBankAccountEntity(create);
+        bankDetailsService.createAndLink(
+            template, provider, officeLink, create.getActiveDateFrom());
+      }
+      case BankAccountProviderOfficeLinkV2 link ->
+          bankDetailsService.linkExisting(
+              link.getBankAccountGUID(), provider, officeLink, link.getActiveDateFrom());
+      default -> { // unknown bankAccountDetails subtype — no-op
+      }
+    }
+  }
+}

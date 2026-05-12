@@ -1,0 +1,27 @@
+### 1. List all provider events — no filters
+GET http://localhost:8080/provider-events
+
+> {%
+  client.global.set("eventGUID", response.body.data.content[0].guid);
+%}
+
+### 2. List provider events — paginated
+GET http://localhost:8080/provider-events?page=0&pageSize=5
+
+### 3. Filter by event type
+GET http://localhost:8080/provider-events?eventType=ProviderFirmChangedSnapshotEvent
+
+### 4. Filter by correlation ID
+GET http://localhost:8080/provider-events?correlationId=my-correlation-id
+
+### 5. Filter by event type and correlation ID
+GET http://localhost:8080/provider-events?eventType=ProviderFirmChangedSnapshotEvent&correlationId=my-correlation-id
+
+### 6. Get a single event by GUID (uses GUID captured in step 1)
+GET http://localhost:8080/provider-events/{{eventGUID}}
+
+### 7. Get a single event — unknown GUID (expect 404)
+GET http://localhost:8080/provider-events/00000000-0000-0000-0000-000000000000
+
+### 8. Get a single event — invalid GUID format (expect 400)
+GET http://localhost:8080/provider-events/not-a-valid-uuid

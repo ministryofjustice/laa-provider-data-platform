@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.application.outbox.model.OutboxEventMessage;
@@ -13,6 +14,7 @@ import uk.gov.justice.laa.providerdata.entity.OutboxEventStatus;
 import uk.gov.justice.laa.providerdata.repository.OutboxEventRepository;
 
 /** Persistence adapter for reading and updating durable outbox records. */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort {
@@ -25,7 +27,13 @@ public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort 
     List<OutboxEventEntity> pending =
         outboxEventRepository.findTop100ByStatusOrderByOccurredAtAsc(OutboxEventStatus.PENDING);
 
-    return pending.stream().limit(Math.max(limit, 0L)).map(this::toMessage).toList();
+    List<OutboxEventMessage> messages =
+        pending.stream().limit(Math.max(limit, 0L)).map(this::toMessage).toList();
+    log.info(
+        "Fetched pending outbox events: requestedLimit={} returnedCount={}",
+        limit,
+        messages.size());
+    return messages;
   }
 
   @Override
@@ -37,6 +45,11 @@ public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort 
     event.setSentAt(sentAt);
     event.setLastError(null);
     outboxEventRepository.save(event);
+    log.info(
+        "Outbox state updated to SENT: eventGuid={} attemptCount={} sentAt={}",
+        eventGuid,
+        attemptCount,
+        sentAt);
   }
 
   @Override
@@ -47,6 +60,11 @@ public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort 
     event.setAttemptCount(attemptCount);
     event.setLastError(errorMessage);
     outboxEventRepository.save(event);
+    log.info(
+        "Outbox state updated to FAILED: eventGuid={} attemptCount={} error={}",
+        eventGuid,
+        attemptCount,
+        errorMessage);
   }
 
   private OutboxEventEntity getById(UUID eventGuid) {
@@ -66,4 +84,3 @@ public class OutboxEventStorePersistenceAdapter implements OutboxEventStorePort 
         event.getOccurredAt());
   }
 }
-

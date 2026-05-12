@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.providerdata.application.providerfirm.port.out.ProviderFirmUpdatedOutboxPort;
 import uk.gov.justice.laa.providerdata.entity.OutboxEventEntity;
@@ -13,6 +14,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.OutboxEventRepository;
 
 /** Persistence adapter that writes provider update events to the durable outbox table. */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProviderFirmUpdatedOutboxPersistenceAdapter implements ProviderFirmUpdatedOutboxPort {
@@ -37,6 +39,14 @@ public class ProviderFirmUpdatedOutboxPersistenceAdapter implements ProviderFirm
             .build();
 
     outboxEventRepository.save(event);
+
+    log.info(
+        "Outbox row written: aggregateType={} aggregateId={} eventType={} firmNumber={} status={}",
+        AGGREGATE_TYPE,
+        providerFirmGuid,
+        EVENT_TYPE,
+        firmNumber,
+        OutboxEventStatus.PENDING);
   }
 
   static String buildPayload(UUID providerFirmGuid, String firmNumber, ProviderPatchV2 patch) {
@@ -68,4 +78,3 @@ public class ProviderFirmUpdatedOutboxPersistenceAdapter implements ProviderFirm
     return fields.isEmpty() ? null : String.join(",", fields);
   }
 }
-

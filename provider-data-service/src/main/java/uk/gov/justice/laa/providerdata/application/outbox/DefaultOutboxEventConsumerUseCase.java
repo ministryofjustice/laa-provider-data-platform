@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.application.outbox;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.application.outbox.model.OutboxEventMessage;
 import uk.gov.justice.laa.providerdata.application.outbox.port.out.CommandAuditLogWritePort;
@@ -10,6 +11,7 @@ import uk.gov.justice.laa.providerdata.application.outbox.port.out.CommandAuditL
  *
  * <p>In this phase the consumer writes audit records, mimicking an external queue consumer.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DefaultOutboxEventConsumerUseCase implements OutboxEventConsumerUseCase {
@@ -20,12 +22,29 @@ public class DefaultOutboxEventConsumerUseCase implements OutboxEventConsumerUse
 
   @Override
   public void consume(OutboxEventMessage event) {
+    String changedFields = extractField(event.payload(), "changedFields");
+
+    log.info(
+        "Consumer received outbox event: eventGuid={} aggregateId={} eventType={} "
+            + "firmNumber={} changedFields={}",
+        event.guid(),
+        event.aggregateId(),
+        event.eventType(),
+        event.firmNumber(),
+        changedFields);
+
     commandAuditLogWritePort.write(
         event.aggregateId(),
         event.firmNumber(),
         UPDATE_PROVIDER_FIRM_COMMAND,
         event.occurredAt(),
-        extractField(event.payload(), "changedFields"));
+        changedFields);
+
+    log.info(
+        "Consumer wrote audit record: providerFirmGuid={} firmNumber={} commandType={}",
+        event.aggregateId(),
+        event.firmNumber(),
+        UPDATE_PROVIDER_FIRM_COMMAND);
   }
 
   static String extractField(String payload, String key) {
@@ -43,4 +62,3 @@ public class DefaultOutboxEventConsumerUseCase implements OutboxEventConsumerUse
     return null;
   }
 }
-

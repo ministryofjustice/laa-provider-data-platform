@@ -24,16 +24,24 @@ public class DefaultUpdateProviderFirmUseCase implements UpdateProviderFirmUseCa
   public ProviderCreationResult execute(UpdateProviderFirmCommand command) {
     command.validate();
 
-    log.debug("Handling UpdateProviderFirmCommand for provider: {}", command.providerFirmId());
+    log.info("Command received: UpdateProviderFirm providerId={}", command.providerFirmId());
 
     ProviderCreationResult result =
         providerFirmPatchPort.patchProvider(command.providerFirmId(), command.patch());
 
+    log.info(
+        "Provider update persisted: providerFirmGuid={} firmNumber={}",
+        result.providerFirmGUID(),
+        result.firmNumber());
+
     providerFirmUpdatedOutboxPort.enqueue(
         result.providerFirmGUID(), result.firmNumber(), command.patch());
 
+    log.info(
+        "Outbox event enqueued: providerFirmGuid={} firmNumber={} command=UpdateProviderFirm",
+        result.providerFirmGUID(),
+        result.firmNumber());
 
     return result;
   }
 }
-

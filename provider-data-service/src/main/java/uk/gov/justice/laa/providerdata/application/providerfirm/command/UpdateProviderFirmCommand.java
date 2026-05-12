@@ -7,6 +7,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
  */
 public record UpdateProviderFirmCommand(String providerFirmId, ProviderPatchV2 patch) {
 
+  /** Validates that mandatory command fields are present. */
   public void validate() {
     if (providerFirmId == null || providerFirmId.isBlank()) {
       throw new IllegalArgumentException("providerFirmId must be provided");

@@ -24,6 +24,11 @@ public class CommandAuditEventListener {
 
   private final CommandAuditLogRepository auditLogRepository;
 
+  /**
+   * Legacy entrypoint retained for existing unit tests.
+   *
+   * <p>Production audit writes now happen through the consumer-based outbox path.
+   */
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void onProviderFirmUpdated(ProviderFirmUpdatedEvent event) {

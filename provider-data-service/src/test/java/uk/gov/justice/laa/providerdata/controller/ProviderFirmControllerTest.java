@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,34 +17,41 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
-import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
-import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
-import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
+import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
+import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
+import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
+import uk.gov.justice.laa.providerdata.model.LinksV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
-import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
-import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
-import uk.gov.justice.laa.providerdata.service.ProviderService;
+import uk.gov.justice.laa.providerdata.util.PageMetadata;
 
 @WebMvcTest(ProviderFirmController.class)
 class ProviderFirmControllerTest {
 
   @Autowired private MockMvc mockMvc;
-  @MockitoBean private ProviderCreationService providerFirmCreationService;
-  @MockitoBean private ProviderService providerFirmService;
-  @MockitoBean private OfficeMapper officeMapper;
-  @MockitoBean private ProviderMapper providerFirmMapper;
+  @MockitoBean private ProviderFirmCommandController commandController;
+  @MockitoBean private ProviderFirmQueryController queryController;
 
   @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any(), any()))
-        .thenReturn(new ProviderCreationResult(guid, "LSP-ABCD1234", UUID.randomUUID(), "ACC001"));
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(
+            ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                    new CreateProviderFirm201Response()
+                        .data(
+                            new CreateProviderFirm201ResponseData()
+                                .providerFirmGUID(guid)
+                                .providerFirmNumber("LSP-ABCD1234"))));
 
     mockMvc
         .perform(
@@ -53,12 +59,12 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Legal Services Provider",
-                                          "name": "My LSP",
-                                          "legalServicesProvider": {}
-                                        }
-                                        """))
+                    {
+                      "firmType": "Legal Services Provider",
+                      "name": "My LSP",
+                      "legalServicesProvider": {}
+                    }
+                    """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("LSP-ABCD1234"));
@@ -67,8 +73,15 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_chambers_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any()))
-        .thenReturn(new ProviderCreationResult(guid, "CH-ABCD1234", UUID.randomUUID(), "ACC002"));
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(
+            ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                    new CreateProviderFirm201Response()
+                        .data(
+                            new CreateProviderFirm201ResponseData()
+                                .providerFirmGUID(guid)
+                                .providerFirmNumber("CH-ABCD1234"))));
 
     mockMvc
         .perform(
@@ -76,12 +89,12 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Chambers",
-                                          "name": "Northgate Chambers",
-                                          "chambers": {}
-                                        }
-                                        """))
+                    {
+                      "firmType": "Chambers",
+                      "name": "Northgate Chambers",
+                      "chambers": {}
+                    }
+                    """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("CH-ABCD1234"));
@@ -90,8 +103,15 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_practitioner_returns201() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createPractitionerFirm(any(), any(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-ABCD1234"));
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(
+            ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                    new CreateProviderFirm201Response()
+                        .data(
+                            new CreateProviderFirm201ResponseData()
+                                .providerFirmGUID(guid)
+                                .providerFirmNumber("ADV-ABCD1234"))));
 
     mockMvc
         .perform(
@@ -99,88 +119,86 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Advocate",
-                                          "name": "A. Barrister",
-                                          "practitioner": {}
-                                        }
-                                        """))
+                    {
+                      "firmType": "Advocate",
+                      "name": "A. Barrister",
+                      "practitioner": {}
+                    }
+                    """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()));
   }
 
   @Test
   void createProviderFirm_missingVariant_returns400() throws Exception {
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             post("/provider-firms")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Legal Services Provider",
-                                          "name": "My LSP"
-                                        }
-                                        """))
+                    {
+                      "firmType": "Legal Services Provider",
+                      "name": "My LSP"
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void createProviderFirm_missingName_returns400() throws Exception {
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             post("/provider-firms")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Legal Services Provider",
-                                          "legalServicesProvider": {}
-                                        }
-                                        """))
+                    {
+                      "firmType": "Legal Services Provider",
+                      "legalServicesProvider": {}
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void createProviderFirm_inconsistentFirmType_returns400() throws Exception {
+    when(commandController.createProviderFirm(any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             post("/provider-firms")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Chambers",
-                                          "name": "My LSP",
-                                          "legalServicesProvider": {}
-                                        }
-                                        """))
+                    {
+                      "firmType": "Chambers",
+                      "name": "My LSP",
+                      "legalServicesProvider": {}
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void getProviderFirm_byGuid_returns200WithProviderDetails() throws Exception {
     UUID guid = UUID.randomUUID();
-    ProviderEntity entity =
-        ProviderEntity.builder()
-            .firmNumber("100001")
-            .name("My LSP")
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .build();
-    entity.setGuid(guid);
     ProviderV2 providerV2 =
         new ProviderV2()
             .guid(guid)
             .firmNumber("100001")
             .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
             .name("My LSP");
-    when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
-    when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getChambersHeadOffice(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getAdvocateOfficeLink(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
-    when(providerFirmMapper.toProviderV2(entity, null, null, null, List.of()))
-        .thenReturn(providerV2);
+    when(queryController.getProviderFirm(guid.toString()))
+        .thenReturn(
+            ResponseEntity.ok(new GetProviderFirmByGUIDorFirmNumber200Response().data(providerV2)));
 
     mockMvc
         .perform(get("/provider-firms/{guid}", guid))
@@ -192,7 +210,7 @@ class ProviderFirmControllerTest {
 
   @Test
   void getProviderFirm_notFound_returns404() throws Exception {
-    when(providerFirmService.getProvider(anyString()))
+    when(queryController.getProviderFirm(anyString()))
         .thenThrow(new ItemNotFoundException("Provider not found: UNKNOWN"));
 
     mockMvc.perform(get("/provider-firms/{id}", "UNKNOWN")).andExpect(status().isNotFound());
@@ -201,8 +219,14 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
+    when(commandController.patchProviderFirm(anyString(), any()))
+        .thenReturn(
+            ResponseEntity.ok(
+                new CreateProviderFirm201Response()
+                    .data(
+                        new CreateProviderFirm201ResponseData()
+                            .providerFirmGUID(guid)
+                            .providerFirmNumber("100001"))));
 
     mockMvc
         .perform(
@@ -210,15 +234,15 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "name": "Updated Firm Name",
-                                          "legalServicesProvider": {
-                                            "constitutionalStatus": "Partnership",
-                                            "indemnityReceivedDate": "2024-01-02",
-                                            "companiesHouseNumber": "12345678"
-                                          }
-                                        }
-                                        """))
+                    {
+                      "name": "Updated Firm Name",
+                      "legalServicesProvider": {
+                        "constitutionalStatus": "Partnership",
+                        "indemnityReceivedDate": "2024-01-02",
+                        "companiesHouseNumber": "12345678"
+                      }
+                    }
+                    """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("100001"));
@@ -227,8 +251,14 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
+    when(commandController.patchProviderFirm(anyString(), any()))
+        .thenReturn(
+            ResponseEntity.ok(
+                new CreateProviderFirm201Response()
+                    .data(
+                        new CreateProviderFirm201ResponseData()
+                            .providerFirmGUID(guid)
+                            .providerFirmNumber("100003"))));
 
     mockMvc
         .perform(
@@ -236,12 +266,12 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "practitioner": {
-                                            "advocateLevel": "KC"
-                                          }
-                                        }
-                                        """))
+                    {
+                      "practitioner": {
+                        "advocateLevel": "KC"
+                      }
+                    }
+                    """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("100003"));
@@ -249,53 +279,59 @@ class ProviderFirmControllerTest {
 
   @Test
   void patchProviderFirm_mixedSubtypeBranchesRejected_returns400() throws Exception {
+    when(commandController.patchProviderFirm(anyString(), any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "legalServicesProvider": {
-                                            "companiesHouseNumber": "12345678"
-                                          },
-                                          "practitioner": {
-                                            "advocateLevel": "KC"
-                                          }
-                                        }
-                                        """))
+                    {
+                      "legalServicesProvider": {
+                        "companiesHouseNumber": "12345678"
+                      },
+                      "practitioner": {
+                        "advocateLevel": "KC"
+                      }
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void patchProviderFirm_headOfficeReassignmentRejected_returns400() throws Exception {
+    when(commandController.patchProviderFirm(anyString(), any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "legalServicesProvider": {
-                                            "headOffice": {
-                                              "officeGUID": "11111111-1111-1111-1111-111111111111"
-                                            }
-                                          }
-                                        }
-                                        """))
+                    {
+                      "legalServicesProvider": {
+                        "headOffice": {
+                          "officeGUID": "11111111-1111-1111-1111-111111111111"
+                        }
+                      }
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void patchProviderFirm_emptyPatchRejected_returns400() throws Exception {
+    when(commandController.patchProviderFirm(anyString(), any()))
+        .thenReturn(ResponseEntity.badRequest().build());
+
     mockMvc
         .perform(
             patch("/provider-firms/{id}", "100001")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                                        { }
-                                        """))
+                .content("{ }"))
         .andExpect(status().isBadRequest());
   }
 
@@ -304,49 +340,36 @@ class ProviderFirmControllerTest {
     UUID guid1 = UUID.randomUUID();
     UUID guid2 = UUID.randomUUID();
 
-    // Mock provider entities
-    ProviderEntity entity1 =
-        ProviderEntity.builder().firmNumber("100001").name("Test Advocate 1").build();
-    entity1.setGuid(guid1);
-    ProviderEntity entity2 =
-        ProviderEntity.builder().firmNumber("100002").name("Test Advocate 2").build();
-    entity2.setGuid(guid2);
+    Page<ProviderV2> page =
+        new PageImpl<>(
+            List.of(
+                new ProviderV2()
+                    .guid(guid1)
+                    .firmNumber("100001")
+                    .firmType(ProviderFirmTypeV2.ADVOCATE)
+                    .name("Test Advocate 1"),
+                new ProviderV2()
+                    .guid(guid2)
+                    .firmNumber("100002")
+                    .firmType(ProviderFirmTypeV2.ADVOCATE)
+                    .name("Test Advocate 2")),
+            PageRequest.of(0, 20),
+            2);
 
-    // Mock paged result
-    Page<ProviderEntity> page = new PageImpl<>(List.of(entity1, entity2), PageRequest.of(0, 20), 2);
-    when(providerFirmService.searchProviders(
-            any(), any(), any(), any(), any(), any(PageRequest.class)))
-        .thenReturn(page);
-
-    // Mock head office / parent links
-    when(providerFirmService.getLspHeadOffice(entity1)).thenReturn(Optional.empty());
-    when(providerFirmService.getChambersHeadOffice(entity1)).thenReturn(Optional.empty());
-    when(providerFirmService.getAdvocateOfficeLink(entity1)).thenReturn(Optional.empty());
-    when(providerFirmService.getParentLinks(entity1)).thenReturn(List.of());
-
-    when(providerFirmService.getLspHeadOffice(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getChambersHeadOffice(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getAdvocateOfficeLink(entity2)).thenReturn(Optional.empty());
-    when(providerFirmService.getParentLinks(entity2)).thenReturn(List.of());
-
-    // Mock mapping to DTOs
-    when(providerFirmMapper.toProviderV2(entity1, null, null, null, List.of()))
+    when(queryController.getProviderFirms(
+            any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(
-            new ProviderV2()
-                .guid(guid1)
-                .firmNumber("100001")
-                .firmType(ProviderFirmTypeV2.ADVOCATE)
-                .name("Test Advocate 1"));
+            ResponseEntity.ok(
+                new GetProviderFirms200Response()
+                    .data(
+                        new GetProviderFirms200ResponseData()
+                            .content(page.getContent())
+                            .metadata(
+                                PageMetadata.builder(page)
+                                    .search("type", List.of(ProviderFirmTypeV2.ADVOCATE.getValue()))
+                                    .build())
+                            .links(new LinksV2()))));
 
-    when(providerFirmMapper.toProviderV2(entity2, null, null, null, List.of()))
-        .thenReturn(
-            new ProviderV2()
-                .guid(guid2)
-                .firmNumber("100002")
-                .firmType(ProviderFirmTypeV2.ADVOCATE)
-                .name("Test Advocate 2"));
-
-    // Perform request
     mockMvc
         .perform(
             get("/provider-firms")
@@ -355,7 +378,6 @@ class ProviderFirmControllerTest {
                 .param("pageSize", "20")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        // Check content
         .andExpect(jsonPath("$.data.content.length()").value(2))
         .andExpect(jsonPath("$.data.content[0].guid").value(guid1.toString()))
         .andExpect(
@@ -363,16 +385,13 @@ class ProviderFirmControllerTest {
         .andExpect(jsonPath("$.data.content[1].guid").value(guid2.toString()))
         .andExpect(
             jsonPath("$.data.content[1].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()))
-        // Check pagination metadata
         .andExpect(jsonPath("$.data.metadata.pagination.currentPage").value(0))
         .andExpect(jsonPath("$.data.metadata.pagination.pageSize").value(20))
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(2))
         .andExpect(jsonPath("$.data.metadata.pagination.totalPages").value(1))
-        // Check that search criteria includes 'type'
         .andExpect(
             jsonPath("$.data.metadata.searchCriteria.criteria[?(@.filter=='type')].values[0]")
                 .value(ProviderFirmTypeV2.ADVOCATE.getValue()))
-        // Check links are present
         .andExpect(jsonPath("$.data.links").exists());
   }
 
@@ -380,27 +399,27 @@ class ProviderFirmControllerTest {
   void getProviderFirms_withoutFilter_returns200WithAll() throws Exception {
     UUID guid = UUID.randomUUID();
 
-    ProviderEntity entity =
-        ProviderEntity.builder().firmNumber("100001").name("Test Advocate").build();
-    entity.setGuid(guid);
+    Page<ProviderV2> page =
+        new PageImpl<>(
+            List.of(
+                new ProviderV2()
+                    .guid(guid)
+                    .firmNumber("100001")
+                    .firmType(ProviderFirmTypeV2.ADVOCATE)
+                    .name("Test Advocate")),
+            PageRequest.of(0, 20),
+            1);
 
-    Page<ProviderEntity> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1);
-
-    when(providerFirmService.searchProviders(
-            any(), any(), any(), any(), any(), any(PageRequest.class)))
-        .thenReturn(page);
-
-    when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getChambersHeadOffice(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getAdvocateOfficeLink(entity)).thenReturn(Optional.empty());
-    when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
-    when(providerFirmMapper.toProviderV2(entity, null, null, null, List.of()))
+    when(queryController.getProviderFirms(
+            any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(
-            new ProviderV2()
-                .guid(guid)
-                .firmNumber("100001")
-                .firmType(ProviderFirmTypeV2.ADVOCATE)
-                .name("Test Advocate"));
+            ResponseEntity.ok(
+                new GetProviderFirms200Response()
+                    .data(
+                        new GetProviderFirms200ResponseData()
+                            .content(page.getContent())
+                            .metadata(PageMetadata.builder(page).build())
+                            .links(new LinksV2()))));
 
     mockMvc
         .perform(

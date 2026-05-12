@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.liaisonmanager.web;
+package uk.gov.justice.laa.providerdata.usecase.web;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesLiaisonManagersApi;
-import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerCommandService;
 import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerQueryService;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201Response;
@@ -21,6 +20,9 @@ import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.shared.PageLinks;
 import uk.gov.justice.laa.providerdata.shared.PageMetadata;
 import uk.gov.justice.laa.providerdata.shared.PageParamValidator;
+import uk.gov.justice.laa.providerdata.usecase.EventContext;
+import uk.gov.justice.laa.providerdata.usecase.LiaisonManagerLinkResult;
+import uk.gov.justice.laa.providerdata.usecase.OfficeFirmUseCase;
 
 /** REST controller for provider firm office liaison manager operations. */
 @RestController
@@ -29,31 +31,16 @@ public class ProviderFirmOfficesLiaisonManagersController
     implements ProviderFirmOfficesLiaisonManagersApi {
 
   private final OfficeLiaisonManagerQueryService officeLiaisonManagerQueryService;
-  private final OfficeLiaisonManagerCommandService liaisonManagerCommandService;
+  private final OfficeFirmUseCase officeFirmUseCase;
 
   /**
    * Retrieves liaison managers associated with a provider firm office.
    *
-   * <p>This endpoint resolves the provider using {@code providerFirmGUIDorFirmNumber}, then
-   * resolves the office using {@code officeGUIDorCode}. It returns the liaison managers linked to
-   * that office as content only.
-   *
-   * <p>The service layer returns a list of {@link
-   * uk.gov.justice.laa.providerdata.liaisonmanager.LiaisonManagerEntity} records for the resolved
-   * office. These are mapped into the OpenAPI-generated DTOs ({@link
-   * uk.gov.justice.laa.providerdata.model.LiaisonManagerV2}) and wrapped in the generated response
-   * model ({@link
-   * uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeLiaisonManagers200Response}).
-   *
-   * @param providerFirmGUIDorFirmNumber provider identifier supplied as either a GUID (UUID string)
-   *     or a firm number
-   * @param officeGUIDorCode office identifier supplied as either a GUID (UUID string) or an office
-   *     code/account number
-   * @return 200 OK with a JSON body containing {@code data.content} as a list of liaison manager
-   *     DTOs
-   * @throws uk.gov.justice.laa.providerdata.shared.ItemNotFoundException if the provider cannot be
-   *     resolved from the supplied identifier, or if the office cannot be resolved for the provider
-   * @throws IllegalArgumentException if identifiers are malformed in a way that prevents resolution
+   * @param providerFirmGUIDorFirmNumber provider identifier as a GUID or firm number
+   * @param officeGUIDorCode office identifier as a GUID or account number
+   * @return 200 OK with paginated liaison manager list
+   * @throws uk.gov.justice.laa.providerdata.shared.ItemNotFoundException if provider or office
+   *     cannot be resolved
    */
   @Override
   public ResponseEntity<GetProviderFirmOfficeLiaisonManagers200Response>
@@ -82,35 +69,16 @@ public class ProviderFirmOfficesLiaisonManagersController
   /**
    * Creates or links a liaison manager for a provider firm office.
    *
-   * <p>The provider is resolved using {@code providerFirmGUIDorFirmNumber}. The office is resolved
-   * using {@code officeGUIDorCode}.
+   * <p>The request body describes whether to create a new liaison manager or link the existing
+   * active manager from the provider's head office or chambers office.
    *
-   * <p>The request body is represented by the OpenAPI-generated {@link
-   * uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2} one-of interface and
-   * is validated in the controller to ensure it represents exactly one supported operation:
-   *
-   * <ul>
-   *   <li><b>Create</b> a new liaison manager for the office
-   *   <li><b>Link</b> the liaison manager currently configured on the provider's head office
-   *   <li><b>Link</b> the liaison manager currently configured on the provider's chambers office
-   * </ul>
-   *
-   * <p>On success, returns {@code 201 Created} with the identifiers of the provider, office, and
-   * the liaison manager that is now linked.
-   *
-   * @param providerFirmGUIDorFirmNumber provider identifier supplied as either a GUID (UUID string)
-   *     or a firm number
-   * @param officeGUIDorCode office identifier supplied as either a GUID (UUID string) or an office
-   *     code/account number
-   * @param request one-of request describing whether to create a liaison manager or link an
-   *     existing one, represented by the generated OpenAPI model
-   * @return 201 Created with a JSON body containing the provider, office and liaison manager
-   *     identifiers in {@code data}
-   * @throws uk.gov.justice.laa.providerdata.shared.ItemNotFoundException if the provider cannot be
-   *     resolved, the office cannot be resolved for the provider, or a requested link operation
-   *     requires a source liaison manager that does not exist
-   * @throws IllegalArgumentException if the request does not represent exactly one supported
-   *     operation, or required fields for the selected operation are missing/blank
+   * @param providerFirmGUIDorFirmNumber provider identifier as a GUID or firm number
+   * @param officeGUIDorCode office identifier as a GUID or account number
+   * @param request one-of body: create, linkHeadOffice, or linkChambers
+   * @return 201 Created with provider, office, and liaison manager identifiers
+   * @throws uk.gov.justice.laa.providerdata.shared.ItemNotFoundException if provider, office, or
+   *     source liaison manager cannot be resolved
+   * @throws IllegalArgumentException if required fields are missing for the selected operation
    */
   @Override
   public ResponseEntity<CreateProviderFirmOfficeLiaisonManager201Response>
@@ -123,9 +91,12 @@ public class ProviderFirmOfficesLiaisonManagersController
 
     validateRequest(request);
 
-    var result =
-        liaisonManagerCommandService.postOfficeLiaisonManager(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, request);
+    LiaisonManagerLinkResult result =
+        officeFirmUseCase.postOfficeLiaisonManager(
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            request,
+            EventContext.of(xCorrelationId, traceparent));
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(

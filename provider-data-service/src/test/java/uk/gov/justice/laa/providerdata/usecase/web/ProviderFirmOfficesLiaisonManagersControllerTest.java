@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.liaisonmanager.web;
+package uk.gov.justice.laa.providerdata.usecase.web;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +32,6 @@ import uk.gov.justice.laa.providerdata.shared.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.shared.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.usecase.LiaisonManagerLinkResult;
 import uk.gov.justice.laa.providerdata.usecase.OfficeFirmUseCase;
-import uk.gov.justice.laa.providerdata.usecase.web.ProviderFirmOfficesLiaisonManagersController;
 
 /** Web layer tests for {@link ProviderFirmOfficesLiaisonManagersController}. */
 @WebMvcTest(ProviderFirmOfficesLiaisonManagersController.class)
@@ -159,13 +158,6 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
 
   @Test
   void postOfficeLiaisonManagers_returnsBadRequest_whenExactlyOneNotProvided() throws Exception {
-    String invalidJson =
-        """
-                    {
-                      "unknownField": "value"
-                    }
-                    """;
-
     mockMvc
         .perform(
             post(
@@ -174,7 +166,12 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
                     "100001",
                     "0Q731M")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(invalidJson))
+                .content(
+                    """
+                    {
+                      "unknownField": "value"
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
@@ -191,16 +188,6 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
             new LiaisonManagerLinkResult(
                 providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
 
-    String validJson =
-        """
-                    {
-                      "firstName": "Alice",
-                      "lastName": "Jones",
-                      "emailAddress": "alice@example.com",
-                      "telephoneNumber": "0123456789"
-                    }
-                    """;
-
     mockMvc
         .perform(
             post(
@@ -209,7 +196,15 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
                     "100100",
                     "0Q731M")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(validJson))
+                .content(
+                    """
+                    {
+                      "firstName": "Alice",
+                      "lastName": "Jones",
+                      "emailAddress": "alice@example.com",
+                      "telephoneNumber": "0123456789"
+                    }
+                    """))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.data.providerFirmGUID").value(providerGuid.toString()))

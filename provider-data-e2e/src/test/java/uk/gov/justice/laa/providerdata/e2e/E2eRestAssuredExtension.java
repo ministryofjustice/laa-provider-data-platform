@@ -52,8 +52,10 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       // additionalProperties defaults to true. This affects both request and response validation.
       // Downgrade to WARN until the library is fixed or the spec is restructured.
       //
-      // Similarly, oneOf validation on requests is downgraded so that intentionally invalid
-      // request bodies (used in error-case tests) reach the service rather than being blocked.
+      // Similarly, oneOf validation is downgraded on both request and response: on requests so that
+      // intentionally invalid bodies (used in error-case tests) reach the service rather than being
+      // blocked; on responses because oneOf payload schemas contain nested allOf references that
+      // trigger the same false-positive additional-properties errors.
       OpenApiInteractionValidator validator =
           OpenApiInteractionValidator.createForInlineApiSpecification(spec)
               .withLevelResolver(
@@ -65,6 +67,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                       .withLevel(
                           "validation.response.body.schema.additionalProperties",
                           ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.response.body.schema.oneOf", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.allOf", ValidationReport.Level.WARN)
                       .withLevel(

@@ -69,6 +69,9 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-zipkin'
+    implementation platform('org.springframework.modulith:spring-modulith-bom:2.0.6')
+    implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
+    implementation 'org.springframework.modulith:spring-modulith-starter-insight'
 
     // Sentry observability
     implementation 'io.sentry:sentry-spring-boot-4'
@@ -80,7 +83,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
-    testImplementation 'org.springframework.modulith:spring-modulith-core:2.0.6'
+    testImplementation 'org.springframework.modulith:spring-modulith-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'

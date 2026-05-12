@@ -55,6 +55,12 @@ class OfficeFirmUseCaseTest {
   @Mock private BankAccountCommandService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
+  @Mock
+  private uk.gov.justice.laa.providerdata.contractmanager.OfficeContractManagerCommandService
+      officeContractManagerCommandService;
+
+  @Mock private ProviderEventPublisher providerEventPublisher;
+
   @InjectMocks private OfficeFirmUseCase service;
 
   @Test
@@ -77,7 +83,10 @@ class OfficeFirmUseCaseTest {
 
     OfficeCreationResult result =
         service.createLspOffice(
-            providerGuid.toString(), new OfficeEntity(), new LspProviderOfficeLinkEntity());
+            providerGuid.toString(),
+            new OfficeEntity(),
+            new LspProviderOfficeLinkEntity(),
+            EventContext.empty());
 
     assertThat(result.providerGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isEqualTo("100001");
@@ -104,7 +113,8 @@ class OfficeFirmUseCaseTest {
     when(officeCommandService.saveLspOfficeLink(any())).thenReturn(savedLink);
 
     OfficeCreationResult result =
-        service.createLspOffice("100999", new OfficeEntity(), new LspProviderOfficeLinkEntity());
+        service.createLspOffice(
+            "100999", new OfficeEntity(), new LspProviderOfficeLinkEntity(), EventContext.empty());
 
     assertThat(result.firmNumber()).isEqualTo("100999");
     assertThat(result.officeGUID()).isEqualTo(officeLinkGuid);
@@ -119,7 +129,10 @@ class OfficeFirmUseCaseTest {
     assertThatThrownBy(
             () ->
                 service.createLspOffice(
-                    unknownGuid.toString(), new OfficeEntity(), new LspProviderOfficeLinkEntity()))
+                    unknownGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining(unknownGuid.toString());
   }
@@ -132,7 +145,10 @@ class OfficeFirmUseCaseTest {
     assertThatThrownBy(
             () ->
                 service.createLspOffice(
-                    "UNKNOWN", new OfficeEntity(), new LspProviderOfficeLinkEntity()))
+                    "UNKNOWN",
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("UNKNOWN");
   }
@@ -167,7 +183,8 @@ class OfficeFirmUseCaseTest {
         lmTemplate,
         lmLink,
         false,
-        null);
+        null,
+        EventContext.empty());
 
     assertThat(lmLink.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
     verify(officeLiaisonManagerCommandService).createAndLink(lmTemplate, lmLink);
@@ -195,7 +212,8 @@ class OfficeFirmUseCaseTest {
         null,
         null,
         true,
-        null);
+        null,
+        EventContext.empty());
 
     verify(officeLiaisonManagerCommandService).copyFromHeadOfficeToOffice(eq(provider), any());
   }
@@ -225,7 +243,8 @@ class OfficeFirmUseCaseTest {
                     null,
                     null,
                     true,
-                    null))
+                    null,
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("No active liaison manager found");
   }
@@ -253,7 +272,14 @@ class OfficeFirmUseCaseTest {
             .bankAccountDetails(createDetails);
 
     service.createLspOffice(
-        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+        providerGuid.toString(),
+        new OfficeEntity(),
+        linkTemplate,
+        null,
+        null,
+        false,
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService)
         .createAndLink(accountTemplate, provider, linkTemplate, createDetails.getActiveDateFrom());
@@ -278,7 +304,14 @@ class OfficeFirmUseCaseTest {
             .bankAccountDetails(linkDetails);
 
     service.createLspOffice(
-        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+        providerGuid.toString(),
+        new OfficeEntity(),
+        linkTemplate,
+        null,
+        null,
+        false,
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService).linkExisting(bankGuid, provider, linkTemplate, null);
     verify(bankAccountMapper, never()).toBankAccountEntity(any());
@@ -303,7 +336,8 @@ class OfficeFirmUseCaseTest {
         null,
         null,
         false,
-        payment);
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
@@ -326,7 +360,8 @@ class OfficeFirmUseCaseTest {
         null,
         null,
         false,
-        null);
+        null,
+        EventContext.empty());
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
@@ -363,7 +398,9 @@ class OfficeFirmUseCaseTest {
             .website(java.net.URI.create("https://www.example.com"))
             .dxDetails(new DXPatchV2().dxNumber("DX 1234").dxCentre("London"));
 
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    var result =
+        service.patchOffice(
+            providerGuid.toString(), linkGuid.toString(), patch, EventContext.empty());
 
     assertThat(office.getAddressLine1()).isEqualTo("1 High St");
     assertThat(office.getAddressTownOrCity()).isEqualTo("London");
@@ -400,7 +437,7 @@ class OfficeFirmUseCaseTest {
 
     var patch = new ChambersOfficePatchV2().telephoneNumber("0161 999 8888");
 
-    service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch, EventContext.empty());
 
     assertThat(office.getTelephoneNumber()).isEqualTo("0161 999 8888");
   }
@@ -426,7 +463,11 @@ class OfficeFirmUseCaseTest {
     when(officeCommandService.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(officeCommandService.saveProviderOfficeLink(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    service.patchOffice(providerGuid.toString(), linkGuid.toString(), new AdvocateOfficePatchV2());
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new AdvocateOfficePatchV2(),
+        EventContext.empty());
 
     assertThat(office.getAddressLine1()).isEqualTo("Original");
   }
@@ -446,7 +487,10 @@ class OfficeFirmUseCaseTest {
     assertThatThrownBy(
             () ->
                 service.patchOffice(
-                    providerGuid.toString(), linkGuid.toString(), new ChambersOfficePatchV2()))
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new ChambersOfficePatchV2(),
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("Office not found");
   }
@@ -495,7 +539,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+        new LSPOfficePatchV2().activeDateTo(deactivationDate),
+        EventContext.empty());
 
     assertThat(link.getActiveDateTo()).isEqualTo(deactivationDate);
     assertThat(link.getDebtRecoveryFlag()).isFalse();
@@ -524,7 +569,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         headLinkGuid.toString(),
-        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+        new LSPOfficePatchV2().activeDateTo(deactivationDate),
+        EventContext.empty());
 
     assertThat(headLink.getActiveDateTo()).isEqualTo(deactivationDate);
     assertThat(childLink.getActiveDateTo()).isEqualTo(deactivationDate);
@@ -554,7 +600,8 @@ class OfficeFirmUseCaseTest {
                 service.patchOffice(
                     chambersProviderGuid.toString(),
                     chambersLinkGuid.toString(),
-                    new ChambersOfficePatchV2().activeDateTo(LocalDate.of(2025, 6, 30))))
+                    new ChambersOfficePatchV2().activeDateTo(LocalDate.of(2025, 6, 30)),
+                    EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("practitioner");
   }
@@ -582,7 +629,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         chambersProviderGuid.toString(),
         chambersLinkGuid.toString(),
-        new ChambersOfficePatchV2().activeDateTo(deactivationDate));
+        new ChambersOfficePatchV2().activeDateTo(deactivationDate),
+        EventContext.empty());
 
     assertThat(chambersLink.getActiveDateTo()).isEqualTo(deactivationDate);
     verify(officeQueryService).existsActivePractitionerForChambers(chambersProvider);
@@ -606,7 +654,8 @@ class OfficeFirmUseCaseTest {
                 service.patchOffice(
                     providerGuid.toString(),
                     linkGuid.toString(),
-                    new LSPOfficePatchV2().debtRecoveryFlag(Boolean.TRUE)))
+                    new LSPOfficePatchV2().debtRecoveryFlag(Boolean.TRUE),
+                    EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("debtRecoveryFlag");
   }
@@ -628,7 +677,8 @@ class OfficeFirmUseCaseTest {
                 service.patchOffice(
                     providerGuid.toString(),
                     linkGuid.toString(),
-                    new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE)))
+                    new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE),
+                    EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("falseBalanceFlag");
   }
@@ -653,7 +703,8 @@ class OfficeFirmUseCaseTest {
                     linkGuid.toString(),
                     new LSPOfficePatchV2()
                         .activeDateTo(LocalDate.of(2025, 6, 30))
-                        .debtRecoveryFlag(Boolean.TRUE)))
+                        .debtRecoveryFlag(Boolean.TRUE),
+                    EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("debtRecoveryFlag");
   }
@@ -676,7 +727,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE));
+        new LSPOfficePatchV2().falseBalanceFlag(Boolean.TRUE),
+        EventContext.empty());
 
     assertThat(link.getFalseBalanceFlag()).isTrue();
   }
@@ -700,7 +752,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+        new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE),
+        EventContext.empty());
 
     assertThat(link.getActiveDateTo()).isNull();
     assertThat(link.getFalseBalanceFlag()).isFalse();
@@ -727,7 +780,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new AdvocateOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+        new AdvocateOfficePatchV2().clearActiveDateTo(Boolean.TRUE),
+        EventContext.empty());
 
     assertThat(link.getActiveDateTo()).isNull();
     assertThat(link.getFalseBalanceFlag()).isFalse();
@@ -753,7 +807,8 @@ class OfficeFirmUseCaseTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new ChambersOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+        new ChambersOfficePatchV2().clearActiveDateTo(Boolean.TRUE),
+        EventContext.empty());
 
     assertThat(link.getActiveDateTo()).isNull();
   }
@@ -778,7 +833,8 @@ class OfficeFirmUseCaseTest {
                     linkGuid.toString(),
                     new LSPOfficePatchV2()
                         .activeDateTo(LocalDate.of(2025, 6, 30))
-                        .clearActiveDateTo(Boolean.TRUE)))
+                        .clearActiveDateTo(Boolean.TRUE),
+                    EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("clearActiveDateTo");
   }

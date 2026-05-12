@@ -60,6 +60,7 @@ public class ProviderFirmUseCase {
   private final OfficeLiaisonManagerCommandService officeLiaisonManagerCommandService;
   private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Creates a new Legal Services Provider firm with its head office, and optionally a liaison
@@ -82,7 +83,8 @@ public class ProviderFirmUseCase {
       LspProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
-      @Nullable PaymentDetailsCreateV2 payment) {
+      @Nullable PaymentDetailsCreateV2 payment,
+      EventContext eventContext) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -101,6 +103,7 @@ public class ProviderFirmUseCase {
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
+    providerEventPublisher.publishAfterWrite(savedProvider, eventContext);
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -123,7 +126,8 @@ public class ProviderFirmUseCase {
       OfficeEntity officeTemplate,
       ChamberProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
-      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      EventContext eventContext) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -140,6 +144,7 @@ public class ProviderFirmUseCase {
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
 
+    providerEventPublisher.publishAfterWrite(savedProvider, eventContext);
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -165,7 +170,8 @@ public class ProviderFirmUseCase {
   public ProviderCreationResult createPractitionerFirm(
       PractitionerEntity practitionerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
-      @Nullable PaymentDetailsCreateV2 payment) {
+      @Nullable PaymentDetailsCreateV2 payment,
+      EventContext eventContext) {
     practitionerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(
             practitionerTemplate.getFirmType(), practitionerTemplate.getAdvocateType()));
@@ -181,6 +187,7 @@ public class ProviderFirmUseCase {
 
     if (officeLink != null) {
       persistBankDetailsForOffice(payment, saved, officeLink);
+      providerEventPublisher.publishAfterWrite(saved, eventContext);
       return new ProviderCreationResult(
           saved.getGuid(),
           saved.getFirmNumber(),
@@ -189,13 +196,14 @@ public class ProviderFirmUseCase {
     }
 
     persistBankDetailsForPractitioner(payment, saved);
+    providerEventPublisher.publishAfterWrite(saved, eventContext);
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 
   /** Applies supported provider PATCH fields for the resolved provider subtype. */
   @Transactional
   public ProviderCreationResult patchProvider(
-      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch) {
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch, EventContext eventContext) {
     ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
 
     if (patch.getName() != null) {
@@ -214,6 +222,7 @@ public class ProviderFirmUseCase {
     }
 
     var saved = providerPersistService.save(provider);
+    providerEventPublisher.publishAfterWrite(saved, eventContext);
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 

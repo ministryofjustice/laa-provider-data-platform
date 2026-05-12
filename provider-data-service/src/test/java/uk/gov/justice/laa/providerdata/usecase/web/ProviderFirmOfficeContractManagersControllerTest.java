@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.contractmanager.web;
+package uk.gov.justice.laa.providerdata.usecase.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,15 +23,9 @@ import uk.gov.justice.laa.providerdata.contractmanager.OfficeContractManagerQuer
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.usecase.ContractManagerAssignmentResult;
 import uk.gov.justice.laa.providerdata.usecase.OfficeFirmUseCase;
-import uk.gov.justice.laa.providerdata.usecase.web.ProviderFirmOfficeContractManagersController;
 
 /**
  * Unit tests for {@link ProviderFirmOfficeContractManagersController}.
- *
- * <p>This suite exercises the POST endpoint that assigns a contract manager to an office. It uses
- * {@link MockMvc} in standalone mode along with a mocked {@link
- * OfficeContractManagerCommandService} and the {@link GlobalExceptionHandler} to validate status
- * codes and response payloads for both success and error conditions.
  *
  * <p>Covered scenarios:
  *
@@ -49,15 +43,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
   @MockitoBean private OfficeContractManagerQueryService contractManagerService;
 
   /**
-   * Verifies a successful POST request.
-   *
-   * <ul>
-   *   <li>returns HTTP 201 (Created)
-   *   <li>returns the assigned {@code officeGUID} and {@code contractManagerId} in the response
-   *       body
-   * </ul>
-   *
-   * @throws Exception if the request fails to execute
+   * Verifies a successful POST request returns 201 with the office GUID and contract manager ID.
    */
   @Test
   void postContractManagers_returns201_andBodyContainsOfficeGuidAndContractManagerId()
@@ -82,21 +68,17 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "%s"
-                                        }
-                                        """
+                    {
+                      "contractManagerGUID": "%s"
+                    }
+                    """
                         .formatted(contractManagerGuid)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.officeGUID").value(providerOfficeLinkGuid.toString()))
         .andExpect(jsonPath("$.data.contractManagerId").value("CM-001"));
   }
 
-  /**
-   * Ensures office codes are accepted as path values and are delegated unchanged to the service.
-   *
-   * @throws Exception if the request fails to execute
-   */
+  /** Ensures office codes are accepted as path values and delegated unchanged to the use case. */
   @Test
   void postContractManagers_acceptsOfficeCodePathValue() throws Exception {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
@@ -115,23 +97,17 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "%s"
-                                        }
-                                        """
+                    {
+                      "contractManagerGUID": "%s"
+                    }
+                    """
                         .formatted(contractManagerGuid)))
         .andExpect(status().isCreated());
   }
 
-  /**
-   * Ensures HTTP 400 is returned when the request body is missing the required {@code
-   * contractManagerGUID} field.
-   *
-   * @throws Exception if the request fails to execute
-   */
+  /** Returns 400 when the request body is missing the required {@code contractManagerGUID}. */
   @Test
   void postContractManagers_returns400_whenBodyMissingContractManagerGuid() throws Exception {
-
     mockMvc
         .perform(
             post(
@@ -143,11 +119,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  /**
-   * Ensures HTTP 400 is returned when {@code contractManagerGUID} contains only whitespace.
-   *
-   * @throws Exception if the request fails to execute
-   */
+  /** Returns 400 when {@code contractManagerGUID} contains only whitespace. */
   @Test
   void postContractManagers_returns400_whenContractManagerGuidIsBlank() throws Exception {
     mockMvc
@@ -159,19 +131,14 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "   "
-                                        }
-                                        """))
+                    {
+                      "contractManagerGUID": "   "
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
-  /**
-   * Ensures HTTP 400 is returned when the {@code contractManagerGUID} in the request body is not a
-   * valid UUID.
-   *
-   * @throws Exception if the request fails to execute
-   */
+  /** Returns 400 when {@code contractManagerGUID} is not a valid UUID. */
   @Test
   void postContractManagers_returns400_whenContractManagerGuidIsNotAuuid() throws Exception {
     mockMvc
@@ -183,22 +150,16 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "NOT-A-UUID"
-                                        }
-                                        """))
+                    {
+                      "contractManagerGUID": "NOT-A-UUID"
+                    }
+                    """))
         .andExpect(status().isBadRequest());
   }
 
-  /**
-   * Verifies that an unexpected runtime exception from the service layer results in a 500 Internal
-   * Server Error via the global exception handler.
-   *
-   * @throws Exception if the request fails to execute
-   */
+  /** Returns 500 when the use case throws an unexpected exception. */
   @Test
   void postContractManagers_returns500_whenServiceThrowsUnexpectedException() throws Exception {
-    UUID officeGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
     when(officeFirmUseCase.assignContractManager(
@@ -214,10 +175,10 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "%s"
-                                        }
-                                        """
+                    {
+                      "contractManagerGUID": "%s"
+                    }
+                    """
                         .formatted(contractManagerGuid)))
         .andExpect(status().isInternalServerError());
   }

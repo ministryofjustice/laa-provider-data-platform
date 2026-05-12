@@ -3,12 +3,14 @@ package uk.gov.justice.laa.providerdata.usecase;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.bankaccount.BankAccountCommandService;
 import uk.gov.justice.laa.providerdata.bankaccount.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.contractmanager.OfficeContractManagerCommandService;
 import uk.gov.justice.laa.providerdata.liaisonmanager.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerCommandService;
 import uk.gov.justice.laa.providerdata.liaisonmanager.OfficeLiaisonManagerLinkEntity;
@@ -19,6 +21,7 @@ import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.DXPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
@@ -47,8 +50,10 @@ public class OfficeFirmUseCase {
   private final OfficeCommandService officeCommandService;
   private final OfficeQueryService officeQueryService;
   private final OfficeLiaisonManagerCommandService officeLiaisonManagerCommandService;
+  private final OfficeContractManagerCommandService officeContractManagerCommandService;
   private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Creates a new office for an LSP provider firm, links it to the provider, and optionally creates
@@ -81,7 +86,8 @@ public class OfficeFirmUseCase {
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       boolean linkToHeadOfficeLiaisonManager,
-      @Nullable PaymentDetailsCreateOrLinkV2 payment) {
+      @Nullable PaymentDetailsCreateOrLinkV2 payment,
+      EventContext eventContext) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
 
@@ -102,6 +108,7 @@ public class OfficeFirmUseCase {
 
     persistBankDetails(payment, provider, savedLink);
 
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -118,9 +125,17 @@ public class OfficeFirmUseCase {
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
       OfficeEntity officeTemplate,
-      LspProviderOfficeLinkEntity linkTemplate) {
+      LspProviderOfficeLinkEntity linkTemplate,
+      EventContext eventContext) {
     return createLspOffice(
-        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false, null);
+        providerFirmGUIDorFirmNumber,
+        officeTemplate,
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        eventContext);
   }
 
   /**
@@ -159,7 +174,10 @@ public class OfficeFirmUseCase {
    * @throws IllegalArgumentException if flag combinations conflict with the office activation state
    */
   public OfficeCreationResult patchOffice(
-      String providerFirmGUIDorFirmNumber, String officeGUIDorCode, OfficePatchV2 patch) {
+      String providerFirmGUIDorFirmNumber,
+      String officeGUIDorCode,
+      OfficePatchV2 patch,
+      EventContext eventContext) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
     ProviderOfficeLinkEntity link =
@@ -220,6 +238,7 @@ public class OfficeFirmUseCase {
     officeCommandService.save(link.getOffice());
     officeCommandService.saveProviderOfficeLink(link);
 
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());
   }
@@ -491,6 +510,61 @@ public class OfficeFirmUseCase {
       return;
     }
     persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
+  }
+
+  /**
+   * Creates or links a liaison manager for a provider firm office.
+   *
+   * <p>Delegates to {@link OfficeLiaisonManagerCommandService#postOfficeLiaisonManager}. Any
+   * existing active liaison manager links for the office are end-dated before the new link is
+   * created.
+   *
+   * @param providerFirmGuidOrNumber provider GUID or firm number
+   * @param officeGuidOrCode provider office link GUID or office account number
+   * @param request one-of request body describing whether to create or link a liaison manager
+   * @return identifiers for the provider, office, and newly linked liaison manager
+   */
+  public LiaisonManagerLinkResult postOfficeLiaisonManager(
+      String providerFirmGuidOrNumber,
+      String officeGuidOrCode,
+      OfficeLiaisonManagerCreateOrLinkV2 request,
+      EventContext eventContext) {
+    ProviderEntity provider = providerQueryService.getProvider(providerFirmGuidOrNumber);
+    var r =
+        officeLiaisonManagerCommandService.postOfficeLiaisonManager(
+            providerFirmGuidOrNumber, officeGuidOrCode, request);
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new LiaisonManagerLinkResult(
+        r.providerFirmGuid(),
+        r.providerFirmNumber(),
+        r.officeGuid(),
+        r.officeCode(),
+        r.liaisonManagerGuid());
+  }
+
+  /**
+   * Assigns a contract manager to a provider firm office, replacing any existing assignment.
+   *
+   * <p>Delegates to {@link OfficeContractManagerCommandService#assign}. Re-assigning the same
+   * contract manager to the same office is treated as idempotent.
+   *
+   * @param providerFirmGuidOrNumber provider GUID or firm number
+   * @param officeGuidOrCode provider office link GUID or office account number
+   * @param contractManagerGuid GUID of the contract manager to assign
+   * @return the provider office link GUID and the contract manager's business identifier
+   * @throws IllegalArgumentException if no contract manager exists with the given GUID
+   */
+  public ContractManagerAssignmentResult assignContractManager(
+      String providerFirmGuidOrNumber,
+      String officeGuidOrCode,
+      UUID contractManagerGuid,
+      EventContext eventContext) {
+    ProviderEntity provider = providerQueryService.getProvider(providerFirmGuidOrNumber);
+    var r =
+        officeContractManagerCommandService.assign(
+            providerFirmGuidOrNumber, officeGuidOrCode, contractManagerGuid);
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new ContractManagerAssignmentResult(r.officeGuid(), r.contractManagerId());
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {

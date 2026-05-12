@@ -24,6 +24,7 @@ import uk.gov.justice.laa.providerdata.office.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.shared.PageLinks;
 import uk.gov.justice.laa.providerdata.shared.PageMetadata;
 import uk.gov.justice.laa.providerdata.shared.PageParamValidator;
+import uk.gov.justice.laa.providerdata.usecase.EventContext;
 import uk.gov.justice.laa.providerdata.usecase.OfficeFirmUseCase;
 import uk.gov.justice.laa.providerdata.usecase.OfficeMapper;
 
@@ -68,7 +69,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             lmEntity,
             lmLinkTemplate,
             linkToHeadOffice,
-            lspOfficeCreateV2.getPayment());
+            lspOfficeCreateV2.getPayment(),
+            EventContext.of(xCorrelationId, traceparent));
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()
@@ -154,7 +156,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String traceparent) {
     OfficeCreationResult result =
         officeFirmUseCase.patchOffice(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            officePatchV2,
+            EventContext.of(xCorrelationId, traceparent));
     return ResponseEntity.ok(
         new CreateProviderFirmOffice201Response()
             .data(

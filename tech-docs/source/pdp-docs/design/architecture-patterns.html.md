@@ -9,8 +9,8 @@ weight: 20
 Five architectural options for `provider-data-service`. Options 1 to 3 enforce the same
 inward-dependency rule and are compatible with use-case-level CQRS. No framework or technology
 changes are required for any of them. Options 4 and 5 are layered variants that do not invert
-the dependency direction. See [Technical layers proposal](technical-layers-proposal.html) for a recommended
-approach.
+the dependency direction. See the [proposals](index.html#proposals) section for
+architectural proposals.
 
 ## Patterns
 

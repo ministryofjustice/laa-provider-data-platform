@@ -10,6 +10,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
@@ -62,7 +63,8 @@ class OfficeLiaisonManagerCommandServiceTest extends PostgresqlSpringBootTest {
     request.setEmailAddress("alice@example.com");
     request.setTelephoneNumber("0123456789");
 
-    var result = service.postOfficeLiaisonManager("100100", "0Q731M", request);
+    var result =
+        service.postOfficeLiaisonManager("100100", "0Q731M", request, EventContext.empty());
 
     assertThat(result).isNotNull();
     assertThat(result.providerFirmGuid()).isEqualTo(providerGuid);

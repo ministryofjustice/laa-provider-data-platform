@@ -13,6 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
 
 class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
@@ -34,7 +35,9 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
   void assign_byProviderFirmNumberAndOfficeCode_thenRepositoryCanQueryByOfficeGuid() {
     TestData testData = createTestData();
 
-    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+    var result =
+        service.assign(
+            "FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), EventContext.empty());
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }
@@ -48,7 +51,8 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
         service.assign(
             testData.provider().getGuid().toString(),
             testData.providerOfficeLink().getGuid().toString(),
-            testData.contractManager().getGuid());
+            testData.contractManager().getGuid(),
+            EventContext.empty());
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }
@@ -58,8 +62,11 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
   void assign_sameContractManagerTwice_isIdempotent() {
     TestData testData = createTestData();
 
-    service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
-    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+    service.assign(
+        "FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), EventContext.empty());
+    var result =
+        service.assign(
+            "FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), EventContext.empty());
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }

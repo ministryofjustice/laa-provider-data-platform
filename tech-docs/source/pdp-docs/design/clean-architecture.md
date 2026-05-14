@@ -55,6 +55,63 @@ In our context:</p>
 - This affected:
   - `POST /provider-firms/{providerFirmGUIDorFirmNumber}` (command endpoint)
   - `PATCH /provider-firms/{providerFirmGUIDorFirmNumber}` (existing update endpoint behaviour aligned)
+ 
+### Project layout in POC
+ 
++-------------------------------------------------------------------+
+| Inbound adapters                                                   |
+|-------------------------------------------------------------------|
+| - ProviderFirmController                                           |
+|   (HTTP endpoints, request validation, response mapping)           |
++-------------------------------+-----------------------------------+
+                                |
+                                v
++-------------------------------------------------------------------+
+| Application                                                        |
+|-------------------------------------------------------------------|
+| - UpdateProviderFirmUseCase                                        |                                    |
+| - Ports (interfaces):                                              |
+|   * provider patch port                                            |
++-------------------------------+-----------------------------------+
+                                |
+                                v
++-------------------------------------------------------------------+
+| Domain                                                             |
+|-------------------------------------------------------------------|
+| - Core provider-firm update intent/rules                           |
++-------------------------------+-----------------------------------+
+                                ^
+                                |
++-------------------------------+-----------------------------------+
+| Outbound adapters                                                     |
+|-------------------------------------------------------------------|
+| - Persistence adapters (JPA entities/repositories)                 |
++-------------------------------+-----------------------------------+
+                                ^
+                                |
++-------------------------------------------------------------------+
+| Infrastructure                                                     |
+|-------------------------------------------------------------------|
+| - Spring/Flyway/runtime wiring                                     |
++-------------------------------------------------------------------+
+
+
+### Project flow
+
+1) Client calls:
+   POST /provider-firms/{providerFirmGUIDorFirmNumber}
+
+2) ProviderFirmController:
+   - validates request
+   - creates UpdateProviderFirmCommand
+   - calls UpdateProviderFirmUseCase
+
+3) UpdateProviderFirmUseCase:
+   - updates provider data via persistence port
+
+4) Audit query:
+   GET /provider-firms/{providerFirmGUIDorFirmNumber}/audit-log
+   reads from COMMAND_AUDIT_LOG via CommandAuditLogQueryService
 
 
 ### Pros

@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.providerdata.command;
 
-import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
-
 /**
  * Handles execution of a command and returns the result.
  *
@@ -21,4 +19,3 @@ public interface CommandHandler<C, R> {
    */
   R handle(C command);
 }
-

@@ -12,10 +12,10 @@ import uk.gov.justice.laa.providerdata.service.ProviderService;
 /**
  * Default implementation of {@link ProviderFirmCommandService}.
  *
- * <p>Dispatches update commands to the provider service and publishes a
- * {@link ProviderFirmUpdatedEvent} within the same transaction so that
- * {@link uk.gov.justice.laa.providerdata.command.event.CommandAuditEventListener}
- * can write a durable audit record after commit.
+ * <p>Dispatches update commands to the provider service and publishes a {@link
+ * ProviderFirmUpdatedEvent} within the same transaction so that {@link
+ * uk.gov.justice.laa.providerdata.command.event.CommandAuditEventListener} can write a durable
+ * audit record after commit.
  */
 @Slf4j
 @Service
@@ -30,8 +30,7 @@ public class DefaultProviderFirmCommandService implements ProviderFirmCommandSer
   public ProviderCreationResult handle(UpdateProviderFirmCommand command) {
     command.validate();
 
-    log.debug(
-        "Handling UpdateProviderFirmCommand for provider: {}", command.providerFirmId());
+    log.debug("Handling UpdateProviderFirmCommand for provider: {}", command.providerFirmId());
 
     ProviderCreationResult result =
         providerService.patchProvider(command.providerFirmId(), command.patch());
@@ -43,4 +42,3 @@ public class DefaultProviderFirmCommandService implements ProviderFirmCommandSer
     return result;
   }
 }
-

@@ -8,8 +8,7 @@ import uk.gov.justice.laa.providerdata.entity.CommandAuditLogEntity;
 
 /** Repository for {@link CommandAuditLogEntity}. Records are append-only. */
 @Repository
-public interface CommandAuditLogRepository
-    extends JpaRepository<CommandAuditLogEntity, UUID> {
+public interface CommandAuditLogRepository extends JpaRepository<CommandAuditLogEntity, UUID> {
 
   /** Returns all audit records for the given provider firm, ordered by {@code occurredAt}. */
   List<CommandAuditLogEntity> findByProviderFirmGuidOrderByOccurredAtAsc(UUID providerFirmGuid);
@@ -17,4 +16,3 @@ public interface CommandAuditLogRepository
   /** Returns all audit records for the given firm number, ordered by {@code occurredAt}. */
   List<CommandAuditLogEntity> findByFirmNumberOrderByOccurredAtAsc(String firmNumber);
 }
-

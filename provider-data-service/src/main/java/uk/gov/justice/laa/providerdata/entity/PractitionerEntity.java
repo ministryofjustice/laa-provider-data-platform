@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.envers.Audited;
 
 /**
  * Abstract provider subtype for practitioner providers (firmType = "Advocate").
@@ -23,6 +24,7 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false)
+@Audited
 @Entity
 @DiscriminatorValue(FirmType.ADVOCATE)
 public abstract class PractitionerEntity extends ProviderEntity {

@@ -48,4 +48,3 @@ class UpdateProviderFirmCommandTest {
         .hasMessageContaining("patch must be provided");
   }
 }
-

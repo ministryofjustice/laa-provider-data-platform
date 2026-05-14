@@ -4,10 +4,12 @@ import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.envers.Audited;
 
 /** Provider subtype for Chambers. */
 @SuperBuilder
 @NoArgsConstructor
+@Audited
 @Entity
 @DiscriminatorValue(FirmType.CHAMBERS)
 public final class ChamberProviderEntity extends ProviderEntity {

@@ -22,4 +22,3 @@ class ProviderFirmUpdatedEventTest {
     assertThat(event.occurredAt()).isNotNull();
   }
 }
-

@@ -13,13 +13,13 @@ import lombok.experimental.SuperBuilder;
 /**
  * Persistent audit record written after each successful provider firm command.
  *
- * <p>Records are append-only: they are never updated or deleted. The table is written
- * by {@link uk.gov.justice.laa.providerdata.command.event.CommandAuditEventListener}
- * after the originating transaction commits, ensuring the log only contains records
- * for changes that were durably persisted.
+ * <p>Records are append-only: they are never updated or deleted. The table is written by {@link
+ * uk.gov.justice.laa.providerdata.command.event.CommandAuditEventListener} after the originating
+ * transaction commits, ensuring the log only contains records for changes that were durably
+ * persisted.
  *
- * <p>The {@code changedFields} column is a free-text summary (comma-separated field names)
- * derived from the command payload. A full JSON diff can be added in a later phase.
+ * <p>The {@code changedFields} column is a free-text summary (comma-separated field names) derived
+ * from the command payload. A full JSON diff can be added in a later phase.
  */
 @SuperBuilder
 @NoArgsConstructor
@@ -42,10 +42,9 @@ public class CommandAuditLogEntity extends AuditableEntity {
   private OffsetDateTime occurredAt;
 
   /**
-   * Comma-separated list of top-level fields present in the patch payload, e.g.
-   * {@code "name,legalServicesProvider"}.
+   * Comma-separated list of top-level fields present in the patch payload, e.g. {@code
+   * "name,legalServicesProvider"}.
    */
   @Column(name = "CHANGED_FIELDS")
   private String changedFields;
 }
-

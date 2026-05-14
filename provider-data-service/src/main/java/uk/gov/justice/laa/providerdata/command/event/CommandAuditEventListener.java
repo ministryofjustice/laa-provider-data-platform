@@ -16,9 +16,9 @@ import uk.gov.justice.laa.providerdata.repository.CommandAuditLogRepository;
 /**
  * Handles {@link ProviderFirmUpdatedEvent} after the originating transaction commits.
  *
- * <p>Using {@link TransactionPhase#AFTER_COMMIT} guarantees the audit record is only written
- * when the command's database changes are durable. The listener runs in a fresh transaction
- * ({@link Propagation#REQUIRES_NEW}) so that an audit failure never rolls back the command.
+ * <p>Using {@link TransactionPhase#AFTER_COMMIT} guarantees the audit record is only written when
+ * the command's database changes are durable. The listener runs in a fresh transaction ({@link
+ * Propagation#REQUIRES_NEW}) so that an audit failure never rolls back the command.
  */
 @Slf4j
 @Component
@@ -27,6 +27,11 @@ public class CommandAuditEventListener {
 
   private final CommandAuditLogRepository auditLogRepository;
 
+  /**
+   * Persists a command audit record after the provider-firm update transaction commits.
+   *
+   * @param event provider-firm update event emitted by the command service
+   */
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void onProviderFirmUpdated(ProviderFirmUpdatedEvent event) {
@@ -54,9 +59,9 @@ public class CommandAuditEventListener {
   }
 
   /**
-   * Derives a comma-separated summary of which top-level fields were present in the patch
-   * payload. This gives a lightweight, query-friendly record of what changed without storing
-   * the full before/after state.
+   * Derives a comma-separated summary of which top-level fields were present in the patch payload.
+   * This gives a lightweight, query-friendly record of what changed without storing the full
+   * before/after state.
    */
   static String summariseChangedFields(ProviderPatchV2 patch) {
     if (patch == null) {
@@ -75,4 +80,3 @@ public class CommandAuditEventListener {
     return fields.isEmpty() ? null : String.join(",", fields);
   }
 }
-

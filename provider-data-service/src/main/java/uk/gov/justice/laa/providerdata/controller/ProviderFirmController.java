@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
+import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
+import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -43,10 +47,6 @@ import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
-import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
-import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
-import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
-import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
 import uk.gov.justice.laa.providerdata.util.PageMetadata;
 import uk.gov.justice.laa.providerdata.util.PageParamValidator;
@@ -214,8 +214,8 @@ public class ProviderFirmController {
   /**
    * Returns the command audit log for a provider firm, ordered chronologically.
    *
-   * <p>Only records commands that have been successfully processed and committed. An empty list
-   * is returned for firms with no audit history.
+   * <p>Only records commands that have been successfully processed and committed. An empty list is
+   * returned for firms with no audit history.
    *
    * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
    * @return 200 with the list of audit entries
@@ -233,8 +233,8 @@ public class ProviderFirmController {
   /**
    * Submits a synchronous command to update supported provider basic details.
    *
-   * <p>Phase 1 CQRS migration endpoint. Behaviour intentionally mirrors the existing PATCH
-   * endpoint while clients migrate to an explicit command-style write operation.
+   * <p>Phase 1 CQRS migration endpoint. Behaviour intentionally mirrors the existing PATCH endpoint
+   * while clients migrate to an explicit command-style write operation.
    *
    * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
    * @param request command payload using the existing ProviderPatchV2 schema

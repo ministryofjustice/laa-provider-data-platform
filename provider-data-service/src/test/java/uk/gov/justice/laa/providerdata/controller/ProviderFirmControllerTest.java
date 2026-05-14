@@ -347,6 +347,7 @@ class ProviderFirmControllerTest {
                                         """))
         .andExpect(status().isBadRequest());
   }
+
   void getProviderFirms_withTypeFilter_returns200WithFilteredList() throws Exception {
     UUID guid1 = UUID.randomUUID();
     UUID guid2 = UUID.randomUUID();
@@ -469,8 +470,7 @@ class ProviderFirmControllerTest {
     java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
 
     CommandAuditLogEntry entry =
-        new CommandAuditLogEntry(
-            entryGuid, firmGuid, "100001", "UpdateProviderFirm", now, "name");
+        new CommandAuditLogEntry(entryGuid, firmGuid, "100001", "UpdateProviderFirm", now, "name");
 
     when(auditLogQueryService.getAuditLog(firmGuid.toString())).thenReturn(List.of(entry));
 
@@ -495,4 +495,3 @@ class ProviderFirmControllerTest {
         .andExpect(jsonPath("$.length()").value(0));
   }
 }
-

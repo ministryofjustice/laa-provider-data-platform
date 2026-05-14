@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.command;
 
-import java.util.UUID;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 
 /**
@@ -25,4 +24,3 @@ public record UpdateProviderFirmCommand(String providerFirmId, ProviderPatchV2 p
     }
   }
 }
-

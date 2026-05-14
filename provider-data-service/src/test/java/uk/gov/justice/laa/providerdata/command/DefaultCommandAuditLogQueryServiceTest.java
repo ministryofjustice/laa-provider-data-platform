@@ -84,7 +84,6 @@ class DefaultCommandAuditLogQueryServiceTest {
   void getAuditLog_multipleEntries_preservesOrder() {
     UUID firmGuid = UUID.randomUUID();
     OffsetDateTime t1 = OffsetDateTime.now().minusHours(1);
-    OffsetDateTime t2 = OffsetDateTime.now();
 
     CommandAuditLogEntity e1 = new CommandAuditLogEntity();
     e1.setProviderFirmGuid(firmGuid);
@@ -96,6 +95,7 @@ class DefaultCommandAuditLogQueryServiceTest {
     e2.setProviderFirmGuid(firmGuid);
     e2.setFirmNumber("100003");
     e2.setCommandType("UpdateProviderFirm");
+    OffsetDateTime t2 = OffsetDateTime.now();
     e2.setOccurredAt(t2);
 
     when(auditLogRepository.findByProviderFirmGuidOrderByOccurredAtAsc(firmGuid))
@@ -108,4 +108,3 @@ class DefaultCommandAuditLogQueryServiceTest {
     assertThat(result.get(1).occurredAt()).isEqualTo(t2);
   }
 }
-

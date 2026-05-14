@@ -11,8 +11,8 @@ import uk.gov.justice.laa.providerdata.util.UuidUtils;
 /**
  * Default read-only implementation of {@link CommandAuditLogQueryService}.
  *
- * <p>Resolves the identifier as a UUID first; falls back to firm-number lookup so that callers
- * can use either form — consistent with the rest of the provider-firm API surface.
+ * <p>Resolves the identifier as a UUID first; falls back to firm-number lookup so that callers can
+ * use either form — consistent with the rest of the provider-firm API surface.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,4 +41,3 @@ public class DefaultCommandAuditLogQueryService implements CommandAuditLogQueryS
         entity.getChangedFields());
   }
 }
-

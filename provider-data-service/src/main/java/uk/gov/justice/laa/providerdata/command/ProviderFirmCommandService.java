@@ -5,9 +5,8 @@ import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 /**
  * Service for dispatching commands to their respective handlers.
  *
- * <p>Part of Phase 2 CQRS migration. Decouples command submission from command handling,
- * allowing for future event sourcing, audit logging, or async processing without changing the
- * public API.
+ * <p>Part of Phase 2 CQRS migration. Decouples command submission from command handling, allowing
+ * for future event sourcing, audit logging, or async processing without changing the public API.
  */
 public interface ProviderFirmCommandService {
 
@@ -19,4 +18,3 @@ public interface ProviderFirmCommandService {
    */
   ProviderCreationResult handle(UpdateProviderFirmCommand command);
 }
-

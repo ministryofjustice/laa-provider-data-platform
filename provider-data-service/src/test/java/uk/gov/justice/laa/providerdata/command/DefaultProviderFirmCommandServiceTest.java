@@ -94,8 +94,7 @@ class DefaultProviderFirmCommandServiceTest {
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .name("Updated LSP")
-            .legalServicesProvider(
-                new LSPDetailsPatchV2().companiesHouseNumber("12345678"));
+            .legalServicesProvider(new LSPDetailsPatchV2().companiesHouseNumber("12345678"));
     ProviderCreationResult expectedResult =
         ProviderCreationResult.withoutOffice(providerGuid, "100001");
 
@@ -108,4 +107,3 @@ class DefaultProviderFirmCommandServiceTest {
     verify(providerService).patchProvider(providerId, patch);
   }
 }
-

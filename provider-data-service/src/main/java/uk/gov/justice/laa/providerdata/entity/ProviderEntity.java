@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DiscriminatorFormula;
+import org.hibernate.envers.Audited;
 
 /**
  * Provider entity representing a legal services provider or individual practitioner. Base entity
@@ -23,6 +24,7 @@ import org.hibernate.annotations.DiscriminatorFormula;
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false)
+@Audited
 @Entity
 @Table(name = "PROVIDER")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)

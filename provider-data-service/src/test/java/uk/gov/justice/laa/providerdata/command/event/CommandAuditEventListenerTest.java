@@ -75,20 +75,15 @@ class CommandAuditEventListenerTest {
 
   @Test
   void summariseChangedFields_nameOnly_returnsName() {
-    assertThat(
-            CommandAuditEventListener.summariseChangedFields(
-                new ProviderPatchV2().name("X")))
+    assertThat(CommandAuditEventListener.summariseChangedFields(new ProviderPatchV2().name("X")))
         .isEqualTo("name");
   }
 
   @Test
   void summariseChangedFields_multipleFields_returnsCommaSeparated() {
     ProviderPatchV2 patch =
-        new ProviderPatchV2()
-            .name("X")
-            .legalServicesProvider(new LSPDetailsPatchV2());
+        new ProviderPatchV2().name("X").legalServicesProvider(new LSPDetailsPatchV2());
     assertThat(CommandAuditEventListener.summariseChangedFields(patch))
         .isEqualTo("name,legalServicesProvider");
   }
 }
-

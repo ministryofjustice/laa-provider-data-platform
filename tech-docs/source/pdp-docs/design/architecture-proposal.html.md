@@ -19,10 +19,16 @@ the addition of an audit trail, transactional event publication to downstream co
 possibility of changing backend persistence to a third-party system (such as an ERP). See the
 [Drivers](#drivers) section for more detail.
 
-This document proposes **modular layered architecture** (Option 5 from
-[Architecture patterns](architecture-patterns.html)) as the target architecture: domain-based
-modules enforced by Spring Modulith, command/query separation at the service level, explicit
-domain events driving audit and outbox delivery, and ArchUnit rules to keep conventions enforceable.
+This document originally proposed **modular layered architecture** (Option 5 from
+[Architecture patterns](architecture-patterns.html)) using per-entity domain modules enforced by
+Spring Modulith. In practice this proved too fine-grained (see
+[Module granularity](#module-granularity)). The revised recommendation is **flat technical layers**
+(Option 4) enhanced with Spring Modulith's event publication infrastructure,
+`spring-modulith-starter-insight` for Micrometer tracing at event boundaries, and
+`ApplicationModulesTest` applied to the technical layer packages. Command/query separation at the
+service level, explicit domain events driving audit and outbox delivery, and ArchUnit rules to keep
+conventions enforceable remain part of the approach.
+
 The OpenAPI contract and the event stream are treated as stable interfaces that we should aim to
 maintain, even through fundamental changes like using an ERP for persistence.
 
@@ -125,26 +131,25 @@ no current-state table to query. Hence it is not proposed here. The
 [async event patterns](event-patterns.html) document considers it as a future option if audit
 requirements grow significantly.
 
-### Not simple layered architecture (Option 4)
+### Module granularity
 
-Option 4 organises by layer: all entities together, all repositories together, all services
-together. A change to "offices" could touch four separate packages (controllers, services,
-repositories and entities).
+The original proposal favoured per-entity domain modules on the grounds that module boundaries
+would prevent cross-domain coupling.
 
-However, more significantly, Option 4 has no boundary between the domains. Nothing prevents
-`OfficeService` importing any of the repositories or entities. Spring Modulith enforces that
-sub-packages of `{module-name}/` cannot be accessed by other modules to allow this constraint to
-be implemented.
+In practice, the API specification is designed around user workflows rather than aggregate
+boundaries. A single endpoint such as `POST /provider-firms` creates a provider firm, an office,
+and a liaison manager atomically. Implementing this across per-entity module boundaries requires an
+orchestration layer that ends up depending on every other module, which is the coupling the
+boundaries were supposed to prevent.
 
-The cost also grows non-linearly. The current service has around 20 entity classes. With four or
-five more on the way (contracts, schedules, NMS authorisations, schedule lines), the flat packages
-will be navigating 60-plus top-level classes with nothing to indicate what belongs together.
+Spring Modulith's module concept works equally well with technical layer packages.
+`ApplicationModulesTest` applied to `web/`, `service/`, `repository/`, and related packages
+enforces the rules that actually matter: no direct `web` -> `repository` access, and sub-packages
+within each layer are module-private.
 
-When audit logging and event publishing arrive, flat layers have no natural home for them. The answer ends up
-being "into the nearest service method", which is how `OfficeCommandService` grew to 600 lines.
-
-`ApplicationModulesTest.verify()` enforces module boundaries at CI time - a permanent guard that
-costs nothing to maintain once it is in place.
+If genuine bounded contexts emerge as the service grows (for example, contracts becoming a distinct
+lifecycle from provider firm structure), coarser modules (two or three) could be introduced at that
+point.
 
 ## Pre-refactoring structure
 
@@ -152,31 +157,21 @@ The codebase originally used a flat layered package structure under
 `uk.gov.justice.laa.providerdata`:
 
 ```
-config/       FlywayCleanMigrationStrategy, JacksonConfig, JpaAuditingConfig, LocalDataSeeder
-controller/   ProviderFirmController, ProviderFirmOfficesController,
-              ProviderFirmBankAccountsController, ProviderContractManagersController,
-              ProviderFirmOfficeContractManagersController,
-              ProviderFirmOfficesLiaisonManagersController,
-              ChamberOfficePractitionersController, TraceController
+config/       Spring configuration, data seeder
+controller/   Spring MVC controllers
 entity/       ~20 JPA entity classes, all extending AuditableEntity; Lombok @SuperBuilder,
               @Getter, @Setter, @NoArgsConstructor
-exception/    GlobalExceptionHandler, ItemNotFoundException
-mapper/       BankAccountMapper, ContractManagerMapper, OfficeMapper, ProviderMapper
-              (MapStruct, componentModel = "spring")
-repository/   ~15 Spring Data JPA repositories; ContractManagerSpecifications,
-              ProviderSpecification (JPA Specification implementations)
-service/      ProviderService (@Transactional(readOnly=true) but contains patchProvider()),
-              ProviderCreationService, OfficeService, BankDetailsService,
-              OfficeLiaisonManagerService, OfficeContractManagerAssignmentService,
-              ProviderContractManagersService; result records ProviderCreationResult,
-              OfficeCreationResult
-util/         PageLinks, PageMetadata, PageParamValidator, Pagination,
-              ProviderFirmTypeConverter, ReferenceNumberUtils, SearchCriteria, UuidUtils
+exception/    exception handler, custom exception types
+mapper/       MapStruct mappers (entity <-> OpenAPI model), componentModel = "spring"
+repository/   ~15 Spring Data JPA repositories, JPA Specification implementations
+service/      application services (mixed read/write; command/query split partial),
+              result record types
+util/         pagination helpers, search criteria, type converters, utilities
 ```
 
 There is no event publishing, no transactional outbox, and no audit trail. All operations are
-synchronous. The command/query split is partial: `ProviderService` is declared
-`@Transactional(readOnly = true)` but contains `patchProvider()`, a mutation.
+synchronous. The command/query split is partial: the main query service class is declared
+`@Transactional(readOnly = true)` but contains a mutation method.
 
 Build: Java 25, Spring Boot 4, Gradle 9 (Groovy DSL),
 `uk.gov.laa.springboot.laa-spring-boot-gradle-plugin` (imports Spring Boot BOM, defines
@@ -188,152 +183,41 @@ PostgreSQL (`PostgresqlSpringBootTest`) for integration tests.
 
 ### Module structure
 
-The service is reorganised into domain-based top-level packages under
+The service is organised into flat technical layer packages under
 `uk.gov.justice.laa.providerdata`. Spring Modulith
 (`org.springframework.modulith:spring-modulith-starter-core`) treats each top-level package as a
-module and enforces that all sub-packages are module-internal. Cross-module interaction goes via
-a module's public types (top-level classes in the module package) or via
-`ApplicationEventPublisher`.
-
-A module structure test using `ApplicationModules.of(Application.class).verify()` should run as part
-of the standard Gradle `test` task.
+module. `ApplicationModulesTest` applied to these technical layer packages enforces the rules that
+matter: the `web` package must not depend on `repository` directly, and sub-packages within each
+layer are module-private.
 
 Proposed layout:
 
 ```
 uk.gov.justice.laa.providerdata
-
-  shared/
-    AuditableEntity               public ROOT; extended by all JPA entities
-    ItemNotFoundException         public ROOT; thrown by all services
-    PageLinks                     public ROOT; pagination link builder
-    PageMetadata                  public ROOT; pagination metadata DTO
-    PageParamValidator            public ROOT; page parameter validation
-    ProviderFirmTypeConverter     public ROOT; Spring MVC type converter
-    ReferenceNumberUtils          public ROOT; firm number generation
-    UuidUtils                     public ROOT; UUID utilities
-    config/                       module-internal; Spring @Configuration classes:
-                                  FlywayCleanMigrationStrategy, JacksonConfig,
-                                  JpaAuditingConfig, LocalDataSeeder, GlobalExceptionHandler
-    web/                          module-internal; TraceController (infrastructure endpoint)
-
-  provider/                       depends on: shared/
-    ProviderQueryService          public; get, search, parent links
-    ProviderCommandService        public; save, update, replaceParentLinks, saveParentLink
-    ProviderEntity + subtypes     public ROOT (LspProviderEntity, ChamberProviderEntity,
-                                  PractitionerEntity, AdvocatePractitionerEntity,
-                                  BarristerPractitionerEntity)
-    ProviderParentLinkEntity      public ROOT
-    FirmType, AdvocateType        public ROOT
-    repository/                   module-internal; ProviderRepository, ProviderFirmRepository,
-                                  ProviderParentLinkRepository, ProviderSpecification
-
-  office/                         depends on: shared/, provider/
-    OfficeCommandService          public; create office/link, patch fields, patch payment
-    OfficeQueryService            public; get, search, head-office lookups, link resolution
-    OfficeCreationResult          public ROOT
-    OfficeEntity                  public ROOT
-    ProviderOfficeLinkEntity + subtypes  public ROOT (LspProviderOfficeLinkEntity,
-                                  ChamberProviderOfficeLinkEntity,
-                                  AdvocateProviderOfficeLinkEntity)
-    repository/                   module-internal; OfficeRepository, ProviderOfficeLinkRepository,
-                                  LspProviderOfficeLinkRepository,
-                                  ChamberProviderOfficeLinkRepository,
-                                  AdvocateProviderOfficeLinkRepository
-    web/                          module-internal; ChamberOfficePractitionersController
-
-  bankaccount/                    depends on: shared/, provider/, office/
-    BankAccountEntity             public ROOT
-    BankAccountMapper             public ROOT (accessed by usecase/)
-    BankAccountCommandService     public ROOT
-    BankAccountQueryService       public ROOT
-    entity/                       module-internal; OfficeBankAccountLinkEntity,
-                                  ProviderBankAccountLinkEntity
-    repository/                   module-internal; BankAccountRepository,
-                                  OfficeBankAccountLinkRepository,
-                                  ProviderBankAccountLinkRepository
-    web/                          module-internal; ProviderFirmBankAccountsController
-
-  liaisonmanager/                 depends on: shared/, provider/, office/
-    LiaisonManagerEntity          public ROOT
-    OfficeLiaisonManagerLinkEntity  public ROOT
-    OfficeLiaisonManagerCommandService  public ROOT
-    OfficeLiaisonManagerQueryService    public ROOT
-    repository/                   module-internal; LiaisonManagerRepository,
-                                  OfficeLiaisonManagerLinkRepository
-    web/                          module-internal; ProviderFirmOfficesLiaisonManagersController
-
-  contractmanager/                depends on: shared/, provider/, office/
-    ContractManagerEntity         public ROOT
-    ContractManagerQueryService   public ROOT
-    OfficeContractManagerCommandService  public ROOT
-    OfficeContractManagerQueryService    public ROOT
-    entity/                       module-internal; OfficeContractManagerLinkEntity
-    mapper/                       module-internal; ContractManagerMapper
-    repository/                   module-internal; ContractManagerRepository,
-                                  ContractManagerSpecifications,
-                                  OfficeContractManagerLinkRepository
-    web/                          module-internal; ProviderContractManagersController,
-                                  ProviderFirmOfficeContractManagersController
-
-  usecase/                        depends on: all domain modules above
-    ProviderFirmUseCase           public; orchestrates createLspFirm, createChambersFirm,
-                                  createPractitionerFirm, patchProvider across modules
-    OfficeFirmUseCase             public; orchestrates createLspOffice (with LM + bank account)
-                                  and patchOffice (with payment details)
-    ProviderCreationResult        public ROOT
-    OfficeMapper                  public ROOT (uses types from office/ and liaisonmanager/)
-    ProviderMapper                public ROOT (uses types from provider/ and office/)
-    web/                          module-internal; ProviderFirmController,
-                                  ProviderFirmOfficesController
-
-  contract/                       new module; to be built domain-first (pending BA input)
-    ContractCommandService        public
-    ContractQueryService          public
-    ContractCreatedEvent          public domain event record
-    ContractUpdatedEvent          public domain event record
-    ScheduleCreatedEvent          public domain event record
-    entity/                       ContractEntity (aggregate root), ScheduleEntity,
-                                  ScheduleLineEntity, NmsAuthorisationEntity
-    repository/                   ContractRepository (aggregate root only)
-    mapper/                       ContractMapper
-    web/                          ContractController (and others TBD)
+  web/          controllers, type converters, web exception handling
+  service/      command and query services, use-case orchestrators, result types
+  entity/       JPA entities
+  repository/   Spring Data JPA repositories and Specification helpers
+  mapper/       MapStruct mappers (entity <-> OpenAPI model)
+  event/        event types, publisher, snapshot assembler, event query service
+  config/       Spring configuration
+  support/      cross-cutting utilities, base entity class, exception types, pagination helpers
 ```
 
-Module dependency rules (enforced by Spring Modulith):
+`event/` is intentionally separate from `service/` because the transactional outbox is a distinct
+responsibility: command services publish events, and the event listeners (SQS delivery, audit) are
+defined in `event/`.
 
-```
-shared/          no domain deps (includes utility classes at ROOT)
-provider/        → shared/
-office/          → shared/, provider/
-bankaccount/     → shared/, provider/, office/
-liaisonmanager/  → shared/, provider/, office/
-contractmanager/ → shared/, provider/, office/
-usecase/         → all modules above
-contract/        → shared/, provider/, office/ (and usecase/ if needed)
-```
+A module structure test using `ApplicationModules.of(Application.class).verify()` runs as part of
+the standard Gradle `test` task.
 
-Notes:
-
-- **`shared/` ROOT contains both domain-shared types and utility classes** — `AuditableEntity`,
-  `ItemNotFoundException`, and all former `util/` classes (`PageLinks`, `UuidUtils`, etc.) live
-  here.
-- **Mapper placement:** `OfficeMapper` and `ProviderMapper` live in `usecase/` ROOT (not
-  `office/` or `provider/`) because each uses types from two modules. Placing either in a single
-  domain module would introduce a forbidden upward dependency. `ContractManagerMapper` lives in
-  `contractmanager/mapper/` (module-internal; only used within `contractmanager/`).
-  `BankAccountMapper` lives at `bankaccount/` ROOT (not `bankaccount/mapper/`) because
-  `usecase/` needs to call it.
-- **Controller placement:** controllers live in `{module}/web/` alongside any web-layer types.
-  Spring Modulith treats `web/` as module-internal; controllers should also be declared
-  package-private where practical. See the
-  [spring-restbucks](https://github.com/odrotbohm/spring-restbucks) reference application.
-- **`contract/` module** is not part of the Phase 3 restructure; it will be built
-  domain-first once BA input on the aggregate structure is confirmed.
+If coarser domain modules are introduced in future (for example, a `contract` module as that
+lifecycle becomes distinct from provider firm structure), the flat layer structure is compatible
+with that evolution.
 
 ### Command/query separation
 
-Within each module, read and write operations are handled by separate service classes.
+Read and write operations are handled by separate service classes in `service/`.
 
 **Command services** are not annotated `@Transactional(readOnly = true)` on their class. They
 publish events after each successful write.
@@ -341,50 +225,17 @@ publish events after each successful write.
 **Query services** are annotated `@Transactional(readOnly = true)` and must not invoke any
 repository method that causes a change (`save`, `delete`, `deleteAll`, `deleteById`).
 
-Changes to existing services:
-
-| Pre-refactoring class                    | Issue                                              | Action                                                                     |
-|------------------------------------------|----------------------------------------------------|----------------------------------------------------------------------------|
-| `ProviderCreationService`                | Correctly write-only                               | Rename `ProviderCommandService`. Absorb `patchProvider()`                  |
-| `ProviderService`                        | Declared `readOnly` but contains `patchProvider()` | Rename `ProviderQueryService`. Move `patchProvider()` to command           |
-| `OfficeService`                          | Mixed read and write                               | Split into `OfficeCommandService` and `OfficeQueryService`                 |
-| `BankDetailsService`                     | Mixed                                              | Split into `BankAccountCommandService`. Move reads to `OfficeQueryService` |
-| `OfficeLiaisonManagerService`            | Write-only, reads in `OfficeQueryService`          | Rename `OfficeLiaisonManagerCommandService`                                |
-| `OfficeContractManagerAssignmentService` | Write-only                                         | Rename `OfficeContractManagerCommandService`                               |
-| `ProviderContractManagersService`        | Read-only                                          | Rename `ContractManagerQueryService`                                       |
-
 Explicit command objects - Java records carrying the validated input for a single update,
 instantiated by the web layer - should exist for all write operations. They make the intent of a
 call explicit and provide a natural place to put together the event payload.
 
 ### Domain aggregates
 
-The [domain model](domain-model.html) document describes the current aggregate structure. The contract
-module would introduce a new aggregate (needs more BA input, but something like):
+The [domain model](domain-model.html) document describes the current aggregate structure.
 
-- `ContractEntity` - aggregate root; linked to a `ProviderOfficeLinkEntity` by GUID
-- `ScheduleEntity` - member of `Contract`; multiple per contract
-- `ScheduleLineEntity` - member of `Schedule`; multiple per schedule
-- `NmsAuthorisationEntity` - member of `Schedule`
-
-**One repository per aggregate root.** `ScheduleRepository`, `ScheduleLineRepository`, and
-`NmsAuthorisationRepository` must not exist as Spring-managed beans accessible outside the
-`contract/` module. All access to schedules and schedule-lines goes via `ContractRepository`
-and the `ContractEntity` aggregate. Module boundaries and ArchUnit rules would enforce this.
-
-jMolecules annotations could be applied to the contract module from the start:
-
-- `@org.jmolecules.ddd.annotation.AggregateRoot` on `ContractEntity`
-- `@org.jmolecules.ddd.annotation.Entity` on `ScheduleEntity`, `ScheduleLineEntity`,
-  `NmsAuthorisationEntity`
-
-Gradle dependencies would be something like this (check for Spring Boot 4 compatibility on
-[jMolecules releases](https://github.com/xmolecules/jmolecules/releases)):
-
-```groovy
-implementation 'org.jmolecules:jmolecules-ddd'
-implementation 'org.jmolecules.integrations:jmolecules-spring'
-```
+**One repository per aggregate root.** Member entities (schedules, lines, authorisations) must not
+have Spring-managed repositories accessible outside their containing service or package. All access
+to member entities goes via the aggregate root's repository. ArchUnit rules enforce this.
 
 ### Events and the outbox
 
@@ -407,42 +258,13 @@ The `spring-modulith-events-jpa` module provides the `event_publication` table D
 it using a Flyway migration. See the
 [Spring Modulith schema reference](https://docs.spring.io/spring-modulith/reference/appendix.html).
 
-Publishing an event from a command service:
-
-```java
-// ContractCommandService.java
-@Transactional
-public ContractCreatedResult createContract(CreateContractCommand command) {
-    ContractEntity contract = buildEntity(command);
-    contractRepository.save(contract);
-    // Published inside the transaction. Spring Modulith records it atomically
-    applicationEventPublisher.publishEvent(
-        new ContractCreatedEvent(contract.getGuid(), command.officeId(), /* more fields */));
-    return new ContractCreatedResult(contract.getGuid());
-}
-```
-
-Two `@ApplicationModuleListener` methods consume each event independently:
-
-```java
-@ApplicationModuleListener
-void on(ContractCreatedEvent event) {
-    sqsTemplate.send(outboundQueue, event);  // retried by Spring Modulith on failure
-}
-
-@ApplicationModuleListener
-void on(ContractCreatedEvent event) {
-    auditRepository.save(AuditRecord.from(event));
-}
-```
-
 Event payloads follow these rules:
 
-- Event classes are Java records, placed in the module root (public, not `internal/`).
+- Event classes are Java records, defined in the `event/` package.
 - Payloads carry meaningful identifiers (firm numbers, office codes), not unexposed database keys.
 - Payloads carry a full snapshot of aggregate state after the change, so consumers do not need to
   call back to the API (very large payloads can be less granular).
-- Event names are past-tense domain facts: `ContractCreatedEvent`, `ScheduleUpdatedEvent`.
+- Event names are past-tense domain facts.
 
 The event catalogue in [Async event patterns](event-patterns.html) should be extended to cover
 the contract module events as they get defined.
@@ -499,12 +321,11 @@ Example test class name: `uk.gov.justice.laa.providerdata.ArchitectureTest`.
 
 ### Module boundaries
 
-- No class outside `uk.gov.justice.laa.providerdata.{module}` may import a class from
-  `uk.gov.justice.laa.providerdata.{module}.internal`.
-- Spring Modulith's module structure test also enforces this. ArchUnit catches it in the standard
-  Gradle `test` task without a separate test run.
-- Spring Modulith's `@ApplicationModule(allowedDependencies = ...)` annotation should be used to
-  declare permitted cross-module dependencies.
+- No class in `web` or `controller` may depend on a class in `repository` directly.
+- Sub-packages within each technical layer (for example, `service/command/`) are module-private
+  and must not be imported by other layers.
+- Spring Modulith's `ApplicationModulesTest` enforces these boundaries at CI time as part of the
+  standard Gradle `test` task.
 
 ### Mapper placement
 
@@ -513,27 +334,27 @@ Example test class name: `uk.gov.justice.laa.providerdata.ArchitectureTest`.
 
 ### Aggregate root discipline
 
-- No Spring Data `Repository` sub-interface may be declared for `ScheduleEntity`,
-  `ScheduleLineEntity`, or `NmsAuthorisationEntity` (or any future non-root member entity).
-- These types are accessed only via their aggregate root's repository.
+- No Spring Data `Repository` sub-interface may be declared for aggregate member entities
+  (schedules, lines, authorisations, or any future non-root member entity).
+- Member entities are accessed only via the aggregate root's repository.
 
 ## Next steps
 
-The most useful next step is adding ArchUnit with a baseline set of layering and command/query
-rules. This requires only a test dependency and no refactoring changes, but immediately makes the
-existing conventions visible and enforceable.
+Recommended steps in order:
 
-The command/query split can then be completed for the existing provider and office services -
-`patchProvider()` moves out of `ProviderService`, and `OfficeService` is split - and the split
-pattern is used in any new modules.
+1. **Add ArchUnit** with a baseline set of layering and command/query rules. This requires only a
+   test dependency and no refactoring changes, but immediately makes the existing conventions
+   visible and enforceable.
 
-The contract module is the natural place for the larger structural changes. It should be built
-domain-first from the outset: modular package structure, jMolecules annotations, aggregate root
-discipline, and event publication. Building one module correctly means there is an example to point
-developers at when reorganising existing modules.
+2. **Complete command/query separation** in the existing services. Any mutation methods in
+   read-annotated service classes should move to a dedicated command service.
 
-Spring Modulith can be introduced alongside the contract module work. Once at least two domain-based
-top-level packages exist, its module structure test starts to have an effect.
+3. **Apply `ApplicationModulesTest`** to the technical layer packages (`web`, `service`,
+   `repository`, `entity`, `event`, `config`, `support`). This enforces that `web` does not call
+   `repository` directly, and that sub-packages within each layer are module-private.
+
+4. **Build new entities** (the contract hierarchy) in the flat layer structure from the outset:
+   aggregate root discipline, command/query separation, and event publication.
 
 The event publication registry, audit listener, and SQS/SNS delivery listener are all additions
 beyond that. They should not require changes to the existing API contract or entity model.

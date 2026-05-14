@@ -170,10 +170,10 @@ The codebase previously followed a conventional layered arrangement:
 
 ```
 uk.gov.justice.laa.providerdata
-  config/        Spring configuration, LocalDataSeeder
+  config/        Spring configuration
   controller/    Spring MVC controllers
   entity/        JPA entities
-  exception/     GlobalExceptionHandler, ItemNotFoundException
+  exception/     exception handler, custom exception types
   mapper/        MapStruct mappers (entity <-> OpenAPI model)
   repository/    Spring Data JPA repositories
   service/       Application services
@@ -213,24 +213,18 @@ responses, and query use cases have no side effects.
 **Commands** - carry the validated input for a single mutation, constructed by the web layer
 and passed to the use case. Examples:
 
-| Command                        | Use case                                                         |
-|--------------------------------|------------------------------------------------------------------|
-| `CreateProviderFirmCommand`    | `POST /provider-firms`                                           |
-| `CreateOfficeCommand`          | `POST /provider-firms/{id}/offices`                              |
-| `AssignLiaisonManagerCommand`  | `POST /provider-firms/{id}/offices/{officeId}/liaison-managers`  |
-| `AssignContractManagerCommand` | `POST /provider-firms/{id}/offices/{officeId}/contract-managers` |
-| `UpdateProviderFirmCommand`    | `PATCH /provider-firms/{id}`                                     |
-| `UpdateOfficeCommand`          | `PATCH /provider-firms/{id}/offices/{officeId}`                  |
+| Command                     | Use case                     |
+|-----------------------------|------------------------------|
+| `CreateProviderFirmCommand` | `POST /provider-firms`       |
+| `UpdateProviderFirmCommand` | `PATCH /provider-firms/{id}` |
 
 **Queries** - carry the parameters for a read. Results are entity classes, projections, or plain
 types, and the web layer maps them to the generated OpenAPI response model. Examples:
 
-| Query                        | Use case                                                          |
-|------------------------------|-------------------------------------------------------------------|
-| `ProviderFirmSearchQuery`    | `GET /provider-firms`                                             |
-| `OfficeSearchQuery`          | `GET /provider-firms/{id}/offices`, `GET /provider-firms-offices` |
-| `LiaisonManagerHistoryQuery` | `GET /provider-firms/{id}/offices/{officeId}/liaison-managers`    |
-| `ContractManagerSearchQuery` | `GET /provider-contract-managers`                                 |
+| Query                     | Use case                           |
+|---------------------------|------------------------------------|
+| `ProviderFirmSearchQuery` | `GET /provider-firms`              |
+| `OfficeSearchQuery`       | `GET /provider-firms/{id}/offices` |
 
 ## Options
 
@@ -326,8 +320,7 @@ public interface ProviderFirmRepository {
 }
 ```
 
-The existing services map directly to use case classes: `ProviderCreationService` ->
-`CreateProviderFirmUseCase`, `OfficeService` -> `CreateOfficeUseCase`, etc.
+The existing service classes map directly to use case implementations.
 
 **Pros:** the `in`/`out` distinction makes dependency direction explicit, and it's easy to add
 further delivery mechanisms (messaging, CLI) as additional `adapter/in/...` packages.
@@ -360,9 +353,10 @@ framework dependencies are required.
 **Pros:** minimal structural change from the current codebase. No new framework dependencies.
 Familiar to all Spring developers.
 
-**Cons:** no module isolation. All packages are globally visible. As the domain grows, `entity/`,
-`repository/`, and `service/` packages grow without internal structure. A change in one domain
-area is not isolated from another at the package level.
+**Cons:** all packages are globally visible by default. As the domain grows, `entity/`,
+`repository/`, and `service/` packages grow without internal structure. However, Spring Modulith
+can be applied to the technical layer packages directly: `ApplicationModulesTest` can enforce that
+`web` does not call `repository` directly, and sub-packages within each layer are module-private.
 
 Further reading:
 
@@ -373,23 +367,20 @@ Further reading:
 
 ```
 uk.gov.justice.laa.providerdata
-  shared/          AuditableEntity, ItemNotFoundException, PageLinks, PageMetadata,
-                   PageParamValidator, ProviderFirmTypeConverter, ReferenceNumberUtils,
-                   UuidUtils at ROOT (accessible to all modules). config/ and web/ internal
-  provider/        domain module. ProviderEntity + subtypes, ProviderQueryService,
-                   ProviderCommandService at ROOT. repository/ internal
-  office/          domain module. OfficeEntity + link entity types, OfficeCommandService,
-                   OfficeQueryService at ROOT. repository/ and web/ internal
-  bankaccount/     domain module; BankAccountEntity, BankAccountCommandService,
-                   BankAccountQueryService, BankAccountMapper at ROOT. entity/ and
-                   repository/ and web/ internal
-  liaisonmanager/  domain module. LiaisonManagerEntity, OfficeLiaisonManagerLinkEntity,
-                   OfficeLiaisonManagerCommandService, OfficeLiaisonManagerQueryService
-                   at ROOT. repository/ and web/ internal
-  contractmanager/ domain module. ContractManagerEntity and services at ROOT. entity/,
-                   mapper/, repository/, web/ internal
-  usecase/         orchestration module. ProviderFirmUseCase, OfficeFirmUseCase,
-                   OfficeMapper, ProviderMapper at ROOT; web/ internal
+  shared/          cross-cutting utilities and base types at ROOT (accessible to all modules).
+                   config/ and web/ module-internal
+  provider/        domain module. entity types and command/query services at ROOT.
+                   repository/ module-internal
+  office/          domain module. entity types and command/query services at ROOT.
+                   repository/ and web/ module-internal
+  bankaccount/     domain module. entity types, command/query services, and mapper at ROOT.
+                   entity/, repository/, and web/ module-internal
+  liaisonmanager/  domain module. entity types and command/query services at ROOT.
+                   repository/ and web/ module-internal
+  contractmanager/ domain module. entity types and command/query services at ROOT.
+                   entity/, mapper/, repository/, web/ module-internal
+  usecase/         orchestration module. use-case orchestrators and mappers at ROOT.
+                   web/ module-internal
   contract/        new module. built domain-first from the outset
 ```
 
@@ -411,9 +402,15 @@ custom implementation.
 The event publication registry provides the transactional outbox. Scales naturally as the domain
 grows.
 
-**Cons:** requires package reorganisation from the flat layer structure. Domain boundaries that are
-unclear initially may require an orchestration module to temporarily absorb several domains until
-they can be separated cleanly.
+**Cons:** requires package reorganisation from the flat layer structure. Per-entity module
+granularity can be counterproductive when the API specification is designed around user workflows
+rather than aggregate boundaries: an endpoint that spans multiple aggregates forces an
+orchestration module that depends on all others, re-creating the coupling the boundaries were
+supposed to prevent. Module boundaries at this granularity generate observability noise
+(module-crossing spans in distributed tracing) disproportionate to the isolation benefit. Module
+granularity should reflect genuine bounded contexts, not entity boundaries. For an API designed
+around user workflows, coarser modules (two or three) or flat technical layers may be more
+appropriate.
 
 Further reading:
 
@@ -431,9 +428,8 @@ Further reading:
 **Options 1, 2 and 3**
 
 The migration steps are the same regardless of which is chosen. Only the destination package names
-differ. The existing services - `ProviderCreationService`, `OfficeService`, `BankDetailsService`,
-`OfficeLiaisonManagerService`, `OfficeContractManagerAssignmentService` - map naturally to use cases
-in all three structures without changing their internal logic.
+differ. The existing service classes map naturally to use cases in all three structures without
+changing their internal logic.
 
 1. Introduce repository interfaces (the outbound port/domain service/output boundary),
    backed by thin wrappers around the existing Spring Data repositories.
@@ -450,7 +446,8 @@ end-to-end test suites.
 
 **Option 4**
 
-1. Move `ProviderService.patchProvider()` into a dedicated command service in `service/command/`.
+1. Move any mutation methods that are in a read-annotated service class into a dedicated command
+   service in `service/command/`.
 2. Reorganise remaining services: creation and mutation services to `service/command/`; read
    services to `service/query/`.
 3. Introduce command and query objects (see [Constraints](#constraints)) and update controllers

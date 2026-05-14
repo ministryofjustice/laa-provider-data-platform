@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -128,62 +127,6 @@ class CreateProviderFirmE2eTest {
         .body("data.firmType", equalTo("Chambers"));
   }
 
-  /** AC3 – DX Number and DX Centre provided together */
-  @Test
-  void createChambersFirmWithDxDetails_returns201ThenGetReturnsCreatedFirm() {
-    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
-
-    Map<String, Object> body =
-        Map.of(
-            "firmType",
-            "Chambers",
-            "name",
-            firmName,
-            "chambers",
-            Map.of(
-                "address",
-                Map.of(
-                    "line1", "2 Chambers Court",
-                    "townOrCity", "London",
-                    "postcode", "WC2A 3EB"),
-                "dxDetails",
-                Map.of(
-                    "dxNumber", "DX 13009",
-                    "dxCentre", "Birmingham"),
-                "liaisonManager",
-                Map.of(
-                    "firstName", "Chambers",
-                    "lastName", "Liaison",
-                    "emailAddress", "chambers.liaison@example.com",
-                    "telephoneNumber", "020 3333 4444")));
-
-    Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .body(body)
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .body("data.providerFirmGUID", notNullValue())
-            .body("data.providerFirmNumber", notNullValue())
-            .extract()
-            .response();
-
-    String firmNumber = response.path("data.providerFirmNumber");
-
-    // Verify the created firm is retrievable via GET
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}")
-        .then()
-        .statusCode(200)
-        .body("data.firmNumber", equalTo(firmNumber))
-        .body("data.name", equalTo(firmName))
-        .body("data.firmType", equalTo("Chambers"));
-  }
-
   @Test
   void createProviderFirm_missingName_returns400() {
     Map<String, Object> body =
@@ -251,49 +194,184 @@ class CreateProviderFirmE2eTest {
   }
 
   /**
-   * AC5 / AC6- Verifies that attempting to create a chambers provider with DX details (Number /
-   * Center) missing results in a 400 Bad Request response.
+   * AC2 - Verifies that attempting to create a chambers firm with an invalid firm type results in a
+   * 400 response.
    */
   @Test
-  void createChambersConditionalMutuallyInclusiveDXDetailsMissing_returns400() {
-    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
-    // Both dxNumber and dxCentre must be provided
-    List<Map> dxDetails =
-        List.of(Map.of("dxNumber", "1234567890"), Map.of("dxCentre", "Birmingham"));
-    dxDetails.forEach(
-        dxDetail -> {
-          Map<String, Object> body =
-              Map.of(
-                  "firmType",
-                  "",
-                  "name",
-                  firmName,
-                  "chambers",
-                  Map.of(
-                      "address",
-                      Map.of(
-                          "line1", "2 Chambers Court",
-                          "townOrCity", "London",
-                          "postcode", "WC2A 3EB"),
-                      "headOffice",
-                      true,
-                      "dxDetails",
-                      dxDetail,
-                      "liaisonManager",
-                      Map.of(
-                          "firstName", "Test",
-                          "lastName", "Manager",
-                          "emailAddress", "test@example.com",
-                          "telephoneNumber", "020 1111 2222")));
+  void createChambersFirm_wrongFirmType_returns400() {
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Legal Services Provider",
+            "name",
+            "E2E-DSTEW Chambers " + System.currentTimeMillis(),
+            "chambers",
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "2 Chambers Court",
+                    "townOrCity", "London",
+                    "postcode", "WC2A 3EB")),
+            "liaisonManager",
+            Map.of(
+                "firstName", "Chambers",
+                "lastName", "Liaison",
+                "emailAddress", "chambers.liaison@example.com",
+                "telephoneNumber", "020 3333 4444"));
 
-          given()
-              .contentType(ContentType.JSON)
-              .body(body)
-              .when()
-              .post("/provider-firms")
-              .then()
-              .statusCode(400);
-        });
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+  }
+
+  /** AC3 – DX Number and DX Centre provided together */
+  @Test
+  void createChambersFirmWithDxDetails_returns201ThenGetReturnsCreatedFirm() {
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
+    String dxNumber = "DX 13009";
+    String dxCenter = "Birmingham";
+
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Chambers",
+            "name",
+            firmName,
+            "chambers",
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "2 Chambers Court",
+                    "townOrCity", "London",
+                    "postcode", "WC2A 3EB"),
+                "dxDetails",
+                Map.of(
+                    "dxNumber", dxNumber,
+                    "dxCentre", dxCenter),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Chambers",
+                    "lastName", "Liaison",
+                    "emailAddress", "chambers.liaison@example.com",
+                    "telephoneNumber", "020 3333 4444")));
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .body("data.providerFirmGUID", notNullValue())
+            .body("data.providerFirmNumber", notNullValue())
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeAccountNumber =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}")
+            .then()
+            .statusCode(200)
+            .body("data.firmNumber", equalTo(firmNumber))
+            .body("data.firmType", equalTo("Chambers"))
+            .body("data.chambers.office.accountNumber", notNullValue())
+            .extract()
+            .path("data.chambers.office.accountNumber");
+
+    // Verify DX details were persisted correctly on the head office
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeAccountNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200)
+        .body("data.dxDetails.dxNumber", equalTo(dxNumber))
+        .body("data.dxDetails.dxCentre", equalTo(dxCenter));
+  }
+
+  /**
+   * AC5 Verifies that attempting to create a chambers provider with DX details, Number but missing
+   * Centre results in a 400 Bad Request response.
+   */
+  @Test
+  void createChambersDXDetailsWithNumberButNoCentre_returns400() {
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Chambers",
+            "name",
+            firmName,
+            "chambers",
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "2 Chambers Court",
+                    "townOrCity", "London",
+                    "postcode", "WC2A 3EB"),
+                "dxDetails",
+                Map.of("dxNumber", "DX 13009"),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+  }
+
+  /**
+   * AC6- Verifies that attempting to create a chambers provider with DX details, dxCentre, but
+   * missing dxNumber results in a 400 Bad Request response.
+   */
+  @Test
+  void createChambersDXDetailsWithCentreButNoNumber_returns400() {
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
+
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Chambers",
+            "name",
+            firmName,
+            "chambers",
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "2 Chambers Court",
+                    "townOrCity", "London",
+                    "postcode", "WC2A 3EB"),
+                "dxDetails",
+                Map.of("dxCentre", "Birmingham"),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
   }
 
   /**
@@ -301,7 +379,7 @@ class CreateProviderFirmE2eTest {
    * in a 409 AC8 – No partial Chambers records
    */
   @Test
-  void createChambersFirm_missingAddress_returns400() {
+  void createChambersFirm_missingAddress_returns409() {
     Map<String, Object> body =
         Map.of(
             "firmType",

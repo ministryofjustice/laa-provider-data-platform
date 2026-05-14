@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -59,6 +61,8 @@ public class OfficeService {
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final Counter officeCreationCounter;
+  private final Timer officeCreationTimer;
 
   /**
    * Inject dependencies.
@@ -72,6 +76,8 @@ public class OfficeService {
    * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
    * @param bankDetailsService to create and link bank accounts.
    * @param bankAccountMapper to map bank account request DTOs to entities.
+   * @param officeCreationCounter for tracking office creations
+   * @param officeCreationTimer for recording office creation latency
    */
   public OfficeService(
       ProviderRepository providerRepository,
@@ -82,7 +88,9 @@ public class OfficeService {
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       BankDetailsService bankDetailsService,
-      BankAccountMapper bankAccountMapper) {
+      BankAccountMapper bankAccountMapper,
+      Counter officeCreationCounter,
+      Timer officeCreationTimer) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
@@ -92,6 +100,8 @@ public class OfficeService {
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
+    this.officeCreationCounter = officeCreationCounter;
+    this.officeCreationTimer = officeCreationTimer;
   }
 
   /**
@@ -156,6 +166,10 @@ public class OfficeService {
     }
 
     persistBankDetails(payment, provider, savedLink);
+
+    var sample = io.micrometer.core.instrument.Timer.start();
+    sample.stop(officeCreationTimer);
+    officeCreationCounter.increment();
 
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), savedLink.getGuid(), accountNumber);

@@ -8,6 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +58,8 @@ class OfficeServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  @Mock private Counter officeCreationCounter;
+  @Mock private Timer officeCreationTimer;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;

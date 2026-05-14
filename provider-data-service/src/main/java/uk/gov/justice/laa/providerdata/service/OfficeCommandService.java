@@ -14,6 +14,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -52,6 +53,7 @@ public class OfficeCommandService {
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Inject dependencies.
@@ -65,6 +67,7 @@ public class OfficeCommandService {
    * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
    * @param bankDetailsService to create and link bank accounts.
    * @param bankAccountMapper to map bank account request DTOs to entities.
+   * @param providerEventPublisher to publish provider firm changed events.
    */
   public OfficeCommandService(
       ProviderRepository providerRepository,
@@ -75,7 +78,8 @@ public class OfficeCommandService {
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       BankAccountCommandService bankDetailsService,
-      BankAccountMapper bankAccountMapper) {
+      BankAccountMapper bankAccountMapper,
+      ProviderEventPublisher providerEventPublisher) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
@@ -85,6 +89,7 @@ public class OfficeCommandService {
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
+    this.providerEventPublisher = providerEventPublisher;
   }
 
   /**
@@ -107,6 +112,7 @@ public class OfficeCommandService {
    * @param linkToHeadOfficeLiaisonManager if {@code true}, link the head office's active LM to this
    *     office
    * @param payment payment details from the request, or {@code null}
+   * @param eventContext correlation and trace identifiers from the incoming request
    * @return identifiers for the created provider, office, and link
    * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
    *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found
@@ -118,7 +124,8 @@ public class OfficeCommandService {
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       boolean linkToHeadOfficeLiaisonManager,
-      @Nullable PaymentDetailsCreateOrLinkV2 payment) {
+      @Nullable PaymentDetailsCreateOrLinkV2 payment,
+      EventContext eventContext) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
 
@@ -150,6 +157,8 @@ public class OfficeCommandService {
 
     persistBankDetails(payment, provider, savedLink);
 
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -160,15 +169,24 @@ public class OfficeCommandService {
    * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
    * @param officeTemplate unpersisted office entity with address and contact fields populated
    * @param linkTemplate unpersisted link entity with payment and VAT fields populated
+   * @param eventContext correlation and trace identifiers from the incoming request
    * @return identifiers for the created provider, office, and link
    * @throws ItemNotFoundException if no provider matches the given identifier
    */
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
       OfficeEntity officeTemplate,
-      LspProviderOfficeLinkEntity linkTemplate) {
+      LspProviderOfficeLinkEntity linkTemplate,
+      EventContext eventContext) {
     return createLspOffice(
-        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false, null);
+        providerFirmGUIDorFirmNumber,
+        officeTemplate,
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        eventContext);
   }
 
   /**
@@ -207,7 +225,10 @@ public class OfficeCommandService {
    * @throws IllegalArgumentException if flag combinations conflict with the office activation state
    */
   public OfficeCreationResult patchOffice(
-      String providerFirmGUIDorFirmNumber, String officeGUIDorCode, OfficePatchV2 patch) {
+      String providerFirmGUIDorFirmNumber,
+      String officeGUIDorCode,
+      OfficePatchV2 patch,
+      EventContext eventContext) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
     ProviderOfficeLinkEntity link =
@@ -267,6 +288,8 @@ public class OfficeCommandService {
 
     officeRepository.save(link.getOffice());
     providerOfficeLinkRepository.save(link);
+
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
 
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());

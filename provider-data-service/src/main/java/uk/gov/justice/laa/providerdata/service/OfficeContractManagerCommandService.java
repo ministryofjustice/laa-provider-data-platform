@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 
@@ -29,6 +30,7 @@ public class OfficeContractManagerCommandService {
   private final OfficeContractManagerLinkRepository linkRepository;
   private final ProviderQueryService providerService;
   private final OfficeQueryService officeService;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Constructs a new {@code OfficeContractManagerCommandService}.
@@ -37,16 +39,19 @@ public class OfficeContractManagerCommandService {
    * @param linkRepository repository for managing {@link OfficeContractManagerLinkEntity} links
    * @param providerService service for resolving provider identifiers
    * @param officeService service for resolving provider office identifiers
+   * @param providerEventPublisher to publish provider firm changed events
    */
   public OfficeContractManagerCommandService(
       ContractManagerRepository contractManagerRepository,
       OfficeContractManagerLinkRepository linkRepository,
       ProviderQueryService providerService,
-      OfficeQueryService officeService) {
+      OfficeQueryService officeService,
+      ProviderEventPublisher providerEventPublisher) {
     this.contractManagerRepository = contractManagerRepository;
     this.linkRepository = linkRepository;
     this.providerService = providerService;
     this.officeService = officeService;
+    this.providerEventPublisher = providerEventPublisher;
   }
 
   /**
@@ -64,14 +69,18 @@ public class OfficeContractManagerCommandService {
    * @param providerGuidOrFirmNumber the provider GUID or firm number
    * @param officeGuidOrCode the provider office link GUID or office account number
    * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} being assigned
-   * @return an {@link AssignmentResult} containing the provider office link GUID and the assigned
-   *     contract manager's external/business ID
+   * @param eventContext correlation and trace identifiers from the incoming request
+   * @return a {@link ContractManagerAssignmentResult} containing the provider office link GUID and
+   *     the assigned contract manager's external/business ID
    * @throws IllegalArgumentException if no contract manager exists with the given {@code
    *     contractManagerGuid}
    */
   @Transactional
-  public AssignmentResult assign(
-      String providerGuidOrFirmNumber, String officeGuidOrCode, UUID contractManagerGuid) {
+  public ContractManagerAssignmentResult assign(
+      String providerGuidOrFirmNumber,
+      String officeGuidOrCode,
+      UUID contractManagerGuid,
+      EventContext eventContext) {
     ContractManagerEntity manager =
         contractManagerRepository
             .findById(contractManagerGuid)
@@ -86,7 +95,9 @@ public class OfficeContractManagerCommandService {
 
     if (linkRepository.existsByOfficeLink_GuidAndContractManager_Guid(
         providerOfficeLinkGuid, contractManagerGuid)) {
-      return new AssignmentResult(providerOfficeLinkGuid, manager.getContractManagerId());
+      providerEventPublisher.publishAfterWrite(provider, eventContext);
+      return new ContractManagerAssignmentResult(
+          providerOfficeLinkGuid, manager.getContractManagerId());
     }
 
     // Currently, we ensure only one assignment exists
@@ -100,14 +111,8 @@ public class OfficeContractManagerCommandService {
 
     linkRepository.save(link);
 
-    return new AssignmentResult(providerOfficeLinkGuid, manager.getContractManagerId());
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+    return new ContractManagerAssignmentResult(
+        providerOfficeLinkGuid, manager.getContractManagerId());
   }
-
-  /**
-   * Simple result DTO representing the outcome of an assignment operation.
-   *
-   * @param officeGuid the GUID of the provider office link that received the assignment
-   * @param contractManagerId the business/external identifier of the assigned contract manager
-   */
-  public record AssignmentResult(UUID officeGuid, String contractManagerId) {}
 }

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesLiaisonManagersApi;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeLiaisonManagers200Response;
@@ -137,7 +138,10 @@ public class ProviderFirmOfficesLiaisonManagersController
 
     var result =
         liaisonManagerCommandService.postOfficeLiaisonManager(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, request);
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            request,
+            EventContext.of(xCorrelationId, traceparent));
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(

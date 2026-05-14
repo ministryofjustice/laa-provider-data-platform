@@ -9,6 +9,7 @@ import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesApi;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
@@ -82,7 +83,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             lmEntity,
             lmLinkTemplate,
             linkToHeadOffice,
-            lspOfficeCreateV2.getPayment());
+            lspOfficeCreateV2.getPayment(),
+            EventContext.of(xCorrelationId, traceparent));
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()
@@ -168,7 +170,10 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String traceparent) {
     OfficeCreationResult result =
         officeCommandService.patchOffice(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            officePatchV2,
+            EventContext.of(xCorrelationId, traceparent));
     return ResponseEntity.ok(
         new CreateProviderFirmOffice201Response()
             .data(

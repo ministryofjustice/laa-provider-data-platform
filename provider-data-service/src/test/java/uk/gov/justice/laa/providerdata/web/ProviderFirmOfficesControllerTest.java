@@ -218,7 +218,7 @@ class ProviderFirmOfficesControllerTest {
     var providerGuid = UUID.randomUUID();
     var officeGuid = UUID.randomUUID();
 
-    when(officeCommandService.patchOffice(eq("100001"), eq(officeGuid.toString()), any()))
+    when(officeCommandService.patchOffice(eq("100001"), eq(officeGuid.toString()), any(), any()))
         .thenReturn(new OfficeCreationResult(providerGuid, "100001", officeGuid, "ABC123"));
 
     mockMvc

@@ -5,11 +5,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesContractManagersApi;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.model.ContractManagerProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeContractManagers200ResponseData;
+import uk.gov.justice.laa.providerdata.service.ContractManagerAssignmentResult;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerQueryService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
@@ -73,9 +75,12 @@ public class ProviderFirmOfficeContractManagersController
       throw new IllegalArgumentException("contractManagerGUID must be provided");
     }
 
-    OfficeContractManagerCommandService.AssignmentResult result =
+    ContractManagerAssignmentResult result =
         assignmentService.assign(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGuid);
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            contractManagerGuid,
+            EventContext.of(xCorrelationId, traceparent));
 
     // populate what we can without additional lookups
     CreateProviderFirmOfficeContractManager201ResponseData data =

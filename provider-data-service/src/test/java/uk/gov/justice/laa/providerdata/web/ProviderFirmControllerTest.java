@@ -44,7 +44,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new ProviderCreationResult(guid, "LSP-ABCD1234", UUID.randomUUID(), "ACC001"));
 
     mockMvc
@@ -67,7 +67,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_chambers_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any(), any()))
         .thenReturn(new ProviderCreationResult(guid, "CH-ABCD1234", UUID.randomUUID(), "ACC002"));
 
     mockMvc
@@ -90,7 +90,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_practitioner_returns201() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createPractitionerFirm(any(), any(), any()))
+    when(providerFirmCreationService.createPractitionerFirm(any(), any(), any(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "ADV-ABCD1234"));
 
     mockMvc
@@ -201,7 +201,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.patchProvider(anyString(), any()))
+    when(providerFirmCreationService.patchProvider(anyString(), any(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
 
     mockMvc
@@ -227,7 +227,7 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.patchProvider(anyString(), any()))
+    when(providerFirmCreationService.patchProvider(anyString(), any(), any()))
         .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
 
     mockMvc

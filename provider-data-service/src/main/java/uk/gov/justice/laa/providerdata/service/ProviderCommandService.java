@@ -21,6 +21,7 @@ import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
@@ -65,6 +66,7 @@ public class ProviderCommandService {
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final BankAccountCommandService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Inject dependencies.
@@ -80,6 +82,7 @@ public class ProviderCommandService {
    * @param providerParentLinkRepository to save and query provider parent links.
    * @param bankDetailsService to create and link bank accounts.
    * @param bankAccountMapper to map bank account request DTOs to entities.
+   * @param providerEventPublisher to publish provider firm changed events.
    */
   public ProviderCommandService(
       ProviderRepository providerRepository,
@@ -92,7 +95,8 @@ public class ProviderCommandService {
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       BankAccountCommandService bankDetailsService,
-      BankAccountMapper bankAccountMapper) {
+      BankAccountMapper bankAccountMapper,
+      ProviderEventPublisher providerEventPublisher) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
@@ -104,6 +108,7 @@ public class ProviderCommandService {
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
+    this.providerEventPublisher = providerEventPublisher;
   }
 
   /**
@@ -127,7 +132,8 @@ public class ProviderCommandService {
       LspProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
-      @Nullable PaymentDetailsCreateV2 payment) {
+      @Nullable PaymentDetailsCreateV2 payment,
+      EventContext eventContext) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -146,6 +152,8 @@ public class ProviderCommandService {
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
+    providerEventPublisher.publishAfterWrite(savedProvider, eventContext);
+
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
@@ -160,6 +168,7 @@ public class ProviderCommandService {
    * @param lmTemplate liaison manager entity to create, or {@code null} if none
    * @param lmLinkTemplate partially-populated LM link template with activeDateFrom set, or {@code
    *     null} if none
+   * @param eventContext correlation and trace identifiers from the incoming request
    * @return identifiers for the created provider and head office
    */
   @Transactional
@@ -168,7 +177,8 @@ public class ProviderCommandService {
       OfficeEntity officeTemplate,
       ChamberProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
-      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      EventContext eventContext) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -184,6 +194,8 @@ public class ProviderCommandService {
     ProviderOfficeLinkEntity savedLink = chamberProviderOfficeLinkRepository.save(linkTemplate);
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
+
+    providerEventPublisher.publishAfterWrite(savedProvider, eventContext);
 
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
@@ -204,13 +216,15 @@ public class ProviderCommandService {
    * @param practitionerTemplate partially-populated provider entity (firmType and name set)
    * @param parentFirms parent firm references from the request, or {@code null}/empty
    * @param payment payment details from the request, or {@code null}
+   * @param eventContext correlation and trace identifiers from the incoming request
    * @return identifiers for the created provider and head office (if created)
    */
   @Transactional
   public ProviderCreationResult createPractitionerFirm(
       PractitionerEntity practitionerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
-      @Nullable PaymentDetailsCreateV2 payment) {
+      @Nullable PaymentDetailsCreateV2 payment,
+      EventContext eventContext) {
     practitionerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(
             practitionerTemplate.getFirmType(), practitionerTemplate.getAdvocateType()));
@@ -225,6 +239,7 @@ public class ProviderCommandService {
 
     if (officeLink != null) {
       persistBankDetailsForOffice(payment, saved, officeLink);
+      providerEventPublisher.publishAfterWrite(saved, eventContext);
       return new ProviderCreationResult(
           saved.getGuid(),
           saved.getFirmNumber(),
@@ -233,13 +248,14 @@ public class ProviderCommandService {
     }
 
     persistBankDetailsForPractitioner(payment, saved);
+    providerEventPublisher.publishAfterWrite(saved, eventContext);
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 
   /** Applies supported provider PATCH fields for the resolved provider subtype. */
   @Transactional
   public ProviderCreationResult patchProvider(
-      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch) {
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 patch, EventContext eventContext) {
     ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
 
     if (patch.getName() != null) {
@@ -258,6 +274,7 @@ public class ProviderCommandService {
     }
 
     var saved = providerRepository.save(provider);
+    providerEventPublisher.publishAfterWrite(saved, eventContext);
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
   }
 

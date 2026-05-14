@@ -29,6 +29,7 @@ import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.service.LiaisonManagerLinkResult;
 import uk.gov.justice.laa.providerdata.service.OfficeLiaisonManagerCommandService;
 import uk.gov.justice.laa.providerdata.service.OfficeQueryService;
 
@@ -180,9 +181,9 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
 
     given(
             liaisonManagerCommandService.postOfficeLiaisonManager(
-                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class), any()))
         .willReturn(
-            new OfficeLiaisonManagerCommandService.OfficeLiaisonManagerOperationResult(
+            new LiaisonManagerLinkResult(
                 providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
 
     String validJson =
@@ -214,6 +215,6 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
 
     verify(liaisonManagerCommandService)
         .postOfficeLiaisonManager(
-            eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
+            eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class), any());
   }
 }

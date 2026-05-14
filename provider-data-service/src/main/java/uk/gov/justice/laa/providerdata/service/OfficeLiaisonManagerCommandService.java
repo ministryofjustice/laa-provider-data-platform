@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import java.time.LocalDate;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
@@ -9,6 +8,7 @@ import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
@@ -28,6 +28,7 @@ public class OfficeLiaisonManagerCommandService {
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  private final ProviderEventPublisher providerEventPublisher;
 
   /**
    * Inject dependencies.
@@ -36,40 +37,28 @@ public class OfficeLiaisonManagerCommandService {
    * @param providerOfficeLinkRepository to look up offices across all firm types.
    * @param liaisonManagerRepository to save liaison manager entities.
    * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
+   * @param providerEventPublisher to publish provider firm changed events.
    */
   public OfficeLiaisonManagerCommandService(
       ProviderRepository providerRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
-      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository) {
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      ProviderEventPublisher providerEventPublisher) {
     this.providerRepository = providerRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
+    this.providerEventPublisher = providerEventPublisher;
   }
-
-  /**
-   * Result record returned after a successful liaison manager create or link operation.
-   *
-   * @param providerFirmGuid GUID of the resolved provider firm.
-   * @param providerFirmNumber firm number of the resolved provider.
-   * @param officeGuid GUID of the resolved office link.
-   * @param officeCode account number of the resolved office.
-   * @param liaisonManagerGuid GUID of the liaison manager now linked to the office.
-   */
-  public record OfficeLiaisonManagerOperationResult(
-      UUID providerFirmGuid,
-      String providerFirmNumber,
-      UUID officeGuid,
-      String officeCode,
-      UUID liaisonManagerGuid) {}
 
   /** POST create/link liaison manager (end-dates existing links for target office). */
   @Transactional
-  public OfficeLiaisonManagerOperationResult postOfficeLiaisonManager(
+  public LiaisonManagerLinkResult postOfficeLiaisonManager(
       String providerFirmGuidOrNumber,
       String officeGuidOrCode,
-      OfficeLiaisonManagerCreateOrLinkV2 request) {
+      OfficeLiaisonManagerCreateOrLinkV2 request,
+      EventContext eventContext) {
 
     ProviderEntity provider = resolveProvider(providerFirmGuidOrNumber);
     ProviderOfficeLinkEntity providerOfficeLink =
@@ -101,7 +90,9 @@ public class OfficeLiaisonManagerCommandService {
 
     officeLiaisonManagerLinkRepository.save(newLink);
 
-    return new OfficeLiaisonManagerOperationResult(
+    providerEventPublisher.publishAfterWrite(provider, eventContext);
+
+    return new LiaisonManagerLinkResult(
         provider.getGuid(),
         provider.getFirmNumber(),
         providerOfficeLink.getGuid(),

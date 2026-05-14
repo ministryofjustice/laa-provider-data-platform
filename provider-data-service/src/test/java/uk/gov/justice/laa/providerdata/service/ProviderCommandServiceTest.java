@@ -32,6 +32,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
@@ -68,6 +69,7 @@ class ProviderCommandServiceTest {
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private BankAccountCommandService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
+  @Mock private ProviderEventPublisher providerEventPublisher;
 
   @InjectMocks private ProviderCommandService service;
 
@@ -108,7 +110,8 @@ class ProviderCommandServiceTest {
             linkTemplate,
             null,
             null,
-            null);
+            null,
+            EventContext.empty());
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isNotBlank();
@@ -166,7 +169,8 @@ class ProviderCommandServiceTest {
             new LspProviderOfficeLinkEntity(),
             lmTemplate,
             lmLink,
-            null);
+            null,
+            EventContext.empty());
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     verify(liaisonManagerRepository).save(lmTemplate);
@@ -213,7 +217,8 @@ class ProviderCommandServiceTest {
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
-            null);
+            null,
+            EventContext.empty());
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isNotBlank();
@@ -235,7 +240,10 @@ class ProviderCommandServiceTest {
 
     var result =
         service.createPractitionerFirm(
-            AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null);
+            AdvocatePractitionerEntity.builder().name("A. Barrister").build(),
+            null,
+            null,
+            EventContext.empty());
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isNotBlank();
@@ -269,7 +277,8 @@ class ProviderCommandServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
-        null);
+        null,
+        EventContext.empty());
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
     verify(advocateProviderOfficeLinkRepository).save(any(AdvocateProviderOfficeLinkEntity.class));
@@ -301,7 +310,8 @@ class ProviderCommandServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid)),
-        null);
+        null,
+        EventContext.empty());
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
     verify(advocateProviderOfficeLinkRepository).save(any(AdvocateProviderOfficeLinkEntity.class));
@@ -343,7 +353,8 @@ class ProviderCommandServiceTest {
         service.createPractitionerFirm(
             AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
             List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
-            null);
+            null,
+            EventContext.empty());
 
     assertThat(result.headOfficeGUID()).isEqualTo(advocateOfficeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
@@ -366,7 +377,8 @@ class ProviderCommandServiceTest {
                 service.createPractitionerFirm(
                     AdvocatePractitionerEntity.builder().name("A.").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-NO-OFFICE")),
-                    null))
+                    null,
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("no head office");
   }
@@ -381,7 +393,8 @@ class ProviderCommandServiceTest {
                 service.createPractitionerFirm(
                     AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN")),
-                    null))
+                    null,
+                    EventContext.empty()))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("UNKNOWN");
   }
@@ -407,7 +420,10 @@ class ProviderCommandServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createPractitionerFirm(
-        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
+        null,
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService).createAndLinkToProvider(eq(accountTemplate), any());
   }
@@ -419,7 +435,10 @@ class ProviderCommandServiceTest {
     var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
 
     service.createPractitionerFirm(
-        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
+        null,
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService, never()).createAndLinkToProvider(any(), any());
   }
@@ -462,7 +481,8 @@ class ProviderCommandServiceTest {
         linkTemplate,
         null,
         null,
-        payment);
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService)
         .createAndLink(eq(accountTemplate), any(), eq(linkTemplate), isNull());
@@ -482,7 +502,8 @@ class ProviderCommandServiceTest {
         new LspProviderOfficeLinkEntity(),
         null,
         null,
-        payment);
+        payment,
+        EventContext.empty());
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
   }
@@ -507,7 +528,8 @@ class ProviderCommandServiceTest {
                     .indemnityReceivedDate(LocalDate.of(2024, 1, 2))
                     .companiesHouseNumber("12345678"));
 
-    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+    ProviderCreationResult result =
+        service.patchProvider(guid.toString(), patch, EventContext.empty());
 
     assertThat(existing.getName()).isEqualTo("New Name");
     assertThat(existing.getConstitutionalStatus()).isEqualTo("Partnership");
@@ -537,7 +559,7 @@ class ProviderCommandServiceTest {
             .name("New")
             .legalServicesProvider(new LSPDetailsPatchV2().companiesHouseNumber("X"));
 
-    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch, EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("legalServicesProvider updates require a Legal Services Provider");
   }
@@ -559,7 +581,7 @@ class ProviderCommandServiceTest {
                     .headOffice(
                         new uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2()));
 
-    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch, EventContext.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Head office reassignment is not supported");
   }
@@ -582,7 +604,8 @@ class ProviderCommandServiceTest {
                     .advocateLevel(PractitionerDetailsAdvocateLevelV2.KC)
                     .solicitorRegulationAuthorityRollNumber("SRA-123"));
 
-    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+    ProviderCreationResult result =
+        service.patchProvider(guid.toString(), patch, EventContext.empty());
 
     assertThat(existing.getAdvocateLevel()).isEqualTo("KC");
     assertThat(existing.getSolicitorRegulationAuthorityRollNumber()).isEqualTo("SRA-123");
@@ -623,7 +646,7 @@ class ProviderCommandServiceTest {
                             new PractitionerDetailsParentUpdateV2OneOf(parentGuid),
                             new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
 
-    service.patchProvider(guid.toString(), patch);
+    service.patchProvider(guid.toString(), patch, EventContext.empty());
 
     org.mockito.ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
         org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
@@ -653,7 +676,8 @@ class ProviderCommandServiceTest {
         new ProviderPatchV2()
             .practitioner(new PractitionerDetailsPatchV2().barCouncilRollNumber("BAR-123"));
 
-    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+    ProviderCreationResult result =
+        service.patchProvider(guid.toString(), patch, EventContext.empty());
 
     assertThat(result.providerFirmGUID()).isEqualTo(guid);
     assertThat(result.firmNumber()).isEqualTo("100003");

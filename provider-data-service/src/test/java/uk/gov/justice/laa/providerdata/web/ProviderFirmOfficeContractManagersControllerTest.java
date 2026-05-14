@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.providerdata.web;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
+import uk.gov.justice.laa.providerdata.service.ContractManagerAssignmentResult;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerCommandService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerQueryService;
 
@@ -66,10 +68,9 @@ class ProviderFirmOfficeContractManagersControllerTest {
     when(assignmentService.assign(
             eq(providerGuid.toString()),
             eq(providerOfficeLinkGuid.toString()),
-            eq(contractManagerGuid)))
-        .thenReturn(
-            new OfficeContractManagerCommandService.AssignmentResult(
-                providerOfficeLinkGuid, "CM-001"));
+            eq(contractManagerGuid),
+            any()))
+        .thenReturn(new ContractManagerAssignmentResult(providerOfficeLinkGuid, "CM-001"));
 
     mockMvc
         .perform(
@@ -100,10 +101,8 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
-        .thenReturn(
-            new OfficeContractManagerCommandService.AssignmentResult(
-                providerOfficeLinkGuid, "CM-001"));
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid), any()))
+        .thenReturn(new ContractManagerAssignmentResult(providerOfficeLinkGuid, "CM-001"));
 
     mockMvc
         .perform(
@@ -200,7 +199,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID officeGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid), any()))
         .thenThrow(new RuntimeException("boom"));
 
     mockMvc

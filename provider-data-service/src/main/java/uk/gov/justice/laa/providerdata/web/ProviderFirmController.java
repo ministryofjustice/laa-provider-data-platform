@@ -23,6 +23,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.event.EventContext;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
@@ -95,11 +96,13 @@ public class ProviderFirmController {
       consumes = "application/json",
       produces = "application/json")
   public ResponseEntity<CreateProviderFirm201Response> createProviderFirm(
+      @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
+      @RequestHeader(value = "traceparent", required = false) String traceparent,
       @RequestBody ProviderCreateV2 request) {
 
     validateRequest(request);
 
-    ProviderCreationResult result = dispatch(request);
+    ProviderCreationResult result = dispatch(request, EventContext.of(xCorrelationId, traceparent));
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
@@ -211,12 +214,16 @@ public class ProviderFirmController {
       consumes = "application/json",
       produces = "application/json")
   public ResponseEntity<CreateProviderFirm201Response> patchProviderFirm(
-      @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
+      @PathVariable String providerFirmGUIDorFirmNumber,
+      @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
+      @RequestHeader(value = "traceparent", required = false) String traceparent,
+      @RequestBody ProviderPatchV2 request) {
 
     validatePatchRequest(request);
 
     ProviderCreationResult result =
-        providerFirmCreationService.patchProvider(providerFirmGUIDorFirmNumber, request);
+        providerFirmCreationService.patchProvider(
+            providerFirmGUIDorFirmNumber, request, EventContext.of(xCorrelationId, traceparent));
 
     return ResponseEntity.ok(
         new CreateProviderFirm201Response()
@@ -226,7 +233,7 @@ public class ProviderFirmController {
                     .providerFirmNumber(result.firmNumber())));
   }
 
-  private ProviderCreationResult dispatch(ProviderCreateV2 request) {
+  private ProviderCreationResult dispatch(ProviderCreateV2 request, EventContext eventContext) {
     if (request.getLegalServicesProvider() != null) {
       ProviderCreateLSPV2LegalServicesProvider lsp = request.getLegalServicesProvider();
       LiaisonManagerEntity lmEntity = lmEntity(lsp.getLiaisonManager());
@@ -237,7 +244,8 @@ public class ProviderFirmController {
           officeMapper.toHeadOfficeLinkTemplate(lsp),
           lmEntity,
           lmLink,
-          lsp.getPayment());
+          lsp.getPayment(),
+          eventContext);
     }
     if (request.getChambers() != null) {
       ChambersHeadOfficeCreateV2 chambers = request.getChambers();
@@ -248,12 +256,14 @@ public class ProviderFirmController {
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
-          lmLink);
+          lmLink,
+          eventContext);
     }
     return providerFirmCreationService.createPractitionerFirm(
         buildPractitionerTemplate(request.getName(), request.getPractitioner()),
         request.getPractitioner().getParentFirms(),
-        request.getPractitioner().getPayment());
+        request.getPractitioner().getPayment(),
+        eventContext);
   }
 
   private static PractitionerEntity buildPractitionerTemplate(

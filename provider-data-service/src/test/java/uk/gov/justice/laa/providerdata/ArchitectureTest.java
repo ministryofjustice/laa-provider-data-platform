@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -116,6 +117,52 @@ class ArchitectureTest {
           .because(
               "write operations must not override a class-level @Transactional(readOnly = true);"
                   + " extract them to a command service");
+
+  /**
+   * Classes annotated {@code @Transactional(readOnly = true)} must not call any {@code save*} or
+   * {@code delete*} method on a Spring Data repository.
+   */
+  @ArchTest
+  static final ArchRule readonly_classes_must_not_call_repository_mutations =
+      classes()
+          .that(isAnnotatedWithReadOnlyTransactional())
+          .should(notCallRepositoryMutationMethods())
+          .because(
+              "classes annotated @Transactional(readOnly = true) must not call repository"
+                  + " save* or delete* methods; extract writes to a CommandService");
+
+  private static DescribedPredicate<JavaClass> isAnnotatedWithReadOnlyTransactional() {
+    return new DescribedPredicate<>("annotated @Transactional(readOnly = true)") {
+      @Override
+      public boolean test(JavaClass clazz) {
+        return clazz.isAnnotatedWith(Transactional.class)
+            && clazz.getAnnotationOfType(Transactional.class).readOnly();
+      }
+    };
+  }
+
+  private static ArchCondition<JavaClass> notCallRepositoryMutationMethods() {
+    return new ArchCondition<>("not call repository save* or delete* methods") {
+      @Override
+      public void check(JavaClass clazz, ConditionEvents events) {
+        clazz.getMethodCallsFromSelf().stream()
+            .filter(
+                call -> {
+                  String name = call.getTarget().getName();
+                  return name.startsWith("save") || name.startsWith("delete");
+                })
+            .filter(call -> call.getTargetOwner().isAssignableTo(Repository.class))
+            .forEach(
+                call ->
+                    events.add(
+                        SimpleConditionEvent.violated(
+                            clazz,
+                            call.getDescription()
+                                + " calls a repository mutation method from a"
+                                + " @Transactional(readOnly = true) class")));
+      }
+    };
+  }
 
   private static ArchCondition<JavaClass> haveAutowiredFields() {
     return new ArchCondition<>("not have @Autowired field injection") {

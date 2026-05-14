@@ -10,4 +10,4 @@ weight: 18
 - [Schema reference](schema-reference.html) - Key entity and identifier relationships
 - [Architecture patterns](architecture-patterns.html) - Package structure options and naming conventions
 - [Async event patterns](event-patterns.html) - Command queue and domain event publishing options
-- [Proposed architecture](architecture-proposal.html) - A proposal and direction of travel for the code-level architecture
+- [Technical layers proposal](technical-layers-proposal.html) - A proposal and direction of travel for the code-level architecture

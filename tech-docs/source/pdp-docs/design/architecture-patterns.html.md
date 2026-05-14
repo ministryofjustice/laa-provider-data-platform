@@ -9,12 +9,12 @@ weight: 20
 Five architectural options for `provider-data-service`. Options 1 to 3 enforce the same
 inward-dependency rule and are compatible with use-case-level CQRS. No framework or technology
 changes are required for any of them. Options 4 and 5 are layered variants that do not invert
-the dependency direction. See [Proposed architecture](architecture-proposal.html) for a recommended
+the dependency direction. See [Technical layers proposal](technical-layers-proposal.html) for a recommended
 approach.
 
 ## Patterns
 
-> If you know these patterns, skip to [Current structure](#current-structure).
+> If you know these patterns, skip to [Pre-refactoring structure](#pre-refactoring-structure).
 
 ### Layered architecture
 
@@ -89,9 +89,9 @@ Further reading:
 ### Spring Modulith
 
 [Spring Modulith](https://docs.spring.io/spring-modulith/reference/) treats top-level packages as
-application modules and verifies their boundaries at test time. Types in an `internal` sub-package
-are inaccessible to code outside that module. Cross-module interaction goes via the module's
-public types (non-`internal`) or via Spring `ApplicationEvent`.
+application modules and verifies their boundaries at test time. Types in the module root package
+are accessible to other modules; types in any sub-package are module-private. Cross-module
+interaction goes via the module's root-package types or via Spring `ApplicationEvent`.
 
 Spring Modulith also provides an **event publication registry**: domain events published inside a
 `@Transactional` method are recorded in an `event_publication` table in the same transaction. A
@@ -137,12 +137,12 @@ Concept mapping across all five options:
 
 | Concept                        | Onion (Option 1)                           | Clean architecture (Option 2)      | Hexagonal (Option 3)                       | Layered (Option 4)                   | Modular layered (Option 5) |
 |--------------------------------|--------------------------------------------|------------------------------------|--------------------------------------------|--------------------------------------|----------------------------|
-| HTTP controllers + web mappers | `infrastructure/web`                       | `adapter/web`                      | `adapter/in/web`                           | `controller/`                        | `{module}/web/`            |
-| Command and query objects      | `application/command`, `application/query` | `usecase/command`, `usecase/query` | `application/command`, `application/query` | `service/command/`, `service/query/` | `{module}/`                |
+| HTTP controllers + web mappers | `infrastructure/web`                       | `adapter/web`                      | `adapter/in/web`                           | `web/`                               | `{module}/web/`            |
+| Command and query objects      | `application/command`, `application/query` | `usecase/command`, `usecase/query` | `application/command`, `application/query` | `service/`                           | `{module}/`                |
 | Inbound port interfaces        | `application` (no sub-package)             | `usecase/boundary`                 | `application/port/in`                      | -                                    | -                          |
 | Outbound port interfaces       | `domain/service`                           | `usecase/boundary`                 | `application/port/out`                     | -                                    | -                          |
-| Use case implementations       | `application`                              | `usecase/interactor`               | `application/usecase`                      | `service/command/`, `service/query/` | `{module}/`                |
-| JPA entity classes             | `domain/model`                             | `entity/`                          | `domain/`                                  | `entity/`                            | `{module}/entity/`         |
+| Use case implementations       | `application`                              | `usecase/interactor`               | `application/usecase`                      | `service/`                           | `{module}/`                |
+| JPA entity classes             | `domain/model`                             | `entity/`                          | `domain/`                                  | `entity/`                            | `{module}/`                |
 | Spring Data repositories       | `infrastructure/persistence`               | `adapter/persistence`              | `adapter/out/persistence`                  | `repository/`                        | `{module}/repository/`     |
 
 Notes on the table:
@@ -170,10 +170,10 @@ The codebase previously followed a conventional layered arrangement:
 
 ```
 uk.gov.justice.laa.providerdata
-  config/        Spring configuration, LocalDataSeeder
+  config/        Spring configuration
   controller/    Spring MVC controllers
   entity/        JPA entities
-  exception/     GlobalExceptionHandler, ItemNotFoundException
+  exception/     exception handler, custom exception types
   mapper/        MapStruct mappers (entity <-> OpenAPI model)
   repository/    Spring Data JPA repositories
   service/       Application services
@@ -200,9 +200,10 @@ boundary - adds significant boilerplate for limited benefit here. The domain mod
 straightforward, entity relationships are well-understood, and there's no requirement to swap the
 persistence technology. It's not being considered.
 
-Use cases must not import Spring Data interfaces or JPA annotations directly - only entity classes
-and plain result types. Repository interfaces are defined in terms of entity classes and
-projections. The persistence layer implements them.
+For Options 1, 2 and 3, use cases must not import Spring Data interfaces or JPA annotations
+directly - only entity classes and plain result types. Repository interfaces are defined in terms
+of entity classes and projections. The persistence layer implements them. For Options 4 and 5,
+services call Spring Data repositories directly; no repository abstraction layer is introduced.
 
 ### CQRS at use-case level
 
@@ -213,24 +214,18 @@ responses, and query use cases have no side effects.
 **Commands** - carry the validated input for a single mutation, constructed by the web layer
 and passed to the use case. Examples:
 
-| Command                        | Use case                                                         |
-|--------------------------------|------------------------------------------------------------------|
-| `CreateProviderFirmCommand`    | `POST /provider-firms`                                           |
-| `CreateOfficeCommand`          | `POST /provider-firms/{id}/offices`                              |
-| `AssignLiaisonManagerCommand`  | `POST /provider-firms/{id}/offices/{officeId}/liaison-managers`  |
-| `AssignContractManagerCommand` | `POST /provider-firms/{id}/offices/{officeId}/contract-managers` |
-| `UpdateProviderFirmCommand`    | `PATCH /provider-firms/{id}`                                     |
-| `UpdateOfficeCommand`          | `PATCH /provider-firms/{id}/offices/{officeId}`                  |
+| Command                     | Use case                     |
+|-----------------------------|------------------------------|
+| `CreateProviderFirmCommand` | `POST /provider-firms`       |
+| `UpdateProviderFirmCommand` | `PATCH /provider-firms/{id}` |
 
 **Queries** - carry the parameters for a read. Results are entity classes, projections, or plain
 types, and the web layer maps them to the generated OpenAPI response model. Examples:
 
-| Query                        | Use case                                                          |
-|------------------------------|-------------------------------------------------------------------|
-| `ProviderFirmSearchQuery`    | `GET /provider-firms`                                             |
-| `OfficeSearchQuery`          | `GET /provider-firms/{id}/offices`, `GET /provider-firms-offices` |
-| `LiaisonManagerHistoryQuery` | `GET /provider-firms/{id}/offices/{officeId}/liaison-managers`    |
-| `ContractManagerSearchQuery` | `GET /provider-contract-managers`                                 |
+| Query                     | Use case                           |
+|---------------------------|------------------------------------|
+| `ProviderFirmSearchQuery` | `GET /provider-firms`              |
+| `OfficeSearchQuery`       | `GET /provider-firms/{id}/offices` |
 
 ## Options
 
@@ -326,8 +321,7 @@ public interface ProviderFirmRepository {
 }
 ```
 
-The existing services map directly to use case classes: `ProviderCreationService` ->
-`CreateProviderFirmUseCase`, `OfficeService` -> `CreateOfficeUseCase`, etc.
+The existing service classes map directly to use case implementations.
 
 **Pros:** the `in`/`out` distinction makes dependency direction explicit, and it's easy to add
 further delivery mechanisms (messaging, CLI) as additional `adapter/in/...` packages.
@@ -340,29 +334,32 @@ haven't encountered Cockburn's terminology. Packages are deeply nested.
 ```
 uk.gov.justice.laa.providerdata
   config/
-  controller/
   entity/
+  event/        event types, listeners, event query service
   exception/
   mapper/
   repository/
-  service/
-    command/     write services
-    query/       read services
+  service/      command and query services, result types
   util/
+  web/
 ```
 
-Retains the current layer-based package structure. The CQRS constraint from
-[Command/query separation](#cqrs-at-use-case-level) is made explicit by splitting the `service`
-package into `command` and `query` sub-packages. ArchUnit enforces layer boundaries: controllers
-may not call repositories directly; services may not import Spring MVC types. No additional
-framework dependencies are required.
+Retains the flat technical layer package structure. Command and query services would coexist in
+`service/`, distinguished by naming convention (`CommandService`, `QueryService`) and enforced by
+ArchUnit. An `event/` package would hold event types and listeners; command services would publish
+events after writes, and listeners would handle downstream delivery (for example, to SQS or SNS).
+[Spring Modulith](https://docs.spring.io/spring-modulith/reference/) can treat each top-level
+package as a module: `ApplicationModulesTest` would enforce that `web` does not call `repository`
+directly, and sub-packages within each layer would be module-private. The event publication
+registry would record domain events atomically with entity changes, providing a transactional
+outbox without a custom implementation. Hibernate Envers handles audit history independently.
 
-**Pros:** minimal structural change from the current codebase. No new framework dependencies.
-Familiar to all Spring developers.
+**Pros:** minimal structural change from the current codebase. Familiar to all Spring developers.
+Spring Modulith's module concept applies equally to technical layer packages.
 
-**Cons:** no module isolation. All packages are globally visible. As the domain grows, `entity/`,
-`repository/`, and `service/` packages grow without internal structure. A change in one domain
-area is not isolated from another at the package level.
+**Cons:** as the domain grows, `entity/`, `repository/`, and `service/` packages grow without
+internal structure. Coarser domain modules can be introduced later if genuine bounded contexts
+emerge.
 
 Further reading:
 
@@ -373,23 +370,20 @@ Further reading:
 
 ```
 uk.gov.justice.laa.providerdata
-  shared/          AuditableEntity, ItemNotFoundException, PageLinks, PageMetadata,
-                   PageParamValidator, ProviderFirmTypeConverter, ReferenceNumberUtils,
-                   UuidUtils at ROOT (accessible to all modules). config/ and web/ internal
-  provider/        domain module. ProviderEntity + subtypes, ProviderQueryService,
-                   ProviderCommandService at ROOT. repository/ internal
-  office/          domain module. OfficeEntity + link entity types, OfficeCommandService,
-                   OfficeQueryService at ROOT. repository/ and web/ internal
-  bankaccount/     domain module; BankAccountEntity, BankAccountCommandService,
-                   BankAccountQueryService, BankAccountMapper at ROOT. entity/ and
-                   repository/ and web/ internal
-  liaisonmanager/  domain module. LiaisonManagerEntity, OfficeLiaisonManagerLinkEntity,
-                   OfficeLiaisonManagerCommandService, OfficeLiaisonManagerQueryService
-                   at ROOT. repository/ and web/ internal
-  contractmanager/ domain module. ContractManagerEntity and services at ROOT. entity/,
-                   mapper/, repository/, web/ internal
-  usecase/         orchestration module. ProviderFirmUseCase, OfficeFirmUseCase,
-                   OfficeMapper, ProviderMapper at ROOT; web/ internal
+  shared/          cross-cutting utilities and base types at ROOT (accessible to all modules).
+                   config/ and web/ module-internal
+  provider/        domain module. entity types and command/query services at ROOT.
+                   repository/ module-internal
+  office/          domain module. entity types and command/query services at ROOT.
+                   repository/ and web/ module-internal
+  bankaccount/     domain module. entity types, command/query services, and mapper at ROOT.
+                   repository/ and web/ module-internal
+  liaisonmanager/  domain module. entity types and command/query services at ROOT.
+                   repository/ and web/ module-internal
+  contractmanager/ domain module. entity types and command/query services at ROOT.
+                   mapper/, repository/, and web/ module-internal
+  usecase/         orchestration module. use-case orchestrators and mappers at ROOT.
+                   web/ module-internal
   contract/        new module. built domain-first from the outset
 ```
 
@@ -411,9 +405,15 @@ custom implementation.
 The event publication registry provides the transactional outbox. Scales naturally as the domain
 grows.
 
-**Cons:** requires package reorganisation from the flat layer structure. Domain boundaries that are
-unclear initially may require an orchestration module to temporarily absorb several domains until
-they can be separated cleanly.
+**Cons:** requires package reorganisation from the flat layer structure. Per-entity module
+granularity can be counterproductive when the API specification is designed around user workflows
+rather than aggregate boundaries: an endpoint that spans multiple aggregates forces an
+orchestration module that depends on all others, re-creating the coupling the boundaries were
+supposed to prevent. Module boundaries at this granularity generate observability noise
+(module-crossing spans in distributed tracing) disproportionate to the isolation benefit. Module
+granularity should reflect genuine bounded contexts, not entity boundaries. For an API designed
+around user workflows, coarser modules (two or three) or flat technical layers may be more
+appropriate.
 
 Further reading:
 
@@ -431,9 +431,8 @@ Further reading:
 **Options 1, 2 and 3**
 
 The migration steps are the same regardless of which is chosen. Only the destination package names
-differ. The existing services - `ProviderCreationService`, `OfficeService`, `BankDetailsService`,
-`OfficeLiaisonManagerService`, `OfficeContractManagerAssignmentService` - map naturally to use cases
-in all three structures without changing their internal logic.
+differ. The existing service classes map naturally to use cases in all three structures without
+changing their internal logic.
 
 1. Introduce repository interfaces (the outbound port/domain service/output boundary),
    backed by thin wrappers around the existing Spring Data repositories.
@@ -450,12 +449,15 @@ end-to-end test suites.
 
 **Option 4**
 
-1. Move `ProviderService.patchProvider()` into a dedicated command service in `service/command/`.
-2. Reorganise remaining services: creation and mutation services to `service/command/`; read
-   services to `service/query/`.
+1. Separate the mutation methods and read-only methods into dedicated `CommandService` and
+   `QueryService` service classes, and use appropriate `@Transactional` annotations on them.
+2. Rename the `controller/` package to `web/`.
 3. Introduce command and query objects (see [Constraints](#constraints)) and update controllers
    to construct and pass them.
 4. Introduce ArchUnit rules enforcing layer boundaries and the command/query split.
+5. Introduce [Spring Modulith](https://docs.spring.io/spring-modulith/reference/), add an
+   `ApplicationModulesTest`, and create an `event/` package for event types and listeners.
+6. Publish domain events from command services using the event publication registry.
 
 **Option 5**
 

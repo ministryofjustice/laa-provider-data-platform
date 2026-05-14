@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.controller;
+package uk.gov.justice.laa.providerdata.web;
 
 import java.util.List;
 import org.springframework.data.domain.Page;

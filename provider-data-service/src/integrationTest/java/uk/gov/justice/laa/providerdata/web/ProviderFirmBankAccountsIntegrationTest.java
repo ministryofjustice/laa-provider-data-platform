@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.controller;
+package uk.gov.justice.laa.providerdata.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

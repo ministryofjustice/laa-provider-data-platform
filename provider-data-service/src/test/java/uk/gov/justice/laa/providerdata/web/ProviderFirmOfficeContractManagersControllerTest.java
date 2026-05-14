@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.controller;
+package uk.gov.justice.laa.providerdata.web;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;

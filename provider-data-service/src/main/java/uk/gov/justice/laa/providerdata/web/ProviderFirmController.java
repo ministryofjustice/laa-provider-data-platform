@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.controller;
+package uk.gov.justice.laa.providerdata.web;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;

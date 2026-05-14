@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.providerdata.controller;
+package uk.gov.justice.laa.providerdata.web;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;

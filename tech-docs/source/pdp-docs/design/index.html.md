@@ -6,7 +6,13 @@ weight: 18
 
 # Design
 
-- [Domain model](domain.html) - Aggregate and entity mapping, and current API endpoint interactions
+## Background information
+
+- [Domain model](domain-model.html) - Aggregate and entity mapping, and current API endpoint interactions
 - [Schema reference](schema-reference.html) - Key entity and identifier relationships
-- [Architecture](architecture.html) - Package structure options and naming conventions
-- [Async commands and events](events.html) - Command queue and domain event publishing options
+- [Architecture patterns](architecture-patterns.html) - Package structure options and naming conventions
+- [Async event patterns](event-patterns.html) - Command queue and domain event publishing options
+
+## Proposals
+
+- [Technical layers proposal](technical-layers-proposal.html) - A proposal and direction of travel for the code-level architecture

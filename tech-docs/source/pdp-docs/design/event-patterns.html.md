@@ -1,10 +1,10 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/events.html.md
-title: Async commands and events
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/design/event-patterns.html.md
+title: Async event patterns
 weight: 30
 ---
 
-# Async commands and events
+# Async event patterns
 
 Options for introducing asynchronous command processing and domain event publishing in
 `provider-data-service`. The team has not yet decided which approach to take.
@@ -85,16 +85,16 @@ Envers is a Hibernate module that maintains revision history for JPA entities au
 Annotate an entity with `@Audited` and Envers writes a snapshot of every insert, update, and
 delete to a `*_AUD` shadow table, keyed by a revision number and timestamp. Historical state at
 any revision is queryable via the Envers API - no event replay needed. Envers ships with
-Hibernate 6 and is already on the classpath.
+Hibernate 6; add `org.hibernate.orm:hibernate-envers` to the project dependencies to use it.
 
 Further reading:
 
 - [Hibernate Envers documentation](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html#envers)
 
-## Current state
+## Pre-refactoring state
 
-There's no event publishing and no command queue. All operations are synchronous: the HTTP
-response is returned after the entity is saved.
+There was no event publishing and no command queue. All operations were synchronous: the HTTP
+response was returned after the entity was saved.
 
 ## Constraints
 
@@ -126,27 +126,18 @@ should not be used as the event time.
 Envers gives in-service queryable history. The outbox snapshot gives consumers the data they need
 to reconstruct state without calling back.
 
-Option 1 (direct publish) leaves no persistent record in the service. Audit would need a separate
-mechanism - Envers, a dedicated `audit_log` table, or capturing events at the broker.
-
-### Event catalogue (sketch)
-
-| Event                     | Trigger                                         |
-|---------------------------|-------------------------------------------------|
-| `ProviderFirmCreated`     | `POST /provider-firms`                          |
-| `ProviderFirmUpdated`     | `PATCH /provider-firms/{id}`                    |
-| `OfficeCreated`           | `POST /provider-firms/{id}/offices`             |
-| `OfficeUpdated`           | `PATCH /provider-firms/{id}/offices/{officeId}` |
-| `LiaisonManagerAssigned`  | `POST .../offices/{officeId}/liaison-managers`  |
-| `ContractManagerAssigned` | `POST .../offices/{officeId}/contract-managers` |
-| `BankAccountUpdated`      | `PATCH .../bank-accounts/{id}`                  |
+Option 1 (direct publish) leaves no persistent record in the service. Audit with historical query
+would likely need a separate mechanism - for example, Envers, a dedicated `audit_log` table, or
+capturing events at the broker.
 
 ## Options
 
-These options are independent of the architecture choice in [Architecture](architecture.html) -
-the `EventPublisher` port and outbox adapter slot into Onion, Clean, and Hexagonal equally. Option
-3 is the one exception: if using Hexagonal, the command queue worker fits as `adapter/in/queue`
-alongside `adapter/in/web`.
+These options are independent of the architecture choice in
+[Architecture patterns](architecture-patterns.html) - the `EventPublisher` port and outbox adapter
+slot into Onion, Clean, and Hexagonal equally. Option 3 is the one exception: if using Hexagonal,
+the command queue worker fits as `adapter/in/queue` alongside `adapter/in/web`. For layered
+architecture (Options 4 and 5), Spring Modulith's event publication registry replaces the outbox
+adapter entirely, and the command queue worker (if used) is a dedicated listener bean.
 
 ### Option 1: Direct publish (simplest)
 
@@ -197,12 +188,12 @@ CREATE TABLE outbox (
 The background job can be a polling `@Scheduled` bean or an external change-data-capture tool.
 That choice is independent of the option selected here.
 
-Package additions per architecture option (see [Architecture](architecture.html)):
+Package additions per architecture option (see [Architecture patterns](architecture-patterns.html)):
 
-|                            | Onion                  | Clean              | Hexagonal              |
-|----------------------------|------------------------|--------------------|------------------------|
-| `EventPublisher` interface | `domain/service`       | `usecase/boundary` | `application/port/out` |
-| Outbox writer adapter      | `infrastructure/event` | `adapter/event`    | `adapter/out/event`    |
+| | Onion | Clean | Hexagonal | Layered (Option 4) | Modular layered (Option 5) |
+|---|---|---|---|---|---|
+| `EventPublisher` interface | `domain/service` | `usecase/boundary` | `application/port/out` | `ApplicationEventPublisher` (built-in; no custom interface) | `ApplicationEventPublisher` (built-in; no custom interface) |
+| Outbox writer adapter | `infrastructure/event` | `adapter/event` | `adapter/out/event` | Spring Modulith event publication registry (no custom code) | Spring Modulith event publication registry (no custom code) |
 
 **Pros:** API contracts unchanged. Reliable at-least-once delivery. No distributed transaction.
 
@@ -257,3 +248,9 @@ Steps are the same regardless of which option is chosen. Only Option 3 has addit
 5. Deploy the background job to read and publish outbox events (Options 2 and 3).
 6. (Option 3) Add the `command_inbox` table, update the web adapter to write commands to it,
    and introduce the worker.
+
+If using [Spring Modulith](https://docs.spring.io/spring-modulith/reference/) (which applies to
+Options 4 and 5, but could also be added to Options 1, 2, and 3), steps 1, 2, and 4 are handled
+by the framework. Use `ApplicationEventPublisher` directly rather than a custom port interface,
+and Spring Modulith's event publication registry manages the outbox table. The background job
+(step 5) is replaced by Spring Modulith's built-in publication completion mechanism.

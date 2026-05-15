@@ -119,6 +119,10 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
         .andExpect(jsonPath("$.data.content.length()").value(2))
+        .andExpect(jsonPath("$.data.content[0].guid").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountName").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].sortCode").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountNumber").isNotEmpty())
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(2));
   }
 
@@ -163,8 +167,24 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
         .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].guid").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountName").value("Office Account"))
         .andExpect(jsonPath("$.data.content[0].accountNumber").value("22222222"))
+        .andExpect(jsonPath("$.data.content[0].sortCode").value("65-43-21"))
+        .andExpect(jsonPath("$.data.content[0].activeDateFrom").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].primaryFlag").value(true))
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
+  }
+
+  @Test
+  void getProviderFirmOfficeBankAccounts_returnsNotFound_whenOfficeMissing() throws Exception {
+    mockMvc
+        .perform(
+            get(
+                "/provider-firms/{id}/offices/{officeId}/bank-details",
+                providerGuid,
+                "UNKNOWN-OFFICE"))
+        .andExpect(status().isNotFound());
   }
 
   @Test

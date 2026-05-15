@@ -28,6 +28,7 @@ import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
+import uk.gov.justice.laa.providerdata.model.DXCreateV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
@@ -296,6 +297,7 @@ public class ProviderFirmController {
     }
     if (request.getChambers() != null) {
       variantCount++;
+      validateDxDetails(request.getChambers().getDxDetails());
     }
     if (request.getPractitioner() != null) {
       variantCount++;
@@ -328,6 +330,18 @@ public class ProviderFirmController {
           "firmType '"
               + request.getFirmType().getValue()
               + "' is inconsistent with the variant provided");
+    }
+  }
+
+  private static void validateDxDetails(DXCreateV2 dxDetails) {
+    if (dxDetails == null) {
+      return;
+    }
+    boolean hasNumber = dxDetails.getDxNumber() != null && !dxDetails.getDxNumber().isBlank();
+    boolean hasCentre = dxDetails.getDxCentre() != null && !dxDetails.getDxCentre().isBlank();
+    if (hasNumber != hasCentre) {
+      throw new IllegalArgumentException(
+          "dxNumber and dxCentre must both be provided or both omitted");
     }
   }
 

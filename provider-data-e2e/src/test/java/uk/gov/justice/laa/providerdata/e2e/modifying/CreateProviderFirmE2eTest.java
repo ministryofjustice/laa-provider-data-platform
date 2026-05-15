@@ -191,6 +191,14 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(400);
+
+    given()
+        .queryParam("name", body.get("name"))
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
   /**
@@ -226,6 +234,14 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(400);
+
+    given()
+        .queryParam("name", body.get("name"))
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
   /** AC3 – DX Number and DX Centre provided together */
@@ -333,6 +349,14 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
   /**
@@ -372,6 +396,14 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
   /**
@@ -380,12 +412,13 @@ class CreateProviderFirmE2eTest {
    */
   @Test
   void createChambersFirm_missingAddress_returns409() {
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
     Map<String, Object> body =
         Map.of(
             "firmType",
             "Chambers",
             "name",
-            "E2E-DSTEW Chambers " + System.currentTimeMillis(),
+            firmName,
             "chambers",
             Map.of(
                 "liaisonManager",
@@ -402,6 +435,15 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(409);
+
+    // AC8 – Confirm no partial record was persisted
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
   @Test
@@ -415,12 +457,13 @@ class CreateProviderFirmE2eTest {
             "emailAddress", "a@example.com",
             "telephoneNumber", "020 0000 0000");
 
+    String firmName = "Bad Firm";
     Map<String, Object> body =
         Map.of(
             "firmType",
             "Legal Services Provider",
             "name",
-            "Bad Firm",
+            firmName,
             "legalServicesProvider",
             Map.of(
                 "address", address,
@@ -436,5 +479,13 @@ class CreateProviderFirmE2eTest {
         .post("/provider-firms")
         .then()
         .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 }

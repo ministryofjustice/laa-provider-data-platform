@@ -569,6 +569,9 @@ paths:
       description: |
         Retrieve bank account details for a given provider.
 
+        This is a read-only retrieval operation. It does not create, amend, assign, or unassign
+        bank accounts.
+
         For `Legal Service Provider` or `Advocate` firm type the response returns bank accounts
         associated with that provider only.
 
@@ -654,6 +657,9 @@ paths:
         - Provider Firm Bank Accounts
       description: |
         Retrieve bank account details for a given provider's office.
+
+        This is a read-only retrieval operation. It does not create, amend, assign, or unassign
+        bank accounts.
 
         Note that bank account details are created only via creating or updating office details
         using the `payment` element.

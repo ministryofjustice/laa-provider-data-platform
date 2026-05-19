@@ -21,6 +21,7 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
+        .body("data.content[0].guid", notNullValue())
         .body("data.content[0].accountName", notNullValue())
         .body("data.content[0].sortCode", notNullValue())
         .body("data.content[0].accountNumber", notNullValue())
@@ -78,8 +79,12 @@ class ProviderFirmBankAccountsE2eTest {
         .then()
         .statusCode(200)
         .body("data.content", hasSize(greaterThanOrEqualTo(1)))
+        .body("data.content[0].guid", notNullValue())
+        .body("data.content[0].accountName", notNullValue())
         .body("data.content[0].accountNumber", notNullValue())
         .body("data.content[0].sortCode", notNullValue())
+        .body("data.content[0].activeDateFrom", notNullValue())
+        .body("data.content[0].primaryFlag", notNullValue())
         .body("data.metadata.pagination.totalItems", greaterThanOrEqualTo(1))
         .body("data.metadata.searchCriteria.criteria", empty());
   }

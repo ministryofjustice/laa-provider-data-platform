@@ -46,26 +46,36 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                                                {
-                                                  "firmType": "Legal Services Provider",
-                                                  "name": "Integration Test LSP",
-                                                  "legalServicesProvider": {
-                                                    "address": {
-                                                      "line1": "1 Test Street",
-                                                      "townOrCity": "London",
-                                                      "postcode": "SW1A 1AA"
-                                                    },
-                                                    "payment": {
-                                                      "paymentMethod": "EFT",
-                                                      "bankAccountDetails": {
-                                                        "accountName": "Firm Account",
-                                                        "sortCode": "12-34-56",
-                                                        "accountNumber": "11111111"
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                                """))
+                            {
+                              "firmType": "Legal Services Provider",
+                              "name": "Integration Test LSP",
+                              "legalServicesProvider": {
+                                "constitutionalStatus": "Partnership",
+                                "address": {
+                                  "line1": "1 Test Street",
+                                  "townOrCity": "London",
+                                  "postcode": "SW1A 1AA"
+                                },
+                                "payment": {
+                                  "paymentMethod": "EFT",
+                                  "bankAccountDetails": {
+                                    "accountName": "Firm Account",
+                                    "sortCode": "12-34-56",
+                                    "accountNumber": "11111111"
+                                  }
+                                },
+                                "liaisonManager": {
+                                  "firstName": "Test",
+                                  "lastName": "Manager",
+                                  "emailAddress": "test.manager@example.com",
+                                  "telephoneNumber": "020 1111 2222"
+                                },
+                                "contractManager": {
+                                  "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+                                }
+                              }
+                            }
+                            """))
             .andReturn();
 
     assertThat(createFirmResult.getResponse().getStatus()).isEqualTo(201);

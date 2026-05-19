@@ -19,6 +19,7 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 @ModifyingTest
 class CreateProviderFirmE2eTest {
 
+  // AC1 – Successful Legal Organisation creation
   @Test
   void createLspFirm_returns201ThenGetReturnsCreatedFirm() {
     String firmName = "E2E-DSTEW LSP " + System.currentTimeMillis();
@@ -31,13 +32,17 @@ class CreateProviderFirmE2eTest {
             firmName,
             "legalServicesProvider",
             Map.of(
+                "constitutionalStatus",
+                "Partnership",
                 "address",
                 Map.of(
                     "line1", "1 New Street",
                     "townOrCity", "London",
                     "postcode", "EC1A 1BB"),
                 "payment",
-                Map.of("paymentMethod", "EFT"),
+                Map.of("paymentMethod", "CHECK"),
+                "contractManager",
+                Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
                 "liaisonManager",
                 Map.of(
                     "firstName", "Test",
@@ -70,6 +75,184 @@ class CreateProviderFirmE2eTest {
         .body("data.firmNumber", equalTo(firmNumber))
         .body("data.name", equalTo(firmName))
         .body("data.firmType", equalTo("Legal Services Provider"));
+  }
+
+  /**
+   * AC2 – Provider type must be explicitly LSP AC3 – Business rules enforced AC4 – No partial Legal
+   * Organisation records Verifies that supplying an LSP schema attribute when firmType is not
+   * "Legal Services Provider" results in a 400 Bad Request.
+   */
+  @Test
+  void createChambersFirm_withLspAttribute_returns400() {
+    String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Chambers",
+            "name",
+            firmName,
+            "legalServicesProvider",
+            Map.of(
+                "constitutionalStatus",
+                "Partnership",
+                "address",
+                Map.of("line1", "1 New Street", "townOrCity", "London", "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountNumber", "12345678",
+                        "sortCode", "12-34-56",
+                        "accountName", "Test Account")),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  /** Verifies that omitting constitutionalStatus on an LSP firm results in a 400 Bad Request. */
+  @Test
+  void createLspFirm_missingConstitutionalStatus_returns400() {
+    String firmName = "E2E-DSTEW LSP " + System.currentTimeMillis();
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Legal Services Provider",
+            "name",
+            firmName,
+            "legalServicesProvider",
+            Map.of(
+                "address",
+                Map.of("line1", "1 New Street", "townOrCity", "London", "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  /** Verifies that an unrecognised constitutionalStatus value on an LSP firm results in a 400. */
+  @Test
+  void createLspFirm_invalidConstitutionalStatus_returns400() {
+    String firmName = "E2E-DSTEW LSP " + System.currentTimeMillis();
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Legal Services Provider",
+            "name",
+            firmName,
+            "legalServicesProvider",
+            Map.of(
+                "constitutionalStatus",
+                "InvalidStatus",
+                "address",
+                Map.of("line1", "1 New Street", "townOrCity", "London", "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountNumber", "12345678",
+                        "sortCode", "12-34-56",
+                        "accountName", "Test Account")),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  @Test
+  void createLspFirmWithoutValidLiaison_returns400() {
+    String firmName = "E2E-DSTEW LSP " + System.currentTimeMillis();
+
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Legal Services Provider",
+            "name",
+            firmName,
+            "legalServicesProvider",
+            Map.of(
+                "constitutionalStatus",
+                "Partnership",
+                "address",
+                Map.of(
+                    "line1", "1 New Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "contractManager",
+                Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012")));
+
+    Response response =
+        given()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(400)
+            .extract()
+            .response();
   }
 
   @Test

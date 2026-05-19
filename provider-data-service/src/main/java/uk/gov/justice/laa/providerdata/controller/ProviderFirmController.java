@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +35,8 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreatePractitionerV2Practitioner;
@@ -293,6 +297,7 @@ public class ProviderFirmController {
     int variantCount = 0;
     if (request.getLegalServicesProvider() != null) {
       variantCount++;
+      validateLegalServicesProvider(request.getLegalServicesProvider());
     }
     if (request.getChambers() != null) {
       variantCount++;
@@ -305,6 +310,33 @@ public class ProviderFirmController {
           "Exactly one of legalServicesProvider, chambers, practitioner must be provided");
     }
     validateFirmTypeConsistency(request);
+  }
+
+  private void validateLegalServicesProvider(
+      @NotNull @Valid ProviderCreateLSPV2LegalServicesProvider legalServicesProvider) {
+    if (legalServicesProvider.getConstitutionalStatus() == null) {
+      throw new IllegalArgumentException("constitutionalStatus must be provided");
+    }
+
+    if (legalServicesProvider.getContractManager() == null) {
+      throw new IllegalArgumentException("contractManager must be provided");
+    }
+
+    if (legalServicesProvider.getLiaisonManager() == null) {
+      throw new IllegalArgumentException("liaisonManager must be provided");
+    }
+    validatePayment(legalServicesProvider.getPayment());
+  }
+
+  private static void validatePayment(PaymentDetailsCreateV2 payment) {
+    if (payment == null) {
+      return;
+    }
+    boolean isElectronic = PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod());
+    if (isElectronic && payment.getBankAccountDetails() == null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must be provided when paymentMethod is EFT");
+    }
   }
 
   private static void validateFirmTypeConsistency(ProviderCreateV2 request) {

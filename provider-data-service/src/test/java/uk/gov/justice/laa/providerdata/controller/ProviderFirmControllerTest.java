@@ -53,12 +53,31 @@ class ProviderFirmControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "firmType": "Legal Services Provider",
-                                          "name": "My LSP",
-                                          "legalServicesProvider": {}
-                                        }
-                                        """))
+                        {
+                          "firmType": "Legal Services Provider",
+                          "name": "My LSP",
+                          "legalServicesProvider": {
+                            "constitutionalStatus": "Partnership",
+                            "address": {
+                              "line1": "1 New Street",
+                              "townOrCity": "London",
+                              "postcode": "EC1A 1BB"
+                            },
+                            "payment": {
+                              "paymentMethod": "CHECK"
+                            },
+                            "liaisonManager": {
+                              "firstName": "John",
+                              "lastName": "Doe",
+                              "emailAddress": "john.smith@example.com",
+                              "telephoneNumber": "020 1234 5678"
+                            },
+                            "contractManager": {
+                              "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+                            }
+                         }
+                        }
+                        """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("LSP-ABCD1234"));
@@ -155,6 +174,37 @@ class ProviderFirmControllerTest {
                                           "legalServicesProvider": {}
                                         }
                                         """))
+        .andExpect(status().isBadRequest());
+  }
+
+  /** Omitting liaisonManager on an LSP firm must be rejected with 400. */
+  @Test
+  void createProviderFirm_lsp_missingLiaisonManager_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/provider-firms")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "firmType": "Legal Services Provider",
+                          "name": "My LSP",
+                          "legalServicesProvider": {
+                            "constitutionalStatus": "Partnership",
+                            "address": {
+                              "line1": "1 New Street",
+                              "townOrCity": "London",
+                              "postcode": "EC1A 1BB"
+                            },
+                            "payment": {
+                              "paymentMethod": "CHECK"
+                            },
+                            "contractManager": {
+                              "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+                            }
+                          }
+                        }
+                        """))
         .andExpect(status().isBadRequest());
   }
 

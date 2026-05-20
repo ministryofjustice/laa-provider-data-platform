@@ -21,6 +21,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.application.providerfirm.command.UpdateProviderFirmCommand;
+import uk.gov.justice.laa.providerdata.application.providerfirm.command.UpdateProviderFirmUseCase;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -38,6 +42,8 @@ class ProviderFirmControllerTest {
   @Autowired private MockMvc mockMvc;
   @MockitoBean private ProviderCreationService providerFirmCreationService;
   @MockitoBean private ProviderService providerFirmService;
+  @MockitoBean private UpdateProviderFirmUseCase updateProviderFirmUseCase;
+  @MockitoBean private CommandAuditLogQueryService auditLogQueryService;
   @MockitoBean private OfficeMapper officeMapper;
   @MockitoBean private ProviderMapper providerFirmMapper;
 
@@ -251,8 +257,9 @@ class ProviderFirmControllerTest {
   @Test
   void patchProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100001"));
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100001");
+    when(updateProviderFirmUseCase.execute(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
 
     mockMvc
         .perform(
@@ -275,10 +282,39 @@ class ProviderFirmControllerTest {
   }
 
   @Test
+  void commandUpdateProviderFirm_lspNameAndBasicDetails_returns200WithIdentifiers()
+      throws Exception {
+    UUID guid = UUID.randomUUID();
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100001");
+    when(updateProviderFirmUseCase.execute(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
+
+    mockMvc
+        .perform(
+            post("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "name": "Updated Firm Name",
+                                          "legalServicesProvider": {
+                                            "constitutionalStatus": "Partnership",
+                                            "indemnityReceivedDate": "2024-01-02",
+                                            "companiesHouseNumber": "12345678"
+                                          }
+                                        }
+                                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("100001"));
+  }
+
+  @Test
   void patchProviderFirm_practitionerDetails_returns200WithIdentifiers() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmService.patchProvider(anyString(), any()))
-        .thenReturn(ProviderCreationResult.withoutOffice(guid, "100003"));
+    ProviderCreationResult expectedResult = ProviderCreationResult.withoutOffice(guid, "100003");
+    when(updateProviderFirmUseCase.execute(any(UpdateProviderFirmCommand.class)))
+        .thenReturn(expectedResult);
 
     mockMvc
         .perform(
@@ -350,6 +386,17 @@ class ProviderFirmControllerTest {
   }
 
   @Test
+  void commandUpdateProviderFirm_emptyPatchRejected_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/provider-firms/{id}", "100001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        { }
+                                        """))
+        .andExpect(status().isBadRequest());
+  }
   void getProviderFirms_withTypeFilter_returns200WithFilteredList() throws Exception {
     UUID guid1 = UUID.randomUUID();
     UUID guid2 = UUID.randomUUID();
@@ -464,4 +511,38 @@ class ProviderFirmControllerTest {
         .andExpect(
             jsonPath("$.data.content[0].firmType").value(ProviderFirmTypeV2.ADVOCATE.getValue()));
   }
+
+  @Test
+  void getAuditLog_byGuid_returns200WithEntries() throws Exception {
+    UUID firmGuid = UUID.randomUUID();
+    UUID entryGuid = UUID.randomUUID();
+    java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+
+    CommandAuditLogEntry entry =
+        new CommandAuditLogEntry(
+            entryGuid, firmGuid, "100001", "UpdateProviderFirm", now, "name");
+
+    when(auditLogQueryService.getAuditLog(firmGuid.toString())).thenReturn(List.of(entry));
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/audit-log", firmGuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].guid").value(entryGuid.toString()))
+        .andExpect(jsonPath("$[0].providerFirmGuid").value(firmGuid.toString()))
+        .andExpect(jsonPath("$[0].commandType").value("UpdateProviderFirm"))
+        .andExpect(jsonPath("$[0].changedFields").value("name"));
+  }
+
+  @Test
+  void getAuditLog_noEntries_returns200WithEmptyArray() throws Exception {
+    UUID firmGuid = UUID.randomUUID();
+    when(auditLogQueryService.getAuditLog(firmGuid.toString())).thenReturn(List.of());
+
+    mockMvc
+        .perform(get("/provider-firms/{id}/audit-log", firmGuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
 }
+

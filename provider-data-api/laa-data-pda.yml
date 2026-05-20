@@ -492,6 +492,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
+    post:
+      summary: Submit provider firm update command
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: commandUpdateProviderFirm
+      tags:
+        - Provider Firms
+      description: |
+        Submit a synchronous command to update provider firm details.
+
+        Phase 1 CQRS migration endpoint. This mirrors the existing PATCH behaviour while clients
+        migrate to an explicit command-style write endpoint.
+
+        Use cases:
+        1) Updating firm name
+        2) Updating Legal Service Provider's basic details
+        3) Updating Barrister's or Advocate's basic details
+        4) Changing parent firm of a Barrister or an Advocate.
+           Note that changing parent chamber should also re-link office details and liaison manager.
+      parameters:
+        - $ref: "#/components/parameters/XCorrelationId"
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderPatchV2"
+      responses:
+        "200":
+          description: Command executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      providerFirmGUID:
+                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                      providerFirmNumber:
+                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
     patch:
       summary: Update provider firm details
       security:

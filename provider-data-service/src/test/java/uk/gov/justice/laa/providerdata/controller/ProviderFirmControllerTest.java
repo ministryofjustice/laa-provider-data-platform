@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,11 +22,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
+import uk.gov.justice.laa.providerdata.model.LSPDetailsV2;
+import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
@@ -211,19 +216,33 @@ class ProviderFirmControllerTest {
   @Test
   void getProviderFirm_byGuid_returns200WithProviderDetails() throws Exception {
     UUID guid = UUID.randomUUID();
-    ProviderEntity entity =
-        ProviderEntity.builder()
-            .firmNumber("100001")
-            .name("My LSP")
-            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
-            .build();
+    UUID officeGuid = UUID.randomUUID();
+    LspProviderEntity entity =
+        LspProviderEntity.builder().firmNumber("100001").name("My LSP").build();
     entity.setGuid(guid);
     ProviderV2 providerV2 =
         new ProviderV2()
             .guid(guid)
             .firmNumber("100001")
             .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
-            .name("My LSP");
+            .name("My LSP")
+            .legalServicesProvider(
+                new LSPDetailsV2()
+                    .constitutionalStatus(LSPDetailsConstitutionalStatusV2.PARTNERSHIP)
+                    .notForProfitOrganisationFlag(false)
+                    .indemnityReceivedDate(LocalDate.of(2024, 1, 2))
+                    .companiesHouseNumber("12345678")
+                    .headOffice(
+                        new LSPHeadOfficeDetailsV2()
+                            .firmType(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER)
+                            .officeGUID(officeGuid)
+                            .headOfficeFlag(true)
+                            .accountNumber("ACC001")
+                            .address(
+                                new OfficeAddressV2()
+                                    .line1("1 New Street")
+                                    .townOrCity("London")
+                                    .postcode("EC1A 1BB"))));
     when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
     when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
     when(providerFirmService.getActiveLiaisonManager(any())).thenReturn(Optional.empty());
@@ -240,7 +259,32 @@ class ProviderFirmControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.guid").value(guid.toString()))
         .andExpect(jsonPath("$.data.firmNumber").value("100001"))
-        .andExpect(jsonPath("$.data.name").value("My LSP"));
+        .andExpect(jsonPath("$.data.name").value("My LSP"))
+        .andExpect(
+            jsonPath("$.data.firmType")
+                .value(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER.getValue()))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.constitutionalStatus").value("Partnership"))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.notForProfitOrganisationFlag").value(false))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.indemnityReceivedDate").value("2024-01-02"))
+        .andExpect(jsonPath("$.data.legalServicesProvider.companiesHouseNumber").value("12345678"))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.officeGUID")
+                .value(officeGuid.toString()))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.firmType")
+                .value(ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER.getValue()))
+        .andExpect(jsonPath("$.data.legalServicesProvider.headOffice.headOfficeFlag").value(true))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.accountNumber").value("ACC001"))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.address.line1").value("1 New Street"))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.address.townOrCity").value("London"))
+        .andExpect(
+            jsonPath("$.data.legalServicesProvider.headOffice.address.postcode").value("EC1A 1BB"));
   }
 
   @Test
@@ -248,7 +292,10 @@ class ProviderFirmControllerTest {
     when(providerFirmService.getProvider(anyString()))
         .thenThrow(new ItemNotFoundException("Provider not found: UNKNOWN"));
 
-    mockMvc.perform(get("/provider-firms/{id}", "UNKNOWN")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(get("/provider-firms/{id}", "UNKNOWN"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.error.errorCode").value("P00NF"));
   }
 
   @Test

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class ProviderFirmE2eTest {
 
   @Test
-  void getProviderFirm_lspByFirmNumber_returns200WithExpectedFields() {
+  void getProviderFirm_lspByFirmNumber_returns200WithAllAvailableLspAttributes() {
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .when()
@@ -20,8 +20,14 @@ class ProviderFirmE2eTest {
         .statusCode(200)
         .body("data.firmNumber", equalTo(E2eConfig.lspFirmNumber()))
         .body("data.name", notNullValue())
-        .body("data.firmType", notNullValue())
+        .body("data.firmType", equalTo("Legal Services Provider"))
+        .body("data.legalServicesProvider", notNullValue())
+        .body("data.legalServicesProvider.constitutionalStatus", notNullValue())
+        .body("data.legalServicesProvider.companiesHouseNumber", notNullValue())
+        .body("data.legalServicesProvider.indemnityReceivedDate", notNullValue())
         .body("data.legalServicesProvider.headOffice.accountNumber", notNullValue())
+        .body("data.legalServicesProvider.headOffice.liaisonManager", notNullValue())
+        .body("data.legalServicesProvider.headOffice.contractManager", notNullValue())
         // Chambers and practitioner sub-objects should be absent for an LSP
         .body("data.chambers", nullValue())
         .body("data.practitioner", nullValue());

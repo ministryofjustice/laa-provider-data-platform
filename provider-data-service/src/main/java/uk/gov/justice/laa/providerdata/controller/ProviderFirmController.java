@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogEntry;
+import uk.gov.justice.laa.providerdata.command.CommandAuditLogQueryService;
+import uk.gov.justice.laa.providerdata.command.ProviderFirmCommandService;
+import uk.gov.justice.laa.providerdata.command.UpdateProviderFirmCommand;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
@@ -67,6 +71,8 @@ public class ProviderFirmController {
 
   private final ProviderCreationService providerFirmCreationService;
   private final ProviderService providerFirmService;
+  private final ProviderFirmCommandService providerFirmCommandService;
+  private final CommandAuditLogQueryService auditLogQueryService;
   private final OfficeMapper officeMapper;
   private final ProviderMapper providerFirmMapper;
 
@@ -75,16 +81,22 @@ public class ProviderFirmController {
    *
    * @param providerFirmCreationService orchestrates provider and head office creation
    * @param providerFirmService handles provider firm read operations
+   * @param providerFirmCommandService dispatches commands to handlers
+   * @param auditLogQueryService reads the command audit log
    * @param officeMapper maps request DTOs to office entity templates
    * @param providerFirmMapper maps provider entities to response models
    */
   public ProviderFirmController(
       ProviderCreationService providerFirmCreationService,
       ProviderService providerFirmService,
+      ProviderFirmCommandService providerFirmCommandService,
+      CommandAuditLogQueryService auditLogQueryService,
       OfficeMapper officeMapper,
       ProviderMapper providerFirmMapper) {
     this.providerFirmCreationService = providerFirmCreationService;
     this.providerFirmService = providerFirmService;
+    this.providerFirmCommandService = providerFirmCommandService;
+    this.auditLogQueryService = auditLogQueryService;
     this.officeMapper = officeMapper;
     this.providerFirmMapper = providerFirmMapper;
   }
@@ -205,6 +217,44 @@ public class ProviderFirmController {
   }
 
   /**
+   * Returns the command audit log for a provider firm, ordered chronologically.
+   *
+   * <p>Only records commands that have been successfully processed and committed. An empty list is
+   * returned for firms with no audit history.
+   *
+   * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
+   * @return 200 with the list of audit entries
+   */
+  @GetMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}/audit-log",
+      produces = "application/json")
+  public ResponseEntity<List<CommandAuditLogEntry>> getAuditLog(
+      @PathVariable String providerFirmGUIDorFirmNumber) {
+    List<CommandAuditLogEntry> entries =
+        auditLogQueryService.getAuditLog(providerFirmGUIDorFirmNumber);
+    return ResponseEntity.ok(entries);
+  }
+
+  /**
+   * Submits a synchronous command to update supported provider basic details.
+   *
+   * <p>Phase 1 CQRS migration endpoint. Behaviour intentionally mirrors the existing PATCH endpoint
+   * while clients migrate to an explicit command-style write operation.
+   *
+   * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
+   * @param request command payload using the existing ProviderPatchV2 schema
+   * @return 200 with the updated identifiers (GUID + firm number)
+   */
+  @PostMapping(
+      path = "/provider-firms/{providerFirmGUIDorFirmNumber}",
+      consumes = "application/json",
+      produces = "application/json")
+  public ResponseEntity<CreateProviderFirm201Response> commandUpdateProviderFirm(
+      @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
+    return ResponseEntity.ok(updateProviderFirmCommand(providerFirmGUIDorFirmNumber, request));
+  }
+
+  /**
    * Updates supported provider basic details for the resolved provider subtype.
    *
    * @param providerFirmGUIDorFirmNumber provider GUID (primary key) or firm number (unique key)
@@ -218,17 +268,22 @@ public class ProviderFirmController {
   public ResponseEntity<CreateProviderFirm201Response> patchProviderFirm(
       @PathVariable String providerFirmGUIDorFirmNumber, @RequestBody ProviderPatchV2 request) {
 
+    return ResponseEntity.ok(updateProviderFirmCommand(providerFirmGUIDorFirmNumber, request));
+  }
+
+  private CreateProviderFirm201Response updateProviderFirmCommand(
+      String providerFirmGUIDorFirmNumber, ProviderPatchV2 request) {
     validatePatchRequest(request);
 
-    ProviderCreationResult result =
-        providerFirmService.patchProvider(providerFirmGUIDorFirmNumber, request);
+    UpdateProviderFirmCommand command =
+        new UpdateProviderFirmCommand(providerFirmGUIDorFirmNumber, request);
+    ProviderCreationResult result = providerFirmCommandService.handle(command);
 
-    return ResponseEntity.ok(
-        new CreateProviderFirm201Response()
-            .data(
-                new CreateProviderFirm201ResponseData()
-                    .providerFirmGUID(result.providerFirmGUID())
-                    .providerFirmNumber(result.firmNumber())));
+    return new CreateProviderFirm201Response()
+        .data(
+            new CreateProviderFirm201ResponseData()
+                .providerFirmGUID(result.providerFirmGUID())
+                .providerFirmNumber(result.firmNumber()));
   }
 
   private ProviderCreationResult dispatch(ProviderCreateV2 request) {

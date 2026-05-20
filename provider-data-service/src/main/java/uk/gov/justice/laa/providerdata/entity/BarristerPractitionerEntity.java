@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.envers.Audited;
 
 /** Provider subtype for barrister practitioners (advocateType = "Barrister"). */
 @SuperBuilder
@@ -15,6 +16,7 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false)
+@Audited
 @Entity
 @DiscriminatorValue("Advocate.Barrister")
 public final class BarristerPractitionerEntity extends PractitionerEntity {

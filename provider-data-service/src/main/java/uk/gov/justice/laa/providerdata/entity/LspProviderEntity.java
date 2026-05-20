@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.envers.Audited;
 
 /** Provider subtype for Legal Services Providers. */
 @SuperBuilder
@@ -16,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false)
+@Audited
 @Entity
 @DiscriminatorValue(FirmType.LEGAL_SERVICES_PROVIDER)
 public final class LspProviderEntity extends ProviderEntity {

@@ -69,6 +69,7 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-zipkin'
+    implementation 'org.hibernate.orm:hibernate-envers'
 
     // Sentry observability
     implementation 'io.sentry:sentry-spring-boot-4'

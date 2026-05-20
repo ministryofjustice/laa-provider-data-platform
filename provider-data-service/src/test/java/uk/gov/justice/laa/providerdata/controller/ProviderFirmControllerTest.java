@@ -226,10 +226,13 @@ class ProviderFirmControllerTest {
             .name("My LSP");
     when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
     when(providerFirmService.getLspHeadOffice(entity)).thenReturn(Optional.empty());
+    when(providerFirmService.getActiveLiaisonManager(any())).thenReturn(Optional.empty());
+    when(providerFirmService.getContractManager(any())).thenReturn(Optional.empty());
+    when(providerFirmService.getPrimaryOfficeBankAccount(any())).thenReturn(Optional.empty());
     when(providerFirmService.getChambersHeadOffice(entity)).thenReturn(Optional.empty());
     when(providerFirmService.getAdvocateOfficeLink(entity)).thenReturn(Optional.empty());
     when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
-    when(providerFirmMapper.toProviderV2(entity, null, null, null, List.of()))
+    when(providerFirmMapper.toProviderV2(entity, null, null, null, null, null, null, List.of()))
         .thenReturn(providerV2);
 
     mockMvc

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -76,11 +77,15 @@ class ProviderMapperTest {
 
   @Test
   void toProviderV2_lspWithHeadOffice_populatesLegalServicesProvider() {
-    ProviderEntity entity =
-        ProviderEntity.builder()
+    LspProviderEntity entity =
+        LspProviderEntity.builder()
             .firmNumber("100001")
             .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
             .name("Westgate Legal")
+            .constitutionalStatus("Partnership")
+            .companiesHouseNumber("12345678")
+            .notForProfitOrganisationFlag(Boolean.FALSE)
+            .indemnityReceivedDate(LocalDate.of(2024, 1, 1))
             .build();
     entity.setGuid(UUID.randomUUID());
 
@@ -92,6 +97,7 @@ class ProviderMapperTest {
     headOffice.setGuid(officeLinkGuid);
     headOffice.setOffice(office);
     headOffice.setAccountNumber("ACC001");
+    headOffice.setHeadOfficeFlag(Boolean.TRUE);
     headOffice.setActiveDateTo(LocalDate.of(2025, 12, 31));
 
     ProviderV2 result = mapper.toProviderV2(entity, headOffice, null, null, List.of());
@@ -100,6 +106,10 @@ class ProviderMapperTest {
     assertThat(result.getLegalServicesProvider().getHeadOffice()).isNotNull();
     assertThat(result.getLegalServicesProvider().getHeadOffice().getOfficeGUID())
         .isEqualTo(officeLinkGuid);
+    assertThat(result.getLegalServicesProvider().getConstitutionalStatus().getValue())
+        .isEqualTo("Partnership");
+    assertThat(result.getLegalServicesProvider().getCompaniesHouseNumber()).isEqualTo("12345678");
+    assertThat(result.getLegalServicesProvider().getHeadOffice().getHeadOfficeFlag()).isTrue();
     assertThat(result.getLegalServicesProvider().getHeadOffice().getAccountNumber())
         .isEqualTo("ACC001");
     assertThat(result.getLegalServicesProvider().getHeadOffice().getActiveDateTo())

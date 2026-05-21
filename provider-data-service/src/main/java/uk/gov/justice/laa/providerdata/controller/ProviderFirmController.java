@@ -22,6 +22,9 @@ import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -194,14 +197,31 @@ public class ProviderFirmController {
       @PathVariable String providerFirmGUIDorFirmNumber) {
     ProviderEntity provider = providerFirmService.getProvider(providerFirmGUIDorFirmNumber);
     return ResponseEntity.ok(
-        new GetProviderFirmByGUIDorFirmNumber200Response()
-            .data(
-                providerFirmMapper.toProviderV2(
-                    provider,
-                    providerFirmService.getLspHeadOffice(provider).orElse(null),
-                    providerFirmService.getChambersHeadOffice(provider).orElse(null),
-                    providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
-                    providerFirmService.getParentLinks(provider))));
+        new GetProviderFirmByGUIDorFirmNumber200Response().data(toProviderResponse(provider)));
+  }
+
+  private ProviderV2 toProviderResponse(ProviderEntity provider) {
+    LspProviderOfficeLinkEntity lspHeadOffice =
+        providerFirmService.getLspHeadOffice(provider).orElse(null);
+
+    OfficeLiaisonManagerLinkEntity liaisonManager = null;
+    OfficeContractManagerLinkEntity contractManager = null;
+    OfficeBankAccountLinkEntity bankAccount = null;
+    if (lspHeadOffice != null) {
+      liaisonManager = providerFirmService.getActiveLiaisonManager(lspHeadOffice).orElse(null);
+      contractManager = providerFirmService.getContractManager(lspHeadOffice).orElse(null);
+      bankAccount = providerFirmService.getPrimaryOfficeBankAccount(lspHeadOffice).orElse(null);
+    }
+
+    return providerFirmMapper.toProviderV2(
+        provider,
+        lspHeadOffice,
+        liaisonManager,
+        contractManager,
+        bankAccount,
+        providerFirmService.getChambersHeadOffice(provider).orElse(null),
+        providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+        providerFirmService.getParentLinks(provider));
   }
 
   /**

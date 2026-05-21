@@ -42,6 +42,31 @@ public final class E2eConfig {
     return require("lsp.firmNumber");
   }
 
+  /** Expected constitutional status for the configured LSP fixture. */
+  public static String lspConstitutionalStatus() {
+    return require("lsp.constitutionalStatus");
+  }
+
+  /** Expected Companies House number for the configured LSP fixture. */
+  public static String lspCompaniesHouseNumber() {
+    return require("lsp.companiesHouseNumber");
+  }
+
+  /** Expected indemnity received date (ISO-8601 yyyy-MM-dd) for the configured LSP fixture. */
+  public static String lspIndemnityReceivedDate() {
+    return require("lsp.indemnityReceivedDate");
+  }
+
+  /** Expected liaison manager last name for the configured LSP fixture. */
+  public static String lspLiaisonManagerLastName() {
+    return require("lsp.liaisonManager.lastName");
+  }
+
+  /** Expected contract manager last name for the configured LSP fixture. */
+  public static String lspContractManagerLastName() {
+    return require("lsp.contractManager.lastName");
+  }
+
   // --- LSP head office ---
 
   public static String lspOfficeCode() {

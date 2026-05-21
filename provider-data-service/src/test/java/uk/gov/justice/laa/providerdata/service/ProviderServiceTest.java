@@ -42,6 +42,9 @@ import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
@@ -57,6 +60,9 @@ class ProviderServiceTest {
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderFirmRepository providerFirmRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Mock private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
+  @Mock private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
 
   @InjectMocks private ProviderService service;
 

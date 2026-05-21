@@ -2090,17 +2090,25 @@ components:
           $ref: "#/components/schemas/ContractManagerProviderLinkV2"
 
     LSPHeadOfficeDetailsV2:
-      type: object
-      required:
-        - officeGUID
-        - accountNumber
-      properties:
-        officeGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
-        accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
-        activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+      allOf:
+        - $ref: "#/components/schemas/LSPOfficeDetailsV2"
+        - type: object
+          required:
+            - officeGUID
+            - headOfficeFlag
+          properties:
+            officeGUID:
+              $ref: "#/components/schemas/BaseEntityGUIDV2"
+            headOfficeFlag:
+              type: boolean
+            activeDateFrom:
+              $ref: "#/components/schemas/OfficeActiveDateFromV2"
+            liaisonManager:
+              $ref: "#/components/schemas/LiaisonManagerV2"
+            contractManager:
+              $ref: "#/components/schemas/OfficeContractManagerV2"
+            bankAccount:
+              $ref: "#/components/schemas/OfficeBankAccountV2"
 
     LSPHeadOfficeDetailsPatchV2:
       type: object
@@ -2197,6 +2205,12 @@ components:
         Advocate/Barrister office, the `falseBalanceFlag` should be set to false.
 
         CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
+
+    OfficeActiveDateFromV2:
+      type: string
+      format: date
+      description: |
+        Start date of activity for the provider office link.
 
     ClearActiveDateToV2:
       type: boolean

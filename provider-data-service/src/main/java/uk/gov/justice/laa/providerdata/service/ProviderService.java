@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,9 @@ import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
@@ -28,6 +32,9 @@ import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
@@ -47,6 +54,9 @@ public class ProviderService {
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final ProviderFirmRepository providerFirmRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
+  private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
+  private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
 
   /**
    * Inject dependencies.
@@ -65,7 +75,10 @@ public class ProviderService {
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       ProviderFirmRepository providerFirmRepository,
-      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+      ProviderOfficeLinkRepository providerOfficeLinkRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
+      OfficeBankAccountLinkRepository officeBankAccountLinkRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
@@ -73,6 +86,9 @@ public class ProviderService {
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.providerFirmRepository = providerFirmRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
+    this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
+    this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
+    this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
   }
 
   /**
@@ -299,6 +315,30 @@ public class ProviderService {
   /** Returns the LSP head office link for the given provider, if one exists. */
   public Optional<LspProviderOfficeLinkEntity> getLspHeadOffice(ProviderEntity provider) {
     return lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
+  }
+
+  /** Returns the active liaison manager link for the office, if one exists. */
+  public Optional<OfficeLiaisonManagerLinkEntity> getActiveLiaisonManager(
+      ProviderOfficeLinkEntity officeLink) {
+    return officeLiaisonManagerLinkRepository
+        .findByOfficeLinkAndActiveDateToIsNull(officeLink)
+        .stream()
+        .findFirst();
+  }
+
+  /** Returns one contract manager link for the office, if one exists. */
+  public Optional<OfficeContractManagerLinkEntity> getContractManager(
+      ProviderOfficeLinkEntity officeLink) {
+    return officeContractManagerLinkRepository
+        .findByOfficeLink_Guid(officeLink.getGuid(), PageRequest.of(0, 1))
+        .stream()
+        .findFirst();
+  }
+
+  /** Returns the primary bank account link for the office, if one exists. */
+  public Optional<OfficeBankAccountLinkEntity> getPrimaryOfficeBankAccount(
+      ProviderOfficeLinkEntity officeLink) {
+    return officeBankAccountLinkRepository.findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink);
   }
 
   /** Returns the Chambers head office link for the given provider, if one exists. */

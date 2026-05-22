@@ -23,6 +23,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
@@ -41,6 +42,7 @@ import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 import uk.gov.justice.laa.providerdata.repository.spec.ProviderSpecification;
 import uk.gov.justice.laa.providerdata.util.UuidUtils;
+import uk.gov.justice.laa.providerdata.validation.LspPatchValidator;
 
 /** Service responsible for provider firm read operations. */
 @Service
@@ -122,7 +124,8 @@ public class ProviderService {
 
     var lspPatch = patch.getLegalServicesProvider();
     if (lspPatch != null) {
-      applyLspPatch(provider, providerFirmGUIDorFirmNumber, lspPatch);
+      applyLspPatch(
+          provider, providerFirmGUIDorFirmNumber, lspPatch, lspProviderOfficeLinkRepository);
     }
 
     var practitionerPatch = patch.getPractitioner();
@@ -143,13 +146,20 @@ public class ProviderService {
   }
 
   private static void applyLspPatch(
-      ProviderEntity provider, String providerFirmGUIDorFirmNumber, LSPDetailsPatchV2 lspPatch) {
+      ProviderEntity provider,
+      String providerFirmGUIDorFirmNumber,
+      LSPDetailsPatchV2 lspPatch,
+      LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository) {
     switch (provider) {
       case LspProviderEntity lspProvider -> {
-        if (lspPatch.getHeadOffice() != null) {
-          throw new IllegalArgumentException(
-              "Head office reassignment is not supported on this endpoint");
-        }
+        // Get the head office link for validation
+        Optional<LspProviderOfficeLinkEntity> headOfficeLinkOpt =
+            lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(lspProvider);
+
+        // Validate the patch against business rules (DSTEW-1574)
+        LspPatchValidator.validateLspPatch(lspProvider, lspPatch, headOfficeLinkOpt.orElse(null));
+
+        // Apply provider-level fields
         if (lspPatch.getConstitutionalStatus() != null) {
           lspProvider.setConstitutionalStatus(lspPatch.getConstitutionalStatus().getValue());
         }
@@ -159,11 +169,73 @@ public class ProviderService {
         if (lspPatch.getCompaniesHouseNumber() != null) {
           lspProvider.setCompaniesHouseNumber(lspPatch.getCompaniesHouseNumber());
         }
+
+        // Apply head office link level fields
+        if (headOfficeLinkOpt.isPresent()) {
+          applyHeadOfficePatch(headOfficeLinkOpt.get(), lspPatch);
+        }
       }
       default ->
           throw new IllegalArgumentException(
               "legalServicesProvider updates require a Legal Services Provider: "
                   + providerFirmGUIDorFirmNumber);
+    }
+  }
+
+  private static void applyHeadOfficePatch(
+      LspProviderOfficeLinkEntity headOfficeLink, LSPDetailsPatchV2 lspPatch) {
+    // Apply office link level fields from LSPDetailsPatchV2
+
+    // Handle activeDateTo (Inactive Date)
+    if (lspPatch.getHeadOffice() != null) {
+      LSPHeadOfficeDetailsPatchV2 headOfficePatch = lspPatch.getHeadOffice();
+      if (Boolean.TRUE.equals(headOfficePatch.getClearActiveDateTo())) {
+        headOfficeLink.setActiveDateTo(null);
+      } else if (headOfficePatch.getActiveDateTo() != null) {
+        headOfficeLink.setActiveDateTo(headOfficePatch.getActiveDateTo());
+      }
+
+      // Apply status flags
+      if (headOfficePatch.getDebtRecoveryFlag() != null) {
+        headOfficeLink.setDebtRecoveryFlag(headOfficePatch.getDebtRecoveryFlag());
+      }
+
+      if (headOfficePatch.getFalseBalanceFlag() != null) {
+        // False balance flag would be stored in the office entity
+        // For now, this is a placeholder for future implementation
+      }
+
+      // Apply intervened details
+      if (headOfficePatch.getIntervened() != null) {
+        headOfficeLink.setIntervenedFlag(headOfficePatch.getIntervened().getIntervenedFlag());
+        headOfficeLink.setIntervenedChangeDate(
+            headOfficePatch.getIntervened().getIntervenedChangeDate());
+      }
+
+      // Note: Address, payment, DX, VAT, contact details would require updating the Office entity
+      // and possibly creating new bank account, payment, and DX records. These are handled
+      // separately through the OfficeMapper and should be implemented in a future enhancement.
+    }
+
+    // Apply provider-level fields to the head office link
+    if (lspPatch.getFirmIntervenedFlag() != null) {
+      headOfficeLink.setIntervenedFlag(lspPatch.getFirmIntervenedFlag());
+    }
+    if (lspPatch.getFirmIntervenedDate() != null) {
+      headOfficeLink.setIntervenedChangeDate(lspPatch.getFirmIntervenedDate());
+    }
+
+    // Apply hold all payments fields
+    if (lspPatch.getHoldAllPaymentsFlag() != null) {
+      headOfficeLink.setPaymentHeldFlag(lspPatch.getHoldAllPaymentsFlag());
+    }
+    if (lspPatch.getHoldAllPaymentsReason() != null) {
+      headOfficeLink.setPaymentHeldReason(lspPatch.getHoldAllPaymentsReason());
+    }
+
+    // Apply referred to debt recovery flag
+    if (lspPatch.getReferredToDebtRecoveryFlag() != null) {
+      headOfficeLink.setDebtRecoveryFlag(lspPatch.getReferredToDebtRecoveryFlag());
     }
   }
 

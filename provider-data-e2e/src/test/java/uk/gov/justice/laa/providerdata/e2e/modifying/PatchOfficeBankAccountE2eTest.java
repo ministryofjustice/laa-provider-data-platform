@@ -157,7 +157,7 @@ class PatchOfficeBankAccountE2eTest {
    * primaryFlag=true}.
    */
   @Test
-  void postFirmWithBankAccount_thenSwitchTwice_onlyOneRecordIsPrimaryAtATime() {
+  void postFirmWithBankAccount_thenSwitch_onlyOneRecordIsPrimaryAtATime() {
     long ts = System.currentTimeMillis();
     String firmName = "E2E-DSTEW Primary-Flag " + ts;
 

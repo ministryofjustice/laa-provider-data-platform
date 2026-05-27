@@ -163,25 +163,45 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_headOfficeReassignmentRejected() {
+  void patchProvider_lspHeadOfficeFieldsUpdated() {
     UUID guid = UUID.randomUUID();
+    UUID headOfficeGuid = UUID.randomUUID();
 
     LspProviderEntity existing =
         LspProviderEntity.builder().firmNumber("100001").name("Old Name").build();
     existing.setGuid(guid);
 
+    LspProviderOfficeLinkEntity headOfficeLink =
+        LspProviderOfficeLinkEntity.builder()
+            .guid(headOfficeGuid)
+            .provider(existing)
+            .headOfficeFlag(true)
+            .build();
+
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .legalServicesProvider(
                 new LSPDetailsPatchV2()
-                    .headOffice(
-                        new uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2()));
+                    .firmIntervenedFlag(true)
+                    .firmIntervenedDate(LocalDate.now())
+                    .holdAllPaymentsFlag(true)
+                    .holdAllPaymentsReason("Financial review")
+                    .referredToDebtRecoveryFlag(true));
 
-    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Head office reassignment is not supported");
+    ProviderCreationResult result = service.patchProvider(guid.toString(), patch);
+
+    assertThat(headOfficeLink.getIntervenedFlag()).isTrue();
+    assertThat(headOfficeLink.getIntervenedChangeDate()).isEqualTo(LocalDate.now());
+    assertThat(headOfficeLink.getPaymentHeldFlag()).isTrue();
+    assertThat(headOfficeLink.getPaymentHeldReason()).isEqualTo("Financial review");
+    assertThat(headOfficeLink.getDebtRecoveryFlag()).isTrue();
+    assertThat(result.providerFirmGUID()).isEqualTo(guid);
+    assertThat(result.firmNumber()).isEqualTo("100001");
   }
 
   @Test

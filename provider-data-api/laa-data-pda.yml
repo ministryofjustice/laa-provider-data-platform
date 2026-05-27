@@ -1823,6 +1823,16 @@ components:
           $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
         headOffice:
           $ref: "#/components/schemas/LSPHeadOfficeDetailsPatchV2"
+        firmIntervenedFlag:
+          $ref: "#/components/schemas/FirmIntervenedFlagV2"
+        firmIntervenedDate:
+          $ref: "#/components/schemas/FirmIntervenedDateV2"
+        holdAllPaymentsFlag:
+          $ref: "#/components/schemas/HoldAllPaymentsFlagV2"
+        holdAllPaymentsReason:
+          $ref: "#/components/schemas/HoldAllPaymentsReasonV2"
+        referredToDebtRecoveryFlag:
+          $ref: "#/components/schemas/ReferredToDebtRecoveryFlagV2"
 
     ChamberDetailsV2:
       type: object
@@ -2117,6 +2127,30 @@ components:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
         accountNumber:
           $ref: "#/components/schemas/OfficeAccountNumberV2"
+        activeDateTo:
+          $ref: "#/components/schemas/OfficeActiveDateToV2"
+        clearActiveDateTo:
+          $ref: "#/components/schemas/ClearActiveDateToV2"
+        debtRecoveryFlag:
+          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+        falseBalanceFlag:
+          $ref: "#/components/schemas/FalseBalanceFlagV2"
+        address:
+          $ref: "#/components/schemas/OfficeAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/OfficePhoneV2"
+        emailAddress:
+          $ref: "#/components/schemas/OfficeEmailAddressV2"
+        website:
+          $ref: "#/components/schemas/OfficeWebsiteV2"
+        dxDetails:
+          $ref: "#/components/schemas/DXPatchV2"
+        vatRegistration:
+          $ref: "#/components/schemas/VATRegistrationV2"
+        payment:
+          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
+        intervened:
+          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
 
     ChambersHeadOfficeCreateV2:
       type: object
@@ -2476,6 +2510,36 @@ components:
           $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2"
         intervenedChangeDate:
           $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2"
+
+    FirmIntervenedFlagV2:
+      type: boolean
+      description: |
+        Flag indicating whether firm is under intervention.
+        If true, firmIntervenedDate must also be provided.
+
+    FirmIntervenedDateV2:
+      type: string
+      format: date
+      description: |
+        Date when firm was placed under intervention.
+        Must be provided together with firmIntervenedFlag.
+
+    HoldAllPaymentsFlagV2:
+      type: boolean
+      description: |
+        Flag indicating whether all payments should be held.
+        If true, holdAllPaymentsReason must also be provided.
+
+    HoldAllPaymentsReasonV2:
+      type: string
+      description: |
+        Reason for holding all payments.
+        Must be provided together with holdAllPaymentsFlag.
+
+    ReferredToDebtRecoveryFlagV2:
+      type: boolean
+      description: |
+        Flag indicating whether firm has been referred to debt recovery.
 
     OfficeAddressV2:
       type: object

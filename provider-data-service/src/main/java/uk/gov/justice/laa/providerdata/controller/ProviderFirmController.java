@@ -128,7 +128,6 @@ public class ProviderFirmController {
    */
   @GetMapping(path = "/provider-firms", produces = "application/json")
   public ResponseEntity<GetProviderFirms200Response> getProviderFirms(
-      @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
       @RequestHeader(value = "traceparent", required = false) String traceparent,
 
       // Filters

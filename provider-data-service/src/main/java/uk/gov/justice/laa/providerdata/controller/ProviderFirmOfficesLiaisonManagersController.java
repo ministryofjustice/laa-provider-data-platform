@@ -61,7 +61,6 @@ public class ProviderFirmOfficesLiaisonManagersController
       getProviderFirmOfficeLiaisonManagers(
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
-          String xCorrelationId,
           String traceparent,
           Integer page,
           Integer pageSize) {
@@ -119,7 +118,6 @@ public class ProviderFirmOfficesLiaisonManagersController
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
           OfficeLiaisonManagerCreateOrLinkV2 request,
-          String xCorrelationId,
           String traceparent) {
 
     validateRequest(request);

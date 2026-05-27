@@ -55,7 +55,6 @@ public class ProviderFirmOfficeContractManagersController
    * @param providerFirmGUIDorFirmNumber provider firm identifier
    * @param officeGUIDorCode the provider office link GUID or office code
    * @param contractManagerProviderPatchV2 body containing the contract manager GUID
-   * @param xCorrelationId request correlation ID (optional)
    * @param traceparent request traceId and spanId (optional)
    * @return HTTP 201 response containing minimal assignment details
    * @throws IllegalArgumentException if the given contract manager ID is not a GUID
@@ -66,7 +65,6 @@ public class ProviderFirmOfficeContractManagersController
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
-          String xCorrelationId,
           String traceparent) {
     UUID contractManagerGuid = contractManagerProviderPatchV2.getContractManagerGUID();
     if (contractManagerGuid == null) {
@@ -92,7 +90,6 @@ public class ProviderFirmOfficeContractManagersController
    *
    * @param providerFirmGUIDorFirmNumber provider firm identifier
    * @param officeGUIDorCode office identifier
-   * @param xCorrelationId request correlation ID
    * @param traceparent debugging/trace option
    * @param page requested page number
    * @param pageSize requested page size
@@ -103,7 +100,6 @@ public class ProviderFirmOfficeContractManagersController
       getProviderFirmOfficeContractManagers(
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
-          String xCorrelationId,
           String traceparent,
           Integer page,
           Integer pageSize) {

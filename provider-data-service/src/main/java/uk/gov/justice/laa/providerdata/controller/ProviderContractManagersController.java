@@ -28,7 +28,6 @@ public class ProviderContractManagersController implements ContractManagersApi {
 
   @Override
   public ResponseEntity<GetProviderContractManagers200Response> getProviderContractManagers(
-      String xCorrelationId,
       String traceparent,
       List<String> contractManagerId,
       String name,

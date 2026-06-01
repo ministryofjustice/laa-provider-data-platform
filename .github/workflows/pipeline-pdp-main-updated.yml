@@ -70,19 +70,10 @@ jobs:
           ### Check the Helm chart lints OK
           helm lint ./helm_deploy/provider-data-platform --quiet --strict
 
-  make-image:
-    name: "Build ${{ needs.plan.outputs.gtag }}"
+  create-tag:
+    name: "Create Git tag ${{ needs.plan.outputs.gtag }}"
     if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')
     needs: [ plan ]
-    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
-    uses: ./.github/workflows/rw-pdp-build.yml
-    with:
-      itag: ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
-
-  gtag-release:
-    name: "Git tag and GitHub Release"
-    needs: [ plan, make-image ]
     permissions: { contents: write }
     runs-on: ubuntu-latest
     steps:
@@ -95,22 +86,58 @@ jobs:
           test -n "$GTAG"  # fail if empty
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Try creating the tag (skip if it already exists remotely)
+          if git ls-remote --tags origin | grep -q "refs/tags/$GTAG$"; then
+            echo "Tag $GTAG already exists on remote. Skipping tag creation."
+            exit 0
+          fi
           echo "Trying to create Git tag [$GTAG]"
           git tag -a "$GTAG" -m "Release $GTAG"
-          git push origin "$GTAG"
+          # Push, fail loudly if rejected for any reason other than "already exists"
+          git push origin "$GTAG" || {
+            EXIT=$?
+            if git ls-remote --tags origin | grep -q "refs/tags/$GTAG$"; then
+              echo "Tag $GTAG was already pushed (race condition). Skipping."
+            else
+              echo "::error::Failed to push tag $GTAG (exit code $EXIT) — tag NOT created on remote." >&2
+              exit $EXIT
+            fi
+          }
 
+  make-image:
+    name: "Build ${{ needs.plan.outputs.gtag }}"
+    if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')
+    needs: [ plan, create-tag ]
+    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
+    uses: ./.github/workflows/rw-pdp-build.yml
+    with:
+      itag: ${{ needs.plan.outputs.gtag }}
+    secrets: inherit
+
+  create-release:
+    name: "GitHub Release"
+    needs: [ plan, make-image ]
+    permissions: { contents: write }
+    runs-on: ubuntu-latest
+    steps:
       - name: "Create GitHub Release"
         env:
           GH_TOKEN: ${{ github.token }}
           GTAG: ${{ needs.plan.outputs.gtag }}
         run: |
           test -n "$GTAG"  # fail if empty
+          if [[ "$GTAG" == "v0.0.0" ]]; then exit 0; fi
+          echo "Checking if GitHub Release $GTAG already exists…"
+          if gh release view "$GTAG" >/dev/null 2>&1; then
+            echo "Release $GTAG already exists. Skipping release creation."
+            exit 0
+          fi
           echo "Trying to create GitHub Release [$GTAG]"
           gh release create "$GTAG" --verify-tag --title "$GTAG" --generate-notes
 
   deploy-dev:
     name: "Deploy to dev"
-    needs: [ plan, gtag-release ]
+    needs: [ plan, create-release ]
     permissions: { contents: read, id-token: write }
     concurrency:
       group: "pipeline-pdp-main-deploy-dev"
@@ -118,7 +145,7 @@ jobs:
     uses: ./.github/workflows/rw-pdp-deploy-main.yml
     with:
       target: "dev"
-      rtag: ${{ needs.plan.outputs.gtag }}
+      rtag:   ${{ needs.plan.outputs.gtag }}
     secrets: inherit
 
   deploy-uat:
@@ -131,7 +158,7 @@ jobs:
     uses: ./.github/workflows/rw-pdp-deploy-main.yml
     with:
       target: "uat"
-      rtag:    ${{ needs.plan.outputs.gtag }}
+      rtag:   ${{ needs.plan.outputs.gtag }}
     secrets: inherit
 
   e2etest-uat:

@@ -215,6 +215,7 @@ class ProviderCreationServiceTest {
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
+            null,
             null);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
@@ -222,6 +223,82 @@ class ProviderCreationServiceTest {
     assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
     assertThat(result.headOfficeAccountNumber()).isNotBlank();
     verify(liaisonManagerRepository, never()).save(any());
+  }
+
+  @Test
+  void createChambersFirm_withExistingLmGuid_linksLmByGuid() {
+    UUID providerGuid = UUID.randomUUID();
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ProviderEntity provider = inv.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
+            });
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(chamberProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    UUID lmGuid = UUID.randomUUID();
+    LiaisonManagerEntity existingLm = new LiaisonManagerEntity();
+    existingLm.setGuid(lmGuid);
+    when(liaisonManagerRepository.findById(lmGuid)).thenReturn(Optional.of(existingLm));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createChambersFirm(
+        ChamberProviderEntity.builder().name("My Chambers").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new ChamberProviderOfficeLinkEntity(),
+        null,
+        null,
+        lmGuid);
+
+    verify(liaisonManagerRepository, never()).save(any());
+    verify(liaisonManagerRepository).findById(lmGuid);
+    org.mockito.ArgumentCaptor<OfficeLiaisonManagerLinkEntity> captor =
+        org.mockito.ArgumentCaptor.forClass(OfficeLiaisonManagerLinkEntity.class);
+    verify(officeLiaisonManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getLiaisonManager()).isEqualTo(existingLm);
+    assertThat(captor.getValue().getLinkedFlag()).isFalse();
+  }
+
+  @Test
+  void createChambersFirm_withNewLiaisonManager_savesLmAndLink() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    UUID officeLinkGuid = UUID.randomUUID();
+    when(chamberProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              ChamberProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              officeLink.setGuid(officeLinkGuid);
+              return officeLink;
+            });
+    UUID lmGuid = UUID.randomUUID();
+    when(liaisonManagerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LiaisonManagerEntity lm = inv.getArgument(0);
+              lm.setGuid(lmGuid);
+              return lm;
+            });
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var lmTemplate = LiaisonManagerEntity.builder().firstName("Jane").lastName("Smith").build();
+    var lmLink = new OfficeLiaisonManagerLinkEntity();
+    lmLink.setActiveDateFrom(LocalDate.of(2024, 1, 1));
+
+    service.createChambersFirm(
+        ChamberProviderEntity.builder().name("My Chambers").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new ChamberProviderOfficeLinkEntity(),
+        lmTemplate,
+        lmLink,
+        null);
+
+    verify(liaisonManagerRepository).save(lmTemplate);
+    assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
+    assertThat(lmLink.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
+    verify(officeLiaisonManagerLinkRepository).save(lmLink);
   }
 
   @Test

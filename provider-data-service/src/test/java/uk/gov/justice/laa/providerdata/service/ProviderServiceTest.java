@@ -25,14 +25,20 @@ import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
@@ -41,6 +47,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
@@ -63,6 +70,7 @@ class ProviderServiceTest {
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   @Mock private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   @Mock private OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
+  @Mock private LiaisonManagerRepository liaisonManagerRepository;
 
   @InjectMocks private ProviderService service;
 
@@ -463,5 +471,132 @@ class ProviderServiceTest {
     assertThatThrownBy(() -> service.getPractitionersByChambers(lspId, PageRequest.of(0, 20)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Provider is not a Chambers");
+  }
+
+  @Test
+  void patchProvider_practitionerLiaisonManager_createNew_createsAndSavesNewLm() {
+    UUID guid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("J. Advocate").build();
+    existing.setGuid(guid);
+
+    AdvocateProviderOfficeLinkEntity headOfficeLink = new AdvocateProviderOfficeLinkEntity();
+
+    LiaisonManagerEntity savedLm = new LiaisonManagerEntity();
+    savedLm.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+        .thenReturn(List.of());
+    when(liaisonManagerRepository.save(any())).thenReturn(savedLm);
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var lmCreate = new LiaisonManagerCreateV2().firstName("Alice").lastName("Jones");
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmCreate));
+
+    service.patchProvider(guid.toString(), patch);
+
+    ArgumentCaptor<LiaisonManagerEntity> lmCaptor =
+        ArgumentCaptor.forClass(LiaisonManagerEntity.class);
+    verify(liaisonManagerRepository).save(lmCaptor.capture());
+    assertThat(lmCaptor.getValue().getFirstName()).isEqualTo("Alice");
+    assertThat(lmCaptor.getValue().getLastName()).isEqualTo("Jones");
+    ArgumentCaptor<OfficeLiaisonManagerLinkEntity> linkCaptor =
+        ArgumentCaptor.forClass(OfficeLiaisonManagerLinkEntity.class);
+    verify(officeLiaisonManagerLinkRepository).save(linkCaptor.capture());
+    assertThat(linkCaptor.getValue().getLiaisonManager()).isEqualTo(savedLm);
+    assertThat(linkCaptor.getValue().getLinkedFlag()).isFalse();
+  }
+
+  @Test
+  void patchProvider_practitionerLiaisonManager_guidLink_linksExistingLm() {
+    UUID guid = UUID.randomUUID();
+    UUID lmGuid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("J. Advocate").build();
+    existing.setGuid(guid);
+
+    AdvocateProviderOfficeLinkEntity headOfficeLink = new AdvocateProviderOfficeLinkEntity();
+
+    LiaisonManagerEntity existingLm = new LiaisonManagerEntity();
+    existingLm.setGuid(lmGuid);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+        .thenReturn(List.of());
+    when(liaisonManagerRepository.findById(lmGuid)).thenReturn(Optional.of(existingLm));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var lmLink = new LiaisonManagerLinkByGuidV2(lmGuid);
+    ProviderPatchV2 patch =
+        new ProviderPatchV2().practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmLink));
+
+    service.patchProvider(guid.toString(), patch);
+
+    verify(liaisonManagerRepository).findById(lmGuid);
+    verify(liaisonManagerRepository, org.mockito.Mockito.never()).save(any());
+    ArgumentCaptor<OfficeLiaisonManagerLinkEntity> linkCaptor =
+        ArgumentCaptor.forClass(OfficeLiaisonManagerLinkEntity.class);
+    verify(officeLiaisonManagerLinkRepository).save(linkCaptor.capture());
+    assertThat(linkCaptor.getValue().getLiaisonManager()).isEqualTo(existingLm);
+    assertThat(linkCaptor.getValue().getLinkedFlag()).isFalse();
+  }
+
+  @Test
+  void patchProvider_practitionerLiaisonManager_linkChambers_linksChamberActiveLm() {
+    UUID guid = UUID.randomUUID();
+    UUID chambersGuid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("J. Advocate").build();
+    existing.setGuid(guid);
+
+    ProviderEntity chambers = ProviderEntity.builder().name("Northgate Chambers").build();
+    chambers.setGuid(chambersGuid);
+
+    LiaisonManagerEntity chambersLm = new LiaisonManagerEntity();
+    chambersLm.setGuid(UUID.randomUUID());
+
+    OfficeLiaisonManagerLinkEntity chambersLmLink = new OfficeLiaisonManagerLinkEntity();
+    chambersLmLink.setLiaisonManager(chambersLm);
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    AdvocateProviderOfficeLinkEntity headOfficeLink = new AdvocateProviderOfficeLinkEntity();
+    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+        .thenReturn(List.of());
+    ProviderParentLinkEntity parentLink =
+        ProviderParentLinkEntity.builder().provider(existing).parent(chambers).build();
+    when(providerParentLinkRepository.findByProvider(existing)).thenReturn(List.of(parentLink));
+    ProviderOfficeLinkEntity chambersOfficeLink = new ProviderOfficeLinkEntity();
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(chambers))
+        .thenReturn(Optional.of(chambersOfficeLink));
+    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
+            chambersOfficeLink))
+        .thenReturn(List.of(chambersLmLink));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var lmLinkChambers = new LiaisonManagerLinkChambersV2();
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmLinkChambers));
+
+    service.patchProvider(guid.toString(), patch);
+
+    verify(liaisonManagerRepository, org.mockito.Mockito.never()).save(any());
+    ArgumentCaptor<OfficeLiaisonManagerLinkEntity> linkCaptor =
+        ArgumentCaptor.forClass(OfficeLiaisonManagerLinkEntity.class);
+    verify(officeLiaisonManagerLinkRepository).save(linkCaptor.capture());
+    assertThat(linkCaptor.getValue().getLiaisonManager()).isEqualTo(chambersLm);
+    assertThat(linkCaptor.getValue().getLinkedFlag()).isTrue();
   }
 }

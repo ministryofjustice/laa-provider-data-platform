@@ -1,7 +1,9 @@
 package uk.gov.justice.laa.providerdata.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,7 @@ import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
+import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
@@ -22,8 +25,12 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
@@ -32,6 +39,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
@@ -59,6 +67,7 @@ public class ProviderService {
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
+  private final LiaisonManagerRepository liaisonManagerRepository;
 
   /**
    * Inject dependencies.
@@ -69,6 +78,7 @@ public class ProviderService {
    * @param advocateProviderOfficeLinkRepository to find Advocate office links
    * @param providerParentLinkRepository to find Advocate parent links
    * @param providerOfficeLinkRepository to find general office links
+   * @param liaisonManagerRepository to look up liaison manager entities by GUID
    */
   public ProviderService(
       ProviderRepository providerRepository,
@@ -80,7 +90,8 @@ public class ProviderService {
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
-      OfficeBankAccountLinkRepository officeBankAccountLinkRepository) {
+      OfficeBankAccountLinkRepository officeBankAccountLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
@@ -91,6 +102,7 @@ public class ProviderService {
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
     this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
     this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
+    this.liaisonManagerRepository = liaisonManagerRepository;
   }
 
   /**
@@ -137,7 +149,9 @@ public class ProviderService {
           providerParentLinkRepository,
           advocateProviderOfficeLinkRepository,
           providerRepository,
-          providerOfficeLinkRepository);
+          providerOfficeLinkRepository,
+          officeLiaisonManagerLinkRepository,
+          liaisonManagerRepository);
     }
 
     var saved = providerRepository.save(provider);
@@ -239,6 +253,85 @@ public class ProviderService {
     }
   }
 
+  private static void applyLiaisonManagerChange(
+      ProviderEntity provider,
+      AdvocateOfficeLiaisonManagerCreateOrLinkV2 lmRequest,
+      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository,
+      ProviderParentLinkRepository providerParentLinkRepository,
+      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+    AdvocateProviderOfficeLinkEntity headOfficeLink =
+        advocateProviderOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(provider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        "No head office found for provider: " + provider.getGuid()));
+
+    LocalDate today = LocalDate.now();
+    officeLiaisonManagerLinkRepository
+        .findByOfficeLinkAndActiveDateToIsNull(headOfficeLink)
+        .forEach(link -> link.setActiveDateTo(today));
+
+    LiaisonManagerEntity lm;
+    boolean linkedFlag;
+    switch (lmRequest) {
+      case LiaisonManagerCreateV2 lmCreate -> {
+        LiaisonManagerEntity entity = new LiaisonManagerEntity();
+        entity.setFirstName(lmCreate.getFirstName());
+        entity.setLastName(lmCreate.getLastName());
+        entity.setEmailAddress(lmCreate.getEmailAddress());
+        entity.setTelephoneNumber(lmCreate.getTelephoneNumber());
+        lm = liaisonManagerRepository.save(entity);
+        linkedFlag = false;
+      }
+      case LiaisonManagerLinkChambersV2 ignored -> {
+        List<ProviderParentLinkEntity> parentLinks =
+            providerParentLinkRepository.findByProvider(provider);
+        if (parentLinks.isEmpty()) {
+          throw new ItemNotFoundException(
+              "No parent firm found for provider: " + provider.getGuid());
+        }
+        ProviderEntity chambers = parentLinks.get(0).getParent();
+        ProviderOfficeLinkEntity chambersOfficeLink =
+            providerOfficeLinkRepository
+                .findByProviderAndHeadOfficeFlagTrue(chambers)
+                .orElseThrow(
+                    () ->
+                        new ItemNotFoundException(
+                            "Chambers head office not found: " + chambers.getGuid()));
+        List<OfficeLiaisonManagerLinkEntity> chambersLmLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
+                chambersOfficeLink);
+        if (chambersLmLinks.isEmpty()) {
+          throw new ItemNotFoundException(
+              "No active liaison manager on chambers head office: " + chambers.getGuid());
+        }
+        lm = chambersLmLinks.get(0).getLiaisonManager();
+        linkedFlag = true;
+      }
+      case LiaisonManagerLinkByGuidV2 lmLink -> {
+        UUID guid = lmLink.getLiaisonManagerGUID();
+        lm =
+            liaisonManagerRepository
+                .findById(guid)
+                .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
+        linkedFlag = false;
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported liaison manager request type: " + lmRequest.getClass().getName());
+    }
+
+    OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+    newLink.setOfficeLink(headOfficeLink);
+    newLink.setLiaisonManager(lm);
+    newLink.setActiveDateFrom(today);
+    newLink.setLinkedFlag(linkedFlag);
+    officeLiaisonManagerLinkRepository.save(newLink);
+  }
+
   private static void applyParentFirmPatch(
       ProviderEntity provider,
       List<PractitionerDetailsParentUpdateV2> parentFirms,
@@ -314,15 +407,23 @@ public class ProviderService {
       ProviderParentLinkRepository providerParentLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderRepository providerRepository,
-      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+      ProviderOfficeLinkRepository providerOfficeLinkRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository) {
     if (!FirmType.ADVOCATE.equals(provider.getFirmType())) {
       throw new IllegalArgumentException(
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
 
     if (practitionerPatch.getLiaisonManager() != null) {
-      throw new IllegalArgumentException(
-          "Practitioner liaison manager updates are not supported on this endpoint");
+      applyLiaisonManagerChange(
+          provider,
+          practitionerPatch.getLiaisonManager(),
+          advocateProviderOfficeLinkRepository,
+          officeLiaisonManagerLinkRepository,
+          liaisonManagerRepository,
+          providerParentLinkRepository,
+          providerOfficeLinkRepository);
     }
 
     if (practitionerPatch.getParentFirms() != null) {

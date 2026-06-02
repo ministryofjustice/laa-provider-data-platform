@@ -13,6 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -91,12 +92,16 @@ public class OfficeLiaisonManagerService {
       }
     }
 
+    boolean linkedFlag =
+        request instanceof LiaisonManagerLinkHeadOfficeV2
+            || request instanceof LiaisonManagerLinkChambersV2;
+
     OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
     newLink.setOfficeLink(providerOfficeLink);
     newLink.setLiaisonManager(liaisonManager);
     newLink.setActiveDateFrom(today);
     newLink.setActiveDateTo(null);
-    newLink.setLinkedFlag(true);
+    newLink.setLinkedFlag(linkedFlag);
 
     officeLiaisonManagerLinkRepository.save(newLink);
 
@@ -142,6 +147,12 @@ public class OfficeLiaisonManagerService {
         ProviderOfficeLinkEntity chambersOfficeLink =
             resolveHeadOfficeOffice(provider, "Chambers head office");
         yield resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
+      }
+      case LiaisonManagerLinkByGuidV2 linkByGuid -> {
+        UUID guid = linkByGuid.getLiaisonManagerGUID();
+        yield liaisonManagerRepository
+            .findById(guid)
+            .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
       }
       default ->
           throw new IllegalArgumentException(

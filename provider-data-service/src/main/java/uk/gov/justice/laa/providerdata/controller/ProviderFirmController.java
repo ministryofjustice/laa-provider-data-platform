@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.DXCreateV2;
@@ -39,6 +42,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
@@ -265,14 +269,17 @@ public class ProviderFirmController {
     }
     if (request.getChambers() != null) {
       ChambersHeadOfficeCreateV2 chambers = request.getChambers();
-      LiaisonManagerEntity lmEntity = lmEntity(chambers.getLiaisonManager());
-      OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(chambers.getLiaisonManager());
+      ChambersOfficeLiaisonManagerCreateOrLinkV2 lmDto = chambers.getLiaisonManager();
+      LiaisonManagerEntity lmEntity = lmEntity(lmDto);
+      OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lmDto);
+      UUID existingLmGuid = lmGuid(lmDto);
       return providerFirmCreationService.createChambersFirm(
           ChamberProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
-          lmLink);
+          lmLink,
+          existingLmGuid);
     }
     return providerFirmCreationService.createPractitionerFirm(
         buildPractitionerTemplate(request.getName(), request.getPractitioner()),
@@ -302,12 +309,21 @@ public class ProviderFirmController {
     return entity;
   }
 
-  private LiaisonManagerEntity lmEntity(LiaisonManagerCreateV2 dto) {
-    return dto != null ? officeMapper.toLiaisonManagerEntity(dto) : null;
+  private LiaisonManagerEntity lmEntity(@Nullable ChambersOfficeLiaisonManagerCreateOrLinkV2 dto) {
+    return dto instanceof LiaisonManagerCreateV2 lmCreate
+        ? officeMapper.toLiaisonManagerEntity(lmCreate)
+        : null;
   }
 
-  private OfficeLiaisonManagerLinkEntity lmLinkTemplate(LiaisonManagerCreateV2 dto) {
-    return dto != null ? officeMapper.toLiaisonManagerLinkTemplate(dto) : null;
+  private OfficeLiaisonManagerLinkEntity lmLinkTemplate(
+      @Nullable ChambersOfficeLiaisonManagerCreateOrLinkV2 dto) {
+    return dto instanceof LiaisonManagerCreateV2 lmCreate
+        ? officeMapper.toLiaisonManagerLinkTemplate(lmCreate)
+        : null;
+  }
+
+  private @Nullable UUID lmGuid(@Nullable ChambersOfficeLiaisonManagerCreateOrLinkV2 dto) {
+    return dto instanceof LiaisonManagerLinkByGuidV2 link ? link.getLiaisonManagerGUID() : null;
   }
 
   private void validateRequest(ProviderCreateV2 request) {

@@ -11,6 +11,7 @@ import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeLiaisonMana
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeLiaisonManagers200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeLiaisonManagers200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerV2;
@@ -173,6 +174,11 @@ public class ProviderFirmOfficesLiaisonManagersController
       case LiaisonManagerLinkHeadOfficeV2 _ -> { // no additional validation needed
       }
       case LiaisonManagerLinkChambersV2 _ -> { // no additional validation needed
+      }
+      case LiaisonManagerLinkByGuidV2 link -> {
+        if (link.getLiaisonManagerGUID() == null) {
+          throw new IllegalArgumentException("liaisonManagerGUID is required");
+        }
       }
       default ->
           throw new IllegalArgumentException(

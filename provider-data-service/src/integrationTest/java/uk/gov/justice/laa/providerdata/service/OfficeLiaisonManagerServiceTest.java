@@ -119,8 +119,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
 
     var result = service.postOfficeLiaisonManager("100101", "DATE01", createRequest());
 
-    var links =
-        officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(result.officeGuid());
+    var links = officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(result.officeGuid());
     assertThat(links).hasSize(1);
     assertThat(links.getFirst().getActiveDateFrom()).isEqualTo(LocalDate.now());
   }
@@ -135,8 +134,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
         LspProviderEntity.builder().firmNumber("100102").name("LSP Conflict Test").build();
     provider = providerRepository.save(provider);
     OfficeEntity office = savedOffice(now);
-    final ProviderOfficeLinkEntity officeLink =
-        savedLspOfficeLink(provider, office, "CONF01", now);
+    final ProviderOfficeLinkEntity officeLink = savedLspOfficeLink(provider, office, "CONF01", now);
 
     LiaisonManagerEntity existing = new LiaisonManagerEntity();
     existing.setFirstName("Bob");
@@ -153,8 +151,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
     activeLink.setLinkedFlag(false);
     officeLiaisonManagerLinkRepository.save(activeLink);
 
-    assertThatThrownBy(
-            () -> service.postOfficeLiaisonManager("100102", "CONF01", createRequest()))
+    assertThatThrownBy(() -> service.postOfficeLiaisonManager("100102", "CONF01", createRequest()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("already has an active liaison manager");
 

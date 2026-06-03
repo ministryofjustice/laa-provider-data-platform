@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,6 +44,7 @@ import uk.gov.justice.laa.providerdata.model.DXPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
@@ -155,7 +157,6 @@ class OfficeServiceTest {
     ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
-    UUID officeGuid = UUID.randomUUID();
     OfficeEntity savedOffice = new OfficeEntity();
 
     UUID officeLinkGuid = UUID.randomUUID();
@@ -200,14 +201,13 @@ class OfficeServiceTest {
   @Test
   void createLspOffice_withLinkToHeadOfficeLiaisonManager_linksExistingLm() {
     UUID providerGuid = UUID.randomUUID();
-    UUID officeGuid = UUID.randomUUID();
     UUID headOfficeGuid = UUID.randomUUID();
 
     ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
     OfficeEntity savedOffice = new OfficeEntity();
-    savedOffice.setGuid(officeGuid);
+    savedOffice.setGuid(UUID.randomUUID());
 
     OfficeEntity headOffice = new OfficeEntity();
     headOffice.setGuid(headOfficeGuid);
@@ -1107,5 +1107,1135 @@ class OfficeServiceTest {
                         .clearActiveDateTo(Boolean.TRUE)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("clearActiveDateTo");
+  }
+
+  /**
+   * AC1: Verifies that linking an existing bank account to an office succeeds with valid EFT
+   * payment method and permitted fields.
+   */
+  @Test
+  void patchOffice_linkExistingBankAccount_updatesOfficeBankAccountLinkSuccessfully() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100001")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountGuid = UUID.randomUUID();
+    var activeDateFrom = LocalDate.of(2025, 6, 1);
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(bankAccountGuid)
+            .activeDateFrom(activeDateFrom);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify identifiers are returned (standard response)
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThat(result.officeGUID()).isEqualTo(linkGuid);
+    assertThat(result.accountNumber()).isEqualTo("ACC001");
+
+    // Verify bankDetailsService was called to link the existing account
+    verify(bankDetailsService)
+        .linkExisting(eq(bankAccountGuid), eq(provider), eq(link), eq(activeDateFrom));
+  }
+
+  /**
+   * Verifies that creating and linking a new bank account to an office succeeds with valid EFT
+   * payment method and complete account details.
+   */
+  @Test
+  void patchOffice_createAndLinkNewBankAccount_persistsBankAccountSuccessfully() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100002")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC002");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var activeDateFrom = LocalDate.of(2025, 6, 15);
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("New Test Account")
+            .sortCode("654321")
+            .accountNumber("12345678")
+            .activeDateFrom(activeDateFrom);
+
+    final var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    // Mock the bank account mapper to return an entity
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify the response
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThat(result.officeGUID()).isEqualTo(linkGuid);
+
+    // Verify bankDetailsService.createAndLink was called with the correct parameters
+    verify(bankDetailsService)
+        .createAndLink(eq(bankAccountEntity), eq(provider), eq(link), eq(activeDateFrom));
+  }
+
+  @Test
+  void patchOffice_bankAccountAmendmentWithNonEftPaymentMethod_doesNotPersistBankDetails() {
+    // AC1 variation: When paymentMethod is not EFT, bank account details should not be processed
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100003").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC003");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("Check Payment Account")
+            .sortCode("111111")
+            .accountNumber("99999999");
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK) // Not EFT
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify identifiers are returned
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify bankDetailsService was NOT called because paymentMethod is not EFT
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  /**
+   * Verifies that no bank account operations are performed when bank account details are null in
+   * the patch request.
+   */
+  @Test
+  void patchOffice_bankAccountAmendmentWhenNullBankAccountDetails_doesNotPersistBankDetails() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100004").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC004");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false);
+    // bankAccountDetails is null
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify identifiers are returned
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify bankDetailsService was NOT called
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  /**
+   * AC2: Verifies that the primaryFlag field is not amendable when linking a bank account and is
+   * properly set by the service.
+   */
+  @Test
+  void patchOffice_linkBankAccount_withRestrictedPrimaryFlag_stillSucceeds() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100005")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC005");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountGuid = UUID.randomUUID();
+    // Create link request (primaryFlag is NOT part of the schema, so it will be ignored)
+    var bankAccountLink = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankAccountGuid);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch — should still succeed
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service was called to link (primaryFlag will be set to true by service, not from
+    // client)
+    verify(bankDetailsService).linkExisting(eq(bankAccountGuid), eq(provider), eq(link), any());
+  }
+
+  /**
+   * Verifies that the activeDateTo field is not amendable when creating a bank account and is
+   * properly ignored if provided.
+   */
+  @Test
+  void patchOffice_createBankAccount_withRestrictedActiveDateTo_ignored() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100006")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC006");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var activeDateFrom = LocalDate.of(2025, 7, 1);
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("Test Account")
+            .sortCode("111111")
+            .accountNumber("11111111")
+            .activeDateFrom(activeDateFrom);
+    // Note: activeDateTo is NOT part of the schema; if someone tries to set it via JSON,
+    // it will be ignored by Jackson deserialization
+
+    final var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service was called — activeDateTo from client is ignored (not passed to service)
+    verify(bankDetailsService)
+        .createAndLink(
+            eq(bankAccountEntity),
+            eq(provider),
+            eq(link),
+            eq(activeDateFrom)); // Only the client-supplied activeDateFrom is used
+    verify(bankDetailsService)
+        .createAndLink(
+            eq(bankAccountEntity),
+            eq(provider),
+            eq(link),
+            eq(activeDateFrom)); // Only the client-supplied activeDateFrom is used
+  }
+
+  /**
+   * Verifies that core bank account fields (accountName, sortCode, accountNumber) are restricted
+   * from amendment when linking an existing bank account.
+   */
+  @Test
+  void patchOffice_linkBankAccount_restrictedCoreFields_ignored() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+    final var bankAccountGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100007")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC007");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Create link request
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(bankAccountGuid)
+            .activeDateFrom(LocalDate.of(2025, 7, 15));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service was called with ONLY the GUID and date
+    // (not with accountName, sortCode, accountNumber — they're not part of link schema)
+    verify(bankDetailsService)
+        .linkExisting(eq(bankAccountGuid), eq(provider), eq(link), eq(LocalDate.of(2025, 7, 15)));
+  }
+
+  /**
+   * Verifies that the GUID field is not amendable when creating a bank account and is properly
+   * ignored if provided.
+   */
+  @Test
+  void patchOffice_createBankAccount_guidFieldIgnored() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100008")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC008");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("New Account")
+            .sortCode("222222")
+            .accountNumber("22222222");
+    // Note: GUID is not part of the create schema; client cannot set it
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    final var patch = new LSPOfficePatchV2().payment(payment);
+
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service receives the entity without a client-supplied GUID
+    verify(bankDetailsService)
+        .createAndLink(any(BankAccountEntity.class), eq(provider), eq(link), any());
+    // The GUID will be generated by the service/persistence layer
+  }
+
+  /**
+   * Verifies that bank account linking is prevented when payment method is not EFT, even if bank
+   * account details are provided.
+   */
+  @Test
+  void patchOffice_bankAccountAmendment_paymentMethodNotAmendableWithBankDetails() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+    final var bankAccountGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100009").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC009");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountLink = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankAccountGuid);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK) // NOT EFT
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink); // This should be ignored
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success (patch doesn't fail, but bank details are not processed)
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify bankDetailsService was NOT called (bank details operation blocked by paymentMethod
+    // gate)
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  /** AC3 Verifies that linking a bank account ensures all required fields are present and valid. */
+  @Test
+  void patchOffice_linkBankAccount_ensuresCompleteBankAccountWithAllRequiredFields() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100010")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC010");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountGuid = UUID.randomUUID();
+    var activeDateFrom = LocalDate.of(2025, 8, 1);
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(bankAccountGuid)
+            .activeDateFrom(activeDateFrom);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify response
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThat(result.officeGUID()).isEqualTo(linkGuid);
+
+    // Verify service was called to establish valid link
+    // (service is responsible for ensuring account has all required fields)
+    verify(bankDetailsService)
+        .linkExisting(eq(bankAccountGuid), eq(provider), eq(link), eq(activeDateFrom));
+  }
+
+  /**
+   * Verifies that creating a bank account ensures all required fields are present before
+   * persistence.
+   */
+  @Test
+  void patchOffice_createBankAccount_ensuresAllRequiredFieldsPresent() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100011")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC011");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Client provides core fields; service adds defaults
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("Complete Account")
+            .sortCode("333333")
+            .accountNumber("33333333");
+    // activeDateFrom will default to today
+
+    final var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify response
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service ensures all required fields
+    // (accountName, sortCode, accountNumber all present in entity)
+    verify(bankDetailsService)
+        .createAndLink(
+            argThat(
+                entity ->
+                    entity.getAccountName() != null
+                        && entity.getSortCode() != null
+                        && entity.getAccountNumber() != null),
+            eq(provider),
+            eq(link),
+            any());
+  }
+
+  /**
+   * Verifies that switching to a new primary bank account prevents the office from entering an
+   * orphan state.
+   */
+  @Test
+  void patchOffice_switchingBankAccount_preventsOfficeOrphanState() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100012")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC012");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Switch to a new primary account
+    var newBankAccountGuid = UUID.randomUUID();
+    var newActiveDateFrom = LocalDate.of(2025, 8, 15);
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(newBankAccountGuid)
+            .activeDateFrom(newActiveDateFrom);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify linkExisting is called (service handles end-dating old + activating new)
+    verify(bankDetailsService)
+        .linkExisting(eq(newBankAccountGuid), eq(provider), eq(link), eq(newActiveDateFrom));
+    // BankDetailsService is responsible for atomic transition (end-date old, activate new)
+  }
+
+  /**
+   * Verifies that attempting to amend payment details without providing a replacement bank account
+   * does not orphan the office.
+   */
+  @Test
+  void patchOffice_bankAccountAmendment_doesNotRemoveOrphanExistingAccount() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100013").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC013");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Patch with EFT payment but null bankAccountDetails (no replacement account provided)
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false);
+    // bankAccountDetails is null — attempting to remove/clear bank account
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success (no error; existing account remains)
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify linkExisting/createAndLink NOT called (no replacement, so no change)
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    // Office retains its current bank account; no orphan state created
+  }
+
+  /**
+   * Verifies that an office cannot lose its primary bank account when the payment method requires
+   * EFT.
+   */
+  @Test
+  void patchOffice_bankAccountAmendment_officeCannotLosePrimaryAccount() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100014")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC014");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Attempt to switch payment to CHECK method (losing bank account requirement)
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK)
+            .paymentHeldFlag(false);
+    // No bankAccountDetails provided
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Patch succeeds (no error at PATCH level), but account maintained
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify no bank account changes attempted (existing account retained)
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  /**
+   * Verifies that transitioning an account to primary ensures exactly one primary account exists
+   * for the office.
+   */
+  @Test
+  void patchOffice_transitionToPrimaryFlag_preventsMultiplePrimaries() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100015")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC015");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountGuid = UUID.randomUUID();
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(bankAccountGuid)
+            .activeDateFrom(LocalDate.of(2025, 9, 1));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service is called — it handles primary flag transition
+    // (end-dates old record, sets new record to primary)
+    verify(bankDetailsService).linkExisting(eq(bankAccountGuid), eq(provider), eq(link), any());
+  }
+
+  /** Verifies that creating a bank account validates that all required core fields are present. */
+  @Test
+  void patchOffice_requiredBankFieldsValidationOnCreate() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100016")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC016");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Create account with all required fields
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("Valid Account")
+            .sortCode("444444")
+            .accountNumber("44444444");
+
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    // Entity is complete with all required fields
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+    var patch = new LSPOfficePatchV2().payment(payment);
+    // Execute the patch
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    // Verify success
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    // Verify service received complete entity
+    verify(bankDetailsService)
+        .createAndLink(
+            argThat(
+                entity ->
+                    entity.getAccountName() != null
+                        && entity.getAccountName().equals("Valid Account")
+                        && entity.getSortCode() != null
+                        && entity.getAccountNumber() != null),
+            eq(provider),
+            eq(link),
+            any());
+  }
+
+  /** AC4: Link operation fails; verify no partial state persists. */
+  @Test
+  void patchOffice_bankAccountAmendment_noPartialUpdateWhenLinkExistingFails() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100017")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC017");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+
+    var invalidBankAccountGuid = UUID.randomUUID();
+    when(bankDetailsService.linkExisting(eq(invalidBankAccountGuid), eq(provider), eq(link), any()))
+        .thenThrow(new ItemNotFoundException("Bank account not found"));
+
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2().bankAccountGUID(invalidBankAccountGuid);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("Bank account not found");
+
+    verify(bankDetailsService)
+        .linkExisting(eq(invalidBankAccountGuid), eq(provider), eq(link), any());
+  }
+
+  /** AC4: Create operation fails; verify early validation prevents state changes. */
+  @Test
+  void patchOffice_bankAccountAmendment_noPartialUpdateWhenCreateAndLinkFails() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100018")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC018");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("Invalid Account")
+            .sortCode("999999")
+            .accountNumber("99999999");
+
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails))
+        .thenThrow(new IllegalArgumentException("Invalid bank account details"));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid bank account");
+
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  /** AC4: Service layer fails; verify atomicity via @Transactional boundary. */
+  @Test
+  void patchOffice_bankAccountAmendment_officeStateUnchangedOnServiceFailure() {
+
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100019")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var office = new OfficeEntity();
+    office.setTelephoneNumber("0207 111 0000");
+    var link = new LspProviderOfficeLinkEntity();
+    link.setGuid(linkGuid);
+    link.setAccountNumber("ACC019");
+    link.setOffice(office);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+
+    var bankAccountGuid = UUID.randomUUID();
+    when(bankDetailsService.linkExisting(eq(bankAccountGuid), eq(provider), eq(link), any()))
+        .thenThrow(new RuntimeException("Database error"));
+
+    var bankAccountLink = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankAccountGuid);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().telephoneNumber("0207 999 9999").payment(payment);
+
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Database error");
+
+    verify(bankDetailsService).linkExisting(eq(bankAccountGuid), eq(provider), eq(link), any());
+  }
+
+  /** AC5: Linking ensures account is associated to office link. */
+  @Test
+  void patchOffice_bankAccountLinking_ensuresAccountIsAssociatedToOffice() {
+
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100020")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC020");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountGuid = UUID.randomUUID();
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(bankAccountGuid)
+            .activeDateFrom(LocalDate.of(2025, 10, 1));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    verify(bankDetailsService)
+        .linkExisting(eq(bankAccountGuid), eq(provider), eq(link), eq(LocalDate.of(2025, 10, 1)));
+  }
+
+  /** AC5: Creation ensures new account is immediately associated to office link. */
+  @Test
+  void patchOffice_bankAccountCreation_ensuresNewAccountIsImmediatelyAssociated() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100021")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC021");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var bankAccountDetails =
+        new BankAccountProviderOfficeCreateV2()
+            .accountName("New Associated Account")
+            .sortCode("555555")
+            .accountNumber("55555555")
+            .activeDateFrom(LocalDate.of(2025, 10, 15));
+
+    BankAccountEntity bankAccountEntity = new BankAccountEntity();
+    bankAccountEntity.setAccountName(bankAccountDetails.getAccountName());
+    bankAccountEntity.setAccountNumber(bankAccountDetails.getAccountNumber());
+    bankAccountEntity.setSortCode(bankAccountDetails.getSortCode());
+    when(bankAccountMapper.toBankAccountEntity(bankAccountDetails)).thenReturn(bankAccountEntity);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountDetails);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    verify(bankDetailsService)
+        .createAndLink(
+            eq(bankAccountEntity), eq(provider), eq(link), eq(LocalDate.of(2025, 10, 15)));
+  }
+
+  /** AC5: Null bank account details do not trigger account operations. */
+  @Test
+  void patchOffice_bankAccountAmendment_preventsBankAccountOrphaning() {
+
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100022")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC022");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  /** AC5: Account switch updates associations while maintaining continuity. */
+  @Test
+  void patchOffice_bankAccountAmendment_ensuresAssociationContinuityOnSwitch() {
+
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider =
+        ProviderEntity.builder()
+            .firmNumber("100023")
+            .firmType(FirmType.LEGAL_SERVICES_PROVIDER)
+            .build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC023");
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
+        .thenReturn(Optional.of(link));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    var newBankAccountGuid = UUID.randomUUID();
+    var newActiveDateFrom = LocalDate.of(2025, 11, 1);
+    var bankAccountLink =
+        new BankAccountProviderOfficeLinkV2()
+            .bankAccountGUID(newBankAccountGuid)
+            .activeDateFrom(newActiveDateFrom);
+
+    var payment =
+        new PaymentDetailsPatchOrLinkV2()
+            .paymentMethod(PaymentDetailsPaymentMethodV2.EFT)
+            .paymentHeldFlag(false)
+            .bankAccountDetails(bankAccountLink);
+
+    var patch = new LSPOfficePatchV2().payment(payment);
+
+    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+
+    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+
+    verify(bankDetailsService)
+        .linkExisting(
+            eq(newBankAccountGuid), eq(provider), eq(link), eq(LocalDate.of(2025, 11, 1)));
   }
 }

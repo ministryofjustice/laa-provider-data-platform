@@ -253,85 +253,6 @@ public class ProviderService {
     }
   }
 
-  private static void applyLiaisonManagerChange(
-      ProviderEntity provider,
-      AdvocateOfficeLiaisonManagerCreateOrLinkV2 lmRequest,
-      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
-      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
-      LiaisonManagerRepository liaisonManagerRepository,
-      ProviderParentLinkRepository providerParentLinkRepository,
-      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
-    AdvocateProviderOfficeLinkEntity headOfficeLink =
-        advocateProviderOfficeLinkRepository
-            .findByProviderAndHeadOfficeFlagTrue(provider)
-            .orElseThrow(
-                () ->
-                    new ItemNotFoundException(
-                        "No head office found for provider: " + provider.getGuid()));
-
-    LocalDate today = LocalDate.now();
-    officeLiaisonManagerLinkRepository
-        .findByOfficeLinkAndActiveDateToIsNull(headOfficeLink)
-        .forEach(link -> link.setActiveDateTo(today));
-
-    LiaisonManagerEntity lm;
-    boolean linkedFlag;
-    switch (lmRequest) {
-      case LiaisonManagerCreateV2 lmCreate -> {
-        LiaisonManagerEntity entity = new LiaisonManagerEntity();
-        entity.setFirstName(lmCreate.getFirstName());
-        entity.setLastName(lmCreate.getLastName());
-        entity.setEmailAddress(lmCreate.getEmailAddress());
-        entity.setTelephoneNumber(lmCreate.getTelephoneNumber());
-        lm = liaisonManagerRepository.save(entity);
-        linkedFlag = false;
-      }
-      case LiaisonManagerLinkChambersV2 ignored -> {
-        List<ProviderParentLinkEntity> parentLinks =
-            providerParentLinkRepository.findByProvider(provider);
-        if (parentLinks.isEmpty()) {
-          throw new ItemNotFoundException(
-              "No parent firm found for provider: " + provider.getGuid());
-        }
-        ProviderEntity chambers = parentLinks.get(0).getParent();
-        ProviderOfficeLinkEntity chambersOfficeLink =
-            providerOfficeLinkRepository
-                .findByProviderAndHeadOfficeFlagTrue(chambers)
-                .orElseThrow(
-                    () ->
-                        new ItemNotFoundException(
-                            "Chambers head office not found: " + chambers.getGuid()));
-        List<OfficeLiaisonManagerLinkEntity> chambersLmLinks =
-            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
-                chambersOfficeLink);
-        if (chambersLmLinks.isEmpty()) {
-          throw new ItemNotFoundException(
-              "No active liaison manager on chambers head office: " + chambers.getGuid());
-        }
-        lm = chambersLmLinks.get(0).getLiaisonManager();
-        linkedFlag = true;
-      }
-      case LiaisonManagerLinkByGuidV2 lmLink -> {
-        UUID guid = lmLink.getLiaisonManagerGUID();
-        lm =
-            liaisonManagerRepository
-                .findById(guid)
-                .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
-        linkedFlag = false;
-      }
-      default ->
-          throw new IllegalArgumentException(
-              "Unsupported liaison manager request type: " + lmRequest.getClass().getName());
-    }
-
-    OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
-    newLink.setOfficeLink(headOfficeLink);
-    newLink.setLiaisonManager(lm);
-    newLink.setActiveDateFrom(today);
-    newLink.setLinkedFlag(linkedFlag);
-    officeLiaisonManagerLinkRepository.save(newLink);
-  }
-
   private static void applyParentFirmPatch(
       ProviderEntity provider,
       List<PractitionerDetailsParentUpdateV2> parentFirms,
@@ -415,17 +336,6 @@ public class ProviderService {
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
 
-    if (practitionerPatch.getLiaisonManager() != null) {
-      applyLiaisonManagerChange(
-          provider,
-          practitionerPatch.getLiaisonManager(),
-          advocateProviderOfficeLinkRepository,
-          officeLiaisonManagerLinkRepository,
-          liaisonManagerRepository,
-          providerParentLinkRepository,
-          providerOfficeLinkRepository);
-    }
-
     if (practitionerPatch.getParentFirms() != null) {
       applyParentFirmPatch(
           provider,
@@ -433,6 +343,17 @@ public class ProviderService {
           providerParentLinkRepository,
           advocateProviderOfficeLinkRepository,
           providerRepository,
+          providerOfficeLinkRepository);
+    }
+
+    if (practitionerPatch.getLiaisonManager() != null) {
+      applyPractitionerLiaisonManagerPatch(
+          provider,
+          practitionerPatch.getLiaisonManager(),
+          advocateProviderOfficeLinkRepository,
+          providerParentLinkRepository,
+          officeLiaisonManagerLinkRepository,
+          liaisonManagerRepository,
           providerOfficeLinkRepository);
     }
     switch (provider) {
@@ -457,6 +378,146 @@ public class ProviderService {
           throw new IllegalArgumentException(
               "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
+  }
+
+  /**
+   * Applies the liaison manager update for a practitioner (Advocate/Barrister) within a PATCH
+   * /provider-firms operation.
+   *
+   * <p>Three options map to DSTEW-1647:
+   *
+   * <ul>
+   *   <li>Option 1 – {@link LiaisonManagerLinkChambersV2}: end-date existing active link and create
+   *       a new linked entry pointing to the current chambers LM ({@code linkedFlag=true}).
+   *   <li>Option 2 – {@code null} liaison manager: keep existing LM unchanged.
+   *   <li>Option 3 – {@link LiaisonManagerCreateV2}: create a new LM and assign it; rejected
+   *       (AC4/BR-29) if the advocate's office already has an active liaison manager.
+   * </ul>
+   *
+   * <p>AC3: {@code activeDateFrom} is always set to today's date.
+   *
+   * <p>AC6: {@code activeDateTo} is never set at creation.
+   */
+  private static void applyPractitionerLiaisonManagerPatch(
+      ProviderEntity provider,
+      AdvocateOfficeLiaisonManagerCreateOrLinkV2 lmRequest,
+      AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
+      ProviderParentLinkRepository providerParentLinkRepository,
+      OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository,
+      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+    final ProviderOfficeLinkEntity advocateOfficeLink =
+        advocateProviderOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(provider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        "No office link found for practitioner: " + provider.getGuid()));
+    final LocalDate today = LocalDate.now();
+
+    switch (lmRequest) {
+      case LiaisonManagerCreateV2 create -> {
+        // Option 3: DSTEW-1647 AC4 – reject if the office already has an active LM.
+        var activeLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
+                advocateOfficeLink);
+        if (!activeLinks.isEmpty()) {
+          throw new IllegalArgumentException("Office already has an active liaison manager");
+        }
+        LiaisonManagerEntity newLm = new LiaisonManagerEntity();
+        newLm.setFirstName(create.getFirstName());
+        newLm.setLastName(create.getLastName());
+        newLm.setEmailAddress(create.getEmailAddress());
+        newLm.setTelephoneNumber(create.getTelephoneNumber());
+        final LiaisonManagerEntity savedLm = liaisonManagerRepository.save(newLm);
+        final OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+        newLink.setOfficeLink(advocateOfficeLink);
+        newLink.setLiaisonManager(savedLm);
+        newLink.setActiveDateFrom(today);
+        newLink.setActiveDateTo(null);
+        newLink.setLinkedFlag(false);
+        officeLiaisonManagerLinkRepository.save(newLink);
+      }
+      case LiaisonManagerLinkChambersV2 linkChambers -> {
+        // Option 1: end-date existing active links then link to chambers LM.
+        if (!Boolean.TRUE.equals(linkChambers.getUseChambersLiaisonManager())) {
+          throw new IllegalArgumentException("useChambersLiaisonManager must be true");
+        }
+        final ProviderOfficeLinkEntity chambersOfficeLink =
+            resolveChambersOfficeLinkForPractitioner(
+                provider, providerParentLinkRepository, providerOfficeLinkRepository);
+        final var activeLinksForOffice =
+            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
+                chambersOfficeLink);
+        if (activeLinksForOffice.isEmpty()) {
+          throw new ItemNotFoundException(
+              "No active liaison manager found for chambers office: "
+                  + chambersOfficeLink.getGuid());
+        }
+        final LiaisonManagerEntity chambersLm = activeLinksForOffice.getFirst().getLiaisonManager();
+        var existingLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+        for (OfficeLiaisonManagerLinkEntity existing : existingLinks) {
+          if (existing.getActiveDateTo() == null || existing.getActiveDateTo().isAfter(today)) {
+            existing.setActiveDateTo(today);
+          }
+        }
+        final OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+        newLink.setOfficeLink(advocateOfficeLink);
+        newLink.setLiaisonManager(chambersLm);
+        newLink.setActiveDateFrom(today);
+        newLink.setActiveDateTo(null);
+        newLink.setLinkedFlag(true);
+        officeLiaisonManagerLinkRepository.save(newLink);
+      }
+      case LiaisonManagerLinkByGuidV2 lmLink -> {
+        // DSTEW-1652: Link by GUID, end-dating existing active links.
+        UUID guid = lmLink.getLiaisonManagerGUID();
+        final LiaisonManagerEntity existingLmByGuid =
+            liaisonManagerRepository
+                .findById(guid)
+                .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
+        var existingLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+        for (OfficeLiaisonManagerLinkEntity existing : existingLinks) {
+          if (existing.getActiveDateTo() == null || existing.getActiveDateTo().isAfter(today)) {
+            existing.setActiveDateTo(today);
+          }
+        }
+        final OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+        newLink.setOfficeLink(advocateOfficeLink);
+        newLink.setLiaisonManager(existingLmByGuid);
+        newLink.setActiveDateFrom(today);
+        newLink.setActiveDateTo(null);
+        newLink.setLinkedFlag(false);
+        officeLiaisonManagerLinkRepository.save(newLink);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported liaison manager request type: " + lmRequest.getClass().getName());
+    }
+  }
+
+  /**
+   * Resolves the chambers head-office provider-office link for a practitioner by looking up their
+   * parent firm (ProviderParentLink) and then finding that parent's head office link.
+   */
+  private static ProviderOfficeLinkEntity resolveChambersOfficeLinkForPractitioner(
+      ProviderEntity provider,
+      ProviderParentLinkRepository providerParentLinkRepository,
+      ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+    List<ProviderParentLinkEntity> parents = providerParentLinkRepository.findByProvider(provider);
+    if (parents.isEmpty()) {
+      throw new ItemNotFoundException(
+          "No parent firm found for practitioner: " + provider.getGuid());
+    }
+    final ProviderEntity chambersFirm = parents.getFirst().getParent();
+    return providerOfficeLinkRepository
+        .findByProviderAndHeadOfficeFlagTrue(chambersFirm)
+        .orElseThrow(
+            () ->
+                new ItemNotFoundException(
+                    "No head office found for chambers: " + chambersFirm.getGuid()));
   }
 
   /**

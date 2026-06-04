@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
@@ -28,16 +28,16 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 @DisplayName("DSTEW-1647 UC5: Re-link practitioner liaison manager")
 class AmendPractitionerLiaisonManagerE2eTest {
 
-  private static String advocateFirmNumber;
-  private static String advocateFirmGuid;
-  private static String chambersFirmNumber;
-  private static String chambersFirmGuid;
-  private static String chambersOfficeGuid;
-  private static String advocateOfficeGuid;
-  private static String chambersLmGuid;
+  private String advocateFirmNumber;
+  private String advocateFirmGuid;
+  private String chambersFirmNumber;
+  private String chambersFirmGuid;
+  private String chambersOfficeGuid;
+  private String advocateOfficeGuid;
+  private String chambersLmGuid;
 
-  @BeforeAll
-  static void setupAdvocateAndChambers() {
+  @BeforeEach
+  void setupAdvocateAndChambers() {
     // Create Chambers firm
     String chambersFirmName = "E2E-DSTEW-1647-UC5 Chambers " + System.currentTimeMillis();
     Response chambersCreateResponse =
@@ -310,9 +310,6 @@ class AmendPractitionerLiaisonManagerE2eTest {
 
   @Test
   void patchPractitioner_option3_createNew_rejectsWhenActiveLmExists() {
-    // Note: Use the original advocate created in setupAdvocateAndChambers
-    // which already has an active LM
-
     // Execute: Try to create new LM when one already exists - should be rejected
     given()
         .pathParam("firmId", advocateFirmNumber)
@@ -346,9 +343,9 @@ class AmendPractitionerLiaisonManagerE2eTest {
 
     String lmFirstName =
         verifyResponse.jsonPath().getString("data.practitioner.office.liaisonManager.firstName");
-    // Should still be the original LM (either "Advocate" or "Chambers" depending on test order)
-    // For simplicity, we just verify it's not the attempted one
-    assert (!lmFirstName.equals("Attempted"));
+    // Verify it's still the original "Advocate" LM (unchanged by failed patch)
+    // Each test has fresh setup, so we know exactly which LM should be there
+    assert (lmFirstName.equals("Advocate"));
   }
 
   // -- AC6: Verify cannot specify activeDateTo during creation

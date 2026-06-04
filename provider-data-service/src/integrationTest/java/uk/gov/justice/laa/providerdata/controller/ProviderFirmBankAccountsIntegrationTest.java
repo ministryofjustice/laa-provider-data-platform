@@ -46,26 +46,36 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                                                {
-                                                  "firmType": "Legal Services Provider",
-                                                  "name": "Integration Test LSP",
-                                                  "legalServicesProvider": {
-                                                    "address": {
-                                                      "line1": "1 Test Street",
-                                                      "townOrCity": "London",
-                                                      "postcode": "SW1A 1AA"
-                                                    },
-                                                    "payment": {
-                                                      "paymentMethod": "EFT",
-                                                      "bankAccountDetails": {
-                                                        "accountName": "Firm Account",
-                                                        "sortCode": "12-34-56",
-                                                        "accountNumber": "11111111"
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                                """))
+                            {
+                              "firmType": "Legal Services Provider",
+                              "name": "Integration Test LSP",
+                              "legalServicesProvider": {
+                                "constitutionalStatus": "Partnership",
+                                "address": {
+                                  "line1": "1 Test Street",
+                                  "townOrCity": "London",
+                                  "postcode": "SW1A 1AA"
+                                },
+                                "payment": {
+                                  "paymentMethod": "EFT",
+                                  "bankAccountDetails": {
+                                    "accountName": "Firm Account",
+                                    "sortCode": "12-34-56",
+                                    "accountNumber": "11111111"
+                                  }
+                                },
+                                "liaisonManager": {
+                                  "firstName": "Test",
+                                  "lastName": "Manager",
+                                  "emailAddress": "test.manager@example.com",
+                                  "telephoneNumber": "020 1111 2222"
+                                },
+                                "contractManager": {
+                                  "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+                                }
+                              }
+                            }
+                            """))
             .andReturn();
 
     assertThat(createFirmResult.getResponse().getStatus()).isEqualTo(201);
@@ -119,6 +129,10 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
         .andExpect(jsonPath("$.data.content.length()").value(2))
+        .andExpect(jsonPath("$.data.content[0].guid").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountName").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].sortCode").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountNumber").isNotEmpty())
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(2));
   }
 
@@ -163,8 +177,24 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content").isArray())
         .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].guid").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].accountName").value("Office Account"))
         .andExpect(jsonPath("$.data.content[0].accountNumber").value("22222222"))
+        .andExpect(jsonPath("$.data.content[0].sortCode").value("65-43-21"))
+        .andExpect(jsonPath("$.data.content[0].activeDateFrom").isNotEmpty())
+        .andExpect(jsonPath("$.data.content[0].primaryFlag").value(true))
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
+  }
+
+  @Test
+  void getProviderFirmOfficeBankAccounts_returnsNotFound_whenOfficeMissing() throws Exception {
+    mockMvc
+        .perform(
+            get(
+                "/provider-firms/{id}/offices/{officeId}/bank-details",
+                providerGuid,
+                "UNKNOWN-OFFICE"))
+        .andExpect(status().isNotFound());
   }
 
   @Test

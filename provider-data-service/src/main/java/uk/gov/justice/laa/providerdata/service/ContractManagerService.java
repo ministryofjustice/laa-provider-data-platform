@@ -1,7 +1,8 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -10,10 +11,11 @@ import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 
 /** Service for retrieving contract managers linked to provider offices. */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContractManagerService {
+
+  private static final Logger log = LoggerFactory.getLogger(ContractManagerService.class);
 
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final ContractManagerMapper mapper;

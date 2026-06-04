@@ -52,7 +52,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
   @Override
   public ResponseEntity<GetProviderFirmBankAccounts200Response> getProviderFirmBankAccounts(
       String providerFirmGUIDorFirmNumber,
-      @Nullable String xCorrelationId,
       @Nullable String traceparent,
       @Nullable String bankAccountNumber,
       @Nullable Integer page,
@@ -84,7 +83,6 @@ public class ProviderFirmBankAccountsController implements ProviderFirmBankAccou
       getProviderFirmOfficeBankAccounts(
           String providerFirmGUIDorFirmNumber,
           String officeGUIDorCode,
-          @Nullable String xCorrelationId,
           @Nullable String traceparent,
           @Nullable String bankAccountNumber,
           @Nullable Integer page,

@@ -30,11 +30,7 @@ public class ChamberOfficePractitionersController implements ChamberOfficePracti
   @Override
   public ResponseEntity<GetProviderFirmOfficePractitioners200Response>
       getProviderFirmOfficePractitioners(
-          String providerFirmGUIDorFirmNumber,
-          String xCorrelationId,
-          String traceparent,
-          Integer page,
-          Integer pageSize) {
+          String providerFirmGUIDorFirmNumber, String traceparent, Integer page, Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
     Page<OfficePractitionerV2> practitioners =
         providerService

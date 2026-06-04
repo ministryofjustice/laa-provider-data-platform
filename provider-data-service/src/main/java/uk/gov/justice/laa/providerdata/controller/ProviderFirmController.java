@@ -2,6 +2,8 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,9 @@ import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -28,11 +33,14 @@ import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
+import uk.gov.justice.laa.providerdata.model.DXCreateV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderCreateLSPV2LegalServicesProvider;
 import uk.gov.justice.laa.providerdata.model.ProviderCreatePractitionerV2Practitioner;
@@ -120,7 +128,6 @@ public class ProviderFirmController {
    */
   @GetMapping(path = "/provider-firms", produces = "application/json")
   public ResponseEntity<GetProviderFirms200Response> getProviderFirms(
-      @RequestHeader(value = "X-Correlation-Id", required = false) String xCorrelationId,
       @RequestHeader(value = "traceparent", required = false) String traceparent,
 
       // Filters
@@ -189,14 +196,31 @@ public class ProviderFirmController {
       @PathVariable String providerFirmGUIDorFirmNumber) {
     ProviderEntity provider = providerFirmService.getProvider(providerFirmGUIDorFirmNumber);
     return ResponseEntity.ok(
-        new GetProviderFirmByGUIDorFirmNumber200Response()
-            .data(
-                providerFirmMapper.toProviderV2(
-                    provider,
-                    providerFirmService.getLspHeadOffice(provider).orElse(null),
-                    providerFirmService.getChambersHeadOffice(provider).orElse(null),
-                    providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
-                    providerFirmService.getParentLinks(provider))));
+        new GetProviderFirmByGUIDorFirmNumber200Response().data(toProviderResponse(provider)));
+  }
+
+  private ProviderV2 toProviderResponse(ProviderEntity provider) {
+    LspProviderOfficeLinkEntity lspHeadOffice =
+        providerFirmService.getLspHeadOffice(provider).orElse(null);
+
+    OfficeLiaisonManagerLinkEntity liaisonManager = null;
+    OfficeContractManagerLinkEntity contractManager = null;
+    OfficeBankAccountLinkEntity bankAccount = null;
+    if (lspHeadOffice != null) {
+      liaisonManager = providerFirmService.getActiveLiaisonManager(lspHeadOffice).orElse(null);
+      contractManager = providerFirmService.getContractManager(lspHeadOffice).orElse(null);
+      bankAccount = providerFirmService.getPrimaryOfficeBankAccount(lspHeadOffice).orElse(null);
+    }
+
+    return providerFirmMapper.toProviderV2(
+        provider,
+        lspHeadOffice,
+        liaisonManager,
+        contractManager,
+        bankAccount,
+        providerFirmService.getChambersHeadOffice(provider).orElse(null),
+        providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+        providerFirmService.getParentLinks(provider));
   }
 
   /**
@@ -293,9 +317,11 @@ public class ProviderFirmController {
     int variantCount = 0;
     if (request.getLegalServicesProvider() != null) {
       variantCount++;
+      validateLegalServicesProvider(request.getLegalServicesProvider());
     }
     if (request.getChambers() != null) {
       variantCount++;
+      validateDxDetails(request.getChambers().getDxDetails());
     }
     if (request.getPractitioner() != null) {
       variantCount++;
@@ -305,6 +331,33 @@ public class ProviderFirmController {
           "Exactly one of legalServicesProvider, chambers, practitioner must be provided");
     }
     validateFirmTypeConsistency(request);
+  }
+
+  private void validateLegalServicesProvider(
+      @NotNull @Valid ProviderCreateLSPV2LegalServicesProvider legalServicesProvider) {
+    if (legalServicesProvider.getConstitutionalStatus() == null) {
+      throw new IllegalArgumentException("constitutionalStatus must be provided");
+    }
+
+    if (legalServicesProvider.getContractManager() == null) {
+      throw new IllegalArgumentException("contractManager must be provided");
+    }
+
+    if (legalServicesProvider.getLiaisonManager() == null) {
+      throw new IllegalArgumentException("liaisonManager must be provided");
+    }
+    validatePayment(legalServicesProvider.getPayment());
+  }
+
+  private static void validatePayment(PaymentDetailsCreateV2 payment) {
+    if (payment == null) {
+      return;
+    }
+    boolean isElectronic = PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod());
+    if (isElectronic && payment.getBankAccountDetails() == null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must be provided when paymentMethod is EFT");
+    }
   }
 
   private static void validateFirmTypeConsistency(ProviderCreateV2 request) {
@@ -328,6 +381,18 @@ public class ProviderFirmController {
           "firmType '"
               + request.getFirmType().getValue()
               + "' is inconsistent with the variant provided");
+    }
+  }
+
+  private static void validateDxDetails(DXCreateV2 dxDetails) {
+    if (dxDetails == null) {
+      return;
+    }
+    boolean hasNumber = dxDetails.getDxNumber() != null && !dxDetails.getDxNumber().isBlank();
+    boolean hasCentre = dxDetails.getDxCentre() != null && !dxDetails.getDxCentre().isBlank();
+    if (hasNumber != hasCentre) {
+      throw new IllegalArgumentException(
+          "dxNumber and dxCentre must both be provided or both omitted");
     }
   }
 

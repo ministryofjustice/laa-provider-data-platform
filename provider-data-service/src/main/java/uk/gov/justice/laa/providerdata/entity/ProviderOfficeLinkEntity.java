@@ -75,6 +75,26 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
   @Column(name = "ACTIVE_DATE_TO")
   private LocalDate activeDateTo;
 
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE11 CHAR(1). */
+  @Column(name = "INTERVENED_FLAG")
+  private Boolean intervenedFlag;
+
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE12 DATE. */
+  @Column(name = "INTERVENED_CHANGE_DATE")
+  private LocalDate intervenedChangeDate;
+
+  /** PO.PO_VENDOR_SITES_ALL.HOLD_ALL_PAYMENTS_FLAG CHAR(1). */
+  @Column(name = "PAYMENT_HELD_FLAG")
+  private Boolean paymentHeldFlag;
+
+  /** PO.PO_VENDOR_SITES_ALL.HOLD_REASON VARCHAR2(150). */
+  @Column(name = "PAYMENT_HELD_REASON")
+  private String paymentHeldReason;
+
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE17 CHAR(1). */
+  @Column(name = "DEBT_RECOVERY_FLAG")
+  private Boolean debtRecoveryFlag;
+
   /** The database column is NOT NULL, so default it here (some tests/mappers don't set it). */
   @PrePersist
   void prePersistDefaults() {

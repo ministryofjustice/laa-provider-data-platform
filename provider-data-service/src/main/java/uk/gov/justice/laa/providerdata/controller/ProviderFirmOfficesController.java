@@ -45,7 +45,6 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
   public ResponseEntity<CreateProviderFirmOffice201Response> createProviderFirmOffice(
       String providerFirmGUIDorFirmNumber,
       LSPOfficeCreateV2 lspOfficeCreateV2,
-      String xCorrelationId,
       String traceparent) {
 
     LiaisonManagerEntity lmEntity = null;
@@ -82,7 +81,6 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getOffices(
-      String xCorrelationId,
       String traceparent,
       List<String> officeGUID,
       List<String> officeCode,
@@ -112,10 +110,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
   @Override
   public ResponseEntity<GetProviderFirmOfficeByGUID200Response> getProviderFirmOfficeByGUID(
-      String providerFirmGUIDorFirmNumber,
-      String officeGUIDorCode,
-      String xCorrelationId,
-      String traceparent) {
+      String providerFirmGUIDorFirmNumber, String officeGUIDorCode, String traceparent) {
     ProviderOfficeLinkEntity link =
         officeService.getProviderOfficeLink(providerFirmGUIDorFirmNumber, officeGUIDorCode);
     return ResponseEntity.ok(
@@ -124,11 +119,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
 
   @Override
   public ResponseEntity<GetProviderFirmOffices200Response> getProviderFirmOffices(
-      String providerFirmGUIDorFirmNumber,
-      String xCorrelationId,
-      String traceparent,
-      Integer page,
-      Integer pageSize) {
+      String providerFirmGUIDorFirmNumber, String traceparent, Integer page, Integer pageSize) {
     var pageParams = PageParamValidator.resolve(page, pageSize);
 
     Page<OfficeV2> results =
@@ -150,7 +141,6 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       String providerFirmGUIDorFirmNumber,
       String officeGUIDorCode,
       OfficePatchV2 officePatchV2,
-      String xCorrelationId,
       String traceparent) {
     OfficeCreationResult result =
         officeService.patchOffice(providerFirmGUIDorFirmNumber, officeGUIDorCode, officePatchV2);

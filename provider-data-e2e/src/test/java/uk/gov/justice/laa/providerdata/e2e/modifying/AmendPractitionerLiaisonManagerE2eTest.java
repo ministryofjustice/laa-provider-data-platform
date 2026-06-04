@@ -302,7 +302,8 @@ class AmendPractitionerLiaisonManagerE2eTest {
         .body(
             "data.practitioner.office.liaisonManager.emailAddress",
             equalTo("new.created@example.com"))
-        .body("data.practitioner.office.liaisonManager.telephoneNumber", equalTo("020 3333 3333"));
+        .body("data.practitioner.office.liaisonManager.telephoneNumber", equalTo("020 3333 3333"))
+        .body("data.practitioner.office.liaisonManager.activeDateFrom", notNullValue());
   }
 
   // -- Option 3: Reject creation if active already exists (AC4 enforcement)
@@ -348,5 +349,98 @@ class AmendPractitionerLiaisonManagerE2eTest {
     // Should still be the original LM (either "Advocate" or "Chambers" depending on test order)
     // For simplicity, we just verify it's not the attempted one
     assert (!lmFirstName.equals("Attempted"));
+  }
+
+  // -- AC6: Verify cannot specify activeDateTo during creation
+
+  @Test
+  void patchPractitioner_option3_rejectsActiveDateToDuringCreation() {
+    // Create a fresh advocate without existing LM
+    String advocateFirmName = "E2E-AC6-Test " + System.currentTimeMillis();
+    Response advocateCreateResponse =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Advocate",
+                    "name",
+                    advocateFirmName,
+                    "practitioner",
+                    Map.of(
+                        "advocateLevel",
+                        "QC",
+                        "sraNumber",
+                        "A999999",
+                        "office",
+                        Map.of(
+                            "address",
+                            Map.of(
+                                "line1", "1 Test Street",
+                                "townOrCity", "London",
+                                "postcode", "SW1A 1AA"),
+                            "payment",
+                            Map.of("paymentMethod", "CHECK"),
+                            "liaisonManager",
+                            Map.of(
+                                "firstName", "Test",
+                                "lastName", "Manager",
+                                "emailAddress", "test@example.com",
+                                "telephoneNumber", "020 0000 0000")),
+                        "parentFirm",
+                        chambersFirmNumber)))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .response();
+
+    String testAdvocateFirmNumber =
+        advocateCreateResponse.jsonPath().getString("data.providerFirmNumber");
+
+    // Execute: Try to create new LM with activeDateTo specified - should be rejected
+    given()
+        .pathParam("firmId", testAdvocateFirmNumber)
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "practitioner",
+                Map.of(
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "NoInactive",
+                        "lastName", "Manager",
+                        "emailAddress", "noinactive@example.com",
+                        "telephoneNumber", "020 9999 9999",
+                        "activeDateTo", "2026-12-31"))))
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(400);
+  }
+
+  // -- AC2: Verify cannot assign LM to non-existent firm
+
+  @Test
+  void patchPractitioner_rejectsNonExistentFirm() {
+    // Execute: Try to patch a firm that doesn't exist
+    given()
+        .pathParam("firmId", "000000")
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "practitioner",
+                Map.of(
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "Nonexistent",
+                        "lastName", "Manager",
+                        "emailAddress", "nonexistent@example.com",
+                        "telephoneNumber", "020 0000 0000"))))
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(404);
   }
 }

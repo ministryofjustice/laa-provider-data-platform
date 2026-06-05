@@ -490,7 +490,7 @@ class ProviderServiceTest {
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
     when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
         .thenReturn(Optional.of(headOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     when(liaisonManagerRepository.save(any())).thenReturn(savedLm);
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -531,7 +531,7 @@ class ProviderServiceTest {
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
     when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
         .thenReturn(Optional.of(headOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     when(liaisonManagerRepository.findById(lmGuid)).thenReturn(Optional.of(existingLm));
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -573,7 +573,7 @@ class ProviderServiceTest {
     AdvocateProviderOfficeLinkEntity headOfficeLink = new AdvocateProviderOfficeLinkEntity();
     when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
         .thenReturn(Optional.of(headOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(headOfficeLink))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     ProviderParentLinkEntity parentLink =
         ProviderParentLinkEntity.builder().provider(existing).parent(chambers).build();
@@ -588,6 +588,7 @@ class ProviderServiceTest {
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var lmLinkChambers = new LiaisonManagerLinkChambersV2();
+    lmLinkChambers.setUseChambersLiaisonManager(true);
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmLinkChambers));
@@ -693,8 +694,7 @@ class ProviderServiceTest {
     when(providerRepository.findById(advocateGuid)).thenReturn(Optional.of(advocate));
     when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(advocate))
         .thenReturn(Optional.of(advocateOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
-            advocateOfficeLink))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid()))
         .thenReturn(List.of()); // No existing active LM
 
     LiaisonManagerEntity newLm = new LiaisonManagerEntity();
@@ -732,7 +732,7 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_practitionerLiaisonManager_option3_rejectsWhenActiveLmExists() {
+  void patchProvider_practitionerLiaisonManager_option3_endsOldLmWhenActiveLmExists() {
     UUID advocateGuid = UUID.randomUUID();
     UUID advocateOfficeGuid = UUID.randomUUID();
 
@@ -756,9 +756,11 @@ class ProviderServiceTest {
     when(providerRepository.findById(advocateGuid)).thenReturn(Optional.of(advocate));
     when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(advocate))
         .thenReturn(Optional.of(advocateOfficeLink));
-    when(officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
-            advocateOfficeLink))
+    when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid()))
         .thenReturn(List.of(existingLink)); // Office already has active LM
+    when(liaisonManagerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     LiaisonManagerCreateV2 createRequest = new LiaisonManagerCreateV2();
     createRequest.setFirstName("John");
@@ -770,8 +772,9 @@ class ProviderServiceTest {
         new PractitionerDetailsPatchV2().liaisonManager(createRequest);
     ProviderPatchV2 patch = new ProviderPatchV2().practitioner(practitionerPatch);
 
-    assertThatThrownBy(() -> service.patchProvider(advocateGuid.toString(), patch))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Office already has an active liaison manager");
+    service.patchProvider(advocateGuid.toString(), patch);
+
+    // Existing link should be end-dated
+    assertThat(existingLink.getActiveDateTo()).isNotNull();
   }
 }

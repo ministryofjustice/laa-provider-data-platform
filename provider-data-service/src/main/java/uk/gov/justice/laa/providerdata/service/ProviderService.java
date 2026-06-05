@@ -336,7 +336,8 @@ public class ProviderService {
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
 
-    if (practitionerPatch.getParentFirms() != null) {
+    if (practitionerPatch.getParentFirms() != null
+        && !practitionerPatch.getParentFirms().isEmpty()) {
       applyParentFirmPatch(
           provider,
           practitionerPatch.getParentFirms(),
@@ -417,12 +418,14 @@ public class ProviderService {
 
     switch (lmRequest) {
       case LiaisonManagerCreateV2 create -> {
-        // Option 3: DSTEW-1647 AC4 – reject if the office already has an active LM.
-        var activeLinks =
-            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
-                advocateOfficeLink);
-        if (!activeLinks.isEmpty()) {
-          throw new IllegalArgumentException("Office already has an active liaison manager");
+        // Option 3: DSTEW-1652 AC4 – end-date any existing active links before creating the new
+        // one.
+        var existingLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+        for (OfficeLiaisonManagerLinkEntity existing : existingLinks) {
+          if (existing.getActiveDateTo() == null || existing.getActiveDateTo().isAfter(today)) {
+            existing.setActiveDateTo(today);
+          }
         }
         LiaisonManagerEntity newLm = new LiaisonManagerEntity();
         newLm.setFirstName(create.getFirstName());

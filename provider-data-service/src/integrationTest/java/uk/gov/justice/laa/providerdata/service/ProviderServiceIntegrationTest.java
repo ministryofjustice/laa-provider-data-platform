@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -247,7 +246,7 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
     assertThat(reloadedLink.get().getLiaisonManager().getGuid()).isEqualTo(existingLm.getGuid());
   }
 
-  // -- Option 3: Create new LM (rejected if active already exists)
+  // -- Option 3: Create new LM (end-dates existing active LM if present)
 
   @Test
   void patchProvider_practitioner_option3_createNew_succeeds_whenNoActiveLmExists() {
@@ -292,14 +291,14 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
   }
 
   @Test
-  void patchProvider_practitioner_option3_createNew_rejectsWhenActiveLmExists() {
+  void patchProvider_practitioner_option3_createNew_endsOldLmWhenActiveLmExists() {
     final OffsetDateTime now = OffsetDateTime.now();
 
     // Setup: Create advocate with existing active LM
     AdvocatePractitionerEntity advocate =
         AdvocatePractitionerEntity.builder()
             .firmNumber("300004")
-            .name("Advocate for Option3-Reject")
+            .name("Advocate for Option3-EndDate")
             .build();
     advocate = providerRepository.save(advocate);
 
@@ -317,29 +316,32 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
     final OfficeLiaisonManagerLinkEntity existingLink =
         savedOfficeLiaisonManagerLink(advocateOfficeLink, existingLm, now);
 
-    // Execute: Try to create new LM when active exists - should be rejected
+    // Execute: Create new LM when active exists — should end-date old and create new
     LiaisonManagerCreateV2 createRequest = new LiaisonManagerCreateV2();
-    createRequest.setFirstName("Attempted");
+    createRequest.setFirstName("Replacement");
     createRequest.setLastName("Manager");
-    createRequest.setEmailAddress("attempted@example.com");
+    createRequest.setEmailAddress("replacement@example.com");
     createRequest.setTelephoneNumber("0666666666");
 
     AdvocateOfficeLiaisonManagerCreateOrLinkV2 lmRequest = createRequest;
     PractitionerDetailsPatchV2 practitionerPatch =
         new PractitionerDetailsPatchV2().liaisonManager(lmRequest);
     ProviderPatchV2 patch = new ProviderPatchV2().practitioner(practitionerPatch);
-    final AdvocatePractitionerEntity finalAdvocate = advocate;
 
-    // Verify: AC4 enforcement - reject with IllegalArgumentException
-    assertThatThrownBy(() -> service.patchProvider(finalAdvocate.getGuid().toString(), patch))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Office already has an active liaison manager");
+    service.patchProvider(advocate.getGuid().toString(), patch);
 
-    // Verify: Original link unchanged
-    var reloadedLink = officeLiaisonManagerLinkRepository.findById(existingLink.getGuid());
-    assertThat(reloadedLink).isPresent();
-    assertThat(reloadedLink.get().getActiveDateTo()).isNull();
-    assertThat(reloadedLink.get().getLiaisonManager().getGuid()).isEqualTo(existingLm.getGuid());
+    // Verify: Old link is end-dated
+    var reloadedOldLink = officeLiaisonManagerLinkRepository.findById(existingLink.getGuid());
+    assertThat(reloadedOldLink).isPresent();
+    assertThat(reloadedOldLink.get().getActiveDateTo()).isNotNull();
+
+    // Verify: New link created for the replacement LM
+    var allLinks =
+        officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+    assertThat(allLinks).hasSize(2);
+    var newLink =
+        allLinks.stream().filter(l -> l.getActiveDateTo() == null).findFirst().orElseThrow();
+    assertThat(newLink.getLiaisonManager().getFirstName()).isEqualTo("Replacement");
   }
 
   @Test

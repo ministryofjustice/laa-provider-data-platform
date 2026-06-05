@@ -2150,7 +2150,7 @@ components:
         dxDetails:
           $ref: "#/components/schemas/DXCreateV2"
         liaisonManager:
-          $ref: "#/components/schemas/LiaisonManagerCreateV2"
+          $ref: "#/components/schemas/ChambersOfficeLiaisonManagerCreateOrLinkV2"
 
     PractitionerHeadOfficeCreateV2:
       type: object
@@ -2916,20 +2916,24 @@ components:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     LSPOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
-    ChambersOfficeLiaisonManagerCreateV2:
-      allOf:
+    ChambersOfficeLiaisonManagerCreateOrLinkV2:
+      oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     AdvocateOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     LiaisonManagerCreateV2:
       type: object
@@ -3025,11 +3029,16 @@ components:
             linkedFlag:
               $ref: "#/components/schemas/LiaisonManagerLinkedFlagV2"
 
-    OfficeLiaisonManagerPatchV2:
+    LiaisonManagerLinkByGuidV2:
       type: object
+      required:
+        - liaisonManagerGUID
       properties:
         liaisonManagerGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
+      description: |
+        Links an existing liaison manager to an office by GUID. Use this when the liaison manager
+        already exists and you want to assign it to an office without creating a duplicate.
 
     ContractManagerProviderLinkV2:
       type: object

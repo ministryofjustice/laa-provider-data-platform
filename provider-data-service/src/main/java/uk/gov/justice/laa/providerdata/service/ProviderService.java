@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateO
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
@@ -63,9 +65,9 @@ public class ProviderService {
   private final ProviderFirmRepository providerFirmRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
-  private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
+  private final LiaisonManagerRepository liaisonManagerRepository;
 
   /**
    * Inject dependencies.
@@ -76,6 +78,7 @@ public class ProviderService {
    * @param advocateProviderOfficeLinkRepository to find Advocate office links
    * @param providerParentLinkRepository to find Advocate parent links
    * @param providerOfficeLinkRepository to find general office links
+   * @param liaisonManagerRepository to look up liaison manager entities by GUID
    */
   public ProviderService(
       ProviderRepository providerRepository,
@@ -86,9 +89,9 @@ public class ProviderService {
       ProviderFirmRepository providerFirmRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
-      LiaisonManagerRepository liaisonManagerRepository,
       OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
-      OfficeBankAccountLinkRepository officeBankAccountLinkRepository) {
+      OfficeBankAccountLinkRepository officeBankAccountLinkRepository,
+      LiaisonManagerRepository liaisonManagerRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
@@ -97,9 +100,9 @@ public class ProviderService {
     this.providerFirmRepository = providerFirmRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
-    this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
     this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
+    this.liaisonManagerRepository = liaisonManagerRepository;
   }
 
   /**
@@ -333,7 +336,8 @@ public class ProviderService {
           "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
 
-    if (practitionerPatch.getParentFirms() != null) {
+    if (practitionerPatch.getParentFirms() != null
+        && !practitionerPatch.getParentFirms().isEmpty()) {
       applyParentFirmPatch(
           provider,
           practitionerPatch.getParentFirms(),
@@ -414,12 +418,14 @@ public class ProviderService {
 
     switch (lmRequest) {
       case LiaisonManagerCreateV2 create -> {
-        // Option 3: DSTEW-1647 AC4 – reject if the office already has an active LM.
-        var activeLinks =
-            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
-                advocateOfficeLink);
-        if (!activeLinks.isEmpty()) {
-          throw new IllegalArgumentException("Office already has an active liaison manager");
+        // Option 3: DSTEW-1652 AC4 – end-date any existing active links before creating the new
+        // one.
+        var existingLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+        for (OfficeLiaisonManagerLinkEntity existing : existingLinks) {
+          if (existing.getActiveDateTo() == null || existing.getActiveDateTo().isAfter(today)) {
+            existing.setActiveDateTo(today);
+          }
         }
         LiaisonManagerEntity newLm = new LiaisonManagerEntity();
         newLm.setFirstName(create.getFirstName());
@@ -465,6 +471,28 @@ public class ProviderService {
         newLink.setActiveDateFrom(today);
         newLink.setActiveDateTo(null);
         newLink.setLinkedFlag(true);
+        officeLiaisonManagerLinkRepository.save(newLink);
+      }
+      case LiaisonManagerLinkByGuidV2 lmLink -> {
+        // DSTEW-1652: Link by GUID, end-dating existing active links.
+        UUID guid = lmLink.getLiaisonManagerGUID();
+        final LiaisonManagerEntity existingLmByGuid =
+            liaisonManagerRepository
+                .findById(guid)
+                .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
+        var existingLinks =
+            officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid());
+        for (OfficeLiaisonManagerLinkEntity existing : existingLinks) {
+          if (existing.getActiveDateTo() == null || existing.getActiveDateTo().isAfter(today)) {
+            existing.setActiveDateTo(today);
+          }
+        }
+        final OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+        newLink.setOfficeLink(advocateOfficeLink);
+        newLink.setLiaisonManager(existingLmByGuid);
+        newLink.setActiveDateFrom(today);
+        newLink.setActiveDateTo(null);
+        newLink.setLinkedFlag(false);
         officeLiaisonManagerLinkRepository.save(newLink);
       }
       default ->

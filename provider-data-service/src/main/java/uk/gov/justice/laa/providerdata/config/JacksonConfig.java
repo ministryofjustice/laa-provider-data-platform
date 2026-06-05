@@ -14,10 +14,12 @@ import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateO
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -45,7 +47,9 @@ public class JacksonConfig {
                 node ->
                     node.has("useHeadOfficeLiaisonManager")
                         ? LiaisonManagerLinkHeadOfficeV2.class
-                        : LiaisonManagerCreateV2.class))
+                        : node.has("liaisonManagerGUID")
+                            ? LiaisonManagerLinkByGuidV2.class
+                            : LiaisonManagerCreateV2.class))
         .addDeserializer(
             AdvocateOfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
@@ -53,6 +57,16 @@ public class JacksonConfig {
                 node ->
                     node.has("useChambersLiaisonManager")
                         ? LiaisonManagerLinkChambersV2.class
+                        : node.has("liaisonManagerGUID")
+                            ? LiaisonManagerLinkByGuidV2.class
+                            : LiaisonManagerCreateV2.class))
+        .addDeserializer(
+            ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
+            new TypeResolvingDeserializer<>(
+                ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
+                node ->
+                    node.has("liaisonManagerGUID")
+                        ? LiaisonManagerLinkByGuidV2.class
                         : LiaisonManagerCreateV2.class))
         .addDeserializer(
             OfficeLiaisonManagerCreateOrLinkV2.class,
@@ -64,6 +78,8 @@ public class JacksonConfig {
                     result = LiaisonManagerLinkHeadOfficeV2.class;
                   } else if (node.has("useChambersLiaisonManager")) {
                     result = LiaisonManagerLinkChambersV2.class;
+                  } else if (node.has("liaisonManagerGUID")) {
+                    result = LiaisonManagerLinkByGuidV2.class;
                   } else {
                     result = LiaisonManagerCreateV2.class;
                   }

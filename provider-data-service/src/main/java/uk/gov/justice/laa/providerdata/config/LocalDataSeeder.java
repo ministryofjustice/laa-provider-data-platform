@@ -149,6 +149,9 @@ public class LocalDataSeeder implements CommandLineRunner {
             LspProviderEntity.builder()
                 .firmNumber(LSP_FIRM_NUMBER)
                 .name("Test Legal Services Provider Ltd")
+                .constitutionalStatus("Partnership")
+                .companiesHouseNumber("12345678")
+                .indemnityReceivedDate(java.time.LocalDate.of(2020, 1, 1))
                 .build());
     ProviderEntity provider2 =
         providerRepository.save(

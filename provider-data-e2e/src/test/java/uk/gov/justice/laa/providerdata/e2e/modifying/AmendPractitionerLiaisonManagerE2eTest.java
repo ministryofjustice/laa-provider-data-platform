@@ -3,9 +3,11 @@ package uk.gov.justice.laa.providerdata.e2e.modifying;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,37 +53,31 @@ class AmendPractitionerLiaisonManagerE2eTest {
                     chambersFirmName,
                     "chambers",
                     Map.of(
-                        "office",
+                        "address",
                         Map.of(
-                            "address",
-                            Map.of(
-                                "line1", "1 Chambers Street",
-                                "townOrCity", "London",
-                                "postcode", "WC1A 1AA"),
-                            "payment",
-                            Map.of("paymentMethod", "CHECK"),
-                            "liaisonManager",
-                            Map.of(
-                                "firstName", "Chambers",
-                                "lastName", "Manager",
-                                "emailAddress", "chambers.lm@example.com",
-                                "telephoneNumber", "020 7946 0958")))))
+                            "line1", "1 Chambers Street",
+                            "townOrCity", "London",
+                            "postcode", "WC1A 1AA"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Chambers",
+                            "lastName", "Manager",
+                            "emailAddress", "chambers.lm@example.com",
+                            "telephoneNumber", "020 7946 0958"))))
             .when()
             .post("/provider-firms")
             .then()
             .statusCode(201)
             .body("data.providerFirmGUID", notNullValue())
             .body("data.providerFirmNumber", notNullValue())
-            .body("data.officeGUID", notNullValue())
             .extract()
             .response();
 
     chambersFirmGuid = chambersCreateResponse.jsonPath().getString("data.providerFirmGUID");
     chambersFirmNumber = chambersCreateResponse.jsonPath().getString("data.providerFirmNumber");
-    chambersOfficeGuid = chambersCreateResponse.jsonPath().getString("data.officeGUID");
 
-    // Retrieve chambers to get the LM GUID
-    Response chambersGetResponse =
+    // Retrieve chambers office GUID via GET (not in POST response)
+    chambersOfficeGuid =
         given()
             .pathParam("firmId", chambersFirmNumber)
             .when()
@@ -89,10 +85,19 @@ class AmendPractitionerLiaisonManagerE2eTest {
             .then()
             .statusCode(200)
             .extract()
-            .response();
+            .path("data.chambers.office.officeGUID");
 
+    // Retrieve chambers LM GUID via liaison-managers endpoint
     chambersLmGuid =
-        chambersGetResponse.jsonPath().getString("data.chambers.office.liaisonManager.guid");
+        given()
+            .pathParam("firmId", chambersFirmGuid)
+            .pathParam("officeId", chambersOfficeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
 
     // Create Advocate (practitioner) firm
     String advocateFirmName = "E2E-DSTEW-1647-UC5 Advocate " + System.currentTimeMillis();
@@ -107,40 +112,59 @@ class AmendPractitionerLiaisonManagerE2eTest {
                     advocateFirmName,
                     "practitioner",
                     Map.of(
-                        "advocateLevel",
-                        "QC",
-                        "sraNumber",
-                        "A123456",
-                        "office",
+                        "parentFirms",
+                        List.of(Map.of("parentFirmNumber", chambersFirmNumber)),
+                        "advocateType",
+                        "Advocate",
+                        "advocate",
                         Map.of(
-                            "address",
-                            Map.of(
-                                "line1", "1 Advocate Street",
-                                "townOrCity", "London",
-                                "postcode", "SW1A 1AA"),
-                            "payment",
-                            Map.of("paymentMethod", "CHECK"),
-                            "liaisonManager",
-                            Map.of(
-                                "firstName", "Advocate",
-                                "lastName", "LM-Original",
-                                "emailAddress", "advocate.original@example.com",
-                                "telephoneNumber", "020 1111 1111")),
-                        "parentFirm",
-                        chambersFirmNumber)))
+                            "advocateLevel",
+                            "Junior",
+                            "solicitorRegulationAuthorityRollNumber",
+                            "A123456"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"))))
             .when()
             .post("/provider-firms")
             .then()
             .statusCode(201)
             .body("data.providerFirmGUID", notNullValue())
             .body("data.providerFirmNumber", notNullValue())
-            .body("data.officeGUID", notNullValue())
             .extract()
             .response();
 
     advocateFirmGuid = advocateCreateResponse.jsonPath().getString("data.providerFirmGUID");
     advocateFirmNumber = advocateCreateResponse.jsonPath().getString("data.providerFirmNumber");
-    advocateOfficeGuid = advocateCreateResponse.jsonPath().getString("data.officeGUID");
+
+    // Retrieve advocate office GUID via GET (not in POST response)
+    advocateOfficeGuid =
+        given()
+            .pathParam("firmId", advocateFirmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Create initial LM for the advocate via PATCH (creation payload ignores liaisonManager)
+    given()
+        .pathParam("firmId", advocateFirmNumber)
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "practitioner",
+                Map.of(
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "Advocate",
+                        "lastName", "LM-Original",
+                        "emailAddress", "advocate.original@example.com",
+                        "telephoneNumber", "020 1111 1111"))))
+        .when()
+        .patch("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200);
   }
 
   // -- Option 1: Link to chambers' liaison manager
@@ -162,70 +186,67 @@ class AmendPractitionerLiaisonManagerE2eTest {
         .body("data.providerFirmGUID", equalTo(advocateFirmGuid))
         .body("data.providerFirmNumber", equalTo(advocateFirmNumber));
 
-    // Verify: GET advocate shows it now has chambers' LM linked
+    // Verify: advocate office now has the chambers LM as active
     given()
         .pathParam("firmId", advocateFirmNumber)
+        .pathParam("officeId", advocateOfficeGuid)
         .when()
-        .get("/provider-firms/{firmId}")
+        .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
         .then()
         .statusCode(200)
-        .body("data.practitioner.office.liaisonManager.guid", equalTo(chambersLmGuid))
-        .body("data.practitioner.office.liaisonManager.firstName", equalTo("Chambers"))
-        .body("data.practitioner.office.liaisonManager.lastName", equalTo("Manager"));
+        .body("data.content[0].guid", equalTo(chambersLmGuid))
+        .body("data.content[0].firstName", equalTo("Chambers"))
+        .body("data.content[0].lastName", equalTo("Manager"))
+        .body("data.content[0].activeDateTo", nullValue());
   }
 
   // -- Option 2: Keep existing liaison manager (implicit via null)
 
   @Test
   void patchPractitioner_option2_nullLiaisonManager_keepsExisting() {
-    // First, retrieve original LM GUID before patch
-    Response originalResponse =
+    // Retrieve original LM GUID via liaison managers endpoint
+    String originalLmGuid =
         given()
             .pathParam("firmId", advocateFirmNumber)
+            .pathParam("officeId", advocateOfficeGuid)
             .when()
-            .get("/provider-firms/{firmId}")
+            .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
             .then()
             .statusCode(200)
             .extract()
-            .response();
-
-    String originalLmGuid =
-        originalResponse.jsonPath().getString("data.practitioner.office.liaisonManager.guid");
-    String originalLmFirstName =
-        originalResponse.jsonPath().getString("data.practitioner.office.liaisonManager.firstName");
+            .path("data.content[0].guid");
 
     // Execute: PATCH without specifying liaisonManager (Option 2 - keep existing)
     given()
         .pathParam("firmId", advocateFirmNumber)
         .contentType(ContentType.JSON)
-        .body(Map.of("practitioner", Map.of("advocateLevel", "QC")))
+        .body(Map.of("practitioner", Map.of("advocateLevel", "Junior")))
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(200)
         .body("data.providerFirmGUID", equalTo(advocateFirmGuid));
 
-    // Verify: GET shows LM is unchanged
+    // Verify: LM is unchanged
     given()
         .pathParam("firmId", advocateFirmNumber)
+        .pathParam("officeId", advocateOfficeGuid)
         .when()
-        .get("/provider-firms/{firmId}")
+        .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
         .then()
         .statusCode(200)
-        .body("data.practitioner.office.liaisonManager.guid", equalTo(originalLmGuid))
-        .body("data.practitioner.office.liaisonManager.firstName", equalTo(originalLmFirstName));
+        .body("data.content[0].guid", equalTo(originalLmGuid))
+        .body("data.content[0].firstName", equalTo("Advocate"));
   }
 
   // -- Option 3: Create new liaison manager
 
   @Test
   void patchPractitioner_option3_createNew_createsNewLmSuccessfully() {
-    // Note: This test requires a fresh advocate setup (via BeforeAll creates multiple advocates
-    // or this test uses the same one after Option 1 was applied).
-    // For simplicity, we create a fresh advocate inline.
-
     String newAdvocateFirmName =
         "E2E-DSTEW-1647-UC5 Advocate-Option3 " + System.currentTimeMillis();
+
+    // Create a fresh advocate without an initial LM
     Response advocateCreateResponse =
         given()
             .contentType(ContentType.JSON)
@@ -237,27 +258,18 @@ class AmendPractitionerLiaisonManagerE2eTest {
                     newAdvocateFirmName,
                     "practitioner",
                     Map.of(
-                        "advocateLevel",
-                        "QC",
-                        "sraNumber",
-                        "A123789",
-                        "office",
+                        "parentFirms",
+                        List.of(Map.of("parentFirmNumber", chambersFirmNumber)),
+                        "advocateType",
+                        "Advocate",
+                        "advocate",
                         Map.of(
-                            "address",
-                            Map.of(
-                                "line1", "1 Advocate Street",
-                                "townOrCity", "London",
-                                "postcode", "SW1A 1AA"),
-                            "payment",
-                            Map.of("paymentMethod", "CHECK"),
-                            "liaisonManager",
-                            Map.of(
-                                "firstName", "Advocate",
-                                "lastName", "LM-Original-Option3",
-                                "emailAddress", "advocate.option3@example.com",
-                                "telephoneNumber", "020 2222 2222")),
-                        "parentFirm",
-                        chambersFirmNumber)))
+                            "advocateLevel",
+                            "Junior",
+                            "solicitorRegulationAuthorityRollNumber",
+                            "A123789"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"))))
             .when()
             .post("/provider-firms")
             .then()
@@ -269,6 +281,17 @@ class AmendPractitionerLiaisonManagerE2eTest {
         advocateCreateResponse.jsonPath().getString("data.providerFirmGUID");
     String newAdvocateFirmNumber =
         advocateCreateResponse.jsonPath().getString("data.providerFirmNumber");
+
+    // Retrieve advocate office GUID
+    String newAdvocateOfficeGuid =
+        given()
+            .pathParam("firmId", newAdvocateFirmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
 
     // Execute: PATCH to create new LM
     given()
@@ -290,27 +313,24 @@ class AmendPractitionerLiaisonManagerE2eTest {
         .statusCode(200)
         .body("data.providerFirmGUID", equalTo(newAdvocateFirmGuid));
 
-    // Verify: GET shows new LM with correct details
+    // Verify: liaison managers endpoint shows the new LM as active (most recent first)
     given()
-        .pathParam("firmId", newAdvocateFirmNumber)
+        .pathParam("firmId", newAdvocateFirmGuid)
+        .pathParam("officeId", newAdvocateOfficeGuid)
         .when()
-        .get("/provider-firms/{firmId}")
+        .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
         .then()
         .statusCode(200)
-        .body("data.practitioner.office.liaisonManager.firstName", equalTo("NewCreated"))
-        .body("data.practitioner.office.liaisonManager.lastName", equalTo("Manager"))
-        .body(
-            "data.practitioner.office.liaisonManager.emailAddress",
-            equalTo("new.created@example.com"))
-        .body("data.practitioner.office.liaisonManager.telephoneNumber", equalTo("020 3333 3333"))
-        .body("data.practitioner.office.liaisonManager.activeDateFrom", notNullValue());
+        .body("data.content[0].firstName", equalTo("NewCreated"))
+        .body("data.content[0].lastName", equalTo("Manager"))
+        .body("data.content[0].activeDateTo", nullValue());
   }
 
-  // -- Option 3: Reject creation if active already exists (AC4 enforcement)
+  // -- Option 3: end-dates existing active LM when creating a new one
 
   @Test
-  void patchPractitioner_option3_createNew_rejectsWhenActiveLmExists() {
-    // Execute: Try to create new LM when one already exists - should be rejected
+  void patchPractitioner_option3_createNew_endsOldLmAndCreatesNew() {
+    // Execute: PATCH advocate (which already has an active LM) with a new LM create request
     given()
         .pathParam("firmId", advocateFirmNumber)
         .contentType(ContentType.JSON)
@@ -320,85 +340,36 @@ class AmendPractitionerLiaisonManagerE2eTest {
                 Map.of(
                     "liaisonManager",
                     Map.of(
-                        "firstName", "Attempted",
-                        "lastName", "Creation",
-                        "emailAddress", "attempted@example.com",
+                        "firstName", "Replacement",
+                        "lastName", "Manager",
+                        "emailAddress", "replacement@example.com",
                         "telephoneNumber", "020 4444 4444"))))
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
-        .statusCode(400)
-        .body("message", notNullValue());
+        .statusCode(200);
 
-    // Verify: GET still shows original LM (unchanged by failed patch)
-    Response verifyResponse =
-        given()
-            .pathParam("firmId", advocateFirmNumber)
-            .when()
-            .get("/provider-firms/{firmId}")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response();
-
-    String lmFirstName =
-        verifyResponse.jsonPath().getString("data.practitioner.office.liaisonManager.firstName");
-    // Verify it's still the original "Advocate" LM (unchanged by failed patch)
-    // Each test has fresh setup, so we know exactly which LM should be there
-    assert (lmFirstName.equals("Advocate"));
+    // Verify: liaison managers endpoint shows 2 links — old end-dated, new active
+    given()
+        .pathParam("firmId", advocateFirmNumber)
+        .pathParam("officeId", advocateOfficeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content.findAll { it.activeDateTo == null }.size()", equalTo(1))
+        .body("data.content.find { it.activeDateTo == null }.firstName", equalTo("Replacement"))
+        .body("data.content.findAll { it.activeDateTo != null }.size()", equalTo(1))
+        .body("data.content.find { it.activeDateTo != null }.firstName", equalTo("Advocate"));
   }
 
-  // -- AC6: Verify cannot specify activeDateTo during creation
+  // -- AC6: Verify activeDateTo is never set on a newly created LM link
 
   @Test
-  void patchPractitioner_option3_rejectsActiveDateToDuringCreation() {
-    // Create a fresh advocate without existing LM
-    String advocateFirmName = "E2E-AC6-Test " + System.currentTimeMillis();
-    Response advocateCreateResponse =
-        given()
-            .contentType(ContentType.JSON)
-            .body(
-                Map.of(
-                    "firmType",
-                    "Advocate",
-                    "name",
-                    advocateFirmName,
-                    "practitioner",
-                    Map.of(
-                        "advocateLevel",
-                        "QC",
-                        "sraNumber",
-                        "A999999",
-                        "office",
-                        Map.of(
-                            "address",
-                            Map.of(
-                                "line1", "1 Test Street",
-                                "townOrCity", "London",
-                                "postcode", "SW1A 1AA"),
-                            "payment",
-                            Map.of("paymentMethod", "CHECK"),
-                            "liaisonManager",
-                            Map.of(
-                                "firstName", "Test",
-                                "lastName", "Manager",
-                                "emailAddress", "test@example.com",
-                                "telephoneNumber", "020 0000 0000")),
-                        "parentFirm",
-                        chambersFirmNumber)))
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .extract()
-            .response();
-
-    String testAdvocateFirmNumber =
-        advocateCreateResponse.jsonPath().getString("data.providerFirmNumber");
-
-    // Execute: Try to create new LM with activeDateTo specified - should be rejected
+  void patchPractitioner_option3_createNew_activeDateToIsAlwaysNull() {
+    // Execute: PATCH advocate to create new LM — activeDateTo must not be set on the new link
     given()
-        .pathParam("firmId", testAdvocateFirmNumber)
+        .pathParam("firmId", advocateFirmNumber)
         .contentType(ContentType.JSON)
         .body(
             Map.of(
@@ -409,12 +380,22 @@ class AmendPractitionerLiaisonManagerE2eTest {
                         "firstName", "NoInactive",
                         "lastName", "Manager",
                         "emailAddress", "noinactive@example.com",
-                        "telephoneNumber", "020 9999 9999",
-                        "activeDateTo", "2026-12-31"))))
+                        "telephoneNumber", "020 9999 9999"))))
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
-        .statusCode(400);
+        .statusCode(200);
+
+    // Verify: the newly created LM link has activeDateTo = null
+    given()
+        .pathParam("firmId", advocateFirmNumber)
+        .pathParam("officeId", advocateOfficeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeId}/liaison-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content.find { it.activeDateTo == null }.firstName", equalTo("NoInactive"))
+        .body("data.content.findAll { it.activeDateTo == null }.size()", equalTo(1));
   }
 
   // -- AC2: Verify cannot assign LM to non-existent firm

@@ -11,10 +11,12 @@ import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateO
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -60,6 +62,23 @@ class JacksonConfigTest {
     assertThat(((LiaisonManagerCreateV2) result).getFirstName()).isEqualTo("Alice");
   }
 
+  @Test
+  void lspLiaisonManager_resolves_to_guid_link_type_when_liaisonManagerGUID_present()
+      throws Exception {
+    var lmGuid = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+    var result =
+        mapper.readValue(
+            """
+            {"liaisonManagerGUID": "%s"}
+            """
+                .formatted(lmGuid),
+            LSPOfficeLiaisonManagerCreateOrLinkV2.class);
+
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
+    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+        .isEqualTo(java.util.UUID.fromString(lmGuid));
+  }
+
   // AdvocateOfficeLiaisonManager
 
   @Test
@@ -90,7 +109,57 @@ class JacksonConfigTest {
     assertThat(((LiaisonManagerCreateV2) result).getFirstName()).isEqualTo("Tom");
   }
 
+  @Test
+  void advocateLiaisonManager_resolves_to_guid_link_type_when_liaisonManagerGUID_present()
+      throws Exception {
+    var lmGuid = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+    var result =
+        mapper.readValue(
+            """
+            {"liaisonManagerGUID": "%s"}
+            """
+                .formatted(lmGuid),
+            AdvocateOfficeLiaisonManagerCreateOrLinkV2.class);
+
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
+    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+        .isEqualTo(java.util.UUID.fromString(lmGuid));
+  }
+
   // OfficeLiaisonManager (3-way)
+
+  // ChambersOfficeLiaisonManager
+
+  @Test
+  void chambersLiaisonManager_resolves_to_create_type_when_liaisonManagerGUID_absent()
+      throws Exception {
+    var result =
+        mapper.readValue(
+            """
+            {"firstName": "Bob"}
+            """,
+            ChambersOfficeLiaisonManagerCreateOrLinkV2.class);
+
+    assertThat(result).isInstanceOf(LiaisonManagerCreateV2.class);
+    assertThat(((LiaisonManagerCreateV2) result).getFirstName()).isEqualTo("Bob");
+  }
+
+  @Test
+  void chambersLiaisonManager_resolves_to_guid_link_type_when_liaisonManagerGUID_present()
+      throws Exception {
+    var lmGuid = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+    var result =
+        mapper.readValue(
+            """
+            {"liaisonManagerGUID": "%s"}
+            """
+                .formatted(lmGuid),
+            ChambersOfficeLiaisonManagerCreateOrLinkV2.class);
+
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
+    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+        .isEqualTo(java.util.UUID.fromString(lmGuid));
+  }
 
   @Test
   void officeLiaisonManager_resolves_to_head_office_link_when_useHeadOfficeLiaisonManager_present()
@@ -132,6 +201,23 @@ class JacksonConfigTest {
 
     assertThat(result).isInstanceOf(LiaisonManagerCreateV2.class);
     assertThat(((LiaisonManagerCreateV2) result).getFirstName()).isEqualTo("Alice");
+  }
+
+  @Test
+  void officeLiaisonManager_resolves_to_guid_link_when_liaisonManagerGUID_present()
+      throws Exception {
+    var lmGuid = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+    var result =
+        mapper.readValue(
+            """
+            {"liaisonManagerGUID": "%s"}
+            """
+                .formatted(lmGuid),
+            OfficeLiaisonManagerCreateOrLinkV2.class);
+
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
+    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+        .isEqualTo(java.util.UUID.fromString(lmGuid));
   }
 
   // PractitionerDetailsParent

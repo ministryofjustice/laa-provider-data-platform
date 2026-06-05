@@ -91,7 +91,7 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_chambers_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any(), any()))
         .thenReturn(new ProviderCreationResult(guid, "CH-ABCD1234", UUID.randomUUID(), "ACC002"));
 
     mockMvc

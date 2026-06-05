@@ -568,4 +568,649 @@ class PatchOfficeBankAccountE2eTest {
         .then()
         .statusCode(404);
   }
+
+  /**
+   * AC1 – When a new bank account is assigned to an office, the old (existing) bank account link is
+   * marked as non-primary and its activeDateTo is set to the current date.
+   */
+  @Test
+  void ac1_assignNewBankAccount_marksOldAsNonPrimaryWithActiveDateTo() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC1 Old-NonPrimary " + timestamp;
+
+    // Create firm with initial account
+    String initialAccountNumber = "7" + (timestamp % 10_000_000L);
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC1 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC1 Initial Account",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Capture initial state — old account before update
+    Response oldAccountBefore =
+        given()
+            .pathParam("firmId", firmNumber)
+            .pathParam("officeCode", officeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+
+    String oldAccountGuid = oldAccountBefore.path("data.content[0].guid");
+    String oldAccountNumber = oldAccountBefore.path("data.content[0].accountNumber");
+
+    // Assign new account
+    String newAccountNumber = "1" + ((timestamp + 1) % 10_000_000L);
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", "AC1 New Account",
+                        "sortCode", "601111",
+                        "accountNumber", newAccountNumber))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200);
+
+    // Verify both accounts exist in bank details
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(2))
+        // Old account: non-primary with activeDateTo set
+        .body(
+            "data.content.findAll { it.guid == '" + oldAccountGuid + "' }.primaryFlag[0]",
+            equalTo(false))
+        .body(
+            "data.content.findAll { it.guid == '" + oldAccountGuid + "' }.activeDateTo[0]",
+            notNullValue())
+        .body(
+            "data.content.findAll { it.guid == '" + oldAccountGuid + "' }.accountNumber[0]",
+            equalTo(oldAccountNumber))
+        // New account: primary with no activeDateTo
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.primaryFlag[0]",
+            equalTo(true))
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.activeDateTo[0]",
+            nullValue());
+  }
+
+  /** AC2 – Restricted fields must not be amended when a new bank account is assigned. */
+  @Test
+  void ac2_restrictedFields_remainUnchangedWhenAssigningNewAccount() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC2 Restricted-Fields " + timestamp;
+
+    String initialAccountNumber = "2" + (timestamp % 10_000_000L);
+    String initialAccountName = "AC2 Initial Acct " + timestamp;
+    String initialSortCode = "601111";
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC2 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", initialAccountName,
+                                "sortCode", initialSortCode,
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Capture old account state before update
+    Response oldAccountState =
+        given()
+            .pathParam("firmId", firmNumber)
+            .pathParam("officeCode", officeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+
+    String newAccountNumber = "0" + ((timestamp + 2) % 10_000_000L);
+    String newAccountName = "AC2 New Acct " + timestamp;
+    String newSortCode = "602222";
+
+    // Assign new account
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", newAccountName,
+                        "sortCode", newSortCode,
+                        "accountNumber", newAccountNumber))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200);
+
+    // Verify old account fields are unchanged (except primaryFlag and activeDateTo)
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        // Old account core fields unchanged
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.accountName[0]",
+            equalTo(initialAccountName))
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.sortCode[0]",
+            equalTo(initialSortCode))
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.accountNumber[0]",
+            equalTo(initialAccountNumber))
+        // New account fields match request
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.accountName[0]",
+            equalTo(newAccountName))
+        .body(
+            "data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }.sortCode[0]",
+            equalTo(newSortCode))
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.accountNumber[0]",
+            equalTo(newAccountNumber));
+  }
+
+  /** AC3 – Bank Account validity must be preserved. */
+  @Test
+  void ac3_bankAccountValidityPreserved_afterAmendment() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC3 Validity " + timestamp;
+
+    String initialAccountNumber = "4" + (timestamp % 10_000_000L);
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC3 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC3 Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    String newAccountNumber = "5" + ((timestamp + 3) % 10_000_000L);
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", "AC3 New",
+                        "sortCode", "601111",
+                        "accountNumber", newAccountNumber))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200);
+
+    // Verify validity constraints
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        // Both accounts still exist (no orphan state)
+        .body("data.content", hasSize(2))
+        // Exactly one primary
+        .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
+        // New account complete and valid
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.accountName[0]",
+            notNullValue())
+        .body(
+            "data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }.sortCode[0]",
+            notNullValue())
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.accountNumber[0]",
+            notNullValue())
+        // Old account still complete (not deleted or corrupted)
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.accountName[0]",
+            notNullValue())
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.sortCode[0]",
+            notNullValue());
+  }
+
+  /** AC4 – No partial bank account update on validation failure. */
+  @Test
+  void ac4_noPartialUpdate_whenValidationFails() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC4 NoPartial " + timestamp;
+
+    String initialAccountNumber = "6" + (timestamp % 10_000_000L);
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC4 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC4 Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Capture state before failed update
+    Response stateBefore =
+        given()
+            .pathParam("firmId", firmNumber)
+            .pathParam("officeCode", officeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+
+    int accountCountBefore = stateBefore.path("data.content.size()");
+    boolean wasPrimaryBefore = stateBefore.path("data.content[0].primaryFlag");
+
+    // Attempt invalid patch with non-existent bank account GUID
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of("type", "link", "bankAccountGUID", UUID.randomUUID().toString()))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(404); // Should be rejected
+
+    // Verify no partial update occurred (state unchanged)
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        // Account count unchanged
+        .body("data.content", hasSize(accountCountBefore))
+        // Original account still primary
+        .body("data.content[0].primaryFlag", equalTo(wasPrimaryBefore))
+        // Original account number unchanged
+        .body("data.content[0].accountNumber", equalTo(initialAccountNumber));
+  }
+
+  /**
+   * AC5 – Bank Account must always have an association to exist.
+   *
+   * <p>Verifies that bank accounts in the system are always associated with at least one
+   * provider-office link. Tests that querying bank details returns only accounts with valid
+   * associations, and that the amendment doesn't result in orphaned accounts.
+   */
+  @Test
+  void ac5_bankAccountAlwaysHasAssociation() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC5 Association " + timestamp;
+
+    String initialAccountNumber = "8" + (timestamp % 10_000_000L);
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC5 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC5 Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    String newAccountNumber = "9" + ((timestamp + 4) % 10_000_000L);
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", "AC5 New",
+                        "sortCode", "601111",
+                        "accountNumber", newAccountNumber))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200);
+
+    // Verify both old and new accounts are still associated (retrievable) from the office
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(2))
+        // Both accounts have valid office links (retrievable via office endpoint)
+        .body(
+            "data.content.findAll { it.accountNumber == '" + initialAccountNumber + "' }",
+            hasSize(1))
+        .body("data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }", hasSize(1))
+        // Both have activeDateFrom set (proof of association)
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.activeDateFrom[0]",
+            notNullValue())
+        .body(
+            "data.content.findAll { it.accountNumber == '"
+                + newAccountNumber
+                + "' }.activeDateFrom[0]",
+            notNullValue());
+
+    // Verify accounts are still retrievable at firm level (association to provider still exists)
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/bank-details")
+        .then()
+        .statusCode(200)
+        // Both accounts still linked to provider
+        .body(
+            "data.content.findAll { it.accountNumber == '" + initialAccountNumber + "' }",
+            hasSize(1))
+        .body(
+            "data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }", hasSize(1));
+  }
 }

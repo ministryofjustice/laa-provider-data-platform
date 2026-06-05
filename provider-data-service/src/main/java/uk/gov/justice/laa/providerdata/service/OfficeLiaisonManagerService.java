@@ -60,8 +60,9 @@ public class OfficeLiaisonManagerService {
     ProviderOfficeLinkEntity providerOfficeLink =
         resolveProviderOfficeLink(providerFirmGuidOrNumber, officeGuidOrCode);
 
-    return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
-        providerOfficeLink.getGuid(), pageable);
+    return officeLiaisonManagerLinkRepository
+        .findByOfficeLink_GuidOrderByActiveDateToDescActiveDateFromDescCreatedTimestampDesc(
+            providerOfficeLink.getGuid(), pageable);
   }
 
   /**

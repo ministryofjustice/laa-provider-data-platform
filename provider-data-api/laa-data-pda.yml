@@ -10,6 +10,80 @@ info:
     identifier used to associate an office record with a provider-office link.
 
 paths:
+  /provider-liaison-managers/{liaisonManagerGUID}:
+    get:
+      summary: Retrieve a liaison manager
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: getLiaisonManager
+      tags:
+        - Provider Liaison Managers
+      description: |
+        Retrieve details of a specific liaison manager.
+      parameters:
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/LiaisonManagerGUID"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProviderLiaisonManagerV2"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+    patch:
+      summary: Amend a liaison manager
+      security:
+        - bearerAuth: []
+        - AzureAD:
+            - api://<client-id>/access_as_user
+      operationId: updateLiaisonManager
+      tags:
+        - Provider Liaison Managers
+      description: |
+        Amend the permitted details of an existing liaison manager.
+      parameters:
+        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: "#/components/parameters/LiaisonManagerGUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderLiaisonManagerPatchV2"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProviderLiaisonManagerV2"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
   /provider-events:
     get:
       summary: Retrieve a list of event headers
@@ -2150,7 +2224,7 @@ components:
         dxDetails:
           $ref: "#/components/schemas/DXCreateV2"
         liaisonManager:
-          $ref: "#/components/schemas/LiaisonManagerCreateV2"
+          $ref: "#/components/schemas/ChambersOfficeLiaisonManagerCreateOrLinkV2"
 
     PractitionerHeadOfficeCreateV2:
       type: object
@@ -2916,20 +2990,24 @@ components:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     LSPOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
-    ChambersOfficeLiaisonManagerCreateV2:
-      allOf:
+    ChambersOfficeLiaisonManagerCreateOrLinkV2:
+      oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     AdvocateOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
 
     LiaisonManagerCreateV2:
       type: object
@@ -2998,6 +3076,39 @@ components:
         Note that if this attribute is set to true then updates at the parent entity should cascade
         to create new linked assignment.
 
+    ProviderLiaisonManagerV2:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntityV2"
+        - type: object
+          required:
+            - firstName
+            - lastName
+            - emailAddress
+          properties:
+            firstName:
+              $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+            lastName:
+              $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+            emailAddress:
+              $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+            telephoneNumber:
+              $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+
+    ProviderLiaisonManagerPatchV2:
+      type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"guid", "firstName", "lastName", "activeDateFrom", "activeDateTo"})
+      properties:
+        emailAddress:
+          $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+        telephoneNumber:
+          $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+      description: |
+        Permitted fields for amending a liaison manager. Only emailAddress and telephoneNumber
+        may be amended. The fields guid, firstName, lastName, activeDateFrom and activeDateTo
+        are read-only and will be rejected if provided.
+
     LiaisonManagerV2:
       allOf:
         - $ref: "#/components/schemas/BaseEntityV2"
@@ -3025,11 +3136,16 @@ components:
             linkedFlag:
               $ref: "#/components/schemas/LiaisonManagerLinkedFlagV2"
 
-    OfficeLiaisonManagerPatchV2:
+    LiaisonManagerLinkByGuidV2:
       type: object
+      required:
+        - liaisonManagerGUID
       properties:
         liaisonManagerGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
+      description: |
+        Links an existing liaison manager to an office by GUID. Use this when the liaison manager
+        already exists and you want to assign it to an office without creating a duplicate.
 
     ContractManagerProviderLinkV2:
       type: object
@@ -3271,6 +3387,15 @@ components:
             - $ref: "#/components/schemas/ProviderFirmChangedSnapshotEventV2Payload"
 
   parameters:
+    LiaisonManagerGUID:
+      name: liaisonManagerGUID
+      in: path
+      description: The GUID of the liaison manager.
+      required: true
+      schema:
+        type: string
+        format: uuid
+
     TraceParentHeader:
       name: traceparent
       in: header

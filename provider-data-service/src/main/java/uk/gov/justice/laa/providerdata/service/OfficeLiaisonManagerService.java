@@ -13,6 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -59,11 +60,20 @@ public class OfficeLiaisonManagerService {
     ProviderOfficeLinkEntity providerOfficeLink =
         resolveProviderOfficeLink(providerFirmGuidOrNumber, officeGuidOrCode);
 
-    return officeLiaisonManagerLinkRepository.findByOfficeLink_GuidOrderByActiveDateFromDesc(
-        providerOfficeLink.getGuid(), pageable);
+    return officeLiaisonManagerLinkRepository
+        .findByOfficeLink_GuidOrderByActiveDateToDescActiveDateFromDescCreatedTimestampDesc(
+            providerOfficeLink.getGuid(), pageable);
   }
 
-  /** POST create/link liaison manager (end-dates existing links for target office). */
+  /**
+   * POST create/link liaison manager.
+   *
+   * <p>For all request types, any existing active liaison manager link for the office is end-dated
+   * before the new link is created. {@link LiaisonManagerCreateV2} requests record the new link
+   * with {@code linkedFlag=false}; link requests ({@link LiaisonManagerLinkHeadOfficeV2} / {@link
+   * LiaisonManagerLinkChambersV2} / {@link LiaisonManagerLinkByGuidV2}) record it with {@code
+   * linkedFlag=true}.
+   */
   @Transactional
   public OfficeLiaisonManagerOperationResult postOfficeLiaisonManager(
       String providerFirmGuidOrNumber,
@@ -79,24 +89,27 @@ public class OfficeLiaisonManagerService {
     // This prevents linkHeadOffice/linkChambers from failing when the target office is the same
     // as the source office (e.g. calling linkHeadOffice on the head office itself).
     LiaisonManagerEntity liaisonManager = resolveOrCreateLiaisonManager(provider, request);
+    final LocalDate today = LocalDate.now();
 
-    // End-date existing office liaison manager links (current behaviour).
+    // End-date any currently active links before creating or linking a new manager.
     var existingLinks =
         officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid());
-
-    LocalDate today = LocalDate.now();
     for (OfficeLiaisonManagerLinkEntity link : existingLinks) {
       if (link.getActiveDateTo() == null || link.getActiveDateTo().isAfter(today)) {
         link.setActiveDateTo(today);
       }
     }
 
+    boolean linkedFlag =
+        request instanceof LiaisonManagerLinkHeadOfficeV2
+            || request instanceof LiaisonManagerLinkChambersV2;
+
     OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
     newLink.setOfficeLink(providerOfficeLink);
     newLink.setLiaisonManager(liaisonManager);
     newLink.setActiveDateFrom(today);
     newLink.setActiveDateTo(null);
-    newLink.setLinkedFlag(true);
+    newLink.setLinkedFlag(linkedFlag);
 
     officeLiaisonManagerLinkRepository.save(newLink);
 
@@ -142,6 +155,12 @@ public class OfficeLiaisonManagerService {
         ProviderOfficeLinkEntity chambersOfficeLink =
             resolveHeadOfficeOffice(provider, "Chambers head office");
         yield resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
+      }
+      case LiaisonManagerLinkByGuidV2 linkByGuid -> {
+        UUID guid = linkByGuid.getLiaisonManagerGUID();
+        yield liaisonManagerRepository
+            .findById(guid)
+            .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + guid));
       }
       default ->
           throw new IllegalArgumentException(

@@ -133,7 +133,7 @@ jobs:
             exit 0
           fi
           echo "Trying to create GitHub Release [$GTAG]"
-          gh release create "$GTAG" --verify-tag --title "$GTAG" --generate-notes
+          gh release create "$GTAG" --title "$GTAG" --generate-notes
 
   deploy-dev:
     name: "Deploy to dev"

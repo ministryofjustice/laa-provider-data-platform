@@ -20,6 +20,11 @@ public interface OfficeLiaisonManagerLinkRepository
 
   List<OfficeLiaisonManagerLinkEntity> findByOfficeLink_Guid(UUID officeLinkGuid);
 
-  Page<OfficeLiaisonManagerLinkEntity> findByOfficeLink_GuidOrderByActiveDateFromDesc(
-      UUID officeLinkGuid, Pageable pageable);
+  /**
+   * Returns liaison manager links for the given office, ordered with active links (no end date)
+   * first, then by most recent assignment date, then by creation time for full determinism.
+   */
+  Page<OfficeLiaisonManagerLinkEntity>
+      findByOfficeLink_GuidOrderByActiveDateToDescActiveDateFromDescCreatedTimestampDesc(
+          UUID officeLinkGuid, Pageable pageable);
 }

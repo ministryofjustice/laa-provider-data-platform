@@ -214,4 +214,125 @@ class ProviderFirmOfficesLiaisonManagersControllerTest {
         .postOfficeLiaisonManager(
             eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
   }
+
+  @Test
+  void postOfficeLiaisonManagers_withGuidLink_returnsCreated() throws Exception {
+    var providerGuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    var officeGuid = UUID.fromString("66666666-7777-8888-9999-aaaaaaaaaaaa");
+    var liaisonManagerGuid = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
+
+    given(
+            service.postOfficeLiaisonManager(
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+        .willReturn(
+            new OfficeLiaisonManagerService.OfficeLiaisonManagerOperationResult(
+                providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
+
+    String guidLinkJson =
+        """
+                    {
+                      "liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+                    }
+                    """;
+
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "100100",
+                    "0Q731M")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(guidLinkJson))
+        .andExpect(status().isCreated())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.data.liaisonManagerGUID").value(liaisonManagerGuid.toString()));
+
+    verify(service)
+        .postOfficeLiaisonManager(
+            eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class));
+  }
+
+  @Test
+  void postOfficeLiaisonManagers_returnsBadRequest_whenOfficeAlreadyHasActiveLiaisonManager()
+      throws Exception {
+    given(
+            service.postOfficeLiaisonManager(
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+        .willThrow(new IllegalArgumentException("Office already has an active liaison manager"));
+
+    String validJson =
+        """
+                    {
+                      "firstName": "Alice",
+                      "lastName": "Jones",
+                      "emailAddress": "alice@example.com",
+                      "telephoneNumber": "0123456789"
+                    }
+                    """;
+
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "100100",
+                    "0Q731M")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validJson))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("Office already has an active liaison manager"));
+  }
+
+  @Test
+  void postOfficeLiaisonManagers_returnsCreated_withLinkHeadOfficeBody() throws Exception {
+    var providerGuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    var officeGuid = UUID.fromString("66666666-7777-8888-9999-aaaaaaaaaaaa");
+    var liaisonManagerGuid = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
+
+    given(
+            service.postOfficeLiaisonManager(
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+        .willReturn(
+            new OfficeLiaisonManagerService.OfficeLiaisonManagerOperationResult(
+                providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
+
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "100100",
+                    "0Q731M")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"useHeadOfficeLiaisonManager\": true}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.liaisonManagerGUID").value(liaisonManagerGuid.toString()));
+  }
+
+  @Test
+  void postOfficeLiaisonManagers_returnsCreated_withLinkChambersBody() throws Exception {
+    var providerGuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    var officeGuid = UUID.fromString("66666666-7777-8888-9999-aaaaaaaaaaaa");
+    var liaisonManagerGuid = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
+
+    given(
+            service.postOfficeLiaisonManager(
+                eq("100100"), eq("0Q731M"), any(OfficeLiaisonManagerCreateOrLinkV2.class)))
+        .willReturn(
+            new OfficeLiaisonManagerService.OfficeLiaisonManagerOperationResult(
+                providerGuid, "100100", officeGuid, "0Q731M", liaisonManagerGuid));
+
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmGUIDorFirmNumber}"
+                        + "/offices/{officeGUIDorCode}/liaison-managers",
+                    "100100",
+                    "0Q731M")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"useChambersLiaisonManager\": true}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.liaisonManagerGUID").value(liaisonManagerGuid.toString()));
+  }
 }

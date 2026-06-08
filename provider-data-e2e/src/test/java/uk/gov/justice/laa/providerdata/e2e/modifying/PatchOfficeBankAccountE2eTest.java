@@ -56,19 +56,35 @@ class PatchOfficeBankAccountE2eTest {
                 "bankAccountDetails",
                 Map.of("type", "link", "bankAccountGUID", existingBankAccountGuid)));
 
+    Response response =
+        given()
+            .contentType(ContentType.JSON)
+            .pathParam("firmId", E2eConfig.lspFirmNumber())
+            .pathParam("officeCode", E2eConfig.lspOfficeCode())
+            .body(body)
+            .when()
+            .patch("/provider-firms/{firmId}/offices/{officeCode}")
+            .then()
+            .statusCode(200)
+            .body("data.providerFirmGUID", notNullValue())
+            .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
+            .body("data.officeGUID", notNullValue())
+            .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()))
+            .extract()
+            .response();
+
+    String officeGuid = response.path("data.officeGUID");
+
     given()
-        .contentType(ContentType.JSON)
         .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
+        .pathParam("officeCode", officeGuid)
         .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
         .then()
         .statusCode(200)
-        .body("data.providerFirmGUID", notNullValue())
-        .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
-        .body("data.officeGUID", notNullValue())
-        .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()));
+        .body("data.content.find { it.primaryFlag == true }.guid", equalTo(existingBankAccountGuid))
+        .body("data.content.find { it.primaryFlag == true }.createdBy", notNullValue())
+        .body("data.content.find { it.primaryFlag == true }.createdTimestamp", notNullValue());
   }
 
   @Test
@@ -121,11 +137,38 @@ class PatchOfficeBankAccountE2eTest {
         .statusCode(200)
         .body(
             "data.content.findAll { it.primaryFlag == true }.accountNumber[0]",
-            equalTo(uniqueAccountNumber));
+            equalTo(uniqueAccountNumber))
+        .body(
+            "data.content.find { it.accountNumber == '" + uniqueAccountNumber + "' }.createdBy",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '"
+                + uniqueAccountNumber
+                + "' }.createdTimestamp",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '" + uniqueAccountNumber + "' }.lastUpdatedBy",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '"
+                + uniqueAccountNumber
+                + "' }.lastUpdatedTimestamp",
+            notNullValue());
   }
 
   @Test
   void patchOffice_linkUnknownBankAccountGuid_returns404() {
+    Integer countBefore =
+        given()
+            .pathParam("firmId", E2eConfig.lspFirmNumber())
+            .pathParam("officeCode", E2eConfig.lspOfficeCode())
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.metadata.pagination.totalItems");
+
     Map<String, Object> body =
         Map.of(
             "payment",
@@ -146,6 +189,15 @@ class PatchOfficeBankAccountE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(404);
+
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(countBefore));
   }
 
   /**

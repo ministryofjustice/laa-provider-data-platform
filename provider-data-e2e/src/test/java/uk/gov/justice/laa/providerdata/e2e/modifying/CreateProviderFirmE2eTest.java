@@ -77,8 +77,9 @@ class CreateProviderFirmE2eTest {
         .body("data.firmType", equalTo("Legal Services Provider"));
   }
 
-  @Test
-  void createLspFirmWithEftBankAccount_getBankDetailsReturnsAuditFields() {
+    /** AC1 (DSTEW-1640) - Successful bank account creation records audit fields. */
+    @Test
+    void dstew1640_ac1_createLspFirmWithEftBankAccount_getBankDetailsReturnsAuditFields() {
     long timestamp = System.currentTimeMillis();
     String firmName = "E2E-DSTEW LSP EFT " + timestamp;
     String accountNumber = "8" + (timestamp % 10_000_000L);

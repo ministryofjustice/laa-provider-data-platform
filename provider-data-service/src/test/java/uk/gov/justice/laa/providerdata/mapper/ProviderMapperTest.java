@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -132,7 +132,7 @@ class ProviderMapperTest {
     OfficeEntity office = new OfficeEntity();
     office.setGuid(UUID.randomUUID());
 
-    ChamberProviderOfficeLinkEntity headOffice = new ChamberProviderOfficeLinkEntity();
+    ChambersProviderOfficeLinkEntity headOffice = new ChambersProviderOfficeLinkEntity();
     headOffice.setGuid(officeLinkGuid);
     headOffice.setOffice(office);
     headOffice.setAccountNumber("CH001");
@@ -182,7 +182,7 @@ class ProviderMapperTest {
 
     assertThat(result.getPractitioner()).isNotNull();
     assertThat(result.getPractitioner().getParentFirms()).hasSize(2);
-    assertThat(result.getPractitioner().getParentFirms().get(0).getParentGuid())
+    assertThat(result.getPractitioner().getParentFirms().get(0).getParentGUID())
         .isEqualTo(parentChambers.getGuid());
     assertThat(result.getPractitioner().getParentFirms().get(0).getParentFirmNumber())
         .isEqualTo("100002");

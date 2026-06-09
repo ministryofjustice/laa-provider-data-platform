@@ -23,8 +23,8 @@ import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 
-@WebMvcTest(ChamberOfficePractitionersController.class)
-class ChamberOfficePractitionersControllerTest {
+@WebMvcTest(ChambersPractitionersController.class)
+class ChambersPractitionersControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @MockitoBean private ProviderService providerService;

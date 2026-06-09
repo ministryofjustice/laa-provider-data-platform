@@ -26,7 +26,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -421,7 +421,7 @@ class OfficeServiceTest {
     UUID officeLinkGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
-    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+    ProviderOfficeLinkEntity link = new ChambersProviderOfficeLinkEntity();
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, officeLinkGuid))
@@ -438,7 +438,7 @@ class OfficeServiceTest {
     UUID providerGuid = UUID.randomUUID();
     ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
-    ProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+    ProviderOfficeLinkEntity link = new ChambersProviderOfficeLinkEntity();
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndAccountNumber(provider, "CH001"))
@@ -920,7 +920,7 @@ class OfficeServiceTest {
     var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
     chambersProvider.setGuid(chambersProviderGuid);
 
-    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    var chambersLink = new ChambersProviderOfficeLinkEntity();
     chambersLink.setGuid(chambersLinkGuid);
     chambersLink.setAccountNumber("CHM001");
     chambersLink.setOffice(new OfficeEntity());
@@ -948,7 +948,7 @@ class OfficeServiceTest {
     var chambersProvider = ProviderEntity.builder().firmNumber("100002").build();
     chambersProvider.setGuid(chambersProviderGuid);
 
-    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    var chambersLink = new ChambersProviderOfficeLinkEntity();
     chambersLink.setGuid(chambersLinkGuid);
     chambersLink.setAccountNumber("CHM001");
     chambersLink.setOffice(new OfficeEntity());
@@ -1123,7 +1123,7 @@ class OfficeServiceTest {
     var provider = ProviderEntity.builder().firmNumber("100001").build();
     provider.setGuid(providerGuid);
 
-    var link = new ChamberProviderOfficeLinkEntity();
+    var link = new ChambersProviderOfficeLinkEntity();
     link.setGuid(linkGuid);
     link.setAccountNumber("ACC003");
     link.setOffice(new OfficeEntity());

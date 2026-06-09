@@ -178,7 +178,7 @@ class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
               "telephoneNumber": "020 1111 2222"
             },
             "contractManager": {
-              "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+              "contractManagerGUID": "12345678-1234-1234-1234-123456789012"
             }
           }
         }

@@ -24,7 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderBankAccountLinkEntity;
@@ -341,7 +341,7 @@ class BankDetailsServiceTest {
   @Test
   void getOfficeBankAccounts_chambersOfficeLink_aggregatesAdvocateOfficeLinks() {
     var chambersFirm = providerEntity(FirmType.CHAMBERS);
-    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    var chambersLink = new ChambersProviderOfficeLinkEntity();
     chambersLink.setProvider(chambersFirm);
 
     var advocateFirm = providerEntity(FirmType.ADVOCATE);
@@ -371,7 +371,7 @@ class BankDetailsServiceTest {
   @Test
   void getOfficeBankAccounts_chambersOfficeLink_withFilter_aggregatesAdvocateOfficeLinks() {
     var chambersFirm = providerEntity(FirmType.CHAMBERS);
-    var chambersLink = new ChamberProviderOfficeLinkEntity();
+    var chambersLink = new ChambersProviderOfficeLinkEntity();
     chambersLink.setProvider(chambersFirm);
 
     var advocateFirm = providerEntity(FirmType.ADVOCATE);

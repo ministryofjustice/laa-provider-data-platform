@@ -13,7 +13,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -71,7 +71,7 @@ public class OfficeLiaisonManagerService {
    * <p>For all request types, any existing active liaison manager link for the office is end-dated
    * before the new link is created. {@link LiaisonManagerCreateV2} requests record the new link
    * with {@code linkedFlag=false}; link requests ({@link LiaisonManagerLinkHeadOfficeV2} / {@link
-   * LiaisonManagerLinkChambersV2} / {@link LiaisonManagerLinkByGuidV2}) record it with {@code
+   * LiaisonManagerLinkChambersV2} / {@link LiaisonManagerLinkByGUIDV2}) record it with {@code
    * linkedFlag=true}.
    */
   @Transactional
@@ -156,7 +156,7 @@ public class OfficeLiaisonManagerService {
             resolveHeadOfficeOffice(provider, "Chambers head office");
         yield resolveActiveLiaisonManagerForOffice(chambersOfficeLink);
       }
-      case LiaisonManagerLinkByGuidV2 linkByGuid -> {
+      case LiaisonManagerLinkByGUIDV2 linkByGuid -> {
         UUID guid = linkByGuid.getLiaisonManagerGUID();
         yield liaisonManagerRepository
             .findById(guid)

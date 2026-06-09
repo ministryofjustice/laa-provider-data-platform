@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
@@ -19,7 +19,7 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
@@ -42,7 +42,7 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
   @Autowired private ProviderRepository providerRepository;
   @Autowired private OfficeRepository officeRepository;
   @Autowired private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
-  @Autowired private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  @Autowired private ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   @Autowired private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Autowired private ProviderParentLinkRepository providerParentLinkRepository;
   @Autowired private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
@@ -75,10 +75,10 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
     return advocateProviderOfficeLinkRepository.save(link);
   }
 
-  private ChamberProviderOfficeLinkEntity savedChambersOfficeLink(
-      ChamberProviderEntity chambers, OfficeEntity office, OffsetDateTime now) {
-    ChamberProviderOfficeLinkEntity link =
-        ChamberProviderOfficeLinkEntity.builder()
+  private ChambersProviderOfficeLinkEntity savedChambersOfficeLink(
+      ChambersProviderEntity chambers, OfficeEntity office, OffsetDateTime now) {
+    ChambersProviderOfficeLinkEntity link =
+        ChambersProviderOfficeLinkEntity.builder()
             .provider(chambers)
             .office(office)
             .accountNumber("CHM" + System.currentTimeMillis())
@@ -88,7 +88,7 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
             .lastUpdatedBy("test")
             .lastUpdatedTimestamp(now)
             .build();
-    return chamberProviderOfficeLinkRepository.save(link);
+    return chambersProviderOfficeLinkRepository.save(link);
   }
 
   private OfficeLiaisonManagerLinkEntity savedOfficeLiaisonManagerLink(
@@ -138,15 +138,15 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
         savedOfficeLiaisonManagerLink(advocateOfficeLink, existingLm, now);
 
     // Setup: Create chambers with LM
-    ChamberProviderEntity chambers =
-        ChamberProviderEntity.builder()
+    ChambersProviderEntity chambers =
+        ChambersProviderEntity.builder()
             .firmNumber("200001")
             .name("Chambers for Option1")
             .build();
     chambers = providerRepository.save(chambers);
 
     OfficeEntity chambersOffice = savedOffice(now);
-    ChamberProviderOfficeLinkEntity chambersOfficeLink =
+    ChambersProviderOfficeLinkEntity chambersOfficeLink =
         savedChambersOfficeLink(chambers, chambersOffice, now);
 
     LiaisonManagerEntity chambersLm = new LiaisonManagerEntity();

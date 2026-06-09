@@ -71,7 +71,7 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                                   "telephoneNumber": "020 1111 2222"
                                 },
                                 "contractManager": {
-                                  "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+                                  "contractManagerGUID": "12345678-1234-1234-1234-123456789012"
                                 }
                               }
                             }
@@ -324,7 +324,7 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(jsonPath("$.data.metadata.pagination.totalItems").value(1));
 
     // GET bank-details at the Chambers office level — returns accounts for all member Advocates.
-    // The officeId here is the ChamberProviderOfficeLinkEntity accountNumber, not the OfficeEntity
+    // The officeId here is the ChambersProviderOfficeLinkEntity accountNumber, not the OfficeEntity
     // GUID.
     String listChambersOfficesResponse =
         mockMvc

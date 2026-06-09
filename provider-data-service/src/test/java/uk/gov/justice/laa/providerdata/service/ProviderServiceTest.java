@@ -23,8 +23,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
@@ -39,7 +39,7 @@ import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateO
 import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
@@ -48,7 +48,7 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
@@ -64,7 +64,7 @@ class ProviderServiceTest {
 
   @Mock private ProviderRepository providerRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
-  @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  @Mock private ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
   @Mock private ProviderFirmRepository providerFirmRepository;
@@ -338,10 +338,10 @@ class ProviderServiceTest {
     ProviderEntity provider = ProviderEntity.builder().name("My Chambers").build();
     provider.setGuid(UUID.randomUUID());
 
-    ChamberProviderOfficeLinkEntity link = new ChamberProviderOfficeLinkEntity();
+    ChambersProviderOfficeLinkEntity link = new ChambersProviderOfficeLinkEntity();
     link.setHeadOfficeFlag(Boolean.TRUE);
     link.setOffice(new OfficeEntity());
-    when(chamberProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+    when(chambersProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
         .thenReturn(Optional.of(link));
 
     assertThat(service.getChambersHeadOffice(provider)).contains(link);
@@ -537,7 +537,7 @@ class ProviderServiceTest {
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    var lmLink = new LiaisonManagerLinkByGuidV2(lmGuid);
+    var lmLink = new LiaisonManagerLinkByGUIDV2(lmGuid);
     ProviderPatchV2 patch =
         new ProviderPatchV2().practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmLink));
 
@@ -553,7 +553,7 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_practitionerLiaisonManager_linkChambers_linksChamberActiveLm() {
+  void patchProvider_practitionerLiaisonManager_linkChambers_linksChambersActiveLm() {
     UUID guid = UUID.randomUUID();
     UUID chambersGuid = UUID.randomUUID();
     AdvocatePractitionerEntity existing =
@@ -622,8 +622,8 @@ class ProviderServiceTest {
     final AdvocateProviderOfficeLinkEntity advocateOfficeLink =
         AdvocateProviderOfficeLinkEntity.builder().guid(advocateOfficeGuid).build();
 
-    ChamberProviderEntity chambers =
-        ChamberProviderEntity.builder().firmNumber("200001").name("Chambers X").build();
+    ChambersProviderEntity chambers =
+        ChambersProviderEntity.builder().firmNumber("200001").name("Chambers X").build();
     chambers.setGuid(chambersGuid);
 
     final ProviderOfficeLinkEntity chambersOfficeLink =

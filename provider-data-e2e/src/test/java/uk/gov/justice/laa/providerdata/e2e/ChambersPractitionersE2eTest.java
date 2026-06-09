@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.hasSize;
 import org.junit.jupiter.api.Test;
 
 @ReadOnlyTest
-class ChamberOfficePractitionersE2eTest {
+class ChambersPractitionersE2eTest {
 
   @Test
   void getPractitioners_forChambers_returns200WithContent() {

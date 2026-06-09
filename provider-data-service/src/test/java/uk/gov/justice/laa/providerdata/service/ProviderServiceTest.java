@@ -488,8 +488,8 @@ class ProviderServiceTest {
     savedLm.setGuid(UUID.randomUUID());
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
-        .thenReturn(Optional.of(headOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(existing))
+        .thenReturn(List.of(headOfficeLink));
     when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     when(liaisonManagerRepository.save(any())).thenReturn(savedLm);
@@ -529,8 +529,8 @@ class ProviderServiceTest {
     existingLm.setGuid(lmGuid);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
-        .thenReturn(Optional.of(headOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(existing))
+        .thenReturn(List.of(headOfficeLink));
     when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     when(liaisonManagerRepository.findById(lmGuid)).thenReturn(Optional.of(existingLm));
@@ -571,8 +571,8 @@ class ProviderServiceTest {
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
     AdvocateProviderOfficeLinkEntity headOfficeLink = new AdvocateProviderOfficeLinkEntity();
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
-        .thenReturn(Optional.of(headOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(existing))
+        .thenReturn(List.of(headOfficeLink));
     when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(headOfficeLink.getGuid()))
         .thenReturn(List.of());
     ProviderParentLinkEntity parentLink =
@@ -638,8 +638,8 @@ class ProviderServiceTest {
         ProviderParentLinkEntity.builder().provider(advocate).parent(chambers).build();
 
     when(providerRepository.findById(advocateGuid)).thenReturn(Optional.of(advocate));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(advocate))
-        .thenReturn(Optional.of(advocateOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(advocate))
+        .thenReturn(List.of(advocateOfficeLink));
     when(providerParentLinkRepository.findByProvider(advocate)).thenReturn(List.of(parentLink));
     when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(chambers))
         .thenReturn(Optional.of(chambersOfficeLink));
@@ -692,8 +692,8 @@ class ProviderServiceTest {
         AdvocateProviderOfficeLinkEntity.builder().guid(advocateOfficeGuid).build();
 
     when(providerRepository.findById(advocateGuid)).thenReturn(Optional.of(advocate));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(advocate))
-        .thenReturn(Optional.of(advocateOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(advocate))
+        .thenReturn(List.of(advocateOfficeLink));
     when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid()))
         .thenReturn(List.of()); // No existing active LM
 
@@ -754,8 +754,8 @@ class ProviderServiceTest {
             .build();
 
     when(providerRepository.findById(advocateGuid)).thenReturn(Optional.of(advocate));
-    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(advocate))
-        .thenReturn(Optional.of(advocateOfficeLink));
+    when(advocateProviderOfficeLinkRepository.findByProvider(advocate))
+        .thenReturn(List.of(advocateOfficeLink));
     when(officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(advocateOfficeLink.getGuid()))
         .thenReturn(List.of(existingLink)); // Office already has active LM
     when(liaisonManagerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));

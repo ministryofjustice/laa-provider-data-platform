@@ -408,8 +408,8 @@ public class ProviderService {
       LiaisonManagerRepository liaisonManagerRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository) {
     final ProviderOfficeLinkEntity advocateOfficeLink =
-        advocateProviderOfficeLinkRepository
-            .findByProviderAndHeadOfficeFlagTrue(provider)
+        advocateProviderOfficeLinkRepository.findByProvider(provider).stream()
+            .findFirst()
             .orElseThrow(
                 () ->
                     new ItemNotFoundException(

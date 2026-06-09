@@ -56,19 +56,37 @@ class PatchOfficeBankAccountE2eTest {
                 "bankAccountDetails",
                 Map.of("type", "link", "bankAccountGUID", existingBankAccountGuid)));
 
+    Response response =
+        given()
+            .contentType(ContentType.JSON)
+            .pathParam("firmId", E2eConfig.lspFirmNumber())
+            .pathParam("officeCode", E2eConfig.lspOfficeCode())
+            .body(body)
+            .when()
+            .patch("/provider-firms/{firmId}/offices/{officeCode}")
+            .then()
+            .statusCode(200)
+            .body("data.providerFirmGUID", notNullValue())
+            .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
+            .body("data.officeGUID", notNullValue())
+            .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()))
+            .extract()
+            .response();
+
+    String officeGuid = response.path("data.officeGUID");
+
     given()
-        .contentType(ContentType.JSON)
         .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
+        .pathParam("officeCode", officeGuid)
         .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
         .then()
         .statusCode(200)
-        .body("data.providerFirmGUID", notNullValue())
-        .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
-        .body("data.officeGUID", notNullValue())
-        .body("data.officeCode", equalTo(E2eConfig.lspOfficeCode()));
+        .body("data.content.find { it.primaryFlag == true }.guid", equalTo(existingBankAccountGuid))
+        .body("data.content.find { it.primaryFlag == true }.createdBy", notNullValue())
+        .body("data.content.find { it.primaryFlag == true }.createdTimestamp", notNullValue())
+        .body("data.content.find { it.primaryFlag == true }.lastUpdatedBy", notNullValue())
+        .body("data.content.find { it.primaryFlag == true }.lastUpdatedTimestamp", notNullValue());
   }
 
   @Test
@@ -121,11 +139,38 @@ class PatchOfficeBankAccountE2eTest {
         .statusCode(200)
         .body(
             "data.content.findAll { it.primaryFlag == true }.accountNumber[0]",
-            equalTo(uniqueAccountNumber));
+            equalTo(uniqueAccountNumber))
+        .body(
+            "data.content.find { it.accountNumber == '" + uniqueAccountNumber + "' }.createdBy",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '"
+                + uniqueAccountNumber
+                + "' }.createdTimestamp",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '" + uniqueAccountNumber + "' }.lastUpdatedBy",
+            notNullValue())
+        .body(
+            "data.content.find { it.accountNumber == '"
+                + uniqueAccountNumber
+                + "' }.lastUpdatedTimestamp",
+            notNullValue());
   }
 
   @Test
   void patchOffice_linkUnknownBankAccountGuid_returns404() {
+    Integer countBefore =
+        given()
+            .pathParam("firmId", E2eConfig.lspFirmNumber())
+            .pathParam("officeCode", E2eConfig.lspOfficeCode())
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.metadata.pagination.totalItems");
+
     Map<String, Object> body =
         Map.of(
             "payment",
@@ -146,6 +191,15 @@ class PatchOfficeBankAccountE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(404);
+
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(countBefore));
   }
 
   /**
@@ -280,6 +334,19 @@ class PatchOfficeBankAccountE2eTest {
         "exactly one primary flag after first switch",
         flagsAfterFirstSwitch.stream().filter(Boolean.TRUE::equals).count(),
         equalTo(1L));
+
+    // DSTEW-1640 audit coverage: all returned associations should include audit fields
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.content.findAll { it.createdBy == null }", hasSize(0))
+        .body("data.content.findAll { it.createdTimestamp == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedBy == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedTimestamp == null }", hasSize(0));
   }
 
   /**
@@ -395,7 +462,11 @@ class PatchOfficeBankAccountE2eTest {
             notNullValue()) // historical
         .body(
             "data.content.findAll { it.primaryFlag == true }.activeDateTo[0]",
-            nullValue()); // primary
+            nullValue()) // primary
+        .body("data.content.findAll { it.createdBy == null }", hasSize(0))
+        .body("data.content.findAll { it.createdTimestamp == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedBy == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedTimestamp == null }", hasSize(0));
   }
 
   /**
@@ -542,7 +613,11 @@ class PatchOfficeBankAccountE2eTest {
         .body(
             "data.content.findAll { it.accountNumber == '" + accountANumber + "' }.activeDateTo[0]",
             notNullValue())
-        .body("data.content.findAll { it.accountNumber == '" + account0Number + "' }", hasSize(2));
+        .body("data.content.findAll { it.accountNumber == '" + account0Number + "' }", hasSize(2))
+        .body("data.content.findAll { it.createdBy == null }", hasSize(0))
+        .body("data.content.findAll { it.createdTimestamp == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedBy == null }", hasSize(0))
+        .body("data.content.findAll { it.lastUpdatedTimestamp == null }", hasSize(0));
   }
 
   @Test

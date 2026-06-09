@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -189,6 +190,7 @@ class OfficeServiceTest {
         lmTemplate,
         lmLink,
         false,
+        null,
         null);
 
     verify(liaisonManagerRepository).save(lmTemplate);
@@ -238,6 +240,7 @@ class OfficeServiceTest {
         null,
         null,
         true,
+        null,
         null);
 
     verify(liaisonManagerRepository, never()).save(any());
@@ -277,9 +280,46 @@ class OfficeServiceTest {
                     null,
                     null,
                     true,
+                    null,
                     null))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("No active liaison manager found");
+  }
+
+  @Test
+  void createLspOffice_withExistingLmGuid_linksExistingLm() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID lmGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LiaisonManagerEntity existingLm = new LiaisonManagerEntity();
+    existingLm.setGuid(lmGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(liaisonManagerRepository.findById(lmGuid)).thenReturn(Optional.of(existingLm));
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        lmGuid,
+        null);
+
+    verify(liaisonManagerRepository).findById(lmGuid);
+    verify(liaisonManagerRepository, never()).save(any());
+    ArgumentCaptor<OfficeLiaisonManagerLinkEntity> linkCaptor =
+        ArgumentCaptor.forClass(OfficeLiaisonManagerLinkEntity.class);
+    verify(officeLiaisonManagerLinkRepository).save(linkCaptor.capture());
+    assertThat(linkCaptor.getValue().getLiaisonManager()).isEqualTo(existingLm);
+    assertThat(linkCaptor.getValue().getLinkedFlag()).isFalse();
   }
 
   @Test
@@ -488,7 +528,14 @@ class OfficeServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createLspOffice(
-        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+        providerGuid.toString(),
+        new OfficeEntity(),
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        payment);
 
     verify(bankDetailsService)
         .createAndLink(accountTemplate, provider, linkTemplate, createDetails.getActiveDateFrom());
@@ -513,7 +560,14 @@ class OfficeServiceTest {
             .bankAccountDetails(linkDetails);
 
     service.createLspOffice(
-        providerGuid.toString(), new OfficeEntity(), linkTemplate, null, null, false, payment);
+        providerGuid.toString(),
+        new OfficeEntity(),
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        payment);
 
     verify(bankDetailsService).linkExisting(bankGuid, provider, linkTemplate, null);
     verify(bankAccountMapper, never()).toBankAccountEntity(any());
@@ -538,6 +592,7 @@ class OfficeServiceTest {
         null,
         null,
         false,
+        null,
         payment);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
@@ -561,6 +616,7 @@ class OfficeServiceTest {
         null,
         null,
         false,
+        null,
         null);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());

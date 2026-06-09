@@ -8,16 +8,22 @@ import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.deser.DeserializationProblemHandler;
 import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.module.SimpleModule;
+import uk.gov.justice.laa.providerdata.annotation.RejectProperties;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
+import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -29,10 +35,61 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
 
 /**
  * Registers {@link TypeResolvingDeserializer} instances for all {@code oneOf} types in the
- * generated model that lack an OpenAPI discriminator.
+ * generated model that lack an OpenAPI discriminator, and enforces read-only field restrictions for
+ * schemas annotated with {@link RejectProperties}.
  */
 @Configuration
 public class JacksonConfig {
+
+  /**
+   * Registers a {@link DeserializationProblemHandler} that rejects specific named JSON fields for
+   * any model class annotated with {@link RejectProperties}. This enforces read-only field
+   * restrictions declared in the OpenAPI schema, returning a 400 Bad Request when a caller sends a
+   * field listed in {@link RejectProperties#names()}.
+   *
+   * <p>To apply this to a generated model, add to the schema in {@code laa-data-pda.yml}:
+   * <pre>{@code
+   * x-class-extra-annotation: >-
+   *   @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+   *   {"fieldOne", "fieldTwo"})
+   * }</pre>
+   */
+  @Bean
+  JacksonModule rejectPropertiesModule() {
+    return new SimpleModule() {
+      @Override
+      public void setupModule(SetupContext context) {
+        super.setupModule(context);
+        context.addHandler(
+            new DeserializationProblemHandler() {
+              @Override
+              public boolean handleUnknownProperty(
+                  DeserializationContext ctxt,
+                  JsonParser p,
+                  ValueDeserializer<?> deserializer,
+                  Object beanOrClass,
+                  String propertyName)
+                  throws JacksonException {
+                if (beanOrClass != null) {
+                  RejectProperties annotation =
+                      beanOrClass.getClass().getAnnotation(RejectProperties.class);
+                  if (annotation != null) {
+                    for (String name : annotation.value()) {
+                      if (name.equals(propertyName)) {
+                        throw MismatchedInputException.from(
+                            p,
+                            beanOrClass.getClass(),
+                            String.format("Field '%s' must not be provided", propertyName));
+                      }
+                    }
+                  }
+                }
+                return false;
+              }
+            });
+      }
+    };
+  }
 
   /** Registers deserializers for all {@code oneOf} types that lack an OpenAPI discriminator. */
   @Bean
@@ -45,7 +102,9 @@ public class JacksonConfig {
                 node ->
                     node.has("useHeadOfficeLiaisonManager")
                         ? LiaisonManagerLinkHeadOfficeV2.class
-                        : LiaisonManagerCreateV2.class))
+                        : node.has("liaisonManagerGUID")
+                            ? LiaisonManagerLinkByGuidV2.class
+                            : LiaisonManagerCreateV2.class))
         .addDeserializer(
             AdvocateOfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
@@ -53,6 +112,16 @@ public class JacksonConfig {
                 node ->
                     node.has("useChambersLiaisonManager")
                         ? LiaisonManagerLinkChambersV2.class
+                        : node.has("liaisonManagerGUID")
+                            ? LiaisonManagerLinkByGuidV2.class
+                            : LiaisonManagerCreateV2.class))
+        .addDeserializer(
+            ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
+            new TypeResolvingDeserializer<>(
+                ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
+                node ->
+                    node.has("liaisonManagerGUID")
+                        ? LiaisonManagerLinkByGuidV2.class
                         : LiaisonManagerCreateV2.class))
         .addDeserializer(
             OfficeLiaisonManagerCreateOrLinkV2.class,
@@ -64,6 +133,8 @@ public class JacksonConfig {
                     result = LiaisonManagerLinkHeadOfficeV2.class;
                   } else if (node.has("useChambersLiaisonManager")) {
                     result = LiaisonManagerLinkChambersV2.class;
+                  } else if (node.has("liaisonManagerGUID")) {
+                    result = LiaisonManagerLinkByGuidV2.class;
                   } else {
                     result = LiaisonManagerCreateV2.class;
                   }

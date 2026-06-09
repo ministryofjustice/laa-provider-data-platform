@@ -3,6 +3,7 @@ package uk.gov.justice.laa.providerdata.service;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import java.util.List;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -159,7 +160,7 @@ public class ProviderCreationService {
     linkTemplate.setAccountNumber(accountNumber);
     LspProviderOfficeLinkEntity savedLink = lspProviderOfficeLinkRepository.save(linkTemplate);
 
-    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
+    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, null, savedLink);
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
@@ -178,9 +179,10 @@ public class ProviderCreationService {
    * @param providerTemplate partially-populated provider entity (firmType and name set)
    * @param officeTemplate partially-populated office entity (address and contact fields set)
    * @param linkTemplate partially-populated link entity (headOfficeFlag must be {@code true})
-   * @param lmTemplate liaison manager entity to create, or {@code null} if none
+   * @param lmTemplate liaison manager entity to create, or {@code null} if linking by GUID or none
    * @param lmLinkTemplate partially-populated LM link template with activeDateFrom set, or {@code
-   *     null} if none
+   *     null} if linking by GUID or none
+   * @param existingLmGuid GUID of an existing liaison manager to link, or {@code null}
    * @return identifiers for the created provider and head office
    */
   @Transactional
@@ -189,7 +191,8 @@ public class ProviderCreationService {
       OfficeEntity officeTemplate,
       ChamberProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
-      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate) {
+      @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      @Nullable UUID existingLmGuid) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -204,7 +207,7 @@ public class ProviderCreationService {
     linkTemplate.setAccountNumber(accountNumber);
     ProviderOfficeLinkEntity savedLink = chamberProviderOfficeLinkRepository.save(linkTemplate);
 
-    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, savedLink);
+    saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, existingLmGuid, savedLink);
 
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(chambersFirmCreationTimer);
@@ -332,7 +335,23 @@ public class ProviderCreationService {
   private void saveLiaisonManagerLink(
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
+      @Nullable UUID existingLmGuid,
       ProviderOfficeLinkEntity savedOfficeLink) {
+    LiaisonManagerEntity lm;
+    if (existingLmGuid != null) {
+      lm =
+          liaisonManagerRepository
+              .findById(existingLmGuid)
+              .orElseThrow(
+                  () -> new ItemNotFoundException("Liaison manager not found: " + existingLmGuid));
+      OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
+      newLink.setActiveDateFrom(java.time.LocalDate.now());
+      newLink.setLinkedFlag(Boolean.FALSE);
+      newLink.setLiaisonManager(lm);
+      newLink.setOfficeLink(savedOfficeLink);
+      officeLiaisonManagerLinkRepository.save(newLink);
+      return;
+    }
     if (lmTemplate == null || lmLinkTemplate == null) {
       return;
     }

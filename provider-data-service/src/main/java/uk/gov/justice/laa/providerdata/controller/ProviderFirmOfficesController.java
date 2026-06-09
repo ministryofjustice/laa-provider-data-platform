@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOffices200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
@@ -50,10 +52,13 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
     LiaisonManagerEntity lmEntity = null;
     OfficeLiaisonManagerLinkEntity lmLinkTemplate = null;
     boolean linkToHeadOffice = false;
+    UUID existingLmGuid = null;
 
     if (lspOfficeCreateV2.getLiaisonManager() instanceof LiaisonManagerCreateV2 lmCreate) {
       lmEntity = officeMapper.toLiaisonManagerEntity(lmCreate);
       lmLinkTemplate = officeMapper.toLiaisonManagerLinkTemplate(lmCreate);
+    } else if (lspOfficeCreateV2.getLiaisonManager() instanceof LiaisonManagerLinkByGuidV2 link) {
+      existingLmGuid = link.getLiaisonManagerGUID();
     } else if (lspOfficeCreateV2.getLiaisonManager() != null) {
       // LiaisonManagerLinkHeadOfficeV2: link to head office's active liaison manager
       linkToHeadOffice = true;
@@ -67,6 +72,7 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             lmEntity,
             lmLinkTemplate,
             linkToHeadOffice,
+            existingLmGuid,
             lspOfficeCreateV2.getPayment());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(

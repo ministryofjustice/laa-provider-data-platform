@@ -57,7 +57,7 @@ operation.
 root entity `ProviderEntity` uses JPA single-table inheritance with a `@DiscriminatorFormula`
 that combines the `FIRM_TYPE` and `ADVOCATE_TYPE` columns. The advocate subtypes share an
 intermediate abstract class `PractitionerEntity`. Concrete subtypes are `LspProviderEntity`,
-`ChamberProviderEntity`, `AdvocatePractitionerEntity`, and `BarristerPractitionerEntity`.
+`ChambersProviderEntity`, `AdvocatePractitionerEntity`, and `BarristerPractitionerEntity`.
 
 Members:
 
@@ -94,7 +94,7 @@ a given chambers.
 `ProviderOffice` represents the relationship between a provider firm and a physical office
 location. Despite the name, most data the business considers "office data" is stored here, not
 in `OfficeEntity`. The root entity `ProviderOfficeLinkEntity` uses single-table inheritance with
-subtypes `LspProviderOfficeLinkEntity`, `ChamberProviderOfficeLinkEntity`, and
+subtypes `LspProviderOfficeLinkEntity`, `ChambersProviderOfficeLinkEntity`, and
 `AdvocateProviderOfficeLinkEntity`, which hold firm-type-specific fields such as payment method,
 VAT registration, and intervention flags.
 

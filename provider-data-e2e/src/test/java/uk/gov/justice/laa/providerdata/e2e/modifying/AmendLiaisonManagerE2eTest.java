@@ -42,7 +42,7 @@ class AmendLiaisonManagerE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Amend",
@@ -144,16 +144,13 @@ class AmendLiaisonManagerE2eTest {
         .statusCode(400);
   }
 
-  /**
-   * AC2 – liaisonManagerGUID is a redacted field and must not be amended; request is rejected with
-   * 400.
-   */
+  /** AC2 – `guid` is a redacted field and must not be amended; request is rejected with 400. */
   @Test
   void dstew1648_ac2_redactedFieldGuidMustNotBeAmended() {
     given()
         .pathParam("guid", liaisonManagerGuid)
         .contentType(ContentType.JSON)
-        .body(Map.of("liaisonManagerGUID", "00000000-0000-0000-0000-000000000000"))
+        .body(Map.of("guid", "00000000-0000-0000-0000-000000000000"))
         .when()
         .patch("/provider-liaison-managers/{guid}")
         .then()
@@ -184,7 +181,7 @@ class AmendLiaisonManagerE2eTest {
     given()
         .pathParam("guid", liaisonManagerGuid)
         .contentType(ContentType.JSON)
-        .body(Map.of("inactiveDate", "2026-06-03"))
+        .body(Map.of("activeDateTo", "2026-06-03"))
         .when()
         .patch("/provider-liaison-managers/{guid}")
         .then()

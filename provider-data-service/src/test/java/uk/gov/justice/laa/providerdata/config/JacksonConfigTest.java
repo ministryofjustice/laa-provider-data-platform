@@ -16,7 +16,7 @@ import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.OfficeLiaisonManagerCreateOrLinkV2;
@@ -74,8 +74,8 @@ class JacksonConfigTest {
                 .formatted(lmGuid),
             LSPOfficeLiaisonManagerCreateOrLinkV2.class);
 
-    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
-    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGUIDV2.class);
+    assertThat(((LiaisonManagerLinkByGUIDV2) result).getLiaisonManagerGUID())
         .isEqualTo(java.util.UUID.fromString(lmGuid));
   }
 
@@ -121,8 +121,8 @@ class JacksonConfigTest {
                 .formatted(lmGuid),
             AdvocateOfficeLiaisonManagerCreateOrLinkV2.class);
 
-    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
-    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGUIDV2.class);
+    assertThat(((LiaisonManagerLinkByGUIDV2) result).getLiaisonManagerGUID())
         .isEqualTo(java.util.UUID.fromString(lmGuid));
   }
 
@@ -156,8 +156,8 @@ class JacksonConfigTest {
                 .formatted(lmGuid),
             ChambersOfficeLiaisonManagerCreateOrLinkV2.class);
 
-    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
-    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGUIDV2.class);
+    assertThat(((LiaisonManagerLinkByGUIDV2) result).getLiaisonManagerGUID())
         .isEqualTo(java.util.UUID.fromString(lmGuid));
   }
 
@@ -215,31 +215,31 @@ class JacksonConfigTest {
                 .formatted(lmGuid),
             OfficeLiaisonManagerCreateOrLinkV2.class);
 
-    assertThat(result).isInstanceOf(LiaisonManagerLinkByGuidV2.class);
-    assertThat(((LiaisonManagerLinkByGuidV2) result).getLiaisonManagerGUID())
+    assertThat(result).isInstanceOf(LiaisonManagerLinkByGUIDV2.class);
+    assertThat(((LiaisonManagerLinkByGUIDV2) result).getLiaisonManagerGUID())
         .isEqualTo(java.util.UUID.fromString(lmGuid));
   }
 
   // PractitionerDetailsParent
 
   @Test
-  void practitionerParent_resolves_to_guid_type_when_parentGuid_present() throws Exception {
-    var parentGuid = "11111111-1111-1111-1111-111111111111";
+  void practitionerParent_resolves_to_guid_type_when_parentGUID_present() throws Exception {
+    var parentGUID = "11111111-1111-1111-1111-111111111111";
     var result =
         mapper.readValue(
             """
-            {"parentGuid": "%s"}
+            {"parentGUID": "%s"}
             """
-                .formatted(parentGuid),
+                .formatted(parentGUID),
             PractitionerDetailsParentUpdateV2.class);
 
     assertThat(result).isInstanceOf(PractitionerDetailsParentUpdateV2OneOf.class);
-    assertThat(((PractitionerDetailsParentUpdateV2OneOf) result).getParentGuid())
-        .isEqualTo(java.util.UUID.fromString(parentGuid));
+    assertThat(((PractitionerDetailsParentUpdateV2OneOf) result).getParentGUID())
+        .isEqualTo(java.util.UUID.fromString(parentGUID));
   }
 
   @Test
-  void practitionerParent_resolves_to_firm_number_type_when_parentGuid_absent() throws Exception {
+  void practitionerParent_resolves_to_firm_number_type_when_parentGUID_absent() throws Exception {
     var result =
         mapper.readValue(
             """

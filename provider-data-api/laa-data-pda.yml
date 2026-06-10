@@ -3,7 +3,7 @@ info:
   title: Provider API
   version: 1.0.0
   description: |
-    API for managing legal service providers, including solicitors, chambers, and advocates.
+    API for managing Legal Service Providers, including Chambers, solicitors, and advocates.
 
     Unless explicitly stated otherwise, `officeGUID` values identify the provider-office link
     record, not the underlying office record. The underlying office GUID is mainly an internal
@@ -262,7 +262,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: List of providers matching the filters
+          description: List of contract managers matching the filters
           content:
             application/json:
               schema:
@@ -319,7 +319,7 @@ paths:
       tags:
         - Provider Firms
       description: |
-        Create a provider firm (e.g., legal service provider, chambers, advocates).
+        Create a provider firm (e.g., Legal Service Provider, Chambers, advocates).
 
         Each provider must include a name, type, and other type specific data.
 
@@ -371,7 +371,7 @@ paths:
                 $ref: "#/components/schemas/ForbiddenError"
 
         "409":
-          description: Forbidden
+          description: Conflict
           content:
             application/json:
               schema:
@@ -430,7 +430,7 @@ paths:
               - Active
               - ContingentLiability
               - ActiveOrContingentLiability
-          description: Filter by provider number
+          description: Filter by active status
         - name: type
           in: query
           required: false
@@ -515,7 +515,7 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}:
     get:
-      summary: Retrieve provider details by GUID
+      summary: Retrieve provider details by GUID or firm number
       security:
         - bearerAuth: []
         - AzureAD:
@@ -573,11 +573,11 @@ paths:
         Use cases:
         1) Updating firm name
         2) Updating Legal Service Provider's basic details
-        3) Changing head office of a Legal Service Provider basic.
+        3) Changing head office of a Legal Service Provider.
         4) Updating Barrister's or Advocate's basic details
         5) Changing parent firm of a Barrister or an Advocate.
-           Note that changing parent chamber should also re-link office details and liaison manager.
-           There are three options: 1. use new chambers LM, 2. keep existing LM or 3. add new LM.
+           Note that changing parent Chambers should also re-link office details and liaison manager.
+           There are three options: 1. use new Chambers' LM, 2. keep existing LM or 3. add new LM.
       parameters:
         - $ref: "#/components/parameters/TraceParentHeader"
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
@@ -589,7 +589,7 @@ paths:
               $ref: "#/components/schemas/ProviderPatchV2"
       responses:
         "200":
-          description: Details retrieved successfully
+          description: Details updated successfully
           content:
             application/json:
               schema:
@@ -673,7 +673,7 @@ paths:
 
       responses:
         "200":
-          description: List of providers matching the filters
+          description: List of bank accounts matching the filters
           content:
             application/json:
               schema:
@@ -756,7 +756,7 @@ paths:
 
       responses:
         "200":
-          description: List of providers matching the filters
+          description: List of bank accounts matching the filters
           content:
             application/json:
               schema:
@@ -889,8 +889,8 @@ paths:
 
         Use cases:
         1) Browse all offices belonging to a Legal Service Provider firm
-        2) Show details of the Chambers office
-        3) Show details of the Advocate's office (which is the Chambers office they are currently
+        2) Show details of the Chambers' office
+        3) Show details of the Advocate's office (which is the Chambers' office they are currently
            assigned to)
       parameters:
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -899,7 +899,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: List of providers matching the filters
+          description: List of provider offices matching the filters
           content:
             application/json:
               schema:
@@ -952,11 +952,11 @@ paths:
       tags:
         - Provider Firm Offices
       description: |
-        Retrieve office details when you do not have `providerFirmGUID` or `FirmNumber`.
+        Retrieve office details when you do not have `providerFirmGUID` or `firmNumber`.
 
         Use cases:
         1) Browse all active offices
-        2) Browse all offices of a specific provider using when only `officeGUID` or `officeCode`
+        2) Browse all offices of a specific provider when only `officeGUID` or `officeCode`
            is known.
       parameters:
         - $ref: "#/components/parameters/TraceParentHeader"
@@ -987,7 +987,7 @@ paths:
         - $ref: "#/components/parameters/QPageSize"
       responses:
         "200":
-          description: List of providers matching the filters
+          description: List of provider offices matching the filters
           content:
             application/json:
               schema:
@@ -1025,7 +1025,7 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}:
     get:
-      summary: Retrieve provider office details by GUID
+      summary: Retrieve provider office details by GUID or office code
       security:
         - bearerAuth: []
         - AzureAD:
@@ -1082,13 +1082,13 @@ paths:
       description: |
         Update provider office details.
 
-        Note that `firmType=Advocate` can't patch Chamber office details.
+        Note that `firmType=Advocate` can't patch Chambers' office details.
 
         Use cases:
         1) Deactivating office details by setting `activeDateTo`.
            Note that if the office is a head office of Legal Service Provider firm, `activeDateTo`
            should be set on all other offices which are not yet de-activated.
-           For a Chambers office, `activeDateTo` can only be applied if no active practitioners
+           For a Chambers' office, `activeDateTo` can only be applied if no active practitioners
            are linked to the Chambers (DS_MAPD_FR_019). All associated practitioners must be
            deactivated or reassigned to another Chambers before this Chambers can be made inactive.
         2) Holding payments using `paymentHeldFlag`
@@ -1114,7 +1114,7 @@ paths:
               $ref: "#/components/schemas/OfficePatchV2"
       responses:
         "200":
-          description: Details retrieved successfully
+          description: Details updated successfully
           content:
             application/json:
               schema:
@@ -1174,8 +1174,8 @@ paths:
         Use cases:
         1) Create a new liaison manager entry specific to given LSP office.
         2) Choose to use LSP's head office liaison manager for given LSP office.
-        3) Create a new liaison manager entry specific to Chambers office.
-        4) Create a new liaison manager entry specific to Advocate/Barrister for a given Chambers
+        3) Create a new liaison manager entry specific to Chambers' office.
+        4) Create a new liaison manager entry specific to Advocate/Barrister for a given Chambers'
            office.
         5) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
       parameters:
@@ -1190,7 +1190,7 @@ paths:
               $ref: "#/components/schemas/OfficeLiaisonManagerCreateOrLinkV2"
       responses:
         "201":
-          description: Office created successfully
+          description: Liaison manager created or assigned successfully
           content:
             application/json:
               schema:
@@ -1332,7 +1332,7 @@ paths:
               $ref: "#/components/schemas/ContractManagerProviderPatchV2"
       responses:
         "201":
-          description: Office created successfully
+          description: Contract manager assigned successfully
           content:
             application/json:
               schema:
@@ -1431,25 +1431,25 @@ paths:
 
   /provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
     get:
-      summary: Retrieve practitioners for a given chamber office
+      summary: Retrieve practitioners for a given Chambers
       security:
         - bearerAuth: []
         - AzureAD:
             - api://<client-id>/access_as_user
-      operationId: getProviderFirmOfficePractitioners
+      operationId: getProviderFirmPractitioners
       tags:
-        - Chamber Office Practitioners
+        - Chambers Practitioners
       description: |
-        Retrieve chamber office practitioners.
+        Retrieve Chambers practitioners.
 
         Note that to create new practitioner you need to create new provider firm of type
         `Barrister` or `Advocate`.
 
-        To re-assign Advocate/Barrister to a different Chamber, use the PATCH
-        `/provider-firms?providerFirmGUIDorFirmNumber=ABC` to change parent firms.
+        To re-assign Advocate/Barrister to a different Chambers, use the PATCH
+        `/provider-firms/{providerFirmGUIDorFirmNumber}` to change parent firms.
 
         Use cases:
-        1) List all Advocates and Barristers assigned to given Chamber.
+        1) List all Advocates and Barristers assigned to given Chambers.
       parameters:
         - $ref: "#/components/parameters/TraceParentHeader"
         - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
@@ -1568,7 +1568,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00XX"
+              example: "P00BR"
 
     ForbiddenError:
       type: object
@@ -1578,7 +1578,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00XX"
+              example: "P00AD"
 
     ConflictError:
       type: object
@@ -1588,7 +1588,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00XX"
+              example: "P00CV"
 
     NotFoundError:
       type: object
@@ -1694,7 +1694,7 @@ components:
             - $ref: "#/components/schemas/PractitionerDetailsCreateV2"
             - $ref: "#/components/schemas/PractitionerHeadOfficeCreateV2"
       description: |
-        Create provider of `firmType=Advocate`. Office is linked to the parent Chambers office.
+        Create provider of `firmType=Advocate`. Office is linked to the parent Chambers' office.
 
     ProviderV2:
       allOf:
@@ -1735,7 +1735,7 @@ components:
         - chambers
       properties:
         chambers:
-          $ref: "#/components/schemas/ChamberDetailsV2"
+          $ref: "#/components/schemas/ChambersDetailsV2"
       description: |
         Provider of `firmType=Chambers`
 
@@ -1788,21 +1788,21 @@ components:
       type: string
       enum:
         - Partnership
-        - Limited company
-        - Sole practitioner
-        - Limited Liability Partnership (LLP)
+        - Limited Company
+        - Sole Practitioner
+        - LLP
         - Charity
         - Government Funded Organisation
       description: |
-        N/A for Firm type Advocate or Chambers.
+        'N/A' for Firm type Advocate or Chambers.
 
-        For Legal Services provider, options are: *TODO: Check the enum values*
-          - Partnership,
-          - Limited Company,
-          - Sole Practitioner,
-          - LLAP, *TODO: Check why in MAPD documentation it is Limited Liability Partnership (LLP)*
-          - Charity,
-          - Government Funded Organisation.
+        For Legal Services provider, options are:
+          - 'Partnership',
+          - 'Limited Company',
+          - 'Sole Practitioner',
+          - 'LLP', (Limited Liability Partnership)
+          - 'Charity',
+          - 'Government Funded Organisation'.
 
         When constitutional status is set to 'Charity' `notForProfitOrganisationFlag` must be set
         to true.
@@ -1829,7 +1829,7 @@ components:
       description: |
         *TODO: Need better description of this field*
 
-        WARNING: same field is used by Advocates for Bar Council roll number.
+        WARNING: same field is used by Advocates for Bar Council or SRA roll number.
 
         CWA ref: PO_VENDORS.ATTRIBUTE11
       example: "*TODO: Provide example*"
@@ -1838,7 +1838,6 @@ components:
       type: object
       required:
         - constitutionalStatus
-        - contractManager
       properties:
         constitutionalStatus:
           $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
@@ -1889,7 +1888,7 @@ components:
         referredToDebtRecoveryFlag:
           $ref: "#/components/schemas/ReferredToDebtRecoveryFlagV2"
 
-    ChamberDetailsV2:
+    ChambersDetailsV2:
       type: object
       required:
         - office
@@ -1901,9 +1900,9 @@ components:
       oneOf:
         - type: object
           required:
-            - parentGuid
+            - parentGUID
           properties:
-            parentGuid:
+            parentGUID:
               $ref: "#/components/schemas/BaseEntityGUIDV2"
         - type: object
           required:
@@ -1915,11 +1914,11 @@ components:
     PractitionerDetailsParentV2:
       type: object
       required:
-        - parentGuid
+        - parentGUID
         - parentFirmNumber
         - parentFirmType
       properties:
-        parentGuid:
+        parentGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
         parentFirmNumber:
           $ref: "#/components/schemas/ProviderFirmNumberV2"
@@ -1962,7 +1961,7 @@ components:
         - Junior
         - KC
       description: |
-        Advocate level.
+        Barrister level.
 
         WARNING: Same field as Advocate level in CWA
 
@@ -1973,10 +1972,10 @@ components:
     PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2:
       type: string
       description: |
-        Bar Council or Solicitors Regulation Authority roll number.
+        Solicitors Regulation Authority roll number.
 
-        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Companies House
-        number).
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used by LSPs for Companies House
+        number and by Barristers for Bar Council roll number).
 
         *TODO: Need better description of this field, any business rules*
       example: "*TODO: Provide example*"
@@ -1984,10 +1983,10 @@ components:
     PractitionerDetailsBarCouncilRollNumberV2:
       type: string
       description: |
-        Bar Council or Solicitors Regulation Authority roll number.
+        Bar Council roll number.
 
-        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used for LSP for Companies House
-        number).
+        CWA ref: PO_VENDORS.ATTRIBUTE11 (WARNING: same field is used by LSPs for Companies House
+        number and by Advocates for SRA roll number).
 
         *TODO: Need better description of this field, any business rules*
       example: "*TODO: Provide example*"
@@ -2285,7 +2284,7 @@ components:
 
         When `activeDateTo` is set on the Chambers' office all assigned advocates/barristers that
         do not have `activeDateTo` set should be updated to the same value (i.e. deactivating
-        a chambers office deactivates all active advocate/barrister offices).
+        a Chambers' office deactivates all active advocate/barrister offices).
 
         When `activeDateTo` is set on an LSP office or an Advocate/Barrister office, the
         `debtRecoveryFlag` should be set to false.
@@ -2888,9 +2887,7 @@ components:
     BankAccountProviderOfficeLinkV2:
       type: object
       required:
-        - accountName
-        - sortCode
-        - accountNumber
+        - bankAccountGUID
       properties:
         bankAccountGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
@@ -2990,24 +2987,24 @@ components:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
 
     LSPOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
 
     ChambersOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
 
     AdvocateOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
         - $ref: "#/components/schemas/LiaisonManagerCreateV2"
         - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGuidV2"
+        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
 
     LiaisonManagerCreateV2:
       type: object
@@ -3040,8 +3037,7 @@ components:
         useHeadOfficeLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks liaison manager record from the head office (or
-            Chambers)
+            Setting this flag to true interlinks liaison manager record from the head office
       description: |
         Applicable only for LSP offices. Indicates that new liaison manager assignment should be to
         the liaison manager that is currently specified at the head office. This update only links
@@ -3055,8 +3051,7 @@ components:
         useChambersLiaisonManager:
           type: boolean
           description: |
-            Setting this flag to true interlinks liaison manager record from the head office (or
-            Chambers)
+            Setting this flag to true interlinks liaison manager record from the Chambers
       description: |
         Applicable only for Advocate/Barrister. Indicates that new liaison manager assignment
         should be to the liaison manager that is currently specified at the Chambers' office. This
@@ -3136,7 +3131,7 @@ components:
             linkedFlag:
               $ref: "#/components/schemas/LiaisonManagerLinkedFlagV2"
 
-    LiaisonManagerLinkByGuidV2:
+    LiaisonManagerLinkByGUIDV2:
       type: object
       required:
         - liaisonManagerGUID
@@ -3150,7 +3145,7 @@ components:
     ContractManagerProviderLinkV2:
       type: object
       properties:
-        contractManagerGuid:
+        contractManagerGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
 
     ContractManagerProviderPatchV2:

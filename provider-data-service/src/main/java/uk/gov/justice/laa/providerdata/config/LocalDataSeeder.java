@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
@@ -78,7 +78,7 @@ public class LocalDataSeeder implements CommandLineRunner {
     var offices = seedOffices();
     var officeLinks = seedProviderOfficeLinks(providers, offices);
     var lspLink = (LspProviderOfficeLinkEntity) officeLinks[0];
-    var chambersLink = (ChamberProviderOfficeLinkEntity) officeLinks[1];
+    var chambersLink = (ChambersProviderOfficeLinkEntity) officeLinks[1];
     var bankAccounts = seedBankAccounts();
     seedProviderBankAccountLinks(providers, bankAccounts);
     seedOfficeBankAccountLinks(lspLink, bankAccounts);
@@ -106,12 +106,12 @@ public class LocalDataSeeder implements CommandLineRunner {
                 .build());
     var dxChambers =
         providerRepository.save(
-            ChamberProviderEntity.builder()
+            ChambersProviderEntity.builder()
                 .firmNumber(CHAMBERS_DX_FIRM_NUMBER)
                 .name("Test Chambers DX")
                 .build());
     providerOfficeLinkRepository.save(
-        ChamberProviderOfficeLinkEntity.builder()
+        ChambersProviderOfficeLinkEntity.builder()
             .provider(dxChambers)
             .office(dxOffice)
             .accountNumber("ACC004")
@@ -155,7 +155,7 @@ public class LocalDataSeeder implements CommandLineRunner {
                 .build());
     ProviderEntity provider2 =
         providerRepository.save(
-            ChamberProviderEntity.builder()
+            ChambersProviderEntity.builder()
                 .firmNumber(CHAMBERS_FIRM_NUMBER)
                 .name("Test Chambers")
                 .build());
@@ -271,10 +271,10 @@ public class LocalDataSeeder implements CommandLineRunner {
     // composite unique constraint (PROVIDER_GUID, OFFICE_GUID, FIRM_TYPE).
     // accountNumber NOT NULL, headOfficeFlag NOT NULL,
     // LSP/Advocate: flags NOT NULL, paymentMethod NOT NULL.
-    ChamberProviderOfficeLinkEntity chambersLink =
-        (ChamberProviderOfficeLinkEntity)
+    ChambersProviderOfficeLinkEntity chambersLink =
+        (ChambersProviderOfficeLinkEntity)
             providerOfficeLinkRepository.save(
-                ChamberProviderOfficeLinkEntity.builder()
+                ChambersProviderOfficeLinkEntity.builder()
                     .provider(providers[1])
                     .office(offices[1])
                     .accountNumber("ACC002")
@@ -351,7 +351,7 @@ public class LocalDataSeeder implements CommandLineRunner {
 
   private void seedOfficeLiaisonManagerLinks(
       LspProviderOfficeLinkEntity lspLink,
-      ChamberProviderOfficeLinkEntity chambersLink,
+      ChambersProviderOfficeLinkEntity chambersLink,
       LiaisonManagerEntity[] liaisonManagers) {
     log.info("Seeding OfficeLiaisonManagerLink table");
     officeLiaisonManagerLinkRepository.save(

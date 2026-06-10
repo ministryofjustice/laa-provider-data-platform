@@ -250,7 +250,7 @@ class PatchOfficeBankAccountE2eTest {
                                 "accountNumber",
                                 initialAccountNumber)),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Test",
@@ -393,7 +393,7 @@ class PatchOfficeBankAccountE2eTest {
                                 "sortCode", "601111",
                                 "accountNumber", initialAccountNumber)),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Test",
@@ -517,7 +517,7 @@ class PatchOfficeBankAccountE2eTest {
                                 "sortCode", "601111",
                                 "accountNumber", account0Number)),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Test",

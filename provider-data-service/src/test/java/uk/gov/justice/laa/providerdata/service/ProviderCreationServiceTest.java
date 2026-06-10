@@ -23,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -41,7 +41,7 @@ import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
@@ -56,7 +56,7 @@ class ProviderCreationServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
-  @Mock private ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  @Mock private ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
@@ -198,20 +198,20 @@ class ProviderCreationServiceTest {
               return office;
             });
     UUID officeLinkGuid = UUID.randomUUID();
-    when(chamberProviderOfficeLinkRepository.save(any()))
+    when(chambersProviderOfficeLinkRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ChamberProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              ChambersProviderOfficeLinkEntity officeLink = inv.getArgument(0);
               officeLink.setGuid(officeLinkGuid);
               return officeLink;
             });
 
-    var linkTemplate = new ChamberProviderOfficeLinkEntity();
+    var linkTemplate = new ChambersProviderOfficeLinkEntity();
     linkTemplate.setHeadOfficeFlag(Boolean.TRUE);
 
     var result =
         service.createChambersFirm(
-            ChamberProviderEntity.builder().name("My Chambers").build(),
+            ChambersProviderEntity.builder().name("My Chambers").build(),
             OfficeEntity.builder().addressLine1("1 Test St").build(),
             linkTemplate,
             null,
@@ -236,7 +236,7 @@ class ProviderCreationServiceTest {
               return provider;
             });
     when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(chamberProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(chambersProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     UUID lmGuid = UUID.randomUUID();
     LiaisonManagerEntity existingLm = new LiaisonManagerEntity();
@@ -245,9 +245,9 @@ class ProviderCreationServiceTest {
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.createChambersFirm(
-        ChamberProviderEntity.builder().name("My Chambers").build(),
+        ChambersProviderEntity.builder().name("My Chambers").build(),
         OfficeEntity.builder().addressLine1("1 Test St").build(),
-        new ChamberProviderOfficeLinkEntity(),
+        new ChambersProviderOfficeLinkEntity(),
         null,
         null,
         lmGuid);
@@ -266,10 +266,10 @@ class ProviderCreationServiceTest {
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     UUID officeLinkGuid = UUID.randomUUID();
-    when(chamberProviderOfficeLinkRepository.save(any()))
+    when(chambersProviderOfficeLinkRepository.save(any()))
         .thenAnswer(
             inv -> {
-              ChamberProviderOfficeLinkEntity officeLink = inv.getArgument(0);
+              ChambersProviderOfficeLinkEntity officeLink = inv.getArgument(0);
               officeLink.setGuid(officeLinkGuid);
               return officeLink;
             });
@@ -288,9 +288,9 @@ class ProviderCreationServiceTest {
     lmLink.setActiveDateFrom(LocalDate.of(2024, 1, 1));
 
     service.createChambersFirm(
-        ChamberProviderEntity.builder().name("My Chambers").build(),
+        ChambersProviderEntity.builder().name("My Chambers").build(),
         OfficeEntity.builder().addressLine1("1 Test St").build(),
-        new ChamberProviderOfficeLinkEntity(),
+        new ChambersProviderOfficeLinkEntity(),
         lmTemplate,
         lmLink,
         null);
@@ -326,7 +326,7 @@ class ProviderCreationServiceTest {
   void createPractitionerFirm_withParentFirmByNumber_savesParentLink() {
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ChamberProviderEntity.builder().build();
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     OfficeEntity parentOffice = new OfficeEntity();
     ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
@@ -358,7 +358,7 @@ class ProviderCreationServiceTest {
   void createPractitionerFirm_withParentFirmByGuid_savesParentLink() {
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ChamberProviderEntity.builder().build();
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     OfficeEntity parentOffice = new OfficeEntity();
     ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
@@ -389,7 +389,7 @@ class ProviderCreationServiceTest {
   @Test
   void createPractitionerFirm_withParentFirm_returnsOfficeFieldsFromCreatedLink() {
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ChamberProviderEntity.builder().build();
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
     parent.setGuid(parentGuid);
     UUID chambersOfficeGuid = UUID.randomUUID();
     OfficeEntity parentOffice = new OfficeEntity();
@@ -431,7 +431,7 @@ class ProviderCreationServiceTest {
   @Test
   void createPractitionerFirm_throwsNotFound_whenParentHasNoHeadOffice() {
     UUID parentGuid = UUID.randomUUID();
-    ProviderEntity parent = ChamberProviderEntity.builder().build();
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
     parent.setGuid(parentGuid);
 
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));

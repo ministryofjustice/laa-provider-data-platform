@@ -66,14 +66,14 @@ public class ProviderFirmOfficeContractManagersController
           String officeGUIDorCode,
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String traceparent) {
-    UUID contractManagerGuid = contractManagerProviderPatchV2.getContractManagerGUID();
-    if (contractManagerGuid == null) {
+    UUID contractManagerGUID = contractManagerProviderPatchV2.getContractManagerGUID();
+    if (contractManagerGUID == null) {
       throw new IllegalArgumentException("contractManagerGUID must be provided");
     }
 
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGuid);
+            providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGUID);
 
     // populate what we can without additional lookups
     CreateProviderFirmOfficeContractManager201ResponseData data =

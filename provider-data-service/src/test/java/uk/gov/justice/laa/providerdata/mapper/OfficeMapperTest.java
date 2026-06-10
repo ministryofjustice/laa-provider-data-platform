@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -226,7 +226,7 @@ class OfficeMapperTest {
   void toChambersHeadOfficeLinkTemplate_setsHeadOfficeFlagTrue() {
     var chambers = new ChambersHeadOfficeCreateV2();
 
-    ChamberProviderOfficeLinkEntity result = mapper.toChambersHeadOfficeLinkTemplate(chambers);
+    ChambersProviderOfficeLinkEntity result = mapper.toChambersHeadOfficeLinkTemplate(chambers);
 
     assertThat(result.getHeadOfficeFlag()).isTrue();
   }

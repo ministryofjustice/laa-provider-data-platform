@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -29,7 +29,7 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
@@ -51,7 +51,7 @@ public class ProviderCreationService {
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
-  private final ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  private final ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
@@ -72,7 +72,7 @@ public class ProviderCreationService {
    * @param providerRepository to save provider entities
    * @param officeRepository to save office entities
    * @param lspProviderOfficeLinkRepository to save LSP office links
-   * @param chamberProviderOfficeLinkRepository to save Chambers office links
+   * @param chambersProviderOfficeLinkRepository to save Chambers office links
    * @param advocateProviderOfficeLinkRepository to save Advocate office links
    * @param providerOfficeLinkRepository to look up parent head offices generically
    * @param liaisonManagerRepository to save liaison manager entities
@@ -91,7 +91,7 @@ public class ProviderCreationService {
       ProviderRepository providerRepository,
       OfficeRepository officeRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
-      ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository,
+      ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
@@ -108,7 +108,7 @@ public class ProviderCreationService {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
-    this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
+    this.chambersProviderOfficeLinkRepository = chambersProviderOfficeLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
@@ -187,9 +187,9 @@ public class ProviderCreationService {
    */
   @Transactional
   public ProviderCreationResult createChambersFirm(
-      ChamberProviderEntity providerTemplate,
+      ChambersProviderEntity providerTemplate,
       OfficeEntity officeTemplate,
-      ChamberProviderOfficeLinkEntity linkTemplate,
+      ChambersProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       @Nullable UUID existingLmGuid) {
@@ -205,7 +205,7 @@ public class ProviderCreationService {
     linkTemplate.setProvider(savedProvider);
     linkTemplate.setOffice(savedOffice);
     linkTemplate.setAccountNumber(accountNumber);
-    ProviderOfficeLinkEntity savedLink = chamberProviderOfficeLinkRepository.save(linkTemplate);
+    ProviderOfficeLinkEntity savedLink = chambersProviderOfficeLinkRepository.save(linkTemplate);
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, existingLmGuid, savedLink);
 
@@ -302,11 +302,11 @@ public class ProviderCreationService {
     return switch (parentFirm) {
       case PractitionerDetailsParentUpdateV2OneOf byGuid ->
           providerRepository
-              .findById(byGuid.getParentGuid())
+              .findById(byGuid.getParentGUID())
               .orElseThrow(
                   () ->
                       new ItemNotFoundException(
-                          "Parent provider not found: " + byGuid.getParentGuid()));
+                          "Parent provider not found: " + byGuid.getParentGUID()));
       case PractitionerDetailsParentUpdateV2OneOf1 byNumber ->
           providerRepository
               .findByFirmNumber(byNumber.getParentFirmNumber())

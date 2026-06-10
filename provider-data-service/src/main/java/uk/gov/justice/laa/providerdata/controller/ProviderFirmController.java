@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -42,7 +42,7 @@ import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
@@ -274,7 +274,7 @@ public class ProviderFirmController {
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lmDto);
       UUID existingLmGuid = lmGuid(lmDto);
       return providerFirmCreationService.createChambersFirm(
-          ChamberProviderEntity.builder().name(request.getName()).build(),
+          ChambersProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
@@ -323,7 +323,7 @@ public class ProviderFirmController {
   }
 
   private @Nullable UUID lmGuid(@Nullable ChambersOfficeLiaisonManagerCreateOrLinkV2 dto) {
-    return dto instanceof LiaisonManagerLinkByGuidV2 link ? link.getLiaisonManagerGUID() : null;
+    return dto instanceof LiaisonManagerLinkByGUIDV2 link ? link.getLiaisonManagerGUID() : null;
   }
 
   private void validateRequest(ProviderCreateV2 request) {

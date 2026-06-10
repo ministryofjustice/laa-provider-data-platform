@@ -16,7 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -490,18 +490,18 @@ public class OfficeService {
               patchFalseBalanceFlag,
               provider,
               lspLink);
-      case ChamberProviderOfficeLinkEntity chamberLink -> {
+      case ChambersProviderOfficeLinkEntity chambersLink -> {
         if (patchActiveDateTo != null) {
           if (advocateProviderOfficeLinkRepository.existsActivePractitionerForChambers(
-              chamberLink.getProvider())) {
+              chambersLink.getProvider())) {
             throw new IllegalArgumentException(
                 "Cannot deactivate a Chambers office while active practitioners are linked."
                     + " Deactivate all associated practitioners or reassign them to another"
                     + " Chambers first.");
           }
-          chamberLink.setActiveDateTo(patchActiveDateTo);
+          chambersLink.setActiveDateTo(patchActiveDateTo);
         } else if (clearActiveDateTo) {
-          chamberLink.setActiveDateTo(null);
+          chambersLink.setActiveDateTo(null);
         }
       }
       case AdvocateProviderOfficeLinkEntity advocateLink ->

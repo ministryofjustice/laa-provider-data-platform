@@ -1,86 +1,188 @@
 package uk.gov.justice.laa.providerdata.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.OffsetDateTime;
+import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
 import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
-import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
-import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
-import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
-import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
+@Transactional
 class OfficeLiaisonManagerServiceTest extends PostgresqlSpringBootTest {
 
-  @Autowired private OfficeLiaisonManagerService service;
+  @Autowired private WebApplicationContext context;
+  private MockMvc mockMvc;
 
-  @Autowired private ProviderRepository providerRepository;
-  @Autowired private OfficeRepository officeRepository;
-  @Autowired private ProviderOfficeLinkRepository providerOfficeLinkRepository;
-  @Autowired private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+  }
 
   @Test
-  void post_createsLiaisonManager_and_linksToOffice_byOfficeCode() {
-    final OffsetDateTime now = OffsetDateTime.now(); // only used for test data below
+  void post_createsLiaisonManager_and_linksToOffice_byOfficeCode() throws Exception {
+    String createFirmResponse =
+        mockMvc
+            .perform(
+                post("/provider-firms")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(lspFirmJson("LM Service Test LSP", "11111111")))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
 
-    ProviderEntity provider =
-        LspProviderEntity.builder().firmNumber("100100").name("Test Firm").build();
-    provider = providerRepository.save(provider);
-    final var providerGuid = provider.getGuid();
+    String providerFirmGuid = JsonPath.read(createFirmResponse, "$.data.providerFirmGUID");
+    String providerFirmNumber = JsonPath.read(createFirmResponse, "$.data.providerFirmNumber");
+    String officeCode = headOfficeCode(providerFirmGuid);
 
-    OfficeEntity office =
-        OfficeEntity.builder()
-            .addressLine1("1 Test Street")
-            .addressTownOrCity("London")
-            .addressPostCode("SW1A 1AA")
-            .build();
-    office = officeRepository.save(office);
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{id}/offices/{officeCode}/liaison-managers",
+                    providerFirmGuid,
+                    officeCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "firstName": "Alice",
+                      "lastName": "Jones",
+                      "emailAddress": "alice@example.com",
+                      "telephoneNumber": "0123456789"
+                    }
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.providerFirmGUID").isNotEmpty())
+        .andExpect(jsonPath("$.data.providerFirmNumber").value(providerFirmNumber))
+        .andExpect(jsonPath("$.data.officeCode").value(officeCode))
+        .andExpect(jsonPath("$.data.liaisonManagerGUID").isNotEmpty());
+  }
 
-    LspProviderOfficeLinkEntity link =
-        LspProviderOfficeLinkEntity.builder()
-            .provider(provider)
-            .office(office)
-            .accountNumber("0Q731M")
-            .headOfficeFlag(true)
-            .createdBy("test")
-            .createdTimestamp(now)
-            .lastUpdatedBy("test")
-            .lastUpdatedTimestamp(now)
-            .build();
-    link = providerOfficeLinkRepository.save(link);
-    final var officeLinkGuid = link.getGuid();
+  @Test
+  void post_linksExistingLiaisonManager_byGuid() throws Exception {
+    // Create the first LSP firm and POST a new liaison manager to its head office to get a GUID.
+    String firm1Response =
+        mockMvc
+            .perform(
+                post("/provider-firms")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(lspFirmJson("LM Source LSP", "11111111")))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String firm1Guid = JsonPath.read(firm1Response, "$.data.providerFirmGUID");
+    String firm1OfficeCode = headOfficeCode(firm1Guid);
 
-    LiaisonManagerCreateV2 request = new LiaisonManagerCreateV2();
-    request.setFirstName("Alice");
-    request.setLastName("Jones");
-    request.setEmailAddress("alice@example.com");
-    request.setTelephoneNumber("0123456789");
+    String createLmResponse =
+        mockMvc
+            .perform(
+                post(
+                        "/provider-firms/{id}/offices/{officeCode}/liaison-managers",
+                        firm1Guid,
+                        firm1OfficeCode)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "firstName": "Bob",
+                          "lastName": "Smith",
+                          "emailAddress": "bob@example.com",
+                          "telephoneNumber": "0987654321"
+                        }
+                        """))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String lmGuid = JsonPath.read(createLmResponse, "$.data.liaisonManagerGUID");
 
-    var result = service.postOfficeLiaisonManager("100100", "0Q731M", request);
+    // Create a second LSP firm and link the existing liaison manager to its head office.
+    String firm2Response =
+        mockMvc
+            .perform(
+                post("/provider-firms")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(lspFirmJson("LM Target LSP", "22222222")))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String firm2Guid = JsonPath.read(firm2Response, "$.data.providerFirmGUID");
+    String firm2Number = JsonPath.read(firm2Response, "$.data.providerFirmNumber");
+    String firm2OfficeCode = headOfficeCode(firm2Guid);
 
-    assertThat(result).isNotNull();
-    assertThat(result.providerFirmGuid()).isEqualTo(providerGuid);
-    assertThat(result.providerFirmNumber()).isEqualTo("100100");
-    assertThat(result.officeGuid()).isEqualTo(officeLinkGuid);
-    assertThat(result.officeCode()).isEqualTo("0Q731M");
-    assertThat(result.liaisonManagerGuid()).isNotNull();
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{id}/offices/{officeCode}/liaison-managers",
+                    firm2Guid,
+                    firm2OfficeCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "liaisonManagerGUID": "%s"
+                    }
+                    """
+                        .formatted(lmGuid)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.liaisonManagerGUID").value(lmGuid))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value(firm2Number));
+  }
 
-    var persistedLinks = officeLiaisonManagerLinkRepository.findByOfficeLink_Guid(officeLinkGuid);
-    assertThat(persistedLinks).isNotEmpty();
-    assertThat(persistedLinks)
-        .anySatisfy(
-            persisted -> {
-              assertThat(persisted.getOfficeLink().getGuid()).isEqualTo(officeLinkGuid);
-              assertThat(persisted.getLiaisonManager().getGuid())
-                  .isEqualTo(result.liaisonManagerGuid());
-              assertThat(persisted.getActiveDateTo()).isNull();
-              assertThat(persisted.getLinkedFlag()).isTrue();
-            });
+  private String headOfficeCode(String providerFirmGuid) throws Exception {
+    String officesResponse =
+        mockMvc
+            .perform(get("/provider-firms/{id}/offices", providerFirmGuid))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return JsonPath.read(officesResponse, "$.data.content[0].accountNumber");
+  }
+
+  private String lspFirmJson(String name, String bankAccountNumber) {
+    return """
+        {
+          "firmType": "Legal Services Provider",
+          "name": "%s",
+          "legalServicesProvider": {
+            "constitutionalStatus": "Partnership",
+            "address": {
+              "line1": "1 Test Street",
+              "townOrCity": "London",
+              "postcode": "SW1A 1AA"
+            },
+            "payment": {
+              "paymentMethod": "EFT",
+              "bankAccountDetails": {
+                "accountName": "Test Account",
+                "sortCode": "12-34-56",
+                "accountNumber": "%s"
+              }
+            },
+            "liaisonManager": {
+              "firstName": "Initial",
+              "lastName": "Manager",
+              "emailAddress": "initial@example.com",
+              "telephoneNumber": "020 1111 2222"
+            },
+            "contractManager": {
+              "contractManagerGuid": "12345678-1234-1234-1234-123456789012"
+            }
+          }
+        }
+        """
+        .formatted(name, bankAccountNumber);
   }
 }

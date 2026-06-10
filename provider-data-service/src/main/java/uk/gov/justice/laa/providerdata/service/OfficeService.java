@@ -110,8 +110,9 @@ public class OfficeService {
    *
    * <p>If {@code lmTemplate} and {@code lmLinkTemplate} are non-null, a new liaison manager is
    * created for the office. If {@code linkToHeadOfficeLiaisonManager} is {@code true}, the existing
-   * active liaison manager from the provider's head office is linked to the new office instead. At
-   * most one of these two options should be active per call.
+   * active liaison manager from the provider's head office is linked to the new office instead. If
+   * {@code existingLmGuid} is non-null, the liaison manager with that GUID is linked to the new
+   * office directly. At most one of these three options should be active per call.
    *
    * <p>If {@code payment} is non-null and its {@code paymentMethod} is {@code EFT}, a bank account
    * is created (or an existing one linked) and associated with the office.
@@ -123,10 +124,12 @@ public class OfficeService {
    * @param lmLinkTemplate LM link template with activeDateFrom set, or {@code null}
    * @param linkToHeadOfficeLiaisonManager if {@code true}, link the head office's active LM to this
    *     office
+   * @param existingLmGuid GUID of an existing liaison manager to link directly, or {@code null}
    * @param payment payment details from the request, or {@code null}
    * @return identifiers for the created provider, office, and link
    * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
-   *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found
+   *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found, or if
+   *     {@code existingLmGuid} does not match any liaison manager
    */
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
@@ -135,6 +138,7 @@ public class OfficeService {
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       boolean linkToHeadOfficeLiaisonManager,
+      @Nullable UUID existingLmGuid,
       @Nullable PaymentDetailsCreateOrLinkV2 payment) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
@@ -163,6 +167,8 @@ public class OfficeService {
       officeLiaisonManagerLinkRepository.save(lmLinkTemplate);
     } else if (linkToHeadOfficeLiaisonManager) {
       linkHeadOfficeLiaisonManager(provider, savedLink);
+    } else if (existingLmGuid != null) {
+      linkExistingLiaisonManager(existingLmGuid, savedLink);
     }
 
     persistBankDetails(payment, provider, savedLink);
@@ -189,7 +195,7 @@ public class OfficeService {
       OfficeEntity officeTemplate,
       LspProviderOfficeLinkEntity linkTemplate) {
     return createLspOffice(
-        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false, null);
+        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false, null, null);
   }
 
   /**
@@ -724,6 +730,19 @@ public class OfficeService {
             : providerRepository.findByFirmNumber(providerFirmGUIDorFirmNumber))
         .orElseThrow(
             () -> new ItemNotFoundException("Provider not found: " + providerFirmGUIDorFirmNumber));
+  }
+
+  private void linkExistingLiaisonManager(UUID lmGuid, LspProviderOfficeLinkEntity newOfficeLink) {
+    LiaisonManagerEntity lm =
+        liaisonManagerRepository
+            .findById(lmGuid)
+            .orElseThrow(() -> new ItemNotFoundException("Liaison manager not found: " + lmGuid));
+    var link = new OfficeLiaisonManagerLinkEntity();
+    link.setLiaisonManager(lm);
+    link.setOfficeLink(newOfficeLink);
+    link.setActiveDateFrom(LocalDate.now());
+    link.setLinkedFlag(Boolean.FALSE);
+    officeLiaisonManagerLinkRepository.save(link);
   }
 
   private void linkHeadOfficeLiaisonManager(

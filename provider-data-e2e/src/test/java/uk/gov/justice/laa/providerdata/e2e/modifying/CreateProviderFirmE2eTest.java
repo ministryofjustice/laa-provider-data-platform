@@ -77,6 +77,72 @@ class CreateProviderFirmE2eTest {
         .body("data.firmType", equalTo("Legal Services Provider"));
   }
 
+  /** AC1 (DSTEW-1640) - Successful bank account creation records audit fields. */
+  @Test
+  void createLspFirmWithEftBankAccount_getBankDetailsReturnsAuditFields() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-DSTEW LSP EFT " + timestamp;
+    String accountNumber = "8" + (timestamp % 10_000_000L);
+
+    Map<String, Object> body =
+        Map.of(
+            "firmType",
+            "Legal Services Provider",
+            "name",
+            firmName,
+            "legalServicesProvider",
+            Map.of(
+                "constitutionalStatus",
+                "Partnership",
+                "address",
+                Map.of(
+                    "line1", "1 New Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", "Audit Test Account",
+                        "sortCode", "601111",
+                        "accountNumber", accountNumber)),
+                "contractManager",
+                Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Test",
+                    "lastName", "Manager",
+                    "emailAddress", "test.manager@example.com",
+                    "telephoneNumber", "020 1111 2222")));
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .queryParam("bankAccountNumber", accountNumber)
+        .when()
+        .get("/provider-firms/{firmId}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(1))
+        .body("data.content[0].accountNumber", equalTo(accountNumber))
+        .body("data.content[0].createdBy", notNullValue())
+        .body("data.content[0].createdTimestamp", notNullValue())
+        .body("data.content[0].lastUpdatedBy", notNullValue())
+        .body("data.content[0].lastUpdatedTimestamp", notNullValue());
+  }
+
   /**
    * AC2 – Provider type must be explicitly LSP AC3 – Business rules enforced AC4 – No partial Legal
    * Organisation records Verifies that supplying an LSP schema attribute when firmType is not
@@ -243,16 +309,13 @@ class CreateProviderFirmE2eTest {
                 "contractManager",
                 Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012")));
 
-    Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .body(body)
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(400)
-            .extract()
-            .response();
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
   }
 
   /**

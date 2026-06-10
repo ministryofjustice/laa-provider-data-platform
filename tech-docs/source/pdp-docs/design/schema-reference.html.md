@@ -45,7 +45,7 @@ This page records schema rules that are easy to miss when reading only the entit
 ## Provider office link inheritance
 
 - `PROVIDER_OFFICE_LINK` uses single-table inheritance with `FIRM_TYPE` as the discriminator.
-- `LspProviderOfficeLinkEntity`, `ChamberProviderOfficeLinkEntity`, and
+- `LspProviderOfficeLinkEntity`, `ChambersProviderOfficeLinkEntity`, and
   `AdvocateProviderOfficeLinkEntity` all map to the same table.
 - Some columns are only meaningful for certain firm types, but they still exist physically for all
   rows in the table.

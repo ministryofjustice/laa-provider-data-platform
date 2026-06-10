@@ -9,8 +9,9 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Chamber Provider Office Link entity representing office-specific attributes for Chambers. Extends
- * ProviderOfficeLinkEntity with Chamber-specific attributes (currently no additional fields).
+ * Chambers Provider Office Link entity representing office-specific attributes for Chambers.
+ * Extends ProviderOfficeLinkEntity with Chambers-specific attributes (currently no additional
+ * fields).
  */
 @SuperBuilder
 @NoArgsConstructor
@@ -19,4 +20,4 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @DiscriminatorValue(FirmType.CHAMBERS)
-public final class ChamberProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {}
+public final class ChambersProviderOfficeLinkEntity extends ProviderOfficeLinkEntity {}

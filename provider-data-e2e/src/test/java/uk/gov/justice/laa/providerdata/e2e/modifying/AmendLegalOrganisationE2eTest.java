@@ -64,7 +64,7 @@ class AmendLegalOrganisationE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Test",
@@ -99,7 +99,7 @@ class AmendLegalOrganisationE2eTest {
                 "E2E-DSTEW-1574 LSP Updated " + System.currentTimeMillis(),
                 "legalServicesProvider",
                 Map.of(
-                    "constitutionalStatus", "Limited company",
+                    "constitutionalStatus", "Limited Company",
                     "indemnityReceivedDate", "2024-02-20",
                     "companiesHouseNumber", "87654321")))
         .when()
@@ -115,7 +115,7 @@ class AmendLegalOrganisationE2eTest {
         .get("/provider-firms/{firmId}")
         .then()
         .statusCode(200)
-        .body("data.legalServicesProvider.constitutionalStatus", equalTo("Limited company"))
+        .body("data.legalServicesProvider.constitutionalStatus", equalTo("Limited Company"))
         .body("data.legalServicesProvider.indemnityReceivedDate", equalTo("2024-02-20"))
         .body("data.legalServicesProvider.companiesHouseNumber", equalTo("87654321"));
   }

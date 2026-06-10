@@ -11,7 +11,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -22,7 +22,7 @@ import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
-import uk.gov.justice.laa.providerdata.model.ChamberDetailsV2;
+import uk.gov.justice.laa.providerdata.model.ChambersDetailsV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficeCoreDetailsV2;
 import uk.gov.justice.laa.providerdata.model.DXV2;
 import uk.gov.justice.laa.providerdata.model.IntervenedOfficeDetailsV2;
@@ -52,7 +52,7 @@ public interface ProviderMapper {
    *
    * <p>Detail sub-objects ({@code legalServicesProvider}, {@code chambers}, {@code practitioner})
    * are populated separately via {@link #toProviderV2(ProviderEntity, LspProviderOfficeLinkEntity,
-   * ChamberProviderOfficeLinkEntity, AdvocateProviderOfficeLinkEntity, List)}.
+   * ChambersProviderOfficeLinkEntity, AdvocateProviderOfficeLinkEntity, List)}.
    */
   @BeanMapping(builder = @Builder(disableBuilder = true))
   @Mapping(target = "guid", source = "guid")
@@ -77,7 +77,7 @@ public interface ProviderMapper {
   default ProviderV2 toProviderV2(
       ProviderEntity entity,
       @Nullable LspProviderOfficeLinkEntity lspHeadOffice,
-      @Nullable ChamberProviderOfficeLinkEntity chambersHeadOffice,
+      @Nullable ChambersProviderOfficeLinkEntity chambersHeadOffice,
       @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
       List<ProviderParentLinkEntity> parentLinks) {
     return toProviderV2(
@@ -101,7 +101,7 @@ public interface ProviderMapper {
       @Nullable OfficeLiaisonManagerLinkEntity liaisonManagerLink,
       @Nullable OfficeContractManagerLinkEntity contractManagerLink,
       @Nullable OfficeBankAccountLinkEntity bankAccountLink,
-      @Nullable ChamberProviderOfficeLinkEntity chambersHeadOffice,
+      @Nullable ChambersProviderOfficeLinkEntity chambersHeadOffice,
       @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
       List<ProviderParentLinkEntity> parentLinks) {
     ProviderV2 result = toProviderV2(entity);
@@ -114,9 +114,9 @@ public interface ProviderMapper {
     }
     if (chambersHeadOffice != null) {
       result.setChambers(
-          new ChamberDetailsV2().office(toChambersOfficeDetails(chambersHeadOffice)));
+          new ChambersDetailsV2().office(toChambersOfficeDetails(chambersHeadOffice)));
     } else if (FirmType.CHAMBERS.equals(entity.getFirmType())) {
-      result.setChambers(new ChamberDetailsV2());
+      result.setChambers(new ChambersDetailsV2());
     }
     if (!parentLinks.isEmpty()) {
       PractitionerDetailsV2 practitioner =
@@ -363,7 +363,7 @@ public interface ProviderMapper {
             link -> {
               ProviderEntity parent = link.getParent();
               return new PractitionerDetailsParentV2()
-                  .parentGuid(parent.getGuid())
+                  .parentGUID(parent.getGuid())
                   .parentFirmNumber(parent.getFirmNumber())
                   .parentFirmType(firmTypeFromString(parent.getFirmType()));
             })

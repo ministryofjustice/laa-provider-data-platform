@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
@@ -29,7 +29,7 @@ import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateO
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
-import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGuidV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
@@ -38,7 +38,7 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
-import uk.gov.justice.laa.providerdata.repository.ChamberProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
@@ -59,7 +59,7 @@ public class ProviderService {
 
   private final ProviderRepository providerRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
-  private final ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository;
+  private final ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
   private final ProviderFirmRepository providerFirmRepository;
@@ -74,7 +74,7 @@ public class ProviderService {
    *
    * @param providerRepository to find provider firms
    * @param lspProviderOfficeLinkRepository to find LSP head office links
-   * @param chamberProviderOfficeLinkRepository to find Chambers head office links
+   * @param chambersProviderOfficeLinkRepository to find Chambers head office links
    * @param advocateProviderOfficeLinkRepository to find Advocate office links
    * @param providerParentLinkRepository to find Advocate parent links
    * @param providerOfficeLinkRepository to find general office links
@@ -83,7 +83,7 @@ public class ProviderService {
   public ProviderService(
       ProviderRepository providerRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
-      ChamberProviderOfficeLinkRepository chamberProviderOfficeLinkRepository,
+      ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
       ProviderFirmRepository providerFirmRepository,
@@ -94,7 +94,7 @@ public class ProviderService {
       LiaisonManagerRepository liaisonManagerRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
-    this.chamberProviderOfficeLinkRepository = chamberProviderOfficeLinkRepository;
+    this.chambersProviderOfficeLinkRepository = chambersProviderOfficeLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
     this.providerFirmRepository = providerFirmRepository;
@@ -303,11 +303,11 @@ public class ProviderService {
     return switch (parentUpdate) {
       case PractitionerDetailsParentUpdateV2OneOf guidUpdate ->
           providerRepository
-              .findById(guidUpdate.getParentGuid())
+              .findById(guidUpdate.getParentGUID())
               .orElseThrow(
                   () ->
                       new ItemNotFoundException(
-                          "Parent provider not found: " + guidUpdate.getParentGuid()));
+                          "Parent provider not found: " + guidUpdate.getParentGUID()));
       case PractitionerDetailsParentUpdateV2OneOf1 firmNumberUpdate ->
           providerRepository
               .findByFirmNumber(firmNumberUpdate.getParentFirmNumber())
@@ -473,7 +473,7 @@ public class ProviderService {
         newLink.setLinkedFlag(true);
         officeLiaisonManagerLinkRepository.save(newLink);
       }
-      case LiaisonManagerLinkByGuidV2 lmLink -> {
+      case LiaisonManagerLinkByGUIDV2 lmLink -> {
         // DSTEW-1652: Link by GUID, end-dating existing active links.
         UUID guid = lmLink.getLiaisonManagerGUID();
         final LiaisonManagerEntity existingLmByGuid =
@@ -579,8 +579,8 @@ public class ProviderService {
   }
 
   /** Returns the Chambers head office link for the given provider, if one exists. */
-  public Optional<ChamberProviderOfficeLinkEntity> getChambersHeadOffice(ProviderEntity provider) {
-    return chamberProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
+  public Optional<ChambersProviderOfficeLinkEntity> getChambersHeadOffice(ProviderEntity provider) {
+    return chambersProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
   }
 
   /** Returns the Advocate office link for the given provider, if one exists. */

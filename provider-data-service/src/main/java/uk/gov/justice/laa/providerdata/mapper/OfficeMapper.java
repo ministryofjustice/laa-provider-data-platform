@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
@@ -124,7 +124,7 @@ public interface OfficeMapper {
 
   /**
    * Maps a Chambers head office creation request to a partially-populated {@link
-   * ChamberProviderOfficeLinkEntity} with {@code headOfficeFlag = true}.
+   * ChambersProviderOfficeLinkEntity} with {@code headOfficeFlag = true}.
    *
    * <p>The caller must set {@code provider}, {@code office}, and {@code accountNumber} before
    * persisting.
@@ -132,7 +132,7 @@ public interface OfficeMapper {
   @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
   @Mapping(target = "headOfficeFlag", expression = "java(Boolean.TRUE)")
   @Mapping(target = "website", source = "website", qualifiedByName = "uriToString")
-  ChamberProviderOfficeLinkEntity toChambersHeadOfficeLinkTemplate(
+  ChambersProviderOfficeLinkEntity toChambersHeadOfficeLinkTemplate(
       ChambersHeadOfficeCreateV2 request);
 
   /** Maps a {@link LiaisonManagerCreateV2} request to a {@link LiaisonManagerEntity}. */
@@ -257,7 +257,7 @@ public interface OfficeMapper {
   default ProviderFirmTypeV2 firmTypeFromEntity(ProviderOfficeLinkEntity link) {
     return switch (link) {
       case LspProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER;
-      case ChamberProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.CHAMBERS;
+      case ChambersProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.CHAMBERS;
       case AdvocateProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.ADVOCATE;
       default -> ProviderFirmTypeV2.fromValue(link.getFirmType());
     };

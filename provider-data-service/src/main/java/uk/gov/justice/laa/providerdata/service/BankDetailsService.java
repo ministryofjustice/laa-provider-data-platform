@@ -11,8 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
-import uk.gov.justice.laa.providerdata.entity.ChamberProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
@@ -187,7 +188,7 @@ public class BankDetailsService {
   /**
    * Returns a paginated page of bank accounts linked to the given office link.
    *
-   * <p>For a {@link ChamberProviderOfficeLinkEntity}, returns bank accounts across all {@link
+   * <p>For a {@link ChambersProviderOfficeLinkEntity}, returns bank accounts across all {@link
    * AdvocateProviderOfficeLinkEntity} for practitioners belonging to the same Chambers firm (via
    * {@code PROVIDER_PARENT_LINK}) as the provider-office, since Advocates store their bank accounts
    * against their own {@link AdvocateProviderOfficeLinkEntity} rather than the Chambers link.
@@ -224,7 +225,7 @@ public class BankDetailsService {
   private Collection<ProviderOfficeLinkEntity> resolveOfficeLinkScope(
       ProviderOfficeLinkEntity officeLink) {
     return switch (officeLink) {
-      case ChamberProviderOfficeLinkEntity ignored ->
+      case ChambersProviderOfficeLinkEntity ignored ->
           providerParentLinkRepository.findByParent(officeLink.getProvider()).stream()
               .<ProviderOfficeLinkEntity>flatMap(
                   ppl ->

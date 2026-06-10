@@ -54,7 +54,7 @@ class ChangeLiaisonManagerE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Initial",

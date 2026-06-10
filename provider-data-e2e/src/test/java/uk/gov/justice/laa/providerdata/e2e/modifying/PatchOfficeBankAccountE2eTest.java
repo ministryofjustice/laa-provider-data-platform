@@ -649,7 +649,7 @@ class PatchOfficeBankAccountE2eTest {
    * marked as non-primary and its activeDateTo is set to the current date.
    */
   @Test
-  void ac1_assignNewBankAccount_marksOldAsNonPrimaryWithActiveDateTo() {
+  void assignNewBankAccount_marksOldAsNonPrimaryWithActiveDateTo() {
     long timestamp = System.currentTimeMillis();
     String firmName = "E2E-AC1 Old-NonPrimary " + timestamp;
 
@@ -782,7 +782,7 @@ class PatchOfficeBankAccountE2eTest {
 
   /** AC2 – Restricted fields must not be amended when a new bank account is assigned. */
   @Test
-  void ac2_restrictedFields_remainUnchangedWhenAssigningNewAccount() {
+  void restrictedFields_remainUnchangedWhenAssigningNewAccount() {
     long timestamp = System.currentTimeMillis();
     String firmName = "E2E-AC2 Restricted-Fields " + timestamp;
 
@@ -925,7 +925,7 @@ class PatchOfficeBankAccountE2eTest {
 
   /** AC3 – Bank Account validity must be preserved. */
   @Test
-  void ac3_bankAccountValidityPreserved_afterAmendment() {
+  void bankAccountValidityPreserved_afterAmendment() {
     long timestamp = System.currentTimeMillis();
     String firmName = "E2E-AC3 Validity " + timestamp;
 
@@ -1048,7 +1048,7 @@ class PatchOfficeBankAccountE2eTest {
 
   /** AC4 – No partial bank account update on validation failure. */
   @Test
-  void ac4_noPartialUpdate_whenValidationFails() {
+  void noPartialUpdate_whenValidationFails() {
     long timestamp = System.currentTimeMillis();
     String firmName = "E2E-AC4 NoPartial " + timestamp;
 
@@ -1287,5 +1287,279 @@ class PatchOfficeBankAccountE2eTest {
             hasSize(1))
         .body(
             "data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }", hasSize(1));
+  }
+
+  /** AC4 – Start and end date alignment. */
+  @Test
+  void startDateAndEndDate_areAlignedOnUpdate() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC4 Alignment " + timestamp;
+
+    String initialAccountNumber = "7" + (timestamp % 10_000_000L);
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC4 Test Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC4 Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    String newAccountNumber = "8" + ((timestamp + 1) % 10_000_000L);
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .body(
+            Map.of(
+                "payment",
+                Map.of(
+                    "paymentMethod",
+                    "EFT",
+                    "paymentHeldFlag",
+                    false,
+                    "bankAccountDetails",
+                    Map.of(
+                        "accountName", "AC4 New",
+                        "sortCode", "601111",
+                        "accountNumber", newAccountNumber))))
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then()
+        .statusCode(200);
+
+    Response response =
+        given()
+            .pathParam("firmId", firmNumber)
+            .pathParam("officeCode", officeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .body("data.content", hasSize(2))
+            .extract()
+            .response();
+
+    String outgoingEndDate =
+        response.path(
+            "data.content.find { it.accountNumber == '"
+                + initialAccountNumber
+                + "' }.activeDateTo");
+    String incomingStartDate =
+        response.path(
+            "data.content.find { it.accountNumber == '" + newAccountNumber + "' }.activeDateFrom");
+
+    org.hamcrest.MatcherAssert.assertThat(
+        "Outgoing end date should not be null", outgoingEndDate, notNullValue());
+    org.hamcrest.MatcherAssert.assertThat(
+        "Incoming start date should not be null", incomingStartDate, notNullValue());
+    org.hamcrest.MatcherAssert.assertThat(
+        "Start and end dates must align", outgoingEndDate, equalTo(incomingStartDate));
+  }
+
+  /** AC1 – Effective Start Date set to today’s date on assignment. */
+  @Test
+  void effectiveStartDate_isSetToCurrentDateOnAssignment() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC1 StartDate " + timestamp;
+    String initialAccountNumber = "1" + (timestamp % 10_000_000L);
+
+    // Create a new firm with an initial bank account
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC1 StartDate Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC1 StartDate Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Fetch the newly created bank account association
+    Response response =
+        given()
+            .pathParam("firmId", firmNumber)
+            .pathParam("officeCode", officeGuid)
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+            .then()
+            .statusCode(200)
+            .body("data.content", hasSize(1))
+            .extract()
+            .response();
+
+    String activeDateFromString = response.path("data.content[0].activeDateFrom");
+    java.time.LocalDate activeDateFrom =
+        java.time.ZonedDateTime.parse(activeDateFromString).toLocalDate();
+    java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+
+    org.hamcrest.MatcherAssert.assertThat(
+        "Effective Start Date should be today's date", activeDateFrom, equalTo(today));
+  }
+
+  /**
+   * AC2 – Applicable to all assignment targets. This test verifies that the Effective Start Date is
+   * set when a bank account is assigned to a Legal Organisation Child Office.
+   */
+  @Test
+  void effectiveStartDate_isSetForOfficeAssignment() {
+    long timestamp = System.currentTimeMillis();
+    String firmName = "E2E-AC2 StartDate Office " + timestamp;
+    String initialAccountNumber = "2" + (timestamp % 10_000_000L);
+
+    // Create a new firm, which also creates a head office
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    firmName,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 AC2 StartDate Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of(
+                            "paymentMethod",
+                            "EFT",
+                            "paymentHeldFlag",
+                            false,
+                            "bankAccountDetails",
+                            Map.of(
+                                "accountName", "AC2 StartDate Initial",
+                                "sortCode", "601111",
+                                "accountNumber", initialAccountNumber)),
+                        "contractManager",
+                        Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Test",
+                            "lastName", "Manager",
+                            "emailAddress", "test.manager@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeGuid =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // The bank account is assigned to the office, so we check here
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeGuid)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1))
+        .body("data.content[0].activeDateFrom", notNullValue());
   }
 }

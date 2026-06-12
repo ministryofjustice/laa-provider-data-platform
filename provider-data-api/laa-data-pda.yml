@@ -3068,8 +3068,8 @@ components:
         If the office is Advocate/Barrister and this flag is set to true it indicates that
         `useChambersLiaisonManager` option was used to create this entry.
 
-        Note that if this attribute is set to true then updates at the parent entity should cascade
-        to create new linked assignment.
+        This flag is informational only; changes to the parent entity's liaison manager do not
+        cascade to offices where this flag is set.
 
     ProviderLiaisonManagerV2:
       allOf:

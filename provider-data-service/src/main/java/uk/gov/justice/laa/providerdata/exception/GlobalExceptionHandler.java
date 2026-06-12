@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import uk.gov.justice.laa.providerdata.model.ErrorResponseError;
-import uk.gov.justice.laa.providerdata.model.InternalServerErrorError;
-import uk.gov.justice.laa.providerdata.model.NotFoundErrorError;
 
 /**
  * Handles application-specific exceptions and enriches all RFC 7807 ProblemDetail responses with
@@ -106,8 +104,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    */
   private static Object errorFor(HttpStatusCode status) {
     return switch (status.value()) {
-      case 404 -> new NotFoundErrorError().errorCode("P00NF");
-      case 500 -> new InternalServerErrorError().errorCode("P00SE");
+      case 404 -> new ErrorResponseError().errorCode("P00NF");
+      case 500 -> new ErrorResponseError().errorCode("P00SE");
       default -> new ErrorResponseError().errorCode("P00XX");
     };
   }

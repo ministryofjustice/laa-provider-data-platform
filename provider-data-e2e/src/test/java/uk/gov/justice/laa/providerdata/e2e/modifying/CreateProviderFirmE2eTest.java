@@ -13,11 +13,66 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 /**
  * Data-modifying e2e tests for {@code POST /provider-firms}.
  *
- * <p>Each test creates new data in the local database and verifies it via GET. Cleanup is handled
- * by {@code delete-test-data.sql} which removes providers with names starting with "E2E-DSTEW ".
+ * <p>Each test creates new data in the local database and verifies it via GET.
  */
 @ModifyingTest
 class CreateProviderFirmE2eTest {
+
+  /**
+   * AC1 – Active From date is set automatically when a Liaison Manager is created and assigned.
+   *
+   * <p>DS_MAPD_FR_023 (DSTEW-1650): The {@code activeDateFrom} field must be populated in the
+   * response after a firm is created with a Liaison Manager. The date is system-derived (today) and
+   * is not supplied by the caller.
+   */
+  @Test
+  void dstew1650_ac1_activeDateFromSetAutomaticallyOnCreation() {
+    long ts = System.currentTimeMillis();
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    "E2E-DSTEW-1650 LSP " + ts,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 Active Date Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"),
+                        "contractManager",
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Active",
+                            "lastName", "DateTest",
+                            "emailAddress", "active.date." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .body(
+            "data.legalServicesProvider.headOffice.liaisonManager.activeDateFrom", notNullValue());
+  }
 
   // AC1 – Successful Legal Organisation creation
   @Test
@@ -490,7 +545,7 @@ class CreateProviderFirmE2eTest {
         .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
-  /** AC3 – DX Number and DX Centre provided together */
+  /** AC3 – DX Number and DX Centre provided together. */
   @Test
   void createChambersFirmWithDxDetails_returns201ThenGetReturnsCreatedFirm() {
     String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
@@ -564,7 +619,7 @@ class CreateProviderFirmE2eTest {
    * Centre results in a 400 Bad Request response.
    */
   @Test
-  void createChambersDXDetailsWithNumberButNoCentre_returns400() {
+  void createChambersDxDetailsWithNumberButNoCentre_returns400() {
     String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
     Map<String, Object> body =
         Map.of(
@@ -610,7 +665,7 @@ class CreateProviderFirmE2eTest {
    * missing dxNumber results in a 400 Bad Request response.
    */
   @Test
-  void createChambersDXDetailsWithCentreButNoNumber_returns400() {
+  void createChambersDxDetailsWithCentreButNoNumber_returns400() {
     String firmName = "E2E-DSTEW Chambers " + System.currentTimeMillis();
 
     Map<String, Object> body =
@@ -654,7 +709,7 @@ class CreateProviderFirmE2eTest {
 
   /**
    * AC7 - Verifies that attempting to create a chambers firm without providing an address results
-   * in a 409 AC8 – No partial Chambers records
+   * in a 409. AC8 – No partial Chambers records.
    */
   @Test
   void createChambersFirm_missingAddress_returns409() {

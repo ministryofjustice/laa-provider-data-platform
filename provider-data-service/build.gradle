@@ -70,6 +70,14 @@ dependencies {
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-zipkin'
 
+    // TODO: remove once micrometer fixes AbstractTimer's hard reference to
+    // org.LatencyUtils.PauseDetector and Spring Boot ships that version. Micrometer 1.17.0
+    // (Spring Boot 4.1.0) removed LatencyUtils from its POM but AbstractTimer still declares
+    // a field of that type. Spring's PersistenceAnnotationBeanPostProcessor calls
+    // getDeclaredFields() on every concrete bean type, which throws NoClassDefFoundError when
+    // LatencyUtils is absent.
+    runtimeOnly 'org.latencyutils:LatencyUtils:2.0.3'
+
     // Sentry observability
     implementation 'io.sentry:sentry-spring-boot-4'
     implementation 'io.sentry:sentry-logback'

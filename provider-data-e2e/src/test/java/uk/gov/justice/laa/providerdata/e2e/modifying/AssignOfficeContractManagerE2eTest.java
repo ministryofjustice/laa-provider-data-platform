@@ -20,13 +20,13 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  *
  * <p>The MVP endpoint requires a contract manager GUID in the request body. The contract manager
  * GUID is looked up dynamically from the API at test startup.
+ *
+ * <p>Previously disabled due to a bug in {@code OfficeContractManagerAssignmentService.assign()}
+ * Fixed by an idempotency check that short-circuits before the delete+save path when the same
+ * assignment already exists. Regression covered by {@code OfficeContractManagerLinkRepositoryTest
+ * #assign_whenLinkPreExistsForSameContractManager_idempotencyCheckPreventsConstraintViolation}.
  */
-// Disabled: POST returns 500 due to a bug in OfficeContractManagerAssignmentService.assign() —
-// deleteByOfficeLink_Guid does not flush before the subsequent save, causing a unique constraint
-// violation when the same contract manager is already assigned to the office by the seeder.
 @ModifyingTest
-@org.junit.jupiter.api.Disabled(
-    "Service bug: delete + insert in same flush causes unique constraint violation")
 class AssignOfficeContractManagerE2eTest {
 
   private static String contractManagerGuid;

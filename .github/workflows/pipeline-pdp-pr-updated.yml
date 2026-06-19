@@ -80,6 +80,7 @@ jobs:
     permissions: { contents: read, packages: read }
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
-      target: "uat"
-      rel:    "pr-${{ needs.plan.outputs.prnum }}"
+      target:     "uat"
+      rel:        "pr-${{ needs.plan.outputs.prnum }}"
+      e2eProfile: "preview"
     secrets: inherit

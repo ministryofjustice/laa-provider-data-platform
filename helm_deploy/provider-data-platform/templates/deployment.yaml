@@ -47,6 +47,7 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
+            runAsUser: 70  # postgres user UID in Alpine
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             seccompProfile:

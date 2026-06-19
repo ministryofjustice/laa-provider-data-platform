@@ -15,7 +15,7 @@ replicaCount: 1
 # which is acceptable since Flyway recreates the schema on startup.
 postgresContainer:
   enabled: true
-  image: public.ecr.aws/chainguard/postgres:latest-dev
+  image: public.ecr.aws/docker/library/postgres:17-alpine
   port: 5432
   database: providerdata
   username: postgres

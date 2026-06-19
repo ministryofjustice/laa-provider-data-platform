@@ -17,8 +17,7 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * Data-modifying e2e tests for {@code POST
  * /provider-firms/{firmId}/offices/{officeCode}/liaison-managers}.
  *
- * <p>Tests create new liaison manager records linked to the E2E office and verify via GET. Cleanup
- * is handled by {@code delete-test-data.sql} which removes liaison manager links for E2E offices.
+ * <p>Tests create new liaison manager records linked to the E2E office and verify via GET.
  */
 @ModifyingTest
 class CreateOfficeLiaisonManagerE2eTest {

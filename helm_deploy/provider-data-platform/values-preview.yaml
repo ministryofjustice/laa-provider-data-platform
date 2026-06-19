@@ -10,6 +10,12 @@ target:
 # independent sidecar database; multiple replicas would have inconsistent data.
 replicaCount: 1
 
+# fsGroup: 70 makes the emptyDir volume (postgres-data) group-writable by the postgres user
+# (UID/GID 70 in Alpine). Without this, initdb fails because the kubelet creates emptyDir
+# volumes owned by root with mode 0755.
+podSecurityContext:
+  fsGroup: 70
+
 # PostgreSQL sidecar container. Runs alongside the application in the same pod,
 # using ephemeral (emptyDir) storage. Data is lost on pod restart or helm uninstall —
 # which is acceptable since Flyway recreates the schema on startup.

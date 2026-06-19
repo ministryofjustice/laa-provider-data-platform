@@ -79,7 +79,7 @@ spec:
             {{- toYaml .Values.postgresContainer.resources | nindent 12 }}
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}

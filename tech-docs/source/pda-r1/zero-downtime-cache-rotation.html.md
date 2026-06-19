@@ -1,12 +1,12 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-cache-rotation.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/zero-downtime-cache-rotation.html.md
 title: Zero-downtime cache rotation
 weight: 21
 ---
 
 # Zero-downtime cache rotation
 
-This guide explains how to reload the Provider Data API (legacy) cache without causing service
+This guide explains how to reload the Provider Data API (R1) cache without causing service
 downtime. This is useful when you need to refresh cached data from the database (e.g., after a data
 correction) without impacting users.
 

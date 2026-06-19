@@ -1,5 +1,5 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/deployment.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/deployment.html.md
 title: Deployment
 weight: 6
 ---
@@ -8,7 +8,7 @@ weight: 6
 
 ## Overview
 
-The provider details API (legacy) is deployed to Kubernetes on the Cloud Platform using Helm.
+The provider details API (R1) is deployed to Kubernetes on the Cloud Platform using Helm.
 
 ## Environments
 

@@ -1,12 +1,12 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/spring-boot-4-migration.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/spring-boot-4-migration.html.md
 title: Spring Boot 4.0 migration
 weight: 50
 ---
 
 # Spring Boot 4.0 migration
 
-This document describes the historical changes made to migrate the provider details API (legacy)
+This document describes the historical changes made to migrate the provider details API (R1)
 from Spring Boot 3.5 to Spring Boot 4.0.
 
 ## Changes summary

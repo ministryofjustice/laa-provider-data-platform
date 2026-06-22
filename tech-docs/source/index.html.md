@@ -29,33 +29,33 @@ LAA provider data APIs and related services.
 
 The generic term **provider data APIs** - also sometimes abbreviated as **PDA** - can refer to:
 
-* The **[provider details API (legacy)](#provider-details-api-legacy)** exposes data about
+* The **[provider details API (R1)](#provider-details-api-r1)** exposes data about
   provider firms, offices, contracts and schedules from CWA
-* The **[provider data API (persistent)](#provider-data-api-persistent)**  will own data about
+* The **[provider data API (R2)](#provider-data-api-r2)**  will own data about
   provider firms and offices (and, later on, contracts and schedules)
 
 ---
 
-## Provider details API (legacy)
+## Provider details API (R1)
 
-The **[provider details API (legacy)](pdl-docs/)** exposes data about provider firms, offices,
+The **[provider details API (R1)](pda-r1/)** exposes data about provider firms, offices,
 contracts and schedules from CWA.
 
 Most data is currently sourced from the CWA database (a few entities are augmented with a CCMS ID,
 sourced from the CCMS database), so it follows ECP operational hours.
 
-Also known as **[PDA (legacy)](pdl-docs/)**, the API is a collection of read-only REST endpoints
+Also known as **[PDA-r1](pda-r1/)**, the API is a collection of read-only REST endpoints
 that retrieve provider data from CWA Oracle EBS database snapshots. It is deployed to the MoJ Cloud
 Platform and serves live traffic to a variety of consumer LAA services.
 
 ---
 
-## Provider data API (persistent)
+## Provider data API (R2)
 
-The **[provider data API (persistent)](pdp-docs/)** will own data about provider firms and offices
+The **[provider data API (R2)](pda-r2/)** will own data about provider firms and offices
 (and, later on, contracts and schedules).
 
-Also known as **[PDA (persistent)](pdp-docs/)**, the service has its own data store, and a
+Also known as **[PDA-r2](pda-r2/)**, the service has its own data store, and a
 collection of REST endpoints for creating, retrieving and updating provider firm and office data
 from that data store (which will initially be synchronized to CWA). It is under active development
 and its primary initial consumer will be the **Manage a provider's data** service.

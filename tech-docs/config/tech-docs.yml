@@ -6,8 +6,8 @@ show_govuk_logo: false
 service_name: LAA provider data APIs
 service_link: /
 header_links:
-  PDL: /pdl-docs/
-  PDP: /pdp-docs/
+  PDA-r1: /pda-r1/index.html
+  PDA-r2: /pda-r2/index.html
   GitHub: https://github.com/ministryofjustice/laa-provider-data-platform/tree/main/tech-docs
 enable_search: true
 collapsible_nav: true

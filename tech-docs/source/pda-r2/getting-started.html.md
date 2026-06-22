@@ -1,12 +1,12 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/getting-started.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r2/getting-started.html.md
 title: Getting started
 weight: 20
 ---
 
-# Getting started with provider data API (persistent)
+# Getting started with provider data API (R2)
 
-This guide covers setting up and running the provider data API (persistent) locally.
+This guide covers setting up and running the provider data API (R2) locally.
 
 ## Prerequisites
 

@@ -1,12 +1,12 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/zero-downtime-database-switchover.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/zero-downtime-database-switchover.html.md
 title: Zero-downtime database switchover
 weight: 22
 ---
 
 # Zero-downtime database switchover
 
-This guide explains how to switch the Provider Data API (legacy) between different database
+This guide explains how to switch the Provider Data API (R1) between different database
 snapshots without causing service downtime. This is useful when:
 
 - Migrating to a new database snapshot with updated data

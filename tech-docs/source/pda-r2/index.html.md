@@ -1,12 +1,12 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/index.html.md
-title: Provider data API (persistent)
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r2/index.html.md
+title: Provider data API (R2)
 weight: 10
 ---
 
-# Provider data API (persistent)
+# Provider data API (R2)
 
-The **provider data API (persistent)** implements a REST API for retrieving and updating provider
+The **provider data API (R2)** implements a REST API for retrieving and updating provider
 firm and office (and, later on, contract and schedule) data.
 
 ## Project structure

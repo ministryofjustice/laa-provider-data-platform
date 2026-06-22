@@ -1,26 +1,26 @@
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdl-docs/api-reference.html.md
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/api-reference.html.md
 title: API reference
 weight: 4
 ---
 
 # API reference
 
-The provider details API (legacy) provides RESTful endpoints for accessing provider data.
+The provider details API (R1) provides RESTful endpoints for accessing provider data.
 
 The primary documentation for the REST endpoints is the Swagger UI - which is available at each of
-the following PDA (legacy) environment URLs:
+the following PDA-r1 environment URLs:
 
-- PDA (legacy)
+- PDA-r1
   **[dev](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
   environment
-- PDA (legacy)
+- PDA-r1
   **[uat](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
   environment
-- PDA (legacy)
+- PDA-r1
   **[preprod](https://laa-provider-details-api-dev.apps.live.cloud-platform.service.justice.gov.uk)**
   environment
-- PDA (legacy) **prod** environment (no Swagger UI)
+- PDA-r1 **prod** environment (no Swagger UI)
 
 ## Health check
 
@@ -55,7 +55,7 @@ Rate limiting is handled by the Cloud Platform ingress.
 
 ## Operational hours
 
-The PDA (legacy) environments are dependent on connectivity to the ECP environment, so PDA's
+The PDA-r1 environments are dependent on connectivity to the ECP environment, so PDA's
 operational hours are similar to ECP's. The service is available 07:00 until 21:30.
 
 ## More information

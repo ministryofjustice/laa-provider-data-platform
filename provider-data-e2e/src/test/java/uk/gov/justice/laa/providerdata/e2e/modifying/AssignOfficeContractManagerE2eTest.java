@@ -20,22 +20,6 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
  * <p>The contract manager GUID is looked up dynamically from the API at test startup. When no GUID
  * is supplied the service falls back to the system default contract manager seeded by the V4
  * migration.
- *
- * <p>Previously disabled due to a bug in {@code OfficeContractManagerAssignmentService.assign()}
- * Fixed by an idempotency check that short-circuits before the delete+save path when the same
- * assignment already exists. Regression covered by {@code OfficeContractManagerLinkRepositoryTest
- * #assign_whenLinkPreExistsForSameContractManager_idempotencyCheckPreventsConstraintViolation}.
- *
- * <p>Acceptance criteria covered:
- *
- * <ul>
- *   <li>AC1 – {@link #assignContractManager_forExistingOffice_returns201ThenGetReturnsAssignment()}
- *   <li>AC2 – {@link #assignContractManager_noGuidProvided_assignsDefaultContractManager()}
- *   <li>AC3 – {@link #assignContractManager_forExistingOffice_returns201ThenGetReturnsAssignment()}
- *       (exactly-one assertion on the GET follow-up)
- *   <li>AC4 – {@link #assignContractManager_unknownContractManagerGuid_returns400()}, {@link
- *       #assignContractManager_malformedContractManagerGuid_returns400()}
- * </ul>
  */
 @ModifyingTest
 class AssignOfficeContractManagerE2eTest {

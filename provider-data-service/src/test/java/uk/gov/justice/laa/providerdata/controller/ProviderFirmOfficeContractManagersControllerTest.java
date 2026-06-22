@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -123,13 +124,21 @@ class ProviderFirmOfficeContractManagersControllerTest {
   }
 
   /**
-   * Ensures HTTP 400 is returned when the request body is missing the required {@code
-   * contractManagerGUID} field.
+   * AC2: verifies that omitting {@code contractManagerGUID} from the request body causes the
+   * controller to pass {@code null} to the service, which resolves and assigns the system default
+   * contract manager, and that the endpoint returns HTTP 201.
    *
    * @throws Exception if the request fails to execute
    */
   @Test
-  void postContractManagers_returns400_whenBodyMissingContractManagerGuid() throws Exception {
+  void postContractManagers_returns201_whenContractManagerGuidAbsent_usesDefaultContractManager()
+      throws Exception {
+    UUID providerOfficeLinkGuid = UUID.randomUUID();
+
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), isNull()))
+        .thenReturn(
+            new OfficeContractManagerAssignmentService.AssignmentResult(
+                providerOfficeLinkGuid, "MR-DEFAULT"));
 
     mockMvc
         .perform(
@@ -139,7 +148,8 @@ class ProviderFirmOfficeContractManagersControllerTest {
                     "ACC001")
                 .contentType(APPLICATION_JSON)
                 .content("{}"))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.contractManagerId").value("MR-DEFAULT"));
   }
 
   /**

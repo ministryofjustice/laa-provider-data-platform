@@ -117,6 +117,14 @@ public final class E2eConfig {
     return require("contractManager.lastName");
   }
 
+  /**
+   * The {@code contractManagerId} of the system default contract manager seeded by the V4 migration
+   * ("Mr Default"). Used by AC2 tests.
+   */
+  public static String defaultContractManagerId() {
+    return require("contractManager.default.id");
+  }
+
   // --- Invalid identifiers (for 404 testing) ---
 
   public static String invalidFirmNumber() {

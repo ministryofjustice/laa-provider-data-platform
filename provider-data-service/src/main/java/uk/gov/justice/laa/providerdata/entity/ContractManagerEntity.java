@@ -36,4 +36,12 @@ public class ContractManagerEntity extends AuditableEntity {
   /** HR.PER_ALL_PEOPLE_F.EMAIL_ADDRESS VARCHAR2(240). */
   @Column(name = "EMAIL_ADDRESS")
   private String emailAddress;
+
+  /**
+   * Identifies the system default contract manager assigned automatically when no contract manager
+   * GUID is supplied in a request (AC2). At most one record may have this flag set, enforced by the
+   * {@code UK_CONTRACT_MANAGER_ONE_DEFAULT} partial unique index.
+   */
+  @Column(name = "DEFAULT_CONTRACT_MANAGER", nullable = false)
+  private boolean defaultContractManager;
 }

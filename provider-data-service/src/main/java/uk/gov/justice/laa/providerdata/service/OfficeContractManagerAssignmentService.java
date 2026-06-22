@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.service;
 
 import jakarta.transaction.Transactional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
@@ -16,6 +17,8 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  *       the office is removed before creating a new link.
  *   <li>Looks up the {@code ContractManagerEntity} by its GUID and throws an {@link
  *       IllegalArgumentException} if it does not exist.
+ *   <li>When no GUID is supplied, falls back to the record flagged as the system default (AC2 – "Mr
+ *       Default").
  *   <li>Treats re-assigning the same contract manager to the same office as idempotent.
  * </ul>
  *
@@ -57,35 +60,49 @@ public class OfficeContractManagerAssignmentService {
    * link GUID or the office account number. It deletes any existing {@link
    * OfficeContractManagerLinkEntity} for the resolved office before creating the new link.
    *
+   * <p>If {@code contractManagerGuid} is {@code null}, the contract manager flagged as {@code
+   * defaultContractManager} is used (AC2). An {@link IllegalArgumentException} is thrown if no
+   * default is configured.
+   *
    * <p>The contract manager must exist; otherwise an {@link IllegalArgumentException} is thrown.
    * Provider and office resolution follow the same semantics as the other provider-office endpoints
    * in the application.
    *
    * @param providerGuidOrFirmNumber the provider GUID or firm number
    * @param officeGuidOrCode the provider office link GUID or office account number
-   * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} being assigned
+   * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} being assigned, or
+   *     {@code null} to assign the system default contract manager
    * @return an {@link AssignmentResult} containing the provider office link GUID and the assigned
    *     contract manager's external/business ID
    * @throws IllegalArgumentException if no contract manager exists with the given {@code
-   *     contractManagerGuid}
+   *     contractManagerGuid}, or if {@code contractManagerGuid} is {@code null} and no default
+   *     contract manager is configured
    */
   @Transactional
   public AssignmentResult assign(
-      String providerGuidOrFirmNumber, String officeGuidOrCode, UUID contractManagerGuid) {
+      String providerGuidOrFirmNumber,
+      String officeGuidOrCode,
+      @Nullable UUID contractManagerGuid) {
     ContractManagerEntity manager =
-        contractManagerRepository
-            .findById(contractManagerGuid)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Unknown contractManagerGUID: " + contractManagerGuid));
+        contractManagerGuid != null
+            ? contractManagerRepository
+                .findById(contractManagerGuid)
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "Unknown contractManagerGUID: " + contractManagerGuid))
+            : contractManagerRepository
+                .findByDefaultContractManagerTrue()
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException("No default contract manager is configured"));
 
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
     var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);
     UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
 
     if (linkRepository.existsByOfficeLink_GuidAndContractManager_Guid(
-        providerOfficeLinkGuid, contractManagerGuid)) {
+        providerOfficeLinkGuid, manager.getGuid())) {
       return new AssignmentResult(providerOfficeLinkGuid, manager.getContractManagerId());
     }
 

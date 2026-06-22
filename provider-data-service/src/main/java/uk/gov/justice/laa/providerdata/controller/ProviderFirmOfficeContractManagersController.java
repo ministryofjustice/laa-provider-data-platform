@@ -46,18 +46,17 @@ public class ProviderFirmOfficeContractManagersController
    * <ul>
    *   <li>The provider identifier may be either a GUID or a firm number.
    *   <li>The office identifier may be either the provider office link GUID or the office code.
-   *   <li>The request body must contain a <code>contractManagerGUID</code>, which must be a valid
-   *       GUID.
+   *   <li>If {@code contractManagerGUID} is omitted from the request body, the system default
+   *       contract manager is assigned (AC2).
    *   <li>The service replaces any existing assignment for that office.
    *   <li>The response includes the provider office link GUID and contract manager ID.
    * </ul>
    *
    * @param providerFirmGUIDorFirmNumber provider firm identifier
    * @param officeGUIDorCode the provider office link GUID or office code
-   * @param contractManagerProviderPatchV2 body containing the contract manager GUID
+   * @param contractManagerProviderPatchV2 body optionally containing the contract manager GUID
    * @param traceparent request traceId and spanId (optional)
    * @return HTTP 201 response containing minimal assignment details
-   * @throws IllegalArgumentException if the given contract manager ID is not a GUID
    */
   @Override
   public ResponseEntity<CreateProviderFirmOfficeContractManager201Response>
@@ -67,9 +66,6 @@ public class ProviderFirmOfficeContractManagersController
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String traceparent) {
     UUID contractManagerGUID = contractManagerProviderPatchV2.getContractManagerGUID();
-    if (contractManagerGUID == null) {
-      throw new IllegalArgumentException("contractManagerGUID must be provided");
-    }
 
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(

@@ -10,12 +10,20 @@ target:
 # independent sidecar database; multiple replicas would have inconsistent data.
 replicaCount: 1
 
+# fsGroup: 70 makes the emptyDir volume group-writable by GID 70 (the postgres user's GID in
+# Alpine). Without this, the kubelet creates the emptyDir owned by root:root (mode 0755), and
+# the postgres process (UID 70) cannot create the data/ subdirectory inside it.
+# The volume is mounted at /var/lib/postgresql (the parent) so that postgres creates data/
+# itself — owned by UID 70 — and can then chmod 700 it without needing to own the mount point.
+podSecurityContext:
+  fsGroup: 70
+
 # PostgreSQL sidecar container. Runs alongside the application in the same pod,
 # using ephemeral (emptyDir) storage. Data is lost on pod restart or helm uninstall —
 # which is acceptable since Flyway recreates the schema on startup.
 postgresContainer:
   enabled: true
-  image: public.ecr.aws/bitnami/postgresql:17
+  image: public.ecr.aws/docker/library/postgres:17-alpine
   port: 5432
   database: providerdata
   username: postgres

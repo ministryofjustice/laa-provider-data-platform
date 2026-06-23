@@ -67,6 +67,9 @@ public class ProviderFirmOfficeContractManagersController
           String traceparent) {
     UUID contractManagerGUID = contractManagerProviderPatchV2.getContractManagerGUID();
 
+    // remove blank spaces from officeGUIDorCode to prevent errors when the office code is used to
+    // look up the office
+    officeGUIDorCode = officeGUIDorCode.trim();
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(
             providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGUID);

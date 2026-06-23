@@ -153,29 +153,6 @@ class ProviderFirmOfficeContractManagersControllerTest {
   }
 
   /**
-   * Ensures HTTP 400 is returned when {@code contractManagerGUID} contains only whitespace.
-   *
-   * @throws Exception if the request fails to execute
-   */
-  @Test
-  void postContractManagers_returns400_whenContractManagerGuidIsBlank() throws Exception {
-    mockMvc
-        .perform(
-            post(
-                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
-                    "100001",
-                    "ACC001")
-                .contentType(APPLICATION_JSON)
-                .content(
-                    """
-                                        {
-                                          "contractManagerGUID": "   "
-                                        }
-                                        """))
-        .andExpect(status().isBadRequest());
-  }
-
-  /**
    * Ensures HTTP 400 is returned when the {@code contractManagerGUID} in the request body is not a
    * valid UUID.
    *

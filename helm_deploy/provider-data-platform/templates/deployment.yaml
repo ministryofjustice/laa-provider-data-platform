@@ -39,7 +39,7 @@ spec:
       {{- if .Values.postgresContainer.enabled }}
       # Native sidecar (K8s 1.28+): starts before the app container and its startup probe must
       # pass before the app container is created. Prevents the race condition where the app
-      # connects to postgres before bitnami completes its two-phase initialisation.
+      # connects to postgres before it is ready to accept queries.
       initContainers:
         - name: postgres
           restartPolicy: Always
@@ -47,7 +47,7 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1001  # bitnami/postgresql runs as UID 1001
+            runAsUser: 70  # postgres user UID in Alpine
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             seccompProfile:
@@ -58,19 +58,16 @@ spec:
             - name: postgres
               containerPort: {{ .Values.postgresContainer.port }}
           env:
-            - name: POSTGRESQL_DATABASE
+            - name: POSTGRES_DB
               value: {{ .Values.postgresContainer.database | quote }}
-            - name: POSTGRESQL_USERNAME
+            - name: POSTGRES_USER
               value: {{ .Values.postgresContainer.username | quote }}
-            - name: POSTGRESQL_PASSWORD
+            - name: POSTGRES_PASSWORD
               value: {{ .Values.postgresContainer.password | quote }}
           startupProbe:
             exec:
-              # pg_isready passes too early — bitnami/postgresql starts postgres in init mode,
-              # creates the database, then internally restarts. Use psql to run an actual query,
-              # which only succeeds after the internal restart completes.
               # PGPASSWORD is set from the container's own env var to avoid an interactive prompt.
-              command: ["sh", "-c", "PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME -d $POSTGRESQL_DATABASE -c 'SELECT 1'"]
+              command: ["sh", "-c", "PGPASSWORD=$POSTGRES_PASSWORD psql -U $POSTGRES_USER -d $POSTGRES_DB -c 'SELECT 1'"]
             periodSeconds: 2
             failureThreshold: 30
           livenessProbe:
@@ -82,7 +79,7 @@ spec:
             {{- toYaml .Values.postgresContainer.resources | nindent 12 }}
           volumeMounts:
             - name: postgres-data
-              mountPath: /bitnami/postgresql
+              mountPath: /var/lib/postgresql
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}

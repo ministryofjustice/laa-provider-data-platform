@@ -103,23 +103,108 @@ jobs:
           path: provider-data-service/build/reports/jacoco
           retention-days: 7
 
-      - name: "Authenticate with Amazon ECR"
-        id:   ecr_auth
-        uses: ./.github/actions/cp-ecr-auth
-        with:
-          ecr_region:         ${{ vars.DPD_ECR_REGION }}
-          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      - name: "ECR credentials guard"
+        id:   ecr_guard
+        shell: bash
+        env:
+          ECR_REGION:         ${{ vars.DPD_ECR_REGION }}
+          ECR_ROLE_TO_ASSUME: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+        run: |
+          if [ -n "$ECR_REGION" ] && [ -n "$ECR_ROLE_TO_ASSUME" ]; then
+            echo "ecr_auth_attempted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Did not authenticate to ECR as AWS details were missing" >&2
+          fi
 
-      - name: "Build and push image"
-        if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
-        uses: ./.github/actions/build-push-image
+      - name: "Configure AWS credentials"
+        if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
+        with:
+          aws-region:     ${{ vars.DPD_ECR_REGION }}
+          role-to-assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+
+      - name: "Log in to Amazon ECR"
+        if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
+        id:   ecr_login
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
+
+      - name: "Build OCI image with Gradle and push immutable registry tag to ECR"
+        if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
+        shell: bash
+        env:
+          IMAGE:      ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          ITAG:       ${{ inputs.itag }}
+          MODULE_DIR: provider-data-service
+        run: |
+          set -eu
+          ./gradlew ":${MODULE_DIR}:bootBuildImage" --imageName="${IMAGE}:pdp-${ITAG}"
+          docker push "${IMAGE}:pdp-${ITAG}"
+
+      - name: "Add mutable registry tag as alias and push"
+        if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true' && inputs.mtag != ''
+        shell: bash
+        env:
+          IMAGE: ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          ITAG:  ${{ inputs.itag }}
+          MTAG:  ${{ inputs.mtag }}
+        run: |
+          set -eu
+          docker tag "${IMAGE}:pdp-${ITAG}" "${IMAGE}:pdp-${MTAG}"
+          docker push "${IMAGE}:pdp-${MTAG}"
+
+      - name: "Scan OCI image with Snyk"
+        if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
+        id:   snyk_scan
+        continue-on-error: true
+        uses: snyk/actions/docker@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
-          itag:  ${{ inputs.itag }}
-          mtag:  ${{ inputs.mtag }}
-          module_dir: "provider-data-service" # Point to the new service module
+          image: ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}:pdp-${{ inputs.itag }}
+          sarif: true
+          args: --json-file-output=snyk.json --policy-path=.snyk --sarif-file-output=snyk.sarif
+
+      - name: "Check for Snyk output files"
+        id:   snyk_outputs
+        if:   always()
+        shell: bash
+        run: |
+          if [ -f snyk.json ]; then
+            echo "json_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Snyk JSON output: present"
+          else
+            echo "json_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Snyk JSON output: missing"
+          fi
+          if [ -f snyk.sarif ]; then
+            echo "sarif_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Snyk SARIF output: present"
+          else
+            echo "sarif_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Snyk SARIF output: missing"
+          fi
+
+      - name: "Print Snyk JSON findings"
+        if:   always() && steps.snyk_outputs.outputs.json_exists == 'true'
+        shell: bash
+        run: |
+          cat snyk.json
+
+      - name: "Sanitise Snyk SARIF (replace null security-severity values)"
+        if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
+        shell: bash
+        run: |
+          jq 'walk(if type == "object" and has("security-severity") and
+                   (.["security-severity"] == null or .["security-severity"] == "null")
+                   then .["security-severity"] = "0.0" else . end)' snyk.sarif > snyk-fixed.sarif
+          mv snyk-fixed.sarif snyk.sarif
+
+      - name: "Upload Snyk SARIF results"
+        if:   always() && steps.snyk_outputs.outputs.sarif_exists == 'true'
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: snyk.sarif
+          category:   snyk-docker
 
       - name: "Send failure Slack message"
         if:   failure()

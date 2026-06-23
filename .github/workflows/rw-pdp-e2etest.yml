@@ -6,6 +6,8 @@ on:
       target:      { type: string, required: true }
       rel:         { type: string, required: false, default: "" }
       servicePort: { type: string, required: false, default: "8080" }
+      e2eProfile:  { type: string, required: false, default: "",
+                     description: "Override the e2e.env Gradle property (defaults to the value derived from target)" }
   workflow_dispatch:
     inputs:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
@@ -29,9 +31,10 @@ jobs:
         id:   vars
         shell: bash
         env:
-          TARGET: ${{ inputs.target }}
-          REL:    ${{ inputs.rel || 'stable' }}
-          SP:     ${{ inputs.servicePort }}
+          TARGET:      ${{ inputs.target }}
+          REL:         ${{ inputs.rel || 'stable' }}
+          SP:          ${{ inputs.servicePort }}
+          E2E_PROFILE: ${{ inputs.e2eProfile }}
         run: |
           echo "Run e2e tests - target: [$TARGET], rel: [$REL], servicePort: [$SP]"
           # Map target to profile
@@ -43,6 +46,10 @@ jobs:
             prod_auto_without_approval) PROFILE=prod ;;
             *)                          exit 1 ;;
           esac
+          # Allow caller to override the e2e profile independently of the kube target
+          if [ -n "$E2E_PROFILE" ]; then
+            PROFILE="$E2E_PROFILE"
+          fi
           # Determine service name
           SVC="pdp-${REL}-provider-data-platform"
           echo "Resolved profile name: [$PROFILE]"
@@ -77,7 +84,7 @@ jobs:
       - name: "Wait for rollout" # Because this tends to be run just after a deployment
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         run: |
-          kubectl -n "${{ secrets.DPD_KUBE_NAMESPACE }}" rollout status deploy/"${{ steps.vars.outputs.svc }}" --timeout=180s || true
+          kubectl -n "${{ secrets.DPD_KUBE_NAMESPACE }}" rollout status deploy/"${{ steps.vars.outputs.svc }}" --timeout=180s
 
       - name: "Port-forward service -> localhost:18080"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'

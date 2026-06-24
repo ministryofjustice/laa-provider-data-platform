@@ -7,7 +7,7 @@ plugins {
 
 dependencies {
     compileOnly "com.fasterxml.jackson.core:jackson-annotations"
-    compileOnly "io.swagger.core.v3:swagger-annotations:2.2.51"
+    compileOnly "io.swagger.core.v3:swagger-annotations:2.2.52"
     compileOnly "jakarta.annotation:jakarta.annotation-api"
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     compileOnly 'jakarta.validation:jakarta.validation-api'

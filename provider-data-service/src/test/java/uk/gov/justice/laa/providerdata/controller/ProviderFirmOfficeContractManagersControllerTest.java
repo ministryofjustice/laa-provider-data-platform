@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -150,6 +151,32 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .content("{}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.contractManagerId").value("MR-DEFAULT"));
+  }
+
+  /**
+   * Ensures HTTP 400 is returned when {@code contractManagerGUID} contains only whitespace.
+   *
+   * @throws Exception if the request fails to execute
+   */
+  @Disabled(
+      "Skipping as the controller allows nullable values and does not validate the format of the "
+          + "UUID. Validation is handled in the service layer.")
+  @Test
+  void postContractManagers_returns400_whenContractManagerGuidIsBlank() throws Exception {
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    "100001",
+                    "ACC001")
+                .contentType(APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                          "contractManagerGUID": "   "
+                                        }
+                                        """))
+        .andExpect(status().isBadRequest());
   }
 
   /**

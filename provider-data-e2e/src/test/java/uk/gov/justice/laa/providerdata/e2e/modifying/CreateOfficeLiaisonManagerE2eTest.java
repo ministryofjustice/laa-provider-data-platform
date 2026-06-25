@@ -22,6 +22,93 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 @ModifyingTest
 class CreateOfficeLiaisonManagerE2eTest {
 
+  /**
+   * DSTEW-1649 AC1 – Inactive Date is shown when it exists.
+   *
+   * <p>DS_MAPD_FR_014 (DSTEW-1649): When a previous Liaison Manager has been superseded by a new
+   * assignment, its {@code activeDateTo} must be populated in the list response. The currently
+   * active entry must have {@code activeDateTo} absent.
+   */
+  @Test
+  void dstew1649_ac1_supersededLiaisonManager_hasActiveDateToPopulated() {
+    long ts = System.currentTimeMillis();
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    "E2E-DSTEW-1649 " + ts,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 History Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"),
+                        "contractManager",
+                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "First",
+                            "lastName", "Manager",
+                            "emailAddress", "first.lm." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String headOfficeCode =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].accountNumber");
+
+    // Assigning a second LM end-dates the first.
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", headOfficeCode)
+        .body(
+            Map.of(
+                "firstName", "Second",
+                "lastName", "Manager",
+                "emailAddress", "second.lm." + ts + "@example.com",
+                "telephoneNumber", "020 3333 4444"))
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
+        .then()
+        .statusCode(201);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", headOfficeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/liaison-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(2))
+        // Tautological but explicit: DSTEW-1649 AC1 requires that the superseded entry carries
+        // an Inactive Date. The find predicate alone is not a sufficient assertion — the field
+        // must be present in the response object itself.
+        .body("data.content.find { it.activeDateTo != null }.activeDateTo", notNullValue())
+        .body("data.content.find { it.activeDateTo == null }.firstName", equalTo("Second"));
+  }
+
   @Test
   void createLiaisonManager_forExistingOffice_returns201ThenGetReturnsCreatedManager() {
     String firstName = "New";

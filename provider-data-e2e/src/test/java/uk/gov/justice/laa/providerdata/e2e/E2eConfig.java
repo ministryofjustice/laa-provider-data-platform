@@ -122,7 +122,7 @@ public final class E2eConfig {
    * ("Mr Default"). Used by AC2 tests.
    */
   public static String defaultContractManagerId() {
-    return require("contractManager.default.id");
+    return "MR-DEFAULT";
   }
 
   // --- Invalid identifiers (for 404 testing) ---

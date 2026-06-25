@@ -65,6 +65,7 @@ public class ProviderFirmOfficeContractManagersController
           String officeGUIDorCode,
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String traceparent) {
+    // contractManagerGUID == null means to use the default contract manager
     UUID contractManagerGUID = contractManagerProviderPatchV2.getContractManagerGUID();
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(

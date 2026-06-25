@@ -1,0 +1,114 @@
+name: "Reusable workflow: Gradle build and publish"
+
+on:
+  workflow_call:
+    inputs:
+      itag: { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      itag: { type: string, required: true, description: "Registry tag (e.g. 'v1.4.2', 'pr-925-0af')" }
+
+jobs:
+  gradle-build-and-publish:
+    name: "Gradle build and publish"
+    permissions: { contents: read, packages: write }
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Validate registry tag name"
+        shell: bash
+        run: |
+          set -eu
+          printf '%s\n' "${{ inputs.itag }}" \
+              | grep -Eq '^(v[0-9]+\.[0-9]+\.[0-9]+|pr-[0-9]+)(-[0-9A-Za-z_-]+)?$' || {
+            printf 'Error: disallowed characters in itag: [%s]\n' "${{ inputs.itag }}" >&2
+            exit 1
+          }
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: "Set up Java 25 (Temurin distro)"
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: "temurin"
+          java-version: "25"
+
+      - name: "Set up Gradle"
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: "Build and test app"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ITAG:         ${{ inputs.itag }}
+        run: |
+          set -eu
+          # Substitute in gradle.properties `version=<itag>`
+          sed -E -i.bak -e "s|^(version[[:space:]]*=[[:space:]]*).*|\1${ITAG#v}|" gradle.properties \
+              && rm -f gradle.properties.bak
+          ./gradlew clean build integrationTest
+
+      - name: "Publish OpenAPI specification models package (main branch)"
+        if:   github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew :provider-data-api:publish --info
+
+      - name: "Publish provider data service (main branch)"
+        if:   github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew :provider-data-service:publish --info
+
+      - name: "Upload Checkstyle report for app"
+        if:   always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checkstyle-report
+          path: provider-data-service/build/reports/checkstyle
+          retention-days: 7
+
+      - name: "Upload test report for app"
+        if:   always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-report
+          path: provider-data-service/build/reports/tests
+          retention-days: 7
+
+      - name: "Upload integration test report for app"
+        if:   always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: integration-test-report
+          path: provider-data-service/build/reports/integrationTest
+          retention-days: 7
+
+      - name: "Upload JaCoCo coverage report"
+        if:   always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: jacoco-coverage-report
+          path: provider-data-service/build/reports/jacoco
+          retention-days: 7
+
+      - name: "Send failure Slack message"
+        if:   failure()
+        shell: bash
+        env:
+          RTAG: ${{ inputs.itag }}
+        run: |
+          set -eu
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          case "$RTAG" in
+            pr-*) exit ;; # PR builds do NOT send alerts
+            v*)   MESSAGE=" :github-failure:  Failed to build main @${RTAG}. View run log at ${RUN_URL}" ;;
+            *)    MESSAGE=" :github-failure:  Failed to build tag [${RTAG}]. View run log at ${RUN_URL}" ;;
+          esac
+          curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" \
+              "${{ secrets.SLACK_WEBHOOK }}"

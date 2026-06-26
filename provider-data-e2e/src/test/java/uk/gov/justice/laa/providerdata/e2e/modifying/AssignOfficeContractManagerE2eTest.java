@@ -210,8 +210,10 @@ class AssignOfficeContractManagerE2eTest {
         .statusCode(201)
         .body("data.contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
 
-    // AC1: only the new assignment is present (the original CM has been replaced).
-    // AC3: exactly one contract manager is assigned to the entity after the change completes.
+    // DSTEW-1660/DSTEW-1661 AC1: only the new assignment is present (the original CM has been
+    // replaced).
+    // DSTEW-1660/DSTEW-1661 AC3: exactly one contract manager is assigned to the entity after the
+    // change completes.
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
         .pathParam("officeCode", E2eConfig.lspOfficeCode())
@@ -224,9 +226,10 @@ class AssignOfficeContractManagerE2eTest {
   }
 
   /**
-   * AC4: when an invalid contract manager identifier is submitted, the existing assignment must
-   * remain unchanged. Establishes a known assignment, sends a request with an unknown GUID that the
-   * service rejects with 400, then asserts the original contract manager is still the one assigned.
+   * DSTEW-1660/DSTEW-1661 AC4: when an invalid contract manager identifier is submitted, the
+   * existing assignment must remain unchanged. Establishes a known assignment, sends a request with
+   * an unknown GUID that the service rejects with 400, then asserts the original contract manager
+   * is still the one assigned.
    */
   @Test
   void assignContractManager_invalidGuid_existingAssignmentUnchanged() {
@@ -252,7 +255,8 @@ class AssignOfficeContractManagerE2eTest {
         .then()
         .statusCode(400);
 
-    // AC4: the previously assigned contract manager is still the one assigned — the failed request
+    // DSTEW-1660/DSTEW-1661 AC4: the previously assigned contract manager is still the one assigned
+    // — the failed request
     // did not remove or overwrite the existing link.
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())

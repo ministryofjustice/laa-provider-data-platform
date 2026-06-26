@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.service.ContractManagerService;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
@@ -71,7 +72,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
             eq(contractManagerGuid)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
-                providerOfficeLinkGuid, "CM-001"));
+                providerOfficeLinkGuid, ContractManagerEntity.DEFAULT_ID));
 
     mockMvc
         .perform(
@@ -89,7 +90,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
                         .formatted(contractManagerGuid)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.officeGUID").value(providerOfficeLinkGuid.toString()))
-        .andExpect(jsonPath("$.data.contractManagerId").value("CM-001"));
+        .andExpect(jsonPath("$.data.contractManagerId").value(ContractManagerEntity.DEFAULT_ID));
   }
 
   /**
@@ -125,9 +126,9 @@ class ProviderFirmOfficeContractManagersControllerTest {
   }
 
   /**
-   * AC2: verifies that omitting {@code contractManagerGUID} from the request body causes the
-   * controller to pass {@code null} to the service, which resolves and assigns the system default
-   * contract manager, and that the endpoint returns HTTP 201.
+   * DSTEW-1660/DSTEW-1661 AC2: verifies that omitting {@code contractManagerGUID} from the request
+   * body causes the controller to pass {@code null} to the service, which resolves and assigns the
+   * system default contract manager, and that the endpoint returns HTTP 201.
    *
    * @throws Exception if the request fails to execute
    */
@@ -139,7 +140,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
     when(assignmentService.assign(eq("100001"), eq("ACC001"), isNull()))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
-                providerOfficeLinkGuid, "MR-DEFAULT"));
+                providerOfficeLinkGuid, ContractManagerEntity.DEFAULT_ID));
 
     mockMvc
         .perform(
@@ -150,7 +151,7 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content("{}"))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.data.contractManagerId").value("MR-DEFAULT"));
+        .andExpect(jsonPath("$.data.contractManagerId").value(ContractManagerEntity.DEFAULT_ID));
   }
 
   /**

@@ -79,8 +79,7 @@ class AssignOfficeContractManagerE2eTest {
 
   /**
    * DSTEW-1660/DSTEW-1661 AC2: verifies that omitting {@code contractManagerGUID} from the request
-   * body causes the service to assign the system default contract manager ("Mr Default") and
-   * returns HTTP 201.
+   * body causes the service to assign the system default contract manager and returns HTTP 201.
    */
   @Test
   void assignContractManager_noGuidProvided_assignsDefaultContractManager() {
@@ -102,8 +101,8 @@ class AssignOfficeContractManagerE2eTest {
    * manager must be rejected with 400 Bad Request — the service throws {@link
    * IllegalArgumentException} for an unknown GUID, which the global exception handler maps to 400.
    *
-   * <p>Also confirms AC3 is not violated: the LSP office's existing contract manager assignment is
-   * not mutated by the failed request.
+   * <p>Also confirms DSTEW-1660/DSTEW-1661 AC3 is not violated: the LSP office's existing contract
+   * manager assignment is not mutated by the failed request.
    */
   @Test
   void assignContractManager_unknownContractManagerGuid_returns400() {

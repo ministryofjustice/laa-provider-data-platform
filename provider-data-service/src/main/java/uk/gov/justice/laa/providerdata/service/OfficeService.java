@@ -33,7 +33,7 @@ import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.DXPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
-import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressPatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
@@ -670,19 +670,33 @@ public class OfficeService {
   private static void applyContactPatch(
       OfficeEntity office,
       ProviderOfficeLinkEntity link,
-      @Nullable OfficeAddressV2 address,
+      @Nullable OfficeAddressPatchV2 address,
       @Nullable String telephoneNumber,
       @Nullable String emailAddress,
       @Nullable URI website,
       @Nullable DXPatchV2 dxDetails) {
     if (address != null) {
-      office.setAddressLine1(address.getLine1());
-      office.setAddressLine2(address.getLine2());
-      office.setAddressLine3(address.getLine3());
-      office.setAddressLine4(address.getLine4());
-      office.setAddressTownOrCity(address.getTownOrCity());
-      office.setAddressCounty(address.getCounty());
-      office.setAddressPostCode(address.getPostcode());
+      if (address.getLine1() != null) {
+        office.setAddressLine1(address.getLine1());
+      }
+      if (address.getLine2() != null) {
+        office.setAddressLine2(address.getLine2());
+      }
+      if (address.getLine3() != null) {
+        office.setAddressLine3(address.getLine3());
+      }
+      if (address.getLine4() != null) {
+        office.setAddressLine4(address.getLine4());
+      }
+      if (address.getTownOrCity() != null) {
+        office.setAddressTownOrCity(address.getTownOrCity());
+      }
+      if (address.getCounty() != null) {
+        office.setAddressCounty(address.getCounty());
+      }
+      if (address.getPostcode() != null) {
+        office.setAddressPostCode(address.getPostcode());
+      }
     }
     if (telephoneNumber != null) {
       office.setTelephoneNumber(telephoneNumber);

@@ -100,7 +100,7 @@ public class JacksonConfig {
                 LSPOfficeLiaisonManagerCreateOrLinkV2.class,
                 (node, p) -> {
                   if (node.has("useHeadOfficeLiaisonManager")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "useHeadOfficeLiaisonManager",
@@ -111,7 +111,7 @@ public class JacksonConfig {
                         "telephoneNumber");
                     return LiaisonManagerLinkHeadOfficeV2.class;
                   } else if (node.has("liaisonManagerGUID")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "liaisonManagerGUID",
@@ -130,7 +130,7 @@ public class JacksonConfig {
                 AdvocateOfficeLiaisonManagerCreateOrLinkV2.class,
                 (node, p) -> {
                   if (node.has("useChambersLiaisonManager")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "useChambersLiaisonManager",
@@ -141,7 +141,7 @@ public class JacksonConfig {
                         "telephoneNumber");
                     return LiaisonManagerLinkChambersV2.class;
                   } else if (node.has("liaisonManagerGUID")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "liaisonManagerGUID",
@@ -160,7 +160,7 @@ public class JacksonConfig {
                 ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
                 (node, p) -> {
                   if (node.has("liaisonManagerGUID")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "liaisonManagerGUID",
@@ -179,7 +179,7 @@ public class JacksonConfig {
                 OfficeLiaisonManagerCreateOrLinkV2.class,
                 (node, p) -> {
                   if (node.has("useHeadOfficeLiaisonManager")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "useHeadOfficeLiaisonManager",
@@ -191,7 +191,7 @@ public class JacksonConfig {
                         "telephoneNumber");
                     return LiaisonManagerLinkHeadOfficeV2.class;
                   } else if (node.has("useChambersLiaisonManager")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "useChambersLiaisonManager",
@@ -202,7 +202,7 @@ public class JacksonConfig {
                         "telephoneNumber");
                     return LiaisonManagerLinkChambersV2.class;
                   } else if (node.has("liaisonManagerGUID")) {
-                    rejectIfAnyPresent(
+                    rejectConflictingFields(
                         node,
                         p,
                         "liaisonManagerGUID",
@@ -238,6 +238,7 @@ public class JacksonConfig {
             new TypeResolvingDeserializer<>(
                 OfficePatchV2.class,
                 (node, p) -> {
+                  rejectForbiddenFields(node, p, "officeGUID", "providerFirmGUID", "accountNumber");
                   boolean hasLspOrAdvocateField =
                       node.has("payment")
                           || node.has("vatRegistration")
@@ -285,12 +286,26 @@ public class JacksonConfig {
   }
 
   /**
+   * Throws a {@link MismatchedInputException} if the JSON node contains any of {@code fields}. Used
+   * to enforce read-only field restrictions before type resolution.
+   */
+  private static void rejectForbiddenFields(JsonNode node, JsonParser p, String... fields)
+      throws JacksonException {
+    for (String field : fields) {
+      if (node.has(field)) {
+        throw MismatchedInputException.from(
+            p, Object.class, String.format("Field '%s' must not be provided", field));
+      }
+    }
+  }
+
+  /**
    * Throws a {@link MismatchedInputException} if the JSON node contains any of {@code
    * conflictingFields}. The {@code discriminator} names the field whose presence selected the
    * current type; it appears in the error message to explain what the conflicting field cannot be
    * combined with.
    */
-  private static void rejectIfAnyPresent(
+  private static void rejectConflictingFields(
       JsonNode node, JsonParser p, String discriminator, String... conflictingFields)
       throws JacksonException {
     for (String field : conflictingFields) {

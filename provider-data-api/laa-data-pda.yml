@@ -2190,7 +2190,7 @@ components:
         falseBalanceFlag:
           $ref: "#/components/schemas/FalseBalanceFlagV2"
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: "#/components/schemas/OfficeAddressPatchV2"
         telephoneNumber:
           $ref: "#/components/schemas/OfficePhoneV2"
         emailAddress:
@@ -2442,6 +2442,9 @@ components:
 
     LSPOfficePatchV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"officeGUID", "providerFirmGUID", "accountNumber"})
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
@@ -2454,7 +2457,7 @@ components:
         intervened:
           $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: "#/components/schemas/OfficeAddressPatchV2"
         telephoneNumber:
           $ref: "#/components/schemas/OfficePhoneV2"
         emailAddress:
@@ -2470,13 +2473,16 @@ components:
 
     ChambersOfficePatchV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"officeGUID", "providerFirmGUID", "accountNumber"})
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
         clearActiveDateTo:
           $ref: "#/components/schemas/ClearActiveDateToV2"
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: "#/components/schemas/OfficeAddressPatchV2"
         telephoneNumber:
           $ref: "#/components/schemas/OfficePhoneV2"
         emailAddress:
@@ -2488,6 +2494,9 @@ components:
 
     AdvocateOfficePatchV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"officeGUID", "providerFirmGUID", "accountNumber"})
       properties:
         activeDateTo:
           $ref: "#/components/schemas/OfficeActiveDateToV2"
@@ -2595,6 +2604,47 @@ components:
       description: |
         Flag indicating whether firm has been referred to debt recovery.
 
+    OfficeAddressPatchV2:
+      description: |
+        Address fields for a PATCH request. All fields are optional — absent or null means
+        "leave unchanged". If a field is provided it must be non-blank (`minLength: 1`).
+        Mandatory address fields (`line1`, `townOrCity`, `postcode`) cannot be blanked via
+        a PATCH because null is treated as "leave unchanged" and empty strings are rejected.
+      type: object
+      properties:
+        line1:
+          type: string
+          nullable: true
+          minLength: 1
+          example: "JUSTICE HOUSE"
+        line2:
+          type: string
+          nullable: true
+          minLength: 1
+          example: "1 COURT LANE"
+        line3:
+          type: string
+          nullable: true
+          minLength: 1
+        line4:
+          type: string
+          nullable: true
+          minLength: 1
+        townOrCity:
+          type: string
+          nullable: true
+          minLength: 1
+          example: "LEEDS"
+        county:
+          type: string
+          nullable: true
+          minLength: 1
+        postcode:
+          type: string
+          nullable: true
+          minLength: 1
+          example: "LS1 1AA"
+
     OfficeAddressV2:
       type: object
       required:
@@ -2608,14 +2658,14 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1.
 
             *TODO: Find out what address info is stored in this attribute*
-          example: "OLD COUNTY COURT"
+          example: "JUSTICE HOUSE"
         line2:
           type: string
           description: |
             CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2.
 
             *TODO: Find out what address info is stored in this attribute*
-          example: "56 WESTGATE ROAD"
+          example: "1 COURT LANE"
         line3:
           type: string
           description: |
@@ -2634,7 +2684,7 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.CITY.
 
             *TODO: Any business rules for verifying data*
-          example: "NEWCASTLE-UPON-TYNE"
+          example: "LEEDS"
         county:
           type: string
           description: |
@@ -2647,7 +2697,7 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.ZIP.
 
             *TODO: Any business rules for verifying data*
-          example: "NE1 5XU"
+          example: "LS1 1AA"
 
     OfficePhoneV2:
       type: string
@@ -2655,7 +2705,7 @@ components:
         CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE.
 
         *TODO: Any business rules for verifying data. Do we need it as a separate field*
-      example: "0121 232 1111"
+      example: "0113 496 0000"
 
     OfficeEmailAddressV2:
       type: string
@@ -2826,13 +2876,13 @@ components:
       type: string
       description: |
         CWA ref: AP_BANK_BRANCHES.BANK_NUM
-      example: "601111"
+      example: "000000"
 
     BankAccountAccountNumberV2:
       type: string
       description: |
         CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NUM
-      example: "06805333"
+      example: "00000000"
 
     BankAccountActiveDateFromV2:
       type: string
@@ -2968,7 +3018,7 @@ components:
         CWA ref: PO_VENDOR_CONTACTS.AREA_CODE + PO_VENDOR_CONTACTS.PHONE.
 
         *TODO: Any business rules for verifying data. Do we need it as a separate field*
-      example: "0121 232 1111"
+      example: "0113 496 0000"
 
     LiaisonManagerActiveDateFromV2:
       type: string

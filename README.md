@@ -4,7 +4,7 @@
 
 ## Overview
 
-The **provider data API (persistent)** implements a REST API for retrieving and updating provider
+The **Provider Data API (R2)** implements a REST API for retrieving and updating provider
 firm and office (and, later on, contract and schedule) data.
 
 ### Project structure

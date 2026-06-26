@@ -5,7 +5,7 @@
 ###
 spring:
   application:
-    name: PDA (persistent)
+    name: PDA-r2
   jackson:
     default-property-inclusion: non_null
   datasource:
@@ -37,8 +37,8 @@ spring:
 
 info:
   app:
-    name: PDA (persistent)
-    description: "The provider data API (persistent) will own data about provider firms and offices (and, later on, contracts and schedules)"
+    name: PDA-r2
+    description: "The Provider Data API (R2) will own data about provider firms and offices (and, later on, contracts and schedules)"
 
 logging:
   level:

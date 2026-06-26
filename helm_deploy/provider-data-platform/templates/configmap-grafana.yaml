@@ -1788,7 +1788,7 @@ data:
         "LAA",
         "EDS",
         "PDA",
-        "PDP",
+        "PDA-r2",
         "{{ .Release.Namespace }}"
       ],
       "templating": {

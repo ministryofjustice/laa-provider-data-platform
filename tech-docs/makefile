@@ -3,8 +3,8 @@ IMAGE := ghcr.io/ministryofjustice/tech-docs-github-pages-publisher:v6.2.0
 .PHONY: preview package prepare clean
 
 # Generates files that must be built before previewing or deploying:
-#   - pdp-docs/api/laa-data-pda.yml  (spec copy for CDN-based renderers)
-#   - pdp-docs/api/widdershins.html.md  (Widdershins Markdown)
+#   - pda-r2/api/laa-data-pda.yml  (spec copy for CDN-based renderers)
+#   - pda-r2/api/widdershins.html.md  (Widdershins Markdown)
 prepare:
 	docker run --rm \
 		-v $$(pwd)/..:/workspace \
@@ -27,5 +27,5 @@ package: prepare
 		$(IMAGE) /usr/local/bin/package
 
 clean:
-	rm -f source/pdp-docs/api/laa-data-pda.yml \
-	      source/pdp-docs/api/widdershins.html.md
+	rm -f source/pda-r2/api/laa-data-pda.yml \
+	      source/pda-r2/api/widdershins.html.md

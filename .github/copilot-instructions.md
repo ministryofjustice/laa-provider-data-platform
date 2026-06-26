@@ -56,7 +56,7 @@
 The `tech-docs/` folder contains a Middleman technical documentation site that describes
 [this repository](https://github.com/ministryofjustice/laa-provider-data-platform)
 and [another repository](https://github.com/ministryofjustice/laa-data-provider-data).
-Content for this repository belongs in the `tech-docs/source/pdp-docs/` directory.
+Content for this repository belongs in the `tech-docs/source/pda-r2/` directory.
 
 - Keep documentation brief and scannable.
 - Link to authoritative sources like the

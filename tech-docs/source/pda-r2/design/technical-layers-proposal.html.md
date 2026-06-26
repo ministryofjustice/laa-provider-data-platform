@@ -119,9 +119,10 @@ be made more complex when most of it doesn't need that complexity.
 ### Not full CQRS with separate read stores
 
 CQRS at the level of separate read and write databases, with eventual consistency and dedicated
-read models, seems uncalled-for given the scale of PDA. Query complexity is filtering, pagination,
-and multi-aggregate combination - all can be handled by a single PostgreSQL database. Command/query
-separation in the code alone provides many of the advantages without the operational overhead.
+read models, seems uncalled-for given the scale of PDA-r2. Query complexity is filtering,
+pagination, and multi-aggregate combination - all can be handled by a single PostgreSQL database.
+Command/query separation in the code alone provides many of the advantages without the operational
+overhead.
 
 ### Not event sourcing
 
@@ -273,10 +274,10 @@ the contract module events as they get defined.
 ## The API and event contracts for continuity
 
 The OpenAPI specification (`provider-data-api/src/main/resources/laa-data-pda.yml`), also published
-as a versioned library to the GitHub Package Registry, is the stable API that PDA consumers depend
-on. The event schema serves the same purpose. Both should be treated as more long-lived than any
-internal implementation details. When thinking about a possible backend migration, these contracts
-could survive even a rewrite.
+as a versioned library to the GitHub Package Registry, is the stable API that PDA-r2 consumers
+depend on. The event schema serves the same purpose. Both should be treated as more long-lived than
+any internal implementation details. When thinking about a possible backend migration, these
+contracts could survive even a rewrite.
 
 Practical rules:
 

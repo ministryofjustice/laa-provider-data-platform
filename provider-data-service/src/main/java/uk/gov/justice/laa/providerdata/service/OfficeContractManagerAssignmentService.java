@@ -17,8 +17,8 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  *       the office is removed before creating a new link.
  *   <li>Looks up the {@code ContractManagerEntity} by its GUID and throws an {@link
  *       IllegalArgumentException} if it does not exist.
- *   <li>When no GUID is supplied, falls back to the record flagged as the system default (AC2 – "Mr
- *       Default").
+ *   <li>When no GUID is supplied, falls back to the record flagged as the system default
+ *       (DSTEW-1660/DSTEW-1661 AC2 – "Mr Default").
  *   <li>Treats re-assigning the same contract manager to the same office as idempotent.
  * </ul>
  *
@@ -61,8 +61,8 @@ public class OfficeContractManagerAssignmentService {
    * OfficeContractManagerLinkEntity} for the resolved office before creating the new link.
    *
    * <p>If {@code contractManagerGuid} is {@code null}, the contract manager flagged as {@code
-   * defaultContractManager} is used (AC2). An {@link IllegalArgumentException} is thrown if no
-   * default is configured.
+   * defaultContractManager} is used (DSTEW-1660/DSTEW-1661 AC2). An {@link
+   * IllegalArgumentException} is thrown if no default is configured.
    *
    * <p>The contract manager must exist; otherwise an {@link IllegalArgumentException} is thrown.
    * Provider and office resolution follow the same semantics as the other provider-office endpoints
@@ -75,7 +75,8 @@ public class OfficeContractManagerAssignmentService {
    * @return an {@link AssignmentResult} containing the provider office link GUID and the assigned
    *     contract manager's external/business ID
    * @throws IllegalArgumentException if no contract manager exists with the given {@code
-   *     contractManagerGuid}, or if {@code contractManagerGuid} is {@code null} and no default
+   *     contractManagerGuid}
+   * @throws IllegalStateException if {@code contractManagerGuid} is {@code null} and no default
    *     contract manager is configured
    */
   @Transactional
@@ -94,8 +95,7 @@ public class OfficeContractManagerAssignmentService {
             : contractManagerRepository
                 .findByDefaultContractManagerTrue()
                 .orElseThrow(
-                    () ->
-                        new IllegalArgumentException("No default contract manager is configured"));
+                    () -> new IllegalStateException("No default contract manager is configured"));
 
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
     var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);

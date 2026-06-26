@@ -21,6 +21,9 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "CONTRACT_MANAGER")
 public class ContractManagerEntity extends AuditableEntity {
 
+  /** The fixed {@code contractManagerId} of the system default contract manager ("Mr Default"). */
+  public static final String DEFAULT_ID = "MR-DEFAULT";
+
   /** HR.PER_ALL_PEOPLE_F.PERSON_ID NUMBER(10) not null. */
   @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true, updatable = false)
   private String contractManagerId;

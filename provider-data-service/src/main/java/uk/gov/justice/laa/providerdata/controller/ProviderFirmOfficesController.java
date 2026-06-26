@@ -64,6 +64,11 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       linkToHeadOffice = true;
     }
 
+    UUID contractManagerGuid =
+        lspOfficeCreateV2.getContractManager() != null
+            ? lspOfficeCreateV2.getContractManager().getContractManagerGUID()
+            : null;
+
     OfficeCreationResult result =
         officeService.createLspOffice(
             providerFirmGUIDorFirmNumber,
@@ -73,7 +78,9 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             lmLinkTemplate,
             linkToHeadOffice,
             existingLmGuid,
-            lspOfficeCreateV2.getPayment());
+            lspOfficeCreateV2.getPayment(),
+            contractManagerGuid);
+
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new CreateProviderFirmOffice201Response()

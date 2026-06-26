@@ -27,9 +27,11 @@ import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -47,8 +49,10 @@ import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
@@ -66,6 +70,8 @@ class OfficeServiceTest {
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  @Mock private ContractManagerRepository contractManagerRepository;
+  @Mock private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
 
@@ -191,6 +197,7 @@ class OfficeServiceTest {
         lmLink,
         false,
         null,
+        null,
         null);
 
     verify(liaisonManagerRepository).save(lmTemplate);
@@ -241,6 +248,7 @@ class OfficeServiceTest {
         null,
         true,
         null,
+        null,
         null);
 
     verify(liaisonManagerRepository, never()).save(any());
@@ -281,6 +289,7 @@ class OfficeServiceTest {
                     null,
                     true,
                     null,
+                    null,
                     null))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("No active liaison manager found");
@@ -311,6 +320,7 @@ class OfficeServiceTest {
         null,
         false,
         lmGuid,
+        null,
         null);
 
     verify(liaisonManagerRepository).findById(lmGuid);
@@ -535,7 +545,8 @@ class OfficeServiceTest {
         null,
         false,
         null,
-        payment);
+        payment,
+        null);
 
     verify(bankDetailsService)
         .createAndLink(accountTemplate, provider, linkTemplate, createDetails.getActiveDateFrom());
@@ -567,7 +578,8 @@ class OfficeServiceTest {
         null,
         false,
         null,
-        payment);
+        payment,
+        null);
 
     verify(bankDetailsService).linkExisting(bankGuid, provider, linkTemplate, null);
     verify(bankAccountMapper, never()).toBankAccountEntity(any());
@@ -593,7 +605,8 @@ class OfficeServiceTest {
         null,
         false,
         null,
-        payment);
+        payment,
+        null);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
@@ -617,10 +630,81 @@ class OfficeServiceTest {
         null,
         false,
         null,
+        null,
         null);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+  }
+
+  @Test
+  void createLspOffice_withContractManagerGuid_savesLink() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID cmGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    ContractManagerEntity cm = new ContractManagerEntity();
+    cm.setGuid(cmGuid);
+
+    LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findById(cmGuid)).thenReturn(Optional.of(cm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        null,
+        null,
+        cmGuid);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(cm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createLspOffice_withUnknownContractManagerGuid_throwsBeforeCommit() {
+    UUID providerGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    UUID unknownCmGuid = UUID.randomUUID();
+    when(contractManagerRepository.findById(unknownCmGuid)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    providerGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    false,
+                    null,
+                    null,
+                    unknownCmGuid))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(unknownCmGuid.toString());
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
   }
 
   @Test

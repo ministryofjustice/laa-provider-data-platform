@@ -1,6 +1,6 @@
 ---
 source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/index.html.md
-title: LAA provider data APIs documentation
+title: LAA Digital Provider Data APIs documentation
 ---
 
 <div class="app-masthead">
@@ -8,37 +8,37 @@ title: LAA provider data APIs documentation
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-full-from-desktop">
         <p class="govuk-heading-xl app-masthead__title">
-          LAA provider data APIs documentation
+          LAA Digital Provider Data APIs documentation
         </p>
         <p class="app-masthead__description">
-          Technical documentation for LAA provider data APIs and services
+          Technical documentation for the Provider Data APIs and services
         </p>
       </div>
     </div>
   </div>
 </div>
 
-# Provider data APIs
+# Provider Data APIs
 
 ## Who is this documentation for?
 
-This is technical documentation for Digital teams at the Ministry of Justice who use or develop
-LAA provider data APIs and related services.
+This is technical documentation for LAA Digital teams at the Ministry of Justice who use or develop
+the Provider Data APIs and related services.
 
 ## What is this documentation about?
 
-The generic term **provider data APIs** - also sometimes abbreviated as **PDA** - can refer to:
+The generic term **Provider Data APIs** - also sometimes abbreviated as **PDA** - can refer to:
 
-* The **[provider details API (R1)](#provider-details-api-r1)** exposes data about
+* The **[Provider Details API (R1)](#provider-details-api-r1)** exposes data about
   provider firms, offices, contracts and schedules from CWA
-* The **[provider data API (R2)](#provider-data-api-r2)**  will own data about
+* The **[Provider Data API (R2)](#provider-data-api-r2)**  will own data about
   provider firms and offices (and, later on, contracts and schedules)
 
 ---
 
-## Provider details API (R1)
+## Provider Details API (R1)
 
-The **[provider details API (R1)](pda-r1/)** exposes data about provider firms, offices,
+The **[Provider Details API (R1)](pda-r1/)** exposes data about provider firms, offices,
 contracts and schedules from CWA.
 
 Most data is currently sourced from the CWA database (a few entities are augmented with a CCMS ID,
@@ -50,9 +50,9 @@ Platform and serves live traffic to a variety of consumer LAA services.
 
 ---
 
-## Provider data API (R2)
+## Provider Data API (R2)
 
-The **[provider data API (R2)](pda-r2/)** will own data about provider firms and offices
+The **[Provider Data API (R2)](pda-r2/)** will own data about provider firms and offices
 (and, later on, contracts and schedules).
 
 Also known as **[PDA-r2](pda-r2/)**, the service has its own data store, and a

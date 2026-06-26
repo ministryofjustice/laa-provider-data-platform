@@ -17,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -38,8 +40,10 @@ import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAcc
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
@@ -59,6 +63,8 @@ public class OfficeService {
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
+  private final ContractManagerRepository contractManagerRepository;
+  private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
   private final Counter officeCreationCounter;
@@ -74,6 +80,8 @@ public class OfficeService {
    * @param providerOfficeLinkRepository to look up offices generically across all firm types.
    * @param liaisonManagerRepository to save liaison manager entities.
    * @param officeLiaisonManagerLinkRepository to save and query office liaison manager links.
+   * @param contractManagerRepository to look up contract manager entities by GUID.
+   * @param officeContractManagerLinkRepository to save office contract manager links.
    * @param bankDetailsService to create and link bank accounts.
    * @param bankAccountMapper to map bank account request DTOs to entities.
    * @param officeCreationCounter for tracking office creations
@@ -87,6 +95,8 @@ public class OfficeService {
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
+      ContractManagerRepository contractManagerRepository,
+      OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
       BankDetailsService bankDetailsService,
       BankAccountMapper bankAccountMapper,
       Counter officeCreationCounter,
@@ -98,6 +108,8 @@ public class OfficeService {
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
+    this.contractManagerRepository = contractManagerRepository;
+    this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
     this.officeCreationCounter = officeCreationCounter;
@@ -126,10 +138,14 @@ public class OfficeService {
    *     office
    * @param existingLmGuid GUID of an existing liaison manager to link directly, or {@code null}
    * @param payment payment details from the request, or {@code null}
+   * @param contractManagerGuid GUID of a contract manager to assign to the new office, or {@code
+   *     null}
    * @return identifiers for the created provider, office, and link
    * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
    *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found, or if
    *     {@code existingLmGuid} does not match any liaison manager
+   * @throws IllegalArgumentException if {@code contractManagerGuid} is non-null and does not match
+   *     any contract manager
    */
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
@@ -139,7 +155,8 @@ public class OfficeService {
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
       boolean linkToHeadOfficeLiaisonManager,
       @Nullable UUID existingLmGuid,
-      @Nullable PaymentDetailsCreateOrLinkV2 payment) {
+      @Nullable PaymentDetailsCreateOrLinkV2 payment,
+      @Nullable UUID contractManagerGuid) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
 
@@ -173,6 +190,10 @@ public class OfficeService {
 
     persistBankDetails(payment, provider, savedLink);
 
+    if (contractManagerGuid != null) {
+      linkContractManager(savedLink, contractManagerGuid);
+    }
+
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(officeCreationTimer);
     officeCreationCounter.increment();
@@ -195,7 +216,15 @@ public class OfficeService {
       OfficeEntity officeTemplate,
       LspProviderOfficeLinkEntity linkTemplate) {
     return createLspOffice(
-        providerFirmGUIDorFirmNumber, officeTemplate, linkTemplate, null, null, false, null, null);
+        providerFirmGUIDorFirmNumber,
+        officeTemplate,
+        linkTemplate,
+        null,
+        null,
+        false,
+        null,
+        null,
+        null);
   }
 
   /**
@@ -743,6 +772,22 @@ public class OfficeService {
     link.setActiveDateFrom(LocalDate.now());
     link.setLinkedFlag(Boolean.FALSE);
     officeLiaisonManagerLinkRepository.save(link);
+  }
+
+  private void linkContractManager(
+      LspProviderOfficeLinkEntity savedLink, UUID contractManagerGuid) {
+    ContractManagerEntity manager =
+        contractManagerRepository
+            .findById(contractManagerGuid)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Unknown contractManagerGUID: " + contractManagerGuid));
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(savedLink)
+            .contractManager(manager)
+            .build());
   }
 
   private void linkHeadOfficeLiaisonManager(

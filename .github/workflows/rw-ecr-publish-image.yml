@@ -1,4 +1,4 @@
-name: "Reusable workflow: Build, push & publish"
+name: "Reusable workflow: ECR publish image"
 
 on:
   workflow_call:
@@ -11,9 +11,9 @@ on:
       mtag: { type: string, required: false, description: "Optional mutable registry tag (e.g. 'pr-925')" }
 
 jobs:
-  build:
-    name: "Build OCI image"
-    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
+  ecr-publish-image:
+    name: "ECR publish image"
+    permissions: { actions: read, contents: read, id-token: write, packages: read, security-events: write }
     runs-on: ubuntu-latest
     steps:
       - name: "Validate registry tag names"
@@ -40,68 +40,6 @@ jobs:
 
       - name: "Set up Gradle"
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-
-      - name: "Build and test app"
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          ITAG:         ${{ inputs.itag }}
-        run: |
-          set -eu
-          # Substitute in gradle.properties `version=<itag>`
-          sed -E -i.bak -e "s|^(version[[:space:]]*=[[:space:]]*).*|\1${ITAG#v}|" gradle.properties \
-              && rm -f gradle.properties.bak
-          ./gradlew clean build integrationTest
-
-      - name: "Publish OpenAPI specification models package (main branch)"
-        if:   github.ref == 'refs/heads/main'
-        shell: bash
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          ./gradlew :provider-data-api:publish --info
-
-      - name: "Publish provider data service  (main branch)"
-        if:   github.ref == 'refs/heads/main'
-        shell: bash
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          ./gradlew :provider-data-service:publish --info
-
-      - name: "Upload Checkstyle report for app"
-        if:   always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: checkstyle-report
-          path: provider-data-service/build/reports/checkstyle
-          retention-days: 7
-
-      - name: "Upload test report for app"
-        if:   always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: test-report
-          path: provider-data-service/build/reports/tests
-          retention-days: 7
-
-      - name: "Upload integration test report for app"
-        if:   always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: integration-test-report
-          path: provider-data-service/build/reports/integrationTest
-          retention-days: 7
-
-      - name: "Upload JaCoCo coverage report"
-        if:   always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: jacoco-coverage-report
-          path: provider-data-service/build/reports/jacoco
-          retention-days: 7
 
       - name: "ECR credentials guard"
         id:   ecr_guard
@@ -132,11 +70,14 @@ jobs:
         if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
         shell: bash
         env:
-          IMAGE:      ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
-          ITAG:       ${{ inputs.itag }}
-          MODULE_DIR: provider-data-service
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE:        ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          ITAG:         ${{ inputs.itag }}
+          MODULE_DIR:   provider-data-service
         run: |
           set -eu
+          sed -E -i.bak -e "s|^(version[[:space:]]*=[[:space:]]*).*|\1${ITAG#v}|" gradle.properties \
+              && rm -f gradle.properties.bak
           ./gradlew ":${MODULE_DIR}:bootBuildImage" --imageName="${IMAGE}:pdp-${ITAG}"
           docker push "${IMAGE}:pdp-${ITAG}"
 

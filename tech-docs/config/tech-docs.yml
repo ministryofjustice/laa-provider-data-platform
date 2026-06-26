@@ -3,7 +3,7 @@
 
 host: https://ministryofjustice.github.io/laa-provider-data-platform
 show_govuk_logo: false
-service_name: LAA provider data APIs
+service_name: Provider Data APIs
 service_link: /
 header_links:
   PDA-r1: /pda-r1/index.html
@@ -16,6 +16,6 @@ prevent_indexing: false
 show_contribution_banner: true
 github_repo: ministryofjustice/laa-provider-data-platform
 github_branch: main
-full_service_name: LAA provider data APIs
+full_service_name: LAA Digital Provider Data APIs
 show_expiry: true
 show_review_banner: true

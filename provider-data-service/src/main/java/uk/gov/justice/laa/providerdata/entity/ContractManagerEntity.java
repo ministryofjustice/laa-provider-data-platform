@@ -21,6 +21,9 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "CONTRACT_MANAGER")
 public class ContractManagerEntity extends AuditableEntity {
 
+  /** The fixed {@code contractManagerId} of the system default contract manager ("Mr Default"). */
+  public static final String DEFAULT_ID = "MR-DEFAULT";
+
   /** HR.PER_ALL_PEOPLE_F.PERSON_ID NUMBER(10) not null. */
   @Column(name = "CONTRACT_MANAGER_ID", nullable = false, unique = true, updatable = false)
   private String contractManagerId;
@@ -36,4 +39,12 @@ public class ContractManagerEntity extends AuditableEntity {
   /** HR.PER_ALL_PEOPLE_F.EMAIL_ADDRESS VARCHAR2(240). */
   @Column(name = "EMAIL_ADDRESS")
   private String emailAddress;
+
+  /**
+   * Identifies the system default contract manager assigned automatically when no contract manager
+   * GUID is supplied in a request (AC2). At most one record may have this flag set, enforced by the
+   * {@code UK_CONTRACT_MANAGER_ONE_DEFAULT} partial unique index.
+   */
+  @Column(name = "DEFAULT_CONTRACT_MANAGER", nullable = false)
+  private boolean defaultContractManager;
 }

@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import jakarta.transaction.Transactional;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import uk.gov.justice.laa.providerdata.PostgresqlSpringBootTest;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentService;
@@ -62,6 +64,91 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
     var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
 
     assertAssignmentPersisted(testData, result.officeGuid());
+  }
+
+  /**
+   * Simulates the seeder by directly inserting the link via the repository (bypassing {@code
+   * assign()}), then calling {@code assign()} with the same contract manager GUID. The idempotency
+   * check introduced in the service must prevent the delete+save path from being reached, so no
+   * constraint violation should occur.
+   */
+  @Test
+  @Transactional
+  void
+      assign_whenLinkPreExistsForSameContractManager_idempotencyCheckPreventsConstraintViolation() {
+    TestData testData = createTestData();
+
+    // Simulate seeder: directly insert the link as though it was committed by a prior process
+    OfficeContractManagerLinkEntity preExistingLink =
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(testData.providerOfficeLink())
+            .contractManager(testData.contractManager())
+            .build();
+    linkRepository.saveAndFlush(preExistingLink);
+
+    // Act: assign the same contract manager again — must not throw a unique constraint violation
+    assertThatNoException()
+        .isThrownBy(
+            () -> service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid()));
+
+    // Assert: exactly one assignment still exists
+    var links =
+        linkRepository.findByOfficeLink_Guid(
+            testData.providerOfficeLink().getGuid(), PageRequest.of(0, 10));
+    assertThat(links.getContent()).hasSize(1);
+    assertThat(links.getContent().getFirst().getContractManager().getContractManagerId())
+        .isEqualTo("CM-001");
+  }
+
+  /**
+   * AC2: verifies that calling {@code assign()} with a {@code null} contract manager GUID uses the
+   * system default contract manager seeded by the V4 migration ("Mr Default").
+   */
+  @Test
+  @Transactional
+  void assign_whenNoContractManagerGuidProvided_usesDefaultContractManager() {
+    ContractManagerEntity defaultCm =
+        contractManagerRepository
+            .findByDefaultContractManagerTrue()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException("V4 migration must seed a default contract manager"));
+
+    ProviderEntity provider =
+        providerRepository.save(
+            LspProviderEntity.builder()
+                .firmNumber("FRM-DEFAULT-TEST")
+                .name("Default CM Test Firm")
+                .build());
+
+    OfficeEntity office =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("1 Test Street")
+                .addressTownOrCity("London")
+                .addressPostCode("SW1A 1AA")
+                .build());
+
+    LspProviderOfficeLinkEntity providerOfficeLink =
+        (LspProviderOfficeLinkEntity)
+            providerOfficeLinkRepository.save(
+                LspProviderOfficeLinkEntity.builder()
+                    .provider(provider)
+                    .office(office)
+                    .accountNumber("ACC-DEFAULT")
+                    .headOfficeFlag(true)
+                    .build());
+
+    // Act: null GUID triggers the default CM fallback
+    var result = service.assign("FRM-DEFAULT-TEST", "ACC-DEFAULT", null);
+
+    // Assert: the system default CM was assigned
+    assertThat(result.contractManagerId()).isEqualTo(defaultCm.getContractManagerId());
+    var links =
+        linkRepository.findByOfficeLink_Guid(providerOfficeLink.getGuid(), PageRequest.of(0, 10));
+    assertThat(links.getContent()).hasSize(1);
+    assertThat(links.getContent().getFirst().getContractManager().getContractManagerId())
+        .isEqualTo(defaultCm.getContractManagerId());
   }
 
   private TestData createTestData() {

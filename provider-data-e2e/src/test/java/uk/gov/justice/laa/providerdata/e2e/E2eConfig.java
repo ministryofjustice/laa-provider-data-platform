@@ -117,6 +117,16 @@ public final class E2eConfig {
     return require("contractManager.lastName");
   }
 
+  /**
+   * The {@code contractManagerId} of the system default contract manager seeded by the V4 migration
+   * ("Mr Default"). Used by DSTEW-1660/DSTEW-1661 AC2 tests.
+   *
+   * @see uk.gov.justice.laa.providerdata.entity.ContractManagerEntity#DEFAULT_ID
+   */
+  public static String defaultContractManagerId() {
+    return "MR-DEFAULT";
+  }
+
   // --- Invalid identifiers (for 404 testing) ---
 
   public static String invalidFirmNumber() {

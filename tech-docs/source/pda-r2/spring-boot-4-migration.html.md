@@ -6,7 +6,7 @@ weight: 50
 
 # Spring Boot 4.0 migration
 
-This document describes the historical changes made to migrate the provider data API (R2)
+This document describes the historical changes made to migrate the Provider Data API (R2)
 from Spring Boot 3.5 to Spring Boot 4.0.
 
 ## Changes summary

@@ -8,8 +8,8 @@ The published technical documentation can be found
 
 ## How to modify the technical documentation
 
-The technical documentation is built from the Markdown files in `/tech-docs/source/pdl-docs` and
-`/tech-docs/source/pdp-docs`. To modify the published documentation just modify those files,
+The technical documentation is built from the Markdown files in `/tech-docs/source/pda-r1/` and
+`/tech-docs/source/pda-r2/`. To modify the published documentation just modify those files,
 once your changes have been merged into the `main` branch they will be published.
 
 ### Adding new pages
@@ -20,7 +20,7 @@ and without it the "View source" link on each page will be incorrect.
 
 ```yaml
 ---
-source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pdp-docs/my-new-page.html.md.erb
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r2/my-new-page.html.md.erb
 title: My new page
 ---
 ```

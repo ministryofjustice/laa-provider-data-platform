@@ -43,7 +43,7 @@ Each release creates its own:
 - Service
 - Dedicated ingress (with hostname suffix, e.g., `*-uat-1`, `*-uat-2`)
 
-Both releases also participate in the shared "PDA" ingress for traffic splitting.
+Both releases also participate in the shared "pda" ingress for traffic splitting.
 
 ### Helm values configuration
 
@@ -102,7 +102,7 @@ helm upgrade --install pdl-2 helm_deploy/providers-app \
 
 ### How it works
 
-The shared "PDA" ingress (`ingress-pda.yaml`) uses NGINX canary annotations to split traffic
+The shared "pda" ingress (`ingress-pda.yaml`) uses NGINX canary annotations to split traffic
 between the stable and canary releases.
 
 - The **stable** release creates the base ingress (receives `[100 - canary_weight]%`)

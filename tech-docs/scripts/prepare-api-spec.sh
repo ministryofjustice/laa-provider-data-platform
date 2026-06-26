@@ -20,7 +20,7 @@ npx --yes widdershins \
 # Strip widdershins' own front matter; prepend a minimal title so Middleman
 # applies the MoJ layout (header/footer) but omit weight so it has no nav entry
 {
-  printf -- '---\ntitle: LAA Provider Data API – Widdershins\n---\n\n'
+  printf -- '---\ntitle: Provider Data API (R2) – Widdershins\n---\n\n'
   awk 'BEGIN{p=0;n=0} !p && /^---/{n++; if(n==2){p=1}; next} p{print}' /tmp/widdershins-raw.md
 } > "$OUT/widdershins.html.md"
 

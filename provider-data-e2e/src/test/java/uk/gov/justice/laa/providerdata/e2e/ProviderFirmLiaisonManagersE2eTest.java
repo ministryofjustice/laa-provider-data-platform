@@ -55,9 +55,10 @@ class ProviderFirmLiaisonManagersE2eTest {
   /**
    * DSTEW-1649 AC2 – Liaison Manager not found: unknown firm.
    *
-   * <p>DS_MAPD_FR_014 (DSTEW-1649): When the requested entity does not exist in PDP, an appropriate
-   * error must be returned. Since every office is created with a Liaison Manager and LMs can only
-   * be superseded (never removed), "entity not found" is the only reachable proxy for this AC.
+   * <p>DS_MAPD_FR_014 (DSTEW-1649): When the requested entity does not exist in PDA-r2, an
+   * appropriate error must be returned. Since every office is created with a Liaison Manager and
+   * LMs can only be superseded (never removed), "entity not found" is the only reachable proxy for
+   * this AC.
    */
   @Test
   void getOfficeLiaisonManagers_unknownFirm_returns404() {
@@ -74,9 +75,10 @@ class ProviderFirmLiaisonManagersE2eTest {
   /**
    * DSTEW-1649 AC2 – Liaison Manager not found: unknown office.
    *
-   * <p>DS_MAPD_FR_014 (DSTEW-1649): When the requested entity does not exist in PDP, an appropriate
-   * error must be returned. Since every office is created with a Liaison Manager and LMs can only
-   * be superseded (never removed), "entity not found" is the only reachable proxy for this AC.
+   * <p>DS_MAPD_FR_014 (DSTEW-1649): When the requested entity does not exist in PDA-r2, an
+   * appropriate error must be returned. Since every office is created with a Liaison Manager and
+   * LMs can only be superseded (never removed), "entity not found" is the only reachable proxy for
+   * this AC.
    */
   @Test
   void getOfficeLiaisonManagers_unknownOffice_returns404() {

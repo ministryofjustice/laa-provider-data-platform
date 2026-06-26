@@ -13,8 +13,8 @@ import uk.gov.justice.laa.providerdata.repository.ContractManagerSpecifications;
  * Service for retrieving contract manager records for the {@code GET /provider-contract-managers}
  * endpoint.
  *
- * <p>This service queries the local PDP database using Spring Data JPA Specifications and applies
- * optional filters:
+ * <p>This service queries the local PDA-r2 database using Spring Data JPA Specifications and
+ * applies optional filters:
  *
  * <ul>
  *   <li>{@code contractManagerIds}: exact-match filtering on contract manager IDs (multi)

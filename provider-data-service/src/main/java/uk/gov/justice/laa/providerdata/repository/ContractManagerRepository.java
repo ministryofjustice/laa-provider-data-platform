@@ -20,4 +20,6 @@ public interface ContractManagerRepository
    * record can have {@code DEFAULT_CONTRACT_MANAGER = TRUE}.
    */
   Optional<ContractManagerEntity> findByDefaultContractManagerTrue();
+
+  Optional<ContractManagerEntity> findByContractManagerId(String contractManagerId);
 }

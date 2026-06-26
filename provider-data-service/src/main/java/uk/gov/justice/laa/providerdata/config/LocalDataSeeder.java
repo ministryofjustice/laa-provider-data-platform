@@ -63,6 +63,7 @@ public class LocalDataSeeder implements CommandLineRunner {
   private static final String CHAMBERS_FIRM_NUMBER = "100002";
   private static final String ADVOCATE_FIRM_NUMBER = "100003";
   private static final String CHAMBERS_DX_FIRM_NUMBER = "100004";
+  private static final String LSP2_FIRM_NUMBER = "100005";
 
   @Override
   @Transactional
@@ -70,6 +71,7 @@ public class LocalDataSeeder implements CommandLineRunner {
     if (providerRepository.findByFirmNumber(LSP_FIRM_NUMBER).isPresent()) {
       log.info("Base test data already seeded");
       seedDxChambersIfMissing();
+      seedLsp2IfMissing();
       return;
     }
     log.info("Starting local data seeding for foundation tables");
@@ -88,6 +90,7 @@ public class LocalDataSeeder implements CommandLineRunner {
     seedOfficeContractManagerLinks(lspLink, contractManagers);
     log.info("Local data seeding completed successfully");
     seedDxChambersIfMissing();
+    seedLsp2IfMissing();
   }
 
   private void seedDxChambersIfMissing() {
@@ -118,6 +121,138 @@ public class LocalDataSeeder implements CommandLineRunner {
             .headOfficeFlag(true)
             .build());
     log.info("Seeded DX Chambers (firmNumber {})", CHAMBERS_DX_FIRM_NUMBER);
+  }
+
+  /**
+   * Seeds a second LSP (firmNumber 100005) with both a head office (ACC005) and a child office
+   * (ACC006). The child office has all optional fields populated — DX details, VAT registration,
+   * telephone, email, liaison manager, contract manager, and bank account — so it can be used by
+   * read-only view tests without creating data of their own.
+   *
+   * <p>All data is clearly fictional (test.example.com addresses, 000-series phone numbers, etc.).
+   */
+  private void seedLsp2IfMissing() {
+    if (providerRepository.findByFirmNumber(LSP2_FIRM_NUMBER).isPresent()) {
+      log.info("LSP2 already seeded (firmNumber {})", LSP2_FIRM_NUMBER);
+      return;
+    }
+    log.info("Seeding LSP2 (firmNumber {})", LSP2_FIRM_NUMBER);
+
+    var lsp2 =
+        providerRepository.save(
+            LspProviderEntity.builder()
+                .firmNumber(LSP2_FIRM_NUMBER)
+                .name("Test LSP With Child Office")
+                .constitutionalStatus("Partnership")
+                .build());
+
+    OfficeEntity headOffice =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("1 Test Head Office Street")
+                .addressTownOrCity("London")
+                .addressPostCode("EC1A 1BB")
+                .build());
+
+    OfficeEntity childOffice =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("2 Test Child Office Street")
+                .addressLine2("Floor 3")
+                .addressTownOrCity("Leeds")
+                .addressCounty("West Yorkshire")
+                .addressPostCode("LS1 1AB")
+                .telephoneNumber("0113 000 0001")
+                .emailAddress("child-office@test.example.com")
+                .dxDetailsNumber("DX 00001")
+                .dxDetailsCentre("Leeds DX Centre")
+                .build());
+
+    providerOfficeLinkRepository.save(
+        LspProviderOfficeLinkEntity.builder()
+            .provider(lsp2)
+            .office(headOffice)
+            .accountNumber("ACC005")
+            .headOfficeFlag(true)
+            .intervenedFlag(false)
+            .paymentMethod("EFT")
+            .paymentHeldFlag(false)
+            .debtRecoveryFlag(false)
+            .falseBalanceFlag(false)
+            .build());
+
+    LspProviderOfficeLinkEntity childLink =
+        (LspProviderOfficeLinkEntity)
+            providerOfficeLinkRepository.save(
+                LspProviderOfficeLinkEntity.builder()
+                    .provider(lsp2)
+                    .office(childOffice)
+                    .accountNumber("ACC006")
+                    .headOfficeFlag(false)
+                    .intervenedFlag(false)
+                    .vatRegistrationNumber("GB000000000")
+                    .paymentMethod("EFT")
+                    .paymentHeldFlag(false)
+                    .debtRecoveryFlag(false)
+                    .falseBalanceFlag(false)
+                    .build());
+
+    LiaisonManagerEntity lm =
+        liaisonManagerRepository.save(
+            LiaisonManagerEntity.builder()
+                .firstName("Test")
+                .lastName("ChildLm")
+                .emailAddress("child-lm@test.example.com")
+                .telephoneNumber("0113 000 0002")
+                .build());
+
+    officeLiaisonManagerLinkRepository.save(
+        OfficeLiaisonManagerLinkEntity.builder()
+            .officeLink(childLink)
+            .liaisonManager(lm)
+            .activeDateFrom(LocalDate.now())
+            .linkedFlag(true)
+            .build());
+
+    ContractManagerEntity cm =
+        contractManagerRepository
+            .findByContractManagerId("CM003")
+            .orElseGet(
+                () ->
+                    contractManagerRepository.save(
+                        ContractManagerEntity.builder()
+                            .contractManagerId("CM003")
+                            .firstName("Test")
+                            .lastName("ChildCm")
+                            .build()));
+
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(childLink)
+            .contractManager(cm)
+            .build());
+
+    BankAccountEntity bankAccount =
+        bankAccountRepository
+            .findBySortCodeAndAccountNumber("300000", "00000001")
+            .orElseGet(
+                () ->
+                    bankAccountRepository.save(
+                        BankAccountEntity.builder()
+                            .accountName("Test Child Office Account")
+                            .sortCode("300000")
+                            .accountNumber("00000001")
+                            .build()));
+
+    officeBankAccountLinkRepository.save(
+        OfficeBankAccountLinkEntity.builder()
+            .providerOfficeLink(childLink)
+            .bankAccount(bankAccount)
+            .primaryFlag(true)
+            .activeDateFrom(LocalDate.now())
+            .build());
+
+    log.info("Seeded LSP2 (firmNumber {})", LSP2_FIRM_NUMBER);
   }
 
   private BankAccountEntity[] seedBankAccounts() {

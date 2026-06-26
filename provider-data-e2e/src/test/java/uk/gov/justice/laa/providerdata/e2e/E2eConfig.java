@@ -137,6 +137,22 @@ public final class E2eConfig {
     return require("invalid.officeCode");
   }
 
+  // --- LSP2 (two-office LSP for child office view tests) ---
+
+  /** Firm number for the second seeded LSP, which has both a head office and a child office. */
+  public static String lsp2FirmNumber() {
+    return require("lsp2.firmNumber");
+  }
+
+  /**
+   * Account number for the seeded LSP2 child office ({@code headOfficeFlag=false}). This office has
+   * all optional fields populated (DX, VAT, telephone, email, liaison manager, contract manager,
+   * bank account) so view tests can verify every field without creating data of their own.
+   */
+  public static String lsp2ChildOfficeCode() {
+    return require("lsp2.childOffice.code");
+  }
+
   // --- Helpers ---
 
   private static String resolve(String sysPropKey, String envVarKey) {

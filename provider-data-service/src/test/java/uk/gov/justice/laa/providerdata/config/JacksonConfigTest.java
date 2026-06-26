@@ -1,11 +1,13 @@
 package uk.gov.justice.laa.providerdata.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.json.JsonMapper;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.AdvocateOfficePatchV2;
@@ -322,5 +324,117 @@ class JacksonConfigTest {
 
     assertThat(result).isInstanceOf(ChambersOfficePatchV2.class);
     assertThat(((ChambersOfficePatchV2) result).getTelephoneNumber()).isEqualTo("0121 232 1111");
+  }
+
+  // Liaison manager variant conflict rejection
+
+  @Test
+  void lspLiaisonManager_rejects_useHeadOffice_combined_with_liaisonManagerGUID() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"useHeadOfficeLiaisonManager": true,
+                     "liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"}
+                    """,
+                    LSPOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("liaisonManagerGUID");
+  }
+
+  @Test
+  void lspLiaisonManager_rejects_useHeadOffice_combined_with_newLmProperties() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"useHeadOfficeLiaisonManager": true, "firstName": "Alice"}
+                    """,
+                    LSPOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("firstName");
+  }
+
+  @Test
+  void lspLiaisonManager_rejects_liaisonManagerGUID_combined_with_newLmProperties() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+                     "firstName": "Alice"}
+                    """,
+                    LSPOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("firstName");
+  }
+
+  @Test
+  void advocateLiaisonManager_rejects_useChambersLiaisonManager_combined_with_liaisonManagerGUID() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"useChambersLiaisonManager": true,
+                     "liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"}
+                    """,
+                    AdvocateOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("liaisonManagerGUID");
+  }
+
+  @Test
+  void advocateLiaisonManager_rejects_liaisonManagerGUID_combined_with_newLmProperties() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+                     "firstName": "Tom"}
+                    """,
+                    AdvocateOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("firstName");
+  }
+
+  @Test
+  void chambersLiaisonManager_rejects_liaisonManagerGUID_combined_with_newLmProperties() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+                     "firstName": "Bob"}
+                    """,
+                    ChambersOfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("firstName");
+  }
+
+  @Test
+  void officeLiaisonManager_rejects_useHeadOffice_combined_with_liaisonManagerGUID() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"useHeadOfficeLiaisonManager": true,
+                     "liaisonManagerGUID": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"}
+                    """,
+                    OfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("liaisonManagerGUID");
+  }
+
+  @Test
+  void officeLiaisonManager_rejects_useChambersLiaisonManager_combined_with_newLmProperties() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    """
+                    {"useChambersLiaisonManager": true, "firstName": "Alice"}
+                    """,
+                    OfficeLiaisonManagerCreateOrLinkV2.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("firstName");
   }
 }

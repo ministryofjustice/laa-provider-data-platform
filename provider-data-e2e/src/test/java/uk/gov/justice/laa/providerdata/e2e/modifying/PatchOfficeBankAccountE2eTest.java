@@ -1478,9 +1478,8 @@ class PatchOfficeBankAccountE2eTest {
             .response();
 
     String activeDateFromString = response.path("data.content[0].activeDateFrom");
-    java.time.LocalDate activeDateFrom =
-        java.time.ZonedDateTime.parse(activeDateFromString).toLocalDate();
-    java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+    java.time.LocalDate activeDateFrom = java.time.LocalDate.parse(activeDateFromString);
+    java.time.LocalDate today = java.time.LocalDate.now();
 
     org.hamcrest.MatcherAssert.assertThat(
         "Effective Start Date should be today's date", activeDateFrom, equalTo(today));

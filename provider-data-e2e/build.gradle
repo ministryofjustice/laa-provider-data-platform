@@ -61,10 +61,13 @@ def configureE2E = { Test t ->
 }
 
 tasks.register("e2eReadOnly", Test) {
-    description = "Run read-only e2e tests (@ReadOnlyTest). Safe to run against any environment including production."
+    description = "Run read-only E2E tests (@ReadOnlyTest). Safe to run against any environment including production."
     group = "verification"
-    // TODO: Remove this guard once the database has been deployed to non-local environments.
-    onlyIf("e2e tests are only enabled for local and preview environments") {
+    // TODO: Remove this guard once the PDA-r2 database has been deployed to non-local environments.
+    // Read-only tests require known data. The shared RDS instances (uat, staging, prod) do not
+    // yet have populated data, so tests are restricted to local and preview until they do.
+    onlyIf("Read-only E2E tests are temporarily restricted to local and preview until the shared " +
+            "environments have populated data") {
         def env = project.findProperty('e2e.env') as String
         env == 'local' || env == 'preview'
     }
@@ -74,7 +77,7 @@ tasks.register("e2eReadOnly", Test) {
 }
 
 tasks.register("e2eModifying", Test) {
-    description = "Run data-modifying e2e tests (@ModifyingTest). Must not run against production."
+    description = "Run data-modifying E2E tests (@ModifyingTest). Must not run against production."
     group = "verification"
     configureE2E(delegate)
     useJUnitPlatform { includeTags "modifying" }
@@ -85,7 +88,7 @@ tasks.register("e2eModifying", Test) {
         def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
         if (envName != 'local') {
             throw new GradleException(
-                "Data-modifying e2e tests may only run against the local environment (e2e.env=${envName}). " +
+                "Data-modifying E2E tests should only run against the local environment (e2e.env=${envName}). " +
                 "Use 'e2eReadOnly' instead, or target e2e.env=local."
             )
         }
@@ -93,10 +96,11 @@ tasks.register("e2eModifying", Test) {
 }
 
 tasks.register("e2eTest") {
-    description = "Run read-only e2e tests in all environments; also runs data-modifying tests when e2e.env=local."
+    description = "Run read-only E2E tests in all environments. Also runs data-modifying E2E tests when e2e.env=local."
     group = "verification"
     dependsOn "e2eReadOnly"
     if ((project.findProperty('e2e.env') as String) == 'local') {
         dependsOn "e2eModifying"
     }
+    outputs.upToDateWhen { false }
 }

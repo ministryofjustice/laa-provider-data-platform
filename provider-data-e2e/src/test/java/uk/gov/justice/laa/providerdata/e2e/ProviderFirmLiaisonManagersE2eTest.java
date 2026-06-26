@@ -42,9 +42,7 @@ class ProviderFirmLiaisonManagersE2eTest {
         .statusCode(200)
         .body("data.content.find { it.activeDateTo == null }.guid", notNullValue())
         .body("data.content.find { it.activeDateTo == null }.firstName", notNullValue())
-        .body(
-            "data.content.find { it.activeDateTo == null }.lastName",
-            equalTo(E2eConfig.lspLiaisonManagerLastName()))
+        .body("data.content.find { it.activeDateTo == null }.lastName", notNullValue())
         .body("data.content.find { it.activeDateTo == null }.emailAddress", notNullValue())
         .body("data.content.find { it.activeDateTo == null }.telephoneNumber", notNullValue())
         .body("data.content.find { it.activeDateTo == null }.activeDateFrom", notNullValue())

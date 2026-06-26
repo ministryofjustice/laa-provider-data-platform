@@ -6,7 +6,7 @@ weight: 4
 
 # API reference
 
-The provider details API (R1) provides RESTful endpoints for accessing provider data.
+The Provider Details API (R1) provides RESTful endpoints for accessing provider data.
 
 The primary documentation for the REST endpoints is the Swagger UI - which is available at each of
 the following PDA-r1 environment URLs:
@@ -55,7 +55,7 @@ Rate limiting is handled by the Cloud Platform ingress.
 
 ## Operational hours
 
-The PDA-r1 environments are dependent on connectivity to the ECP environment, so PDA's
+The PDA-r1 environments are dependent on connectivity to the ECP environment, so their
 operational hours are similar to ECP's. The service is available 07:00 until 21:30.
 
 ## More information

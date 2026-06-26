@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.providerdata.config;
 
-import java.util.function.Function;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.core.JacksonException;
@@ -99,52 +98,130 @@ public class JacksonConfig {
             LSPOfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
                 LSPOfficeLiaisonManagerCreateOrLinkV2.class,
-                node ->
-                    node.has("useHeadOfficeLiaisonManager")
-                        ? LiaisonManagerLinkHeadOfficeV2.class
-                        : node.has("liaisonManagerGUID")
-                            ? LiaisonManagerLinkByGUIDV2.class
-                            : LiaisonManagerCreateV2.class))
+                (node, p) -> {
+                  if (node.has("useHeadOfficeLiaisonManager")) {
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "useHeadOfficeLiaisonManager",
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkHeadOfficeV2.class;
+                  } else if (node.has("liaisonManagerGUID")) {
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkByGUIDV2.class;
+                  } else {
+                    return LiaisonManagerCreateV2.class;
+                  }
+                }))
         .addDeserializer(
             AdvocateOfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
                 AdvocateOfficeLiaisonManagerCreateOrLinkV2.class,
-                node ->
-                    node.has("useChambersLiaisonManager")
-                        ? LiaisonManagerLinkChambersV2.class
-                        : node.has("liaisonManagerGUID")
-                            ? LiaisonManagerLinkByGUIDV2.class
-                            : LiaisonManagerCreateV2.class))
+                (node, p) -> {
+                  if (node.has("useChambersLiaisonManager")) {
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "useChambersLiaisonManager",
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkChambersV2.class;
+                  } else if (node.has("liaisonManagerGUID")) {
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkByGUIDV2.class;
+                  } else {
+                    return LiaisonManagerCreateV2.class;
+                  }
+                }))
         .addDeserializer(
             ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
                 ChambersOfficeLiaisonManagerCreateOrLinkV2.class,
-                node ->
-                    node.has("liaisonManagerGUID")
-                        ? LiaisonManagerLinkByGUIDV2.class
-                        : LiaisonManagerCreateV2.class))
+                (node, p) -> {
+                  if (node.has("liaisonManagerGUID")) {
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkByGUIDV2.class;
+                  } else {
+                    return LiaisonManagerCreateV2.class;
+                  }
+                }))
         .addDeserializer(
             OfficeLiaisonManagerCreateOrLinkV2.class,
             new TypeResolvingDeserializer<>(
                 OfficeLiaisonManagerCreateOrLinkV2.class,
-                node -> {
-                  Class<? extends OfficeLiaisonManagerCreateOrLinkV2> result;
+                (node, p) -> {
                   if (node.has("useHeadOfficeLiaisonManager")) {
-                    result = LiaisonManagerLinkHeadOfficeV2.class;
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "useHeadOfficeLiaisonManager",
+                        "useChambersLiaisonManager",
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkHeadOfficeV2.class;
                   } else if (node.has("useChambersLiaisonManager")) {
-                    result = LiaisonManagerLinkChambersV2.class;
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "useChambersLiaisonManager",
+                        "liaisonManagerGUID",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkChambersV2.class;
                   } else if (node.has("liaisonManagerGUID")) {
-                    result = LiaisonManagerLinkByGUIDV2.class;
+                    rejectIfAnyPresent(
+                        node,
+                        p,
+                        "liaisonManagerGUID",
+                        "useHeadOfficeLiaisonManager",
+                        "useChambersLiaisonManager",
+                        "firstName",
+                        "lastName",
+                        "emailAddress",
+                        "telephoneNumber");
+                    return LiaisonManagerLinkByGUIDV2.class;
                   } else {
-                    result = LiaisonManagerCreateV2.class;
+                    return LiaisonManagerCreateV2.class;
                   }
-                  return result;
                 }))
         .addDeserializer(
             PractitionerDetailsParentUpdateV2.class,
             new TypeResolvingDeserializer<>(
                 PractitionerDetailsParentUpdateV2.class,
-                node ->
+                (node, p) ->
                     node.has("parentGUID")
                         ? PractitionerDetailsParentUpdateV2OneOf.class
                         : PractitionerDetailsParentUpdateV2OneOf1.class))
@@ -152,7 +229,7 @@ public class JacksonConfig {
             PaymentDetailsCreateOrLinkV2BankAccountDetails.class,
             new TypeResolvingDeserializer<>(
                 PaymentDetailsCreateOrLinkV2BankAccountDetails.class,
-                node ->
+                (node, p) ->
                     node.has("bankAccountGUID")
                         ? BankAccountProviderOfficeLinkV2.class
                         : BankAccountProviderOfficeCreateV2.class))
@@ -160,7 +237,7 @@ public class JacksonConfig {
             OfficePatchV2.class,
             new TypeResolvingDeserializer<>(
                 OfficePatchV2.class,
-                node -> {
+                (node, p) -> {
                   boolean hasLspOrAdvocateField =
                       node.has("payment")
                           || node.has("vatRegistration")
@@ -183,13 +260,19 @@ public class JacksonConfig {
   /**
    * Deserializer for {@code oneOf} types that lack an OpenAPI discriminator. Reads the incoming
    * JSON as a tree so the content can be inspected, delegates type selection to the provided
-   * resolver function, then deserializes into the resolved subtype.
+   * resolver, then deserializes into the resolved subtype. The resolver may throw a {@link
+   * JacksonException} to reject conflicting field combinations before type resolution completes.
    */
   static final class TypeResolvingDeserializer<T> extends StdDeserializer<T> {
 
-    private final Function<JsonNode, Class<? extends T>> typeResolver;
+    @FunctionalInterface
+    interface TypeResolver<T> {
+      Class<? extends T> resolve(JsonNode node, JsonParser p) throws JacksonException;
+    }
 
-    TypeResolvingDeserializer(Class<T> vc, Function<JsonNode, Class<? extends T>> typeResolver) {
+    private final TypeResolver<T> typeResolver;
+
+    TypeResolvingDeserializer(Class<T> vc, TypeResolver<T> typeResolver) {
       super(vc);
       this.typeResolver = typeResolver;
     }
@@ -197,7 +280,26 @@ public class JacksonConfig {
     @Override
     public T deserialize(JsonParser p, DeserializationContext ctx) throws JacksonException {
       JsonNode node = p.readValueAsTree();
-      return ctx.readTreeAsValue(node, typeResolver.apply(node));
+      return ctx.readTreeAsValue(node, typeResolver.resolve(node, p));
+    }
+  }
+
+  /**
+   * Throws a {@link MismatchedInputException} if the JSON node contains any of {@code
+   * conflictingFields}. The {@code discriminator} names the field whose presence selected the
+   * current type; it appears in the error message to explain what the conflicting field cannot be
+   * combined with.
+   */
+  private static void rejectIfAnyPresent(
+      JsonNode node, JsonParser p, String discriminator, String... conflictingFields)
+      throws JacksonException {
+    for (String field : conflictingFields) {
+      if (node.has(field)) {
+        throw MismatchedInputException.from(
+            p,
+            Object.class,
+            "Field '" + field + "' cannot be combined with '" + discriminator + "'");
+      }
     }
   }
 }

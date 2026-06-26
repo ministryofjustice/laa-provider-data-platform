@@ -54,6 +54,9 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       //
       // Similarly, oneOf validation on requests is downgraded so that intentionally invalid
       // request bodies (used in error-case tests) reach the service rather than being blocked.
+      // Required-field validation on requests is also downgraded for the same reason: tests that
+      // verify mandatory-field enforcement send requests with missing fields and must reach the
+      // service to confirm the 400 response.
       OpenApiInteractionValidator validator =
           OpenApiInteractionValidator.createForInlineApiSpecification(spec)
               .withLevelResolver(
@@ -72,6 +75,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                           ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.oneOf", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.required", ValidationReport.Level.WARN)
                       .build())
               .build();
       return new OpenApiValidationFilter(validator);

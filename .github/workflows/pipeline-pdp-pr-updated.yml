@@ -52,11 +52,20 @@ jobs:
           ### Check the Helm chart lints OK
           helm lint ./helm_deploy/provider-data-platform --quiet --strict
 
-  make-image:
+  gradle-build-and-publish:
     name: "Build PR #${{ needs.plan.outputs.prnum }}"
     needs: [ plan ]
-    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
-    uses: ./.github/workflows/rw-pdp-build.yml
+    permissions: { contents: read, packages: write }
+    uses: ./.github/workflows/rw-gradle-build-and-publish.yml
+    with:
+      itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
+    secrets: inherit
+
+  ecr-publish-image:
+    name: "Publish PR #${{ needs.plan.outputs.prnum }}"
+    needs: [ plan, gradle-build-and-publish ]
+    permissions: { actions: read, contents: read, id-token: write, packages: read, security-events: write }
+    uses: ./.github/workflows/rw-ecr-publish-image.yml
     with:
       itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
       mtag: "pr-${{ needs.plan.outputs.prnum }}"
@@ -65,7 +74,7 @@ jobs:
   deploy-pr:
     name: "Deploy PR #${{ needs.plan.outputs.prnum }}"
     if:   needs.plan.outputs.no_preview != 'true'
-    needs: [ plan, make-image ]
+    needs: [ plan, ecr-publish-image ]
     permissions: { contents: read, id-token: write }
     uses: ./.github/workflows/rw-pdp-deploy-pr.yml
     with:

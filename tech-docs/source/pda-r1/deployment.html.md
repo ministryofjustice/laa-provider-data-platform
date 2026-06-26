@@ -8,7 +8,7 @@ weight: 6
 
 ## Overview
 
-The provider details API (R1) is deployed to Kubernetes on the Cloud Platform using Helm.
+The Provider Details API (R1) is deployed to Kubernetes on the Cloud Platform using Helm.
 
 ## Environments
 

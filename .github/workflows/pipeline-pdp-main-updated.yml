@@ -104,19 +104,29 @@ jobs:
             fi
           }
 
-  make-image:
+  gradle-build-and-publish:
     name: "Build ${{ needs.plan.outputs.gtag }}"
     if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')
     needs: [ plan, create-tag ]
-    permissions: { actions: read, contents: read, id-token: write, packages: write, security-events: write }
-    uses: ./.github/workflows/rw-pdp-build.yml
+    permissions: { contents: read, packages: write }
+    uses: ./.github/workflows/rw-gradle-build-and-publish.yml
+    with:
+      itag: ${{ needs.plan.outputs.gtag }}
+    secrets: inherit
+
+  ecr-publish-image:
+    name: "Publish ${{ needs.plan.outputs.gtag }}"
+    if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')
+    needs: [ plan, gradle-build-and-publish ]
+    permissions: { actions: read, contents: read, id-token: write, packages: read, security-events: write }
+    uses: ./.github/workflows/rw-ecr-publish-image.yml
     with:
       itag: ${{ needs.plan.outputs.gtag }}
     secrets: inherit
 
   create-release:
     name: "GitHub Release"
-    needs: [ plan, make-image ]
+    needs: [ plan, ecr-publish-image ]
     permissions: { contents: write }
     runs-on: ubuntu-latest
     steps:

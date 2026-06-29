@@ -1830,7 +1830,7 @@ data:
         ]
       },
       "timezone": "browser",
-      "title": "LAA provider PDP - {{ .Values.prometheus.metricsQualifier }}",
+      "title": "LAA PDA-r2 - old {{ .Values.prometheus.metricsQualifier }}",
       "uid": "laa-provider-data-platform-{{ .Values.prometheus.metricsQualifier }}-8813",
       "version": 1,
       "weekStart": ""

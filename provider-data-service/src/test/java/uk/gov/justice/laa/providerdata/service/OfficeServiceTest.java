@@ -44,7 +44,7 @@ import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.DXPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
-import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.OfficeAddressPatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
@@ -816,7 +816,10 @@ class OfficeServiceTest {
     var patch =
         new LSPOfficePatchV2()
             .address(
-                new OfficeAddressV2().line1("1 High St").townOrCity("London").postcode("SW1A 1AA"))
+                new OfficeAddressPatchV2()
+                    .line1("1 High St")
+                    .townOrCity("London")
+                    .postcode("SW1A 1AA"))
             .telephoneNumber("0207 111 2222")
             .emailAddress("info@example.com")
             .website(java.net.URI.create("https://www.example.com"))

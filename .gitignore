@@ -41,6 +41,7 @@ build/
 /provider-data-api/generated/
 
 ### Miscellaneous ###
-/.yamlrc.yml
+.factorypath
+.yamlrc.yml
 /tech-docs/source/pda-r2/api/laa-data-pda.yml
 /tech-docs/source/pda-r2/api/widdershins.html.md

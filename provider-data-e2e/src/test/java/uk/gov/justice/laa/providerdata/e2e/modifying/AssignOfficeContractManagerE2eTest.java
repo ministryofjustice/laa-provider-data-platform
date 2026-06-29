@@ -26,12 +26,25 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 class AssignOfficeContractManagerE2eTest {
 
   private static String contractManagerGuid;
+  private static String defaultContractManagerGuid;
 
   @BeforeAll
   static void lookUpGuids() {
     contractManagerGuid =
         given()
             .queryParam("contractManagerId", E2eConfig.contractManagerId())
+            .when()
+            .get("/provider-contract-managers")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].guid");
+
+    // Default ("Mr Default") contract manager GUID — used as the second, distinct CM in the
+    // replacement test below so we can prove the prior assignment was removed rather than added to.
+    defaultContractManagerGuid =
+        given()
+            .queryParam("contractManagerId", E2eConfig.defaultContractManagerId())
             .when()
             .get("/provider-contract-managers")
             .then()
@@ -163,6 +176,97 @@ class AssignOfficeContractManagerE2eTest {
         .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
         .then()
         .statusCode(400);
+  }
+
+  /**
+   * AC1 + AC3: assigning a different contract manager to an office that already has one replaces
+   * the existing assignment (rather than appending). After the second POST, the GET response must
+   * contain exactly one contract manager — the new one — proving the previous assignment was
+   * removed.
+   */
+  @Test
+  void assignContractManager_replacesExistingAssignment_onlyNewRemains() {
+    // Establish a known starting state: assign the configured contract manager.
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(Map.of("contractManagerGUID", contractManagerGuid))
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(201)
+        .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
+
+    // Replace with a different contract manager (the system default).
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(Map.of("contractManagerGUID", defaultContractManagerGuid))
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(201)
+        .body("data.contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
+
+    // DSTEW-1660/DSTEW-1661 AC1: only the new assignment is present (the original CM has been
+    // replaced).
+    // DSTEW-1660/DSTEW-1661 AC3: exactly one contract manager is assigned to the entity after the
+    // change completes.
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(equalTo(1)))
+        .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
+  }
+
+  /**
+   * DSTEW-1660/DSTEW-1661 AC4: when an invalid contract manager identifier is submitted, the
+   * existing assignment must remain unchanged. Establishes a known assignment, sends a request with
+   * an unknown GUID that the service rejects with 400, then asserts the original contract manager
+   * is still the one assigned.
+   */
+  @Test
+  void assignContractManager_invalidGuid_existingAssignmentUnchanged() {
+    // Establish a known good assignment so we have something whose preservation we can verify.
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(Map.of("contractManagerGUID", contractManagerGuid))
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(201);
+
+    // Submit a syntactically valid but unknown GUID — service rejects with 400.
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000"))
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(400);
+
+    // DSTEW-1660/DSTEW-1661 AC4: the previously assigned contract manager is still the one assigned
+    // — the failed request
+    // did not remove or overwrite the existing link.
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(equalTo(1)))
+        .body("data.content[0].contractManagerId", equalTo(E2eConfig.contractManagerId()));
   }
 
   // TODO: Add unknownOfficeCode_returns404 test once the OpenAPI spec defines 404 for this

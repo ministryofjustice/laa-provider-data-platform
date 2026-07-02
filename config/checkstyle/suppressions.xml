@@ -2,4 +2,10 @@
 <!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 <suppressions>
+    <!--
+        LocalDataSeeder uses /// Markdown Javadoc for the class-level comment (to render tables).
+        Checkstyle's MissingJavadocType check does not yet recognise /// as satisfying the
+        Javadoc requirement, so suppress it for this file only.
+    -->
+    <suppress checks="MissingJavadocType" files="LocalDataSeeder\.java"/>
 </suppressions>

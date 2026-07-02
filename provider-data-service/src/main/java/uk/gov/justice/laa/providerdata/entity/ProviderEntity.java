@@ -15,8 +15,15 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DiscriminatorFormula;
 
 /**
- * Provider entity representing a legal services provider or individual practitioner. Base entity
- * for LSP, Chambers, and Advocate provider subtypes.
+ * Base provider entity for LSP, Chambers, and Practitioner (Advocate/Barrister) subtypes, all
+ * stored in the {@code PROVIDER} table (SINGLE_TABLE inheritance).
+ *
+ * <p>A {@link org.hibernate.annotations.DiscriminatorFormula} is used rather than a plain
+ * {@code @DiscriminatorColumn} because practitioners have a two-level type: {@code FIRM_TYPE =
+ * 'Advocate'} is further subdivided by {@code ADVOCATE_TYPE} into {@code 'Advocate'} or {@code
+ * 'Barrister'}. A formula is the only way to produce the compound discriminator values {@code
+ * 'Advocate.Advocate'} and {@code 'Advocate.Barrister'} that Hibernate needs to instantiate the
+ * correct subclass.
  */
 @SuperBuilder
 @NoArgsConstructor

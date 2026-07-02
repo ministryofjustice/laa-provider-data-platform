@@ -39,7 +39,7 @@ dependencies have been updated subsequently).
 [LAA Spring Boot Common release notes](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0) \
 **Files changed:** `**/build.gradle`
 
-```gradle
+```groovy
 id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.0.4'
 ```
 
@@ -52,7 +52,7 @@ Upgrading the plugin upgraded Spring Boot to 4.0.1, which also upgraded related 
 [Web Application Starters](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#web-application-starters) \
 **Files changed:** `**/build.gradle`
 
-```gradle
+```groovy
 // Spring Boot 4.0 modularisation renamed this starter
 implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 ```
@@ -63,7 +63,7 @@ implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 [SpringDoc compatibility matrix](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot) \
 **Files changed:** `**/build.gradle`
 
-```gradle
+```groovy
 // Spring Boot 4.0 requires SpringDoc 3.x
 implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 ```
@@ -74,7 +74,7 @@ implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 [Test Starters](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#test-starters) \
 **Files changed:** `**/build.gradle`
 
-```gradle
+```groovy
 // Spring Boot 4.0 encourages modular test dependencies
 testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
@@ -86,7 +86,7 @@ testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 [spring-boot-starter-aop](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#spring-boot-starter-aop) \
 **File changed:** `providers-app/build.gradle`
 
-```gradle
+```groovy
 // Spring Boot 4.0 renamed this starter for clarity
 implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 ```
@@ -97,7 +97,7 @@ implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 [Dependency Management Removals](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#dependency-management-removals) \
 **File changed:** `providers-app/build.gradle`
 
-```gradle
+```groovy
 // Spring Retry removed from Spring Boot 4.0 BOM - explicit version required
 implementation 'org.springframework.retry:spring-retry:2.0.12'
 ```
@@ -112,7 +112,7 @@ implementation 'org.springframework.retry:spring-retry:2.0.12'
 Spring Boot 4.0 includes Testcontainers 2.0.3 with renamed artifact IDs.
 In Testcontainers 2.0, all modules are now prefixed with `testcontainers-`:
 
-```gradle
+```groovy
 // Artifact names changed in Testcontainers 2.x
 testImplementation 'org.testcontainers:testcontainers-oracle-free'
 // (removed) testImplementation 'org.testcontainers:testcontainers-postgresql'

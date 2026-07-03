@@ -10,6 +10,9 @@
     published as a library to GitHub Packages.
   - `provider-data-service` - Spring Boot application (controller-service-repository, JPA, Flyway).
   - `provider-data-e2e` - REST Assured end-to-end tests; no Spring context.
+- Many StackOverflow answers, AI training data, and third-party documentation examples target
+  Spring Boot 2/3 or Jackson 2. Check the sections below for differences that have already
+  caused incorrect work in this repo.
 
 ## Code quality
 
@@ -21,8 +24,12 @@
 - Update tests when behaviour changes; keep tests deterministic and fast.
 - Three test levels exist:
   - `src/test/java` - unit and Spring MVC slice tests (`@WebMvcTest`, `@DataJpaTest`).
+    `@WebMvcTest` still exists in Spring Boot 4; do not replace it with standalone
+    `MockMvcBuilders` — stale advice sometimes suggests this incorrectly.
   - `src/integrationTest/java` - full-context tests using Testcontainers PostgreSQL
-    via `PostgresqlSpringBootTest`; run with `./gradlew integrationTest`.
+    via `PostgresqlSpringBootTest`; run with `./gradlew integrationTest`. Only tests
+    that depend on an external system (i.e. Testcontainers) belong here — a plain
+    `@SpringBootTest` without Testcontainers stays in `src/test/java`.
   - `provider-data-e2e` - REST Assured tests tagged `@ReadOnlyTest` / `@ModifyingTest`;
     run with `./gradlew :provider-data-e2e:e2eReadOnly` (or `e2eTest`).
 
@@ -31,10 +38,20 @@
 - Avoid unnecessary dependencies; justify additions.
 - The `laa-spring-boot-gradle-plugin` Gradle plugin imports Spring Boot and defines
   an additional source-set `src/integrationTest/java` and task (`integrationTest`).
+  It is hosted in a **private GitHub Packages registry**
+  (`maven.pkg.github.com/ministryofjustice/laa-spring-boot-common`) and requires
+  `GITHUB_ACTOR` and `GITHUB_TOKEN` environment variables (or `gitPackageUser` /
+  `gitPackageKey` in `~/.gradle/gradle.properties`) — every `./gradlew` command fails
+  with an authentication error without these, even tasks that do not use the plugin directly.
+- `GET /trace/{depth}` (`TraceController`) is a local-profile-only debug endpoint that walks
+  provider relationships. It is not in the OpenAPI spec and is not for production use.
 - Do not modify CI, build scripts, or dependency versions without explicit request.
 - When proposing build/release changes, explain impact on versioning and compatibility.
-- Spring Boot 4 uses **Jackson 3**: imports are `tools.jackson.*`, not `com.fasterxml.jackson.*`.
-  Never use the `com.fasterxml.jackson` package — it does not exist in this project.
+- Spring Boot 4 uses **Jackson 3**: hand-written code uses `tools.jackson.*` (core, databind).
+  The exception is `com.fasterxml.jackson.annotation.*` (`@JsonProperty`, `@JsonSubTypes`,
+  `@JsonTypeInfo`, etc.) — the annotation package was not moved in Jackson 3 and remains in
+  `com.fasterxml`. The generated OpenAPI model classes use it. Do not replace these annotation
+  imports with `tools.jackson`.
 - Entities extend `AuditableEntity` and use Lombok: `@SuperBuilder`, `@NoArgsConstructor`,
   `@Getter`, `@Setter`. Do not use records or plain constructors for JPA entities.
 - Entity-to-API-model mapping uses MapStruct (`componentModel = "spring"`) in the `mapper`
@@ -44,6 +61,10 @@
 
 - Treat data as potentially sensitive; never log secrets or personal data.
 - Prefer least-privilege configuration and secure defaults.
+- No Spring Security dependency is present; all endpoints are unauthenticated at runtime.
+  The OpenAPI spec defines `bearerAuth` and `AzureAD` security schemes, but they are not
+  enforced. This is temporary — Entra ID OAuth2 authentication and authorisation are planned
+  but not yet implemented.
 
 ## Code review
 
@@ -67,4 +88,6 @@ Content for this repository belongs in the `tech-docs/source/pda-r2/` directory.
 - Prefer sentence case in titles and headings.
 - Documentation files use `.html.md` extension. Use only YAML frontmatter and Markdown for
   content in documentation files; no ERB templating.
+- Every page must declare an explicit `source_url` in its YAML front matter — the gem's
+  auto-generation produces the wrong path in a monorepo (missing the `tech-docs/` prefix).
 - Line-wrap documentation source files at 100 characters so Git diffs are readable.

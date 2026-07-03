@@ -7,6 +7,8 @@ set -e
 SPEC=provider-data-api/laa-data-pda.yml
 OUT=tech-docs/source/pda-r2/api
 
+mkdir -p "$OUT"
+
 # Copy spec YAML so the CDN-based renderers (Redoc, Swagger UI, Scalar, Elements) can load it
 cp "$SPEC" "$OUT/laa-data-pda.yml"
 

@@ -38,7 +38,6 @@ build/
 ### VS Code ###
 .vscode/
 *.code-workspace
-/provider-data-api/generated/
 
 ### Miscellaneous ###
 ### `.factorypath` = jdtls, `.yamlrc.yml` = yaml-language-server ###

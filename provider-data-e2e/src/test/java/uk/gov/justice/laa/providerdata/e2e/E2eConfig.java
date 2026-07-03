@@ -113,6 +113,10 @@ public final class E2eConfig {
     return require("contractManager.id");
   }
 
+  public static String contractManagerFirstName() {
+    return require("contractManager.firstName");
+  }
+
   public static String contractManagerLastName() {
     return require("contractManager.lastName");
   }
@@ -144,6 +148,11 @@ public final class E2eConfig {
     return require("lsp2.firmNumber");
   }
 
+  /** Account number for the seeded LSP2 head office ({@code headOfficeFlag=true}). */
+  public static String lsp2HeadOfficeCode() {
+    return require("lsp2.headOffice.code");
+  }
+
   /**
    * Account number for the seeded LSP2 child office ({@code headOfficeFlag=false}). This office has
    * all optional fields populated (DX, VAT, telephone, email, liaison manager, contract manager,
@@ -151,6 +160,21 @@ public final class E2eConfig {
    */
   public static String lsp2ChildOfficeCode() {
     return require("lsp2.childOffice.code");
+  }
+
+  /** {@code contractManagerId} of the Contract Manager assigned to the LSP2 child office. */
+  public static String lsp2ContractManagerId() {
+    return require("lsp2.contractManager.id");
+  }
+
+  /** First name of the Contract Manager assigned to the LSP2 child office. */
+  public static String lsp2ContractManagerFirstName() {
+    return require("lsp2.contractManager.firstName");
+  }
+
+  /** Last name of the Contract Manager assigned to the LSP2 child office. */
+  public static String lsp2ContractManagerLastName() {
+    return require("lsp2.contractManager.lastName");
   }
 
   // --- Helpers ---

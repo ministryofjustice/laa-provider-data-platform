@@ -135,7 +135,8 @@ requirements grow significantly.
 ### Module granularity
 
 The original proposal favoured per-entity domain modules on the grounds that module boundaries
-would prevent cross-domain coupling.
+would prevent cross-domain coupling. A spike on branch `refactor/architecture-poc` implemented
+this structure and was not merged to `main`.
 
 In practice, the API specification is designed around user workflows rather than aggregate
 boundaries. A single endpoint such as `POST /provider-firms` creates a provider firm, an office,
@@ -341,3 +342,20 @@ entities, so a rule cannot be expressed in code at present.
 - No Spring Data `Repository` sub-interface should be declared for aggregate member entities
   (schedules, lines, authorisations, or any future non-root member entity).
 - Member entities should be accessed only via the aggregate root's repository.
+
+## When do flat layers break down?
+
+The breakdown happens along two axes.
+
+**File count** — a layer with 15-20 classes is scannable; 30-40 starts to benefit from
+subgroups; 50+ means relying entirely on IDE search rather than folder structure.
+
+**Change locality** — flat layers become awkward when a change to one business area scatters
+edits across every layer, interleaved with unrelated files. The practical signal is a PR diff
+that is hard to read because the changed files have nothing obvious in common.
+
+The threshold for reconsidering flat layers is roughly **20-25 entities**, at which point
+`repository/` and `entity/` would have 40+ files each. At that point, subgroups within layers
+(e.g. `entity/contract/`, `entity/provider/`) or coarser modules would become worthwhile.
+
+The current trajectory (~10-12 entities) is well below that threshold.

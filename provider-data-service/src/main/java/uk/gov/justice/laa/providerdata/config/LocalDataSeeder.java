@@ -36,11 +36,49 @@ import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
 
-/**
- * Startup test data seeding component for local development and preview (pull request) profiles.
- * Populates foundation tables with sample data on application startup. Uses `CommandLineRunner` to
- * ensure Flyway DB schema creation is complete before inserting data.
- */
+/// Populates the database with representative test data on startup, covering all firm types and
+/// the key entity relationships between them. Active on `local` and `preview` profiles only.
+///
+/// The seeded data is designed to be used as a stable fixture for manual testing and e2e tests.
+/// Use firm numbers and office codes (not GUIDs) as identifiers — GUIDs are auto-generated on
+/// each fresh database.
+///
+/// ## Seeded providers
+///
+/// | firmNumber | type                    | name                             |
+/// |------------|-------------------------|----------------------------------|
+/// | 100001     | LEGAL_SERVICES_PROVIDER | Test Legal Services Provider Ltd |
+/// | 100002     | CHAMBERS                | Test Chambers                    |
+/// | 100003     | ADVOCATE                | Test Advocate                    |
+/// | 100004     | CHAMBERS                | Test Chambers DX (seeded separately, see below) |
+///
+/// ## Seeded office links
+///
+/// | officeCode | provider | address                 | notes                           |
+/// |------------|----------|-------------------------|---------------------------------|
+/// | ACC001     | 100001   | 123 Test Street, London | LSP head office; EFT payment    |
+/// | ACC002     | 100002   | 456 Test Avenue, Manchester | Chambers head office        |
+/// | ACC003     | 100003   | 456 Test Avenue, Manchester | Advocate — shares ACC002's
+// `OfficeEntity` |
+/// | ACC004     | 100004   | 789 DX Street, Birmingham | DX Chambers head office       |
+///
+/// ## Key relationships
+///
+/// - Advocate (100003) has Chambers (100002) as its parent (`ProviderParentLink`).
+/// - ACC003 and ACC002 reference the **same** `OfficeEntity` row — this is intentional and
+///   reflects the real data model where an Advocate shares its parent Chambers' physical address.
+/// - LSP (100001) has a bank account link (account `12345678`, sort code `200000`) at both
+///   provider level and office level (ACC001, `primaryFlag = true`).
+/// - Alice Johnson is linked to ACC001 with `linkedFlag = true`; Bob Williams to ACC002 with
+///   `linkedFlag = false` — both states are present for testing.
+/// - `office3` (1 Barrister Court, London) is seeded as an `OfficeEntity` but deliberately left
+///   unlinked — it exercises the unlinked-office state without polluting the main fixture.
+///
+/// ## Idempotency
+///
+/// The main seed checks for firmNumber `100001` before inserting. DX Chambers (100004) is
+/// checked and seeded separately so it can be added to environments that already ran the
+/// initial seed without requiring a full database reset.
 @Slf4j
 @Component
 @Profile("local | preview")
@@ -93,6 +131,7 @@ public class LocalDataSeeder implements CommandLineRunner {
     seedLsp2IfMissing();
   }
 
+  /// Seeded separately so it can be applied to environments that already ran the initial seed.
   private void seedDxChambersIfMissing() {
     if (providerRepository.findByFirmNumber(CHAMBERS_DX_FIRM_NUMBER).isPresent()) {
       return;
@@ -304,6 +343,8 @@ public class LocalDataSeeder implements CommandLineRunner {
     return new ProviderEntity[] {provider1, provider2, provider3};
   }
 
+  /// office3 (1 Barrister Court) is seeded but intentionally left unlinked — no
+  /// {@code ProviderOfficeLinkEntity} references it, exercising the unlinked-office state.
   private OfficeEntity[] seedOffices() {
     log.info("Seeding Office table");
     // addressLine1 NOT NULL, addressTownOrCity NOT NULL, addressPostCode NOT NULL.
@@ -484,6 +525,8 @@ public class LocalDataSeeder implements CommandLineRunner {
     log.info("Seeded {} OfficeContractManagerLink records", 1);
   }
 
+  /// Alice (ACC001) is linked with {@code linkedFlag = true}; Bob (ACC002) with
+  /// {@code linkedFlag = false}. Both states are present for testing.
   private void seedOfficeLiaisonManagerLinks(
       LspProviderOfficeLinkEntity lspLink,
       ChambersProviderOfficeLinkEntity chambersLink,

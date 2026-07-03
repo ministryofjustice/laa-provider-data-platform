@@ -9,7 +9,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-/** Office entity representing a provider's office location. */
+/**
+ * Physical address record shared across provider-office links. Its {@code guid} is an internal key
+ * and is never exposed through the API — the API-facing identifier for an office is {@link
+ * ProviderOfficeLinkEntity#getGuid()} / {@link ProviderOfficeLinkEntity#getAccountNumber()}.
+ */
 @SuperBuilder
 @NoArgsConstructor
 @Getter

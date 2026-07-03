@@ -1,13 +1,16 @@
 package uk.gov.justice.laa.providerdata.e2e.modifying;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
 /**
@@ -50,7 +53,7 @@ class CreateProviderFirmE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Active",
@@ -97,7 +100,7 @@ class CreateProviderFirmE2eTest {
                 "payment",
                 Map.of("paymentMethod", "CHECK"),
                 "contractManager",
-                Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                Map.of("useDefaultContractManager", true),
                 "liaisonManager",
                 Map.of(
                     "firstName", "Test",
@@ -164,7 +167,7 @@ class CreateProviderFirmE2eTest {
                         "sortCode", "601111",
                         "accountNumber", accountNumber)),
                 "contractManager",
-                Map.of("contractManagerGuid", "12345678-1234-1234-1234-123456789012"),
+                Map.of("useDefaultContractManager", true),
                 "liaisonManager",
                 Map.of(
                     "firstName", "Test",
@@ -291,6 +294,53 @@ class CreateProviderFirmE2eTest {
         .body("data.metadata.pagination.totalItems", equalTo(0));
   }
 
+  /// POSTs an LSP firm with the `contractManager` field omitted entirely (not just null);
+  /// expects 400 and verifies no firm is persisted. `contractManager` is a mandatory field for
+  /// LSPs (BR-21).
+  @Test
+  void createLspFirm_contractManagerOmittedEntirely_returns400AndFirmNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmName = "E2E-OMITTED-CM " + ts;
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "firmType",
+                "Legal Services Provider",
+                "name",
+                firmName,
+                "legalServicesProvider",
+                Map.of(
+                    "constitutionalStatus",
+                    "Partnership",
+                    "address",
+                    Map.of(
+                        "line1", "1 Omitted CM Street",
+                        "townOrCity", "London",
+                        "postcode", "EC1A 1BB"),
+                    "payment",
+                    Map.of("paymentMethod", "CHECK"),
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "Omitted",
+                        "lastName", "CmTest",
+                        "emailAddress", "omitted.cm." + ts + "@example.com",
+                        "telephoneNumber", "020 1111 2222"))))
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
   /** Verifies that an unrecognised constitutionalStatus value on an LSP firm results in a 400. */
   @Test
   void createLspFirm_invalidConstitutionalStatus_returns400() {
@@ -362,7 +412,7 @@ class CreateProviderFirmE2eTest {
                 "payment",
                 Map.of("paymentMethod", "CHECK"),
                 "contractManager",
-                Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012")));
+                Map.of("useDefaultContractManager", true)));
 
     given()
         .contentType(ContentType.JSON)
@@ -776,6 +826,286 @@ class CreateProviderFirmE2eTest {
     given()
         .contentType(ContentType.JSON)
         .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  /// POSTs an LSP firm with `contractManager.useDefaultContractManager: true`; verifies the head
+  /// office is assigned the system default Contract Manager.
+  @Test
+  void createLspFirm_useDefaultContractManager_assignsDefaultCm() {
+    long ts = System.currentTimeMillis();
+
+    Response response =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Legal Services Provider",
+                    "name",
+                    "E2E-DEFAULT-CM " + ts,
+                    "legalServicesProvider",
+                    Map.of(
+                        "constitutionalStatus",
+                        "Partnership",
+                        "address",
+                        Map.of(
+                            "line1", "1 Default CM Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"),
+                        "contractManager",
+                        Map.of("useDefaultContractManager", true),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Default",
+                            "lastName", "CmTest",
+                            "emailAddress", "default.cm." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .response();
+
+    String firmNumber = response.path("data.providerFirmNumber");
+    String headOfficeCode =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].accountNumber");
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", headOfficeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
+  }
+
+  /// POSTs an LSP firm with `contractManager.contractManagerGUID: null` (i.e. the object is
+  /// present but neither option is actually supplied); expects 400 and verifies no firm is
+  /// persisted.
+  @Test
+  void createLspFirm_contractManagerGUIDExplicitlyNull_returns400AndFirmNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmName = "E2E-NULL-CM " + ts;
+
+    // Map.of(...) rejects null values, so HashMap is used to serialise an explicit
+    // contractManagerGUID: null.
+    Map<String, Object> contractManager = new HashMap<>();
+    contractManager.put("contractManagerGUID", null);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "firmType",
+                "Legal Services Provider",
+                "name",
+                firmName,
+                "legalServicesProvider",
+                Map.of(
+                    "constitutionalStatus",
+                    "Partnership",
+                    "address",
+                    Map.of(
+                        "line1", "1 Null CM Street",
+                        "townOrCity", "London",
+                        "postcode", "EC1A 1BB"),
+                    "payment",
+                    Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    contractManager,
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "Null",
+                        "lastName", "CmTest",
+                        "emailAddress", "null.cm." + ts + "@example.com",
+                        "telephoneNumber", "020 1111 2222"))))
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("name", firmName)
+        .when()
+        .get("/provider-firms")
+        .then()
+        .statusCode(200)
+        .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  /// POSTs a Chambers firm with `contractManager.useDefaultContractManager: true`; verifies the
+  /// office is assigned the system default Contract Manager. Unlike LSP, `contractManager` is
+  /// optional for Chambers (BR-21 only mandates a Contract Manager for LSPs), but the same two
+  /// options are supported when it is supplied.
+  @Test
+  void createChambersFirm_useDefaultContractManager_assignsDefaultCm() {
+    long ts = System.currentTimeMillis();
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Chambers",
+                    "name",
+                    "E2E-CHAMBERS-DEFAULT-CM " + ts,
+                    "chambers",
+                    Map.of(
+                        "address",
+                        Map.of(
+                            "line1", "1 Chambers Default CM Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "contractManager",
+                        Map.of("useDefaultContractManager", true),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Chambers",
+                            "lastName", "DefaultCmTest",
+                            "emailAddress", "chambers.default.cm." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeCode =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].accountNumber");
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
+  }
+
+  /// POSTs a Chambers firm without a `contractManager` field at all; verifies the firm is still
+  /// created successfully (the field remains optional for Chambers) with no Contract Manager
+  /// assigned.
+  @Test
+  void createChambersFirm_noContractManager_stillSucceedsWithNoCmAssigned() {
+    long ts = System.currentTimeMillis();
+
+    String firmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Chambers",
+                    "name",
+                    "E2E-CHAMBERS-NO-CM " + ts,
+                    "chambers",
+                    Map.of(
+                        "address",
+                        Map.of(
+                            "line1", "1 Chambers No CM Street",
+                            "townOrCity", "London",
+                            "postcode", "EC1A 1BB"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Chambers",
+                            "lastName", "NoCmTest",
+                            "emailAddress", "chambers.no.cm." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.providerFirmNumber");
+
+    String officeCode =
+        given()
+            .pathParam("firmId", firmNumber)
+            .when()
+            .get("/provider-firms/{firmId}/offices")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content[0].accountNumber");
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", empty());
+  }
+
+  /// POSTs a Chambers firm with `contractManager.contractManagerGUID: null`; expects 400 and
+  /// verifies no firm is persisted, mirroring the LSP behaviour.
+  @Test
+  void createChambersFirm_contractManagerGUIDExplicitlyNull_returns400AndFirmNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmName = "E2E-CHAMBERS-NULL-CM " + ts;
+
+    // Map.of(...) rejects null values, so HashMap is used to serialise an explicit
+    // contractManagerGUID: null.
+    Map<String, Object> contractManager = new HashMap<>();
+    contractManager.put("contractManagerGUID", null);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "firmType",
+                "Chambers",
+                "name",
+                firmName,
+                "chambers",
+                Map.of(
+                    "address",
+                    Map.of(
+                        "line1", "1 Chambers Null CM Street",
+                        "townOrCity", "London",
+                        "postcode", "EC1A 1BB"),
+                    "contractManager",
+                    contractManager,
+                    "liaisonManager",
+                    Map.of(
+                        "firstName", "Chambers",
+                        "lastName", "NullCmTest",
+                        "emailAddress", "chambers.null.cm." + ts + "@example.com",
+                        "telephoneNumber", "020 1111 2222"))))
         .when()
         .post("/provider-firms")
         .then()

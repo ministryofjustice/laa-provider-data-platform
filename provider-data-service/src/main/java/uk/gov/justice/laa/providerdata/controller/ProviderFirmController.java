@@ -34,12 +34,15 @@ import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
 import uk.gov.justice.laa.providerdata.mapper.ProviderMapper;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.DXCreateV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200ResponseData;
+import uk.gov.justice.laa.providerdata.model.HeadOfficeContractManagerLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
@@ -259,13 +262,16 @@ public class ProviderFirmController {
       ProviderCreateLSPV2LegalServicesProvider lsp = request.getLegalServicesProvider();
       LiaisonManagerEntity lmEntity = lmEntity(lsp.getLiaisonManager());
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lsp.getLiaisonManager());
+      ContractManagerSelection cm = resolveContractManager(lsp.getContractManager());
       return providerFirmCreationService.createLspFirm(
           LspProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(lsp),
           officeMapper.toHeadOfficeLinkTemplate(lsp),
           lmEntity,
           lmLink,
-          lsp.getPayment());
+          lsp.getPayment(),
+          cm.guid(),
+          cm.useDefault());
     }
     if (request.getChambers() != null) {
       ChambersHeadOfficeCreateV2 chambers = request.getChambers();
@@ -273,18 +279,56 @@ public class ProviderFirmController {
       LiaisonManagerEntity lmEntity = lmEntity(lmDto);
       OfficeLiaisonManagerLinkEntity lmLink = lmLinkTemplate(lmDto);
       UUID existingLmGuid = lmGuid(lmDto);
+      ContractManagerSelection cm = resolveContractManager(chambers.getContractManager());
       return providerFirmCreationService.createChambersFirm(
           ChambersProviderEntity.builder().name(request.getName()).build(),
           officeMapper.toOfficeEntity(chambers),
           officeMapper.toChambersHeadOfficeLinkTemplate(chambers),
           lmEntity,
           lmLink,
-          existingLmGuid);
+          existingLmGuid,
+          cm.guid(),
+          cm.useDefault());
     }
     return providerFirmCreationService.createPractitionerFirm(
         buildPractitionerTemplate(request.getName(), request.getPractitioner()),
         request.getPractitioner().getParentFirms(),
         request.getPractitioner().getPayment());
+  }
+
+  /**
+   * Resolves a {@link HeadOfficeContractManagerLinkV2} into a GUID/useDefault pair.
+   *
+   * @param contractManager the request's {@code contractManager} field, or {@code null} if the firm
+   *     type does not have one supplied (e.g. Chambers, where it is optional)
+   * @return {@link ContractManagerSelection#EMPTY} if {@code contractManager} is {@code null};
+   *     otherwise the resolved GUID or the default-contract-manager flag
+   * @throws IllegalArgumentException if {@code contractManager} is a {@link
+   *     ContractManagerLinkByGUIDV2} with a {@code null} {@code contractManagerGUID}
+   */
+  private ContractManagerSelection resolveContractManager(
+      @Nullable HeadOfficeContractManagerLinkV2 contractManager) {
+    if (contractManager == null) {
+      return ContractManagerSelection.EMPTY;
+    }
+    if (contractManager instanceof ContractManagerLinkDefaultV2) {
+      return new ContractManagerSelection(null, true);
+    }
+    if (contractManager instanceof ContractManagerLinkByGUIDV2 byGuid) {
+      if (byGuid.getContractManagerGUID() == null) {
+        throw new IllegalArgumentException("contractManagerGUID must be provided");
+      }
+      return new ContractManagerSelection(byGuid.getContractManagerGUID(), false);
+    }
+    return ContractManagerSelection.EMPTY;
+  }
+
+  /**
+   * Resolved contract manager selection for firm/head office creation: either a specific GUID, the
+   * system default, or neither (Chambers only, where the field is optional).
+   */
+  private record ContractManagerSelection(@Nullable UUID guid, boolean useDefault) {
+    private static final ContractManagerSelection EMPTY = new ContractManagerSelection(null, false);
   }
 
   private static PractitionerEntity buildPractitionerTemplate(

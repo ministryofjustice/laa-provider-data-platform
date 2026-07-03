@@ -11,9 +11,11 @@ import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
@@ -30,8 +32,10 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
@@ -57,6 +61,8 @@ public class ProviderCreationService {
   private final LiaisonManagerRepository liaisonManagerRepository;
   private final OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
+  private final ContractManagerRepository contractManagerRepository;
+  private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final BankDetailsService bankDetailsService;
   private final BankAccountMapper bankAccountMapper;
   private final Counter lspFirmCreationCounter;
@@ -78,6 +84,8 @@ public class ProviderCreationService {
    * @param liaisonManagerRepository to save liaison manager entities
    * @param officeLiaisonManagerLinkRepository to save office liaison manager links
    * @param providerParentLinkRepository to save practitioner parent links
+   * @param contractManagerRepository to look up contract managers
+   * @param officeContractManagerLinkRepository to save office contract manager links
    * @param bankDetailsService to create and link bank accounts
    * @param bankAccountMapper to map bank account request DTOs to entities
    * @param lspFirmCreationCounter for tracking LSP firm creations
@@ -97,6 +105,8 @@ public class ProviderCreationService {
       LiaisonManagerRepository liaisonManagerRepository,
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
+      ContractManagerRepository contractManagerRepository,
+      OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
       BankDetailsService bankDetailsService,
       BankAccountMapper bankAccountMapper,
       Counter lspFirmCreationCounter,
@@ -114,6 +124,8 @@ public class ProviderCreationService {
     this.liaisonManagerRepository = liaisonManagerRepository;
     this.officeLiaisonManagerLinkRepository = officeLiaisonManagerLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
+    this.contractManagerRepository = contractManagerRepository;
+    this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
     this.bankDetailsService = bankDetailsService;
     this.bankAccountMapper = bankAccountMapper;
     this.lspFirmCreationCounter = lspFirmCreationCounter;
@@ -128,6 +140,13 @@ public class ProviderCreationService {
    * Creates a new Legal Services Provider firm with its head office, and optionally a liaison
    * manager for that office and a bank account.
    *
+   * <p>BR-21 requires every LSP to have a Contract Manager; the API layer validates that either
+   * {@code contractManagerGuid} or {@code useDefaultContractManager} is supplied before this method
+   * is called (see ProviderFirmController#validateLegalServicesProvider). This method is
+   * responsible for actually persisting that link - previously the value was validated as present
+   * but silently discarded, leaving every newly created LSP head office without a contract manager
+   * (see DSTEW-1663).
+   *
    * @param providerTemplate partially-populated provider entity (firmType and name set)
    * @param officeTemplate partially-populated office entity (address and contact fields set)
    * @param linkTemplate partially-populated link entity (payment, VAT fields set; headOfficeFlag
@@ -136,7 +155,15 @@ public class ProviderCreationService {
    * @param lmLinkTemplate partially-populated LM link template with activeDateFrom set, or {@code
    *     null} if none
    * @param payment payment details from the request, or {@code null}
+   * @param contractManagerGuid GUID of the contract manager to assign to the head office, or {@code
+   *     null}
+   * @param useDefaultContractManager if {@code true}, link the system default contract manager
+   *     instead of {@code contractManagerGuid}
    * @return identifiers for the created provider and head office
+   * @throws IllegalArgumentException if {@code contractManagerGuid} is non-null and does not match
+   *     any contract manager
+   * @throws IllegalStateException if {@code useDefaultContractManager} is true and no default
+   *     contract manager is configured
    */
   @Transactional
   public ProviderCreationResult createLspFirm(
@@ -145,7 +172,9 @@ public class ProviderCreationService {
       LspProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
-      @Nullable PaymentDetailsCreateV2 payment) {
+      @Nullable PaymentDetailsCreateV2 payment,
+      @Nullable UUID contractManagerGuid,
+      boolean useDefaultContractManager) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -164,6 +193,12 @@ public class ProviderCreationService {
 
     persistBankDetailsForOffice(payment, savedProvider, savedLink);
 
+    if (useDefaultContractManager) {
+      linkDefaultContractManager(savedLink);
+    } else if (contractManagerGuid != null) {
+      linkContractManager(savedLink, contractManagerGuid);
+    }
+
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(lspFirmCreationTimer);
     lspFirmCreationCounter.increment();
@@ -172,9 +207,41 @@ public class ProviderCreationService {
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
   }
 
+  private void linkContractManager(ProviderOfficeLinkEntity savedLink, UUID contractManagerGuid) {
+    ContractManagerEntity manager =
+        contractManagerRepository
+            .findById(contractManagerGuid)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Unknown contractManagerGUID: " + contractManagerGuid));
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(savedLink)
+            .contractManager(manager)
+            .build());
+  }
+
+  private void linkDefaultContractManager(ProviderOfficeLinkEntity savedLink) {
+    ContractManagerEntity manager =
+        contractManagerRepository
+            .findByDefaultContractManagerTrue()
+            .orElseThrow(
+                () -> new IllegalStateException("No default contract manager is configured"));
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(savedLink)
+            .contractManager(manager)
+            .build());
+  }
+
   /**
    * Creates a new Chambers firm with its head office, and optionally a liaison manager for that
    * office.
+   *
+   * <p>Unlike LSPs, Chambers are not required by BR-21 to have a Contract Manager, so {@code
+   * contractManagerGuid} and {@code useDefaultContractManager} are both optional; if neither is
+   * supplied, no contract manager is linked.
    *
    * @param providerTemplate partially-populated provider entity (firmType and name set)
    * @param officeTemplate partially-populated office entity (address and contact fields set)
@@ -183,7 +250,15 @@ public class ProviderCreationService {
    * @param lmLinkTemplate partially-populated LM link template with activeDateFrom set, or {@code
    *     null} if linking by GUID or none
    * @param existingLmGuid GUID of an existing liaison manager to link, or {@code null}
+   * @param contractManagerGuid GUID of the contract manager to assign to the head office, or {@code
+   *     null}
+   * @param useDefaultContractManager if {@code true}, link the system default contract manager
+   *     instead of {@code contractManagerGuid}
    * @return identifiers for the created provider and head office
+   * @throws IllegalArgumentException if {@code contractManagerGuid} is non-null and does not match
+   *     any contract manager
+   * @throws IllegalStateException if {@code useDefaultContractManager} is true and no default
+   *     contract manager is configured
    */
   @Transactional
   public ProviderCreationResult createChambersFirm(
@@ -192,7 +267,9 @@ public class ProviderCreationService {
       ChambersProviderOfficeLinkEntity linkTemplate,
       @Nullable LiaisonManagerEntity lmTemplate,
       @Nullable OfficeLiaisonManagerLinkEntity lmLinkTemplate,
-      @Nullable UUID existingLmGuid) {
+      @Nullable UUID existingLmGuid,
+      @Nullable UUID contractManagerGuid,
+      boolean useDefaultContractManager) {
 
     providerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
@@ -208,6 +285,12 @@ public class ProviderCreationService {
     ProviderOfficeLinkEntity savedLink = chambersProviderOfficeLinkRepository.save(linkTemplate);
 
     saveLiaisonManagerLink(lmTemplate, lmLinkTemplate, existingLmGuid, savedLink);
+
+    if (useDefaultContractManager) {
+      linkDefaultContractManager(savedLink);
+    } else if (contractManagerGuid != null) {
+      linkContractManager(savedLink, contractManagerGuid);
+    }
 
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(chambersFirmCreationTimer);

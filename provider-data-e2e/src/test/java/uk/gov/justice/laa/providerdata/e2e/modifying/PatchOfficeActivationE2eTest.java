@@ -43,7 +43,9 @@ class PatchOfficeActivationE2eTest {
             "payment",
             Map.of("paymentMethod", "EFT"),
             "liaisonManager",
-            Map.of("useHeadOfficeLiaisonManager", true));
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            Map.of("useHeadOfficeContractManager", true));
 
     officeCode =
         given()

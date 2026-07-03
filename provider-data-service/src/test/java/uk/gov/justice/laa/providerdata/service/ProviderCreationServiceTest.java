@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,9 +26,11 @@ import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.BankAccountEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -42,8 +45,10 @@ import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2On
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
 import uk.gov.justice.laa.providerdata.repository.AdvocateProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ChambersProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.ContractManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LiaisonManagerRepository;
 import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
@@ -62,6 +67,8 @@ class ProviderCreationServiceTest {
   @Mock private LiaisonManagerRepository liaisonManagerRepository;
   @Mock private OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository;
   @Mock private ProviderParentLinkRepository providerParentLinkRepository;
+  @Mock private ContractManagerRepository contractManagerRepository;
+  @Mock private OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   @Mock private BankDetailsService bankDetailsService;
   @Mock private BankAccountMapper bankAccountMapper;
   @Mock private Counter lspFirmCreationCounter;
@@ -110,7 +117,9 @@ class ProviderCreationServiceTest {
             linkTemplate,
             null,
             null,
-            null);
+            null,
+            null,
+            false);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isNotBlank();
@@ -168,7 +177,9 @@ class ProviderCreationServiceTest {
             new LspProviderOfficeLinkEntity(),
             lmTemplate,
             lmLink,
-            null);
+            null,
+            null,
+            false);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     verify(liaisonManagerRepository).save(lmTemplate);
@@ -216,7 +227,9 @@ class ProviderCreationServiceTest {
             linkTemplate,
             null,
             null,
-            null);
+            null,
+            null,
+            false);
 
     assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
     assertThat(result.firmNumber()).isNotBlank();
@@ -250,7 +263,9 @@ class ProviderCreationServiceTest {
         new ChambersProviderOfficeLinkEntity(),
         null,
         null,
-        lmGuid);
+        lmGuid,
+        null,
+        false);
 
     verify(liaisonManagerRepository, never()).save(any());
     verify(liaisonManagerRepository).findById(lmGuid);
@@ -293,7 +308,9 @@ class ProviderCreationServiceTest {
         new ChambersProviderOfficeLinkEntity(),
         lmTemplate,
         lmLink,
-        null);
+        null,
+        null,
+        false);
 
     verify(liaisonManagerRepository).save(lmTemplate);
     assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
@@ -541,7 +558,9 @@ class ProviderCreationServiceTest {
         linkTemplate,
         null,
         null,
-        payment);
+        payment,
+        null,
+        false);
 
     verify(bankDetailsService)
         .createAndLink(eq(accountTemplate), any(), eq(linkTemplate), isNull());
@@ -561,8 +580,211 @@ class ProviderCreationServiceTest {
         new LspProviderOfficeLinkEntity(),
         null,
         null,
-        payment);
+        payment,
+        null,
+        false);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  @Test
+  void createLspFirm_withContractManagerGuid_savesLink() {
+    UUID cmGuid = UUID.randomUUID();
+    ContractManagerEntity cm = new ContractManagerEntity();
+    cm.setGuid(cmGuid);
+
+    LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findById(cmGuid)).thenReturn(Optional.of(cm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspFirm(
+        LspProviderEntity.builder().name("My LSP").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        null,
+        cmGuid,
+        false);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(cm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createLspFirm_withUnknownContractManagerGuid_throwsBeforeCommit() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    UUID unknownCmGuid = UUID.randomUUID();
+    when(contractManagerRepository.findById(unknownCmGuid)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspFirm(
+                    LspProviderEntity.builder().name("My LSP").build(),
+                    OfficeEntity.builder().addressLine1("1 Test St").build(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    null,
+                    unknownCmGuid,
+                    false))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(unknownCmGuid.toString());
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+  }
+
+  @Test
+  void createLspFirm_withUseDefaultContractManager_savesDefaultLink() {
+    UUID cmGuid = UUID.randomUUID();
+    ContractManagerEntity defaultCm = new ContractManagerEntity();
+    defaultCm.setGuid(cmGuid);
+
+    LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findByDefaultContractManagerTrue())
+        .thenReturn(Optional.of(defaultCm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspFirm(
+        LspProviderEntity.builder().name("My LSP").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        null,
+        null,
+        true);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(defaultCm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createLspFirm_withUseDefaultContractManager_throwsWhenNoDefaultConfigured() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(contractManagerRepository.findByDefaultContractManagerTrue()).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspFirm(
+                    LspProviderEntity.builder().name("My LSP").build(),
+                    OfficeEntity.builder().addressLine1("1 Test St").build(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    true))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No default contract manager is configured");
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+  }
+
+  @Test
+  void createChambersFirm_withContractManagerGuid_savesLink() {
+    UUID cmGuid = UUID.randomUUID();
+    ContractManagerEntity cm = new ContractManagerEntity();
+    cm.setGuid(cmGuid);
+
+    ChambersProviderOfficeLinkEntity savedLink = new ChambersProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(chambersProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findById(cmGuid)).thenReturn(Optional.of(cm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createChambersFirm(
+        ChambersProviderEntity.builder().name("My Chambers").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new ChambersProviderOfficeLinkEntity(),
+        null,
+        null,
+        null,
+        cmGuid,
+        false);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(cm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createChambersFirm_withUseDefaultContractManager_savesDefaultLink() {
+    UUID cmGuid = UUID.randomUUID();
+    ContractManagerEntity defaultCm = new ContractManagerEntity();
+    defaultCm.setGuid(cmGuid);
+
+    ChambersProviderOfficeLinkEntity savedLink = new ChambersProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(chambersProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findByDefaultContractManagerTrue())
+        .thenReturn(Optional.of(defaultCm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createChambersFirm(
+        ChambersProviderEntity.builder().name("My Chambers").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new ChambersProviderOfficeLinkEntity(),
+        null,
+        null,
+        null,
+        null,
+        true);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(defaultCm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createChambersFirm_withNoContractManagerOptions_doesNotLinkContractManager() {
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(chambersProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createChambersFirm(
+        ChambersProviderEntity.builder().name("My Chambers").build(),
+        OfficeEntity.builder().addressLine1("1 Test St").build(),
+        new ChambersProviderOfficeLinkEntity(),
+        null,
+        null,
+        null,
+        null,
+        false);
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+    verify(contractManagerRepository, never()).findById(any());
+    verify(contractManagerRepository, never()).findByDefaultContractManagerTrue();
   }
 }

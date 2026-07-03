@@ -118,6 +118,17 @@ public final class E2eConfig {
   }
 
   /**
+   * The {@code contractManagerId} of a second, distinct, non-default seeded contract manager ("Jane
+   * Doe"). Used where a test needs a real Contract Manager identity that is neither the one under
+   * test as "the current assignment" nor the system default - e.g. proving an explicit override
+   * takes precedence over Firm-level trickle-down (DSTEW-1663), without conflating that assertion
+   * with default-contract-manager behaviour.
+   */
+  public static String secondContractManagerId() {
+    return require("secondContractManager.id");
+  }
+
+  /**
    * The {@code contractManagerId} of the system default contract manager seeded by the V4 migration
    * ("Mr Default"). Used by DSTEW-1660/DSTEW-1661 AC2 tests.
    *
@@ -125,6 +136,17 @@ public final class E2eConfig {
    */
   public static String defaultContractManagerId() {
     return "MR-DEFAULT";
+  }
+
+  /**
+   * The {@code guid} of the system default contract manager ("Mr Default"), fixed by the V4
+   * migration (see {@code V4__contract_manager_default_flag.sql}) and therefore stable across all
+   * environments. Used as a known-valid {@code contractManagerGUID} in modifying tests that need to
+   * satisfy the mandatory contract manager field but are not testing contract manager behaviour
+   * themselves.
+   */
+  public static String defaultContractManagerGUID() {
+    return "85bced32-a80f-40b6-b09d-502a74314ee3";
   }
 
   // --- Invalid identifiers (for 404 testing) ---

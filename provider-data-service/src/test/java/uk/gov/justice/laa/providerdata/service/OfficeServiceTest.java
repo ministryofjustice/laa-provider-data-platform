@@ -198,7 +198,9 @@ class OfficeServiceTest {
         false,
         null,
         null,
-        null);
+        null,
+        false,
+        false);
 
     verify(liaisonManagerRepository).save(lmTemplate);
     assertThat(lmLink.getLiaisonManager().getGuid()).isEqualTo(lmGuid);
@@ -249,7 +251,9 @@ class OfficeServiceTest {
         true,
         null,
         null,
-        null);
+        null,
+        false,
+        false);
 
     verify(liaisonManagerRepository, never()).save(any());
     verify(officeLiaisonManagerLinkRepository).save(any(OfficeLiaisonManagerLinkEntity.class));
@@ -290,7 +294,9 @@ class OfficeServiceTest {
                     true,
                     null,
                     null,
-                    null))
+                    null,
+                    false,
+                    false))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("No active liaison manager found");
   }
@@ -321,7 +327,9 @@ class OfficeServiceTest {
         false,
         lmGuid,
         null,
-        null);
+        null,
+        false,
+        false);
 
     verify(liaisonManagerRepository).findById(lmGuid);
     verify(liaisonManagerRepository, never()).save(any());
@@ -546,7 +554,9 @@ class OfficeServiceTest {
         false,
         null,
         payment,
-        null);
+        null,
+        false,
+        false);
 
     verify(bankDetailsService)
         .createAndLink(accountTemplate, provider, linkTemplate, createDetails.getActiveDateFrom());
@@ -579,7 +589,9 @@ class OfficeServiceTest {
         false,
         null,
         payment,
-        null);
+        null,
+        false,
+        false);
 
     verify(bankDetailsService).linkExisting(bankGuid, provider, linkTemplate, null);
     verify(bankAccountMapper, never()).toBankAccountEntity(any());
@@ -606,7 +618,9 @@ class OfficeServiceTest {
         false,
         null,
         payment,
-        null);
+        null,
+        false,
+        false);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
@@ -631,7 +645,9 @@ class OfficeServiceTest {
         false,
         null,
         null,
-        null);
+        null,
+        false,
+        false);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
@@ -666,7 +682,9 @@ class OfficeServiceTest {
         false,
         null,
         null,
-        cmGuid);
+        cmGuid,
+        false,
+        false);
 
     ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
         ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
@@ -700,9 +718,216 @@ class OfficeServiceTest {
                     false,
                     null,
                     null,
-                    unknownCmGuid))
+                    unknownCmGuid,
+                    false,
+                    false))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(unknownCmGuid.toString());
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+  }
+
+  @Test
+  void createLspOffice_withUseDefaultContractManager_savesDefaultLink() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID cmGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    ContractManagerEntity defaultCm = new ContractManagerEntity();
+    defaultCm.setGuid(cmGuid);
+
+    LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(contractManagerRepository.findByDefaultContractManagerTrue())
+        .thenReturn(Optional.of(defaultCm));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        null,
+        null,
+        null,
+        true,
+        false);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(defaultCm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  @Test
+  void createLspOffice_withUseDefaultContractManager_throwsWhenNoDefaultConfigured() {
+    UUID providerGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(contractManagerRepository.findByDefaultContractManagerTrue()).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    providerGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    false,
+                    null,
+                    null,
+                    null,
+                    true,
+                    false))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No default contract manager is configured");
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+  }
+
+  /// DSTEW-1663 AC1 - the Firm's Contract Manager (i.e. the one currently linked to the head
+  /// office) is copied onto the new Child Office when {@code useHeadOfficeContractManager} is set.
+  @Test
+  void createLspOffice_withUseHeadOfficeContractManager_trickleDownCopiesHeadOfficeCm() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID cmGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    ContractManagerEntity headOfficeCm = new ContractManagerEntity();
+    headOfficeCm.setGuid(cmGuid);
+
+    LspProviderOfficeLinkEntity headOfficeLink = new LspProviderOfficeLinkEntity();
+    headOfficeLink.setGuid(UUID.randomUUID());
+    headOfficeLink.setHeadOfficeFlag(Boolean.TRUE);
+
+    LspProviderOfficeLinkEntity savedLink = new LspProviderOfficeLinkEntity();
+    savedLink.setGuid(UUID.randomUUID());
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenReturn(savedLink);
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeContractManagerLinkRepository.findByOfficeLink_Guid(
+            eq(headOfficeLink.getGuid()), any()))
+        .thenReturn(
+            new PageImpl<>(
+                List.of(
+                    OfficeContractManagerLinkEntity.builder()
+                        .officeLink(headOfficeLink)
+                        .contractManager(headOfficeCm)
+                        .build())));
+    when(officeContractManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    service.createLspOffice(
+        providerGuid.toString(),
+        new OfficeEntity(),
+        new LspProviderOfficeLinkEntity(),
+        null,
+        null,
+        false,
+        null,
+        null,
+        null,
+        false,
+        true);
+
+    ArgumentCaptor<OfficeContractManagerLinkEntity> captor =
+        ArgumentCaptor.forClass(OfficeContractManagerLinkEntity.class);
+    verify(officeContractManagerLinkRepository).save(captor.capture());
+    assertThat(captor.getValue().getContractManager()).isEqualTo(headOfficeCm);
+    assertThat(captor.getValue().getOfficeLink()).isEqualTo(savedLink);
+  }
+
+  /// DSTEW-1663 - clarifying question 2: if the head office itself has no contract manager
+  /// assigned, requesting the trickle-down option is an error (IllegalStateException, mapped to
+  /// 500 by the global exception handler), not a silent no-op.
+  @Test
+  void createLspOffice_withUseHeadOfficeContractManager_throwsWhenHeadOfficeHasNoCm() {
+    UUID providerGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity headOfficeLink = new LspProviderOfficeLinkEntity();
+    headOfficeLink.setGuid(UUID.randomUUID());
+    headOfficeLink.setHeadOfficeFlag(Boolean.TRUE);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.of(headOfficeLink));
+    when(officeContractManagerLinkRepository.findByOfficeLink_Guid(
+            eq(headOfficeLink.getGuid()), any()))
+        .thenReturn(new PageImpl<>(List.of()));
+
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    providerGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    false,
+                    null,
+                    null,
+                    null,
+                    false,
+                    true))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Head office has no contract manager assigned");
+
+    verify(officeContractManagerLinkRepository, never()).save(any());
+  }
+
+  @Test
+  void createLspOffice_withUseHeadOfficeContractManager_throwsWhenNoHeadOfficeFound() {
+    UUID providerGuid = UUID.randomUUID();
+
+    ProviderEntity provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
+    when(officeRepository.save(any())).thenReturn(new OfficeEntity());
+    when(lspProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createLspOffice(
+                    providerGuid.toString(),
+                    new OfficeEntity(),
+                    new LspProviderOfficeLinkEntity(),
+                    null,
+                    null,
+                    false,
+                    null,
+                    null,
+                    null,
+                    false,
+                    true))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("Head office not found");
 
     verify(officeContractManagerLinkRepository, never()).save(any());
   }

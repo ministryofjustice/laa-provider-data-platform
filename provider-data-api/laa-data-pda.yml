@@ -2133,6 +2133,7 @@ components:
         - address
         - payment
         - liaisonManager
+        - contractManager
       properties:
         vatRegistration:
           $ref: "#/components/schemas/VATRegistrationCreateV2"
@@ -2151,7 +2152,7 @@ components:
         liaisonManager:
           $ref: "#/components/schemas/LiaisonManagerCreateV2"
         contractManager:
-          $ref: "#/components/schemas/ContractManagerProviderLinkV2"
+          $ref: "#/components/schemas/HeadOfficeContractManagerLinkV2"
 
     LSPHeadOfficeDetailsV2:
       allOf:
@@ -2224,6 +2225,8 @@ components:
           $ref: "#/components/schemas/DXCreateV2"
         liaisonManager:
           $ref: "#/components/schemas/ChambersOfficeLiaisonManagerCreateOrLinkV2"
+        contractManager:
+          $ref: "#/components/schemas/HeadOfficeContractManagerLinkV2"
 
     PractitionerHeadOfficeCreateV2:
       type: object
@@ -2244,6 +2247,7 @@ components:
         - address
         - payment
         - liaisonManager
+        - contractManager
       properties:
         vatRegistration:
           $ref: "#/components/schemas/VATRegistrationCreateV2"
@@ -2262,7 +2266,7 @@ components:
         liaisonManager:
           $ref: "#/components/schemas/LSPOfficeLiaisonManagerCreateOrLinkV2"
         contractManager:
-          $ref: "#/components/schemas/ContractManagerProviderLinkV2"
+          $ref: "#/components/schemas/LSPOfficeContractManagerLinkV2"
 
     OfficeAccountNumberV2:
       type: string
@@ -3192,17 +3196,66 @@ components:
         Links an existing liaison manager to an office by GUID. Use this when the liaison manager
         already exists and you want to assign it to an office without creating a duplicate.
 
-    ContractManagerProviderLinkV2:
-      type: object
-      properties:
-        contractManagerGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
-
     ContractManagerProviderPatchV2:
       type: object
       properties:
         contractManagerGUID:
           $ref: "#/components/schemas/BaseEntityGUIDV2"
+
+    ContractManagerLinkByGUIDV2:
+      type: object
+      required:
+        - contractManagerGUID
+      properties:
+        contractManagerGUID:
+          $ref: "#/components/schemas/BaseEntityGUIDV2"
+      description: |
+        Links an existing contract manager to an office by GUID.
+
+    ContractManagerLinkDefaultV2:
+      type: object
+      required:
+        - useDefaultContractManager
+      properties:
+        useDefaultContractManager:
+          type: boolean
+          description: |
+            Setting this flag to true assigns the system default contract manager.
+      description: |
+        Indicates that the system default contract manager should be assigned.
+
+    ContractManagerLinkHeadOfficeV2:
+      type: object
+      required:
+        - useHeadOfficeContractManager
+      properties:
+        useHeadOfficeContractManager:
+          type: boolean
+          description: |
+            Setting this flag to true interlinks the contract manager record from the head office
+      description: |
+        Applicable only for LSP Child Offices. Indicates that the new contract manager assignment
+        should be to the contract manager that is currently specified at the head office (Firm
+        Contract Manager trickle-down). This update only links the data (no duplicate is created).
+        Rejected if the head office has no contract manager assigned.
+
+    LSPOfficeContractManagerLinkV2:
+      oneOf:
+        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
+        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
+        - $ref: "#/components/schemas/ContractManagerLinkHeadOfficeV2"
+      description: |
+        Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
+        `useHeadOfficeContractManager` must be provided when creating an LSP Child Office.
+
+    HeadOfficeContractManagerLinkV2:
+      oneOf:
+        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
+        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
+      description: |
+        Exactly one of `contractManagerGUID` or `useDefaultContractManager` must be provided when
+        creating an LSP or Chambers head office. `useHeadOfficeContractManager` is not applicable
+        here since this office is itself the head office.
 
     OfficePractitionerV2:
       allOf:

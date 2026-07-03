@@ -43,45 +43,43 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      // Suppression strategy: trade stricter schema validation for broader E2E negative-test coverage.
+      // The OpenAPI validator enforces request and response schema constraints. However, E2E tests
+      // deliberately send invalid request payloads (missing fields, invalid enum values, malformed
+      // UUIDs, too-short strings) to verify the service returns 400 Bad Request with RFC 7807
+      // problem details. Without these suppressions, the validator would reject invalid requests
+      // before they reach the service, preventing us from testing error-path handling.
+      //
+      // Similarly, some response schema validations are suppressed because the spec's heavy use of
+      // allOf and oneOf composition triggers noisy but harmless failures in validator v3. We accept
+      // the risk that responses could technically omit required fields without test failure, relying
+      // instead on E2E assertions to verify the service returns correct 200/201 payloads in success
+      // paths. Negative tests (400 path) verify service-side error handling, not validator strictness.
+      //
+      // Request schema suppressions (required, allOf, additionalProperties, oneOf, enum,
+      // format.uuid, minLength):
+      // Modifying tests in @ModifyingTest classes send deliberately invalid payloads to exercise
+      // service-side validation. Suppressions prevent the RestAssured filter from blocking these
+      // payloads. For example:
+      // - Missing mandatory fields: test that service returns 400 with missing-field error detail
+      // - Invalid enum values: test that service rejects out-of-range values
+      // - Malformed UUIDs: test that service rejects invalid identifier formats
+      // - Too-short strings: test that service enforces minLength constraints
+      // Tests assert the expected 400 response; the validator is not responsible for catching errors.
+      //
+      // Response schema suppressions (allOf, additionalProperties, oneOf, required):
+      // The spec composes many models with allOf + oneOf polymorphic schemas (e.g., ProviderCreateV2,
+      // ProviderV2). Validator v3 evaluates each allOf branch and oneOf variant in isolation,
+      // triggering spurious failures for otherwise valid payloads (fields appear as "additionalProperties"
+      // in single-branch evaluation but are valid in the full composed schema, or required-field checks
+      // fail across variant boundaries). Rather than suppress individual false positives, we suppress
+      // the entire schema-validation category to allow tests to focus on behaviour assertions.
+      // Note: responses can technically pass validation despite omitting required fields, but success-path
+      // tests verify that the service returns complete payloads; failure-path tests verify 400 handling.
+      //
       // validation.response.contentType.notAllowed:
       // The spec declares application/json for some error responses, but the service correctly
       // returns application/problem+json (RFC 7807). Keep as WARN until the spec is aligned.
-      //
-      // validation.response.body.schema.allOf:
-      // The spec composes many models with allOf across base and subtype schemas. This currently
-      // produces noisy composition errors in validator v3 for otherwise valid payloads.
-      //
-      // validation.response.body.schema.additionalProperties:
-      // allOf composition above can trigger spurious additionalProperties failures where fields are
-      // valid in the composed schema but appear "extra" in a single branch evaluation.
-      //
-      // validation.response.body.schema.oneOf:
-      // oneOf checks become noisy when allOf + oneOf polymorphic schemas are composed. Keep as WARN
-      // to avoid false negatives in otherwise valid responses.
-      //
-      // validation.response.body.schema.required:
-      // required-field failures are also emitted from the same composition path in v3.
-      //
-      // validation.request.body.schema.allOf:
-      // Request composition can fail noisily in polymorphic branches used by error-path fixtures.
-      //
-      // validation.request.body.schema.additionalProperties:
-      // allOf branch evaluation can flag legitimate fields as "additional" in negative-test
-      // payloads.
-      //
-      // validation.request.body.schema.oneOf:
-      // Modifying tests intentionally submit invalid variants that should reach the API for 400
-      // checks.
-      //
-      // validation.request.body.schema.required:
-      // Missing mandatory fields are used deliberately in tests that verify service-side
-      // validation.
-      //
-      // validation.request.body.schema.enum, validation.request.body.schema.format.uuid, and
-      // validation.request.body.schema.minLength:
-      // Negative tests also exercise enum, identifier-format, and string-length constraints and
-      // must
-      // reach the API to assert the expected 400 problem response.
       OpenApiInteractionValidator validator =
           OpenApiInteractionValidator.createForInlineApiSpecification(spec)
               .withLevelResolver(

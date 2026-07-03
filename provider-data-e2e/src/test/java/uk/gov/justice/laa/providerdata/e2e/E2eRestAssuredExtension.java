@@ -43,7 +43,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-      // Suppression strategy: trade stricter schema validation for broader E2E negative-test coverage.
+      // Suppression strategy: trade stricter schema validation for broader E2E negative-test
+      // coverage.
       // The OpenAPI validator enforces request and response schema constraints. However, E2E tests
       // deliberately send invalid request payloads (missing fields, invalid enum values, malformed
       // UUIDs, too-short strings) to verify the service returns 400 Bad Request with RFC 7807
@@ -52,9 +53,11 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       //
       // Similarly, some response schema validations are suppressed because the spec's heavy use of
       // allOf and oneOf composition triggers noisy but harmless failures in validator v3. We accept
-      // the risk that responses could technically omit required fields without test failure, relying
+      // the risk that responses could technically omit required fields without test failure,
+      // relying
       // instead on E2E assertions to verify the service returns correct 200/201 payloads in success
-      // paths. Negative tests (400 path) verify service-side error handling, not validator strictness.
+      // paths. Negative tests (400 path) verify service-side error handling, not validator
+      // strictness.
       //
       // Request schema suppressions (required, allOf, additionalProperties, oneOf, enum,
       // format.uuid, minLength):
@@ -65,17 +68,24 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       // - Invalid enum values: test that service rejects out-of-range values
       // - Malformed UUIDs: test that service rejects invalid identifier formats
       // - Too-short strings: test that service enforces minLength constraints
-      // Tests assert the expected 400 response; the validator is not responsible for catching errors.
+      // Tests assert the expected 400 response; the validator is not responsible for catching
+      // errors.
       //
       // Response schema suppressions (allOf, additionalProperties, oneOf, required):
-      // The spec composes many models with allOf + oneOf polymorphic schemas (e.g., ProviderCreateV2,
+      // The spec composes many models with allOf + oneOf polymorphic schemas (e.g.,
+      // ProviderCreateV2,
       // ProviderV2). Validator v3 evaluates each allOf branch and oneOf variant in isolation,
-      // triggering spurious failures for otherwise valid payloads (fields appear as "additionalProperties"
-      // in single-branch evaluation but are valid in the full composed schema, or required-field checks
-      // fail across variant boundaries). Rather than suppress individual false positives, we suppress
+      // triggering spurious failures for otherwise valid payloads (fields appear as
+      // "additionalProperties"
+      // in single-branch evaluation but are valid in the full composed schema, or required-field
+      // checks
+      // fail across variant boundaries). Rather than suppress individual false positives, we
+      // suppress
       // the entire schema-validation category to allow tests to focus on behaviour assertions.
-      // Note: responses can technically pass validation despite omitting required fields, but success-path
-      // tests verify that the service returns complete payloads; failure-path tests verify 400 handling.
+      // Note: responses can technically pass validation despite omitting required fields, but
+      // success-path
+      // tests verify that the service returns complete payloads; failure-path tests verify 400
+      // handling.
       //
       // validation.response.contentType.notAllowed:
       // The spec declares application/json for some error responses, but the service correctly

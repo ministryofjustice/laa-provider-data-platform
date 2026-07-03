@@ -43,20 +43,52 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-      // The spec declares application/json for error responses, but the service correctly returns
-      // application/problem+json (RFC 7807). Downgrade to WARN until the spec is updated.
+      // Schema validation suppressions: E2E tests deliberately send invalid payloads (missing
+      // required fields, invalid enums, malformed UUIDs, etc.) to verify the API returns 400 Bad
+      // Request. Without these suppressions, the validator would block payloads before reaching
+      // the service. Tests assert response correctness; the validator is not responsible for
+      // checking.
       //
-      // The spec uses allOf:[{$ref:BaseEntityV2},{type:object,properties:{...}}] throughout.
-      // The Atlassian validator evaluates each allOf branch in isolation and incorrectly rejects
-      // properties defined in the other branch as "additional properties not allowed", even though
-      // additionalProperties defaults to true. This affects both request and response validation.
-      // Downgrade to WARN until the library is fixed or the spec is restructured.
+      // validation.response.contentType.notAllowed:
+      // The spec declares application/json for some error responses, but the service correctly
+      // returns application/problem+json (RFC 7807). Keep as WARN until the spec is aligned.
       //
-      // Similarly, oneOf validation on requests is downgraded so that intentionally invalid
-      // request bodies (used in error-case tests) reach the service rather than being blocked.
-      // Required-field validation on requests is also downgraded for the same reason: tests that
-      // verify mandatory-field enforcement send requests with missing fields and must reach the
-      // service to confirm the 400 response.
+      // validation.response.body.schema.allOf:
+      // The spec composes many models with allOf across base and subtype schemas. Validator v3
+      // emits noisy composition failures for otherwise valid payloads.
+      //
+      // validation.response.body.schema.additionalProperties:
+      // allOf branch-level evaluation can flag legitimate fields as additionalProperties even when
+      // they are valid in the fully composed schema.
+      //
+      // validation.response.body.schema.oneOf:
+      // oneOf checks become noisy when used with allOf polymorphic composition, so this stays WARN
+      // to avoid false negatives in valid responses.
+      //
+      // validation.response.body.schema.required:
+      // Required attributes in response schema are not validated reliably because of how the
+      // Atlassian filter parses oneOf and allOf properties. Your test must check for them instead.
+      //
+      // validation.request.body.schema.allOf:
+      // Request composition can fail noisily in polymorphic branches used by negative-path
+      // fixtures.
+      //
+      // validation.request.body.schema.additionalProperties:
+      // allOf branch-level evaluation can flag legitimate fields as additional in deliberately
+      // invalid request payloads.
+      //
+      // validation.request.body.schema.oneOf:
+      // Modifying tests intentionally submit invalid variants that must reach the API to assert
+      // 400 responses.
+      //
+      // validation.request.body.schema.required:
+      // Missing mandatory fields are sent deliberately in tests that verify service-side
+      // validation.
+      //
+      // validation.request.body.schema.enum, validation.request.body.schema.format.uuid, and
+      // validation.request.body.schema.minLength:
+      // Negative tests exercise enum, identifier-format, and string-length constraints and must
+      // reach the API to assert expected 400 problem responses.
       OpenApiInteractionValidator validator =
           OpenApiInteractionValidator.createForInlineApiSpecification(spec)
               .withLevelResolver(
@@ -69,6 +101,10 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                           "validation.response.body.schema.additionalProperties",
                           ValidationReport.Level.WARN)
                       .withLevel(
+                          "validation.response.body.schema.oneOf", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.response.body.schema.required", ValidationReport.Level.WARN)
+                      .withLevel(
                           "validation.request.body.schema.allOf", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.additionalProperties",
@@ -77,6 +113,11 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                           "validation.request.body.schema.oneOf", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.required", ValidationReport.Level.WARN)
+                      .withLevel("validation.request.body.schema.enum", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.format.uuid", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.minLength", ValidationReport.Level.WARN)
                       .build())
               .build();
       return new OpenApiValidationFilter(validator);

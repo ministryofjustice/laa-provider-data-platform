@@ -71,7 +71,7 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                                   "telephoneNumber": "020 1111 2222"
                                 },
                                 "contractManager": {
-                                  "contractManagerGUID": "12345678-1234-1234-1234-123456789012"
+                                  "useDefaultContractManager": true
                                 }
                               }
                             }
@@ -110,6 +110,9 @@ class ProviderFirmBankAccountsIntegrationTest extends PostgresqlSpringBootTest {
                                                     "lastName": "Smith",
                                                     "emailAddress": "jane.smith@example.com",
                                                     "telephoneNumber": "07700900000"
+                                                  },
+                                                  "contractManager": {
+                                                    "useDefaultContractManager": true
                                                   }
                                                 }
                                                 """))

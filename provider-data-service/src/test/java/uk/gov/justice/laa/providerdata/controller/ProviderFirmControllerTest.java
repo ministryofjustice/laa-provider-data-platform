@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,12 +17,14 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -38,6 +41,7 @@ import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
 
 @WebMvcTest(ProviderFirmController.class)
+@Import(JacksonConfig.class)
 class ProviderFirmControllerTest {
 
   @Autowired private MockMvc mockMvc;
@@ -49,7 +53,8 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createLspFirm(any(), any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createLspFirm(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(new ProviderCreationResult(guid, "LSP-ABCD1234", UUID.randomUUID(), "ACC001"));
 
     mockMvc
@@ -91,7 +96,8 @@ class ProviderFirmControllerTest {
   @Test
   void createProviderFirm_chambers_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
-    when(providerFirmCreationService.createChambersFirm(any(), any(), any(), any(), any(), any()))
+    when(providerFirmCreationService.createChambersFirm(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(new ProviderCreationResult(guid, "CH-ABCD1234", UUID.randomUUID(), "ACC002"));
 
     mockMvc

@@ -11,6 +11,9 @@ import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOffice201ResponseData;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmOfficeByGUID200Response;
@@ -64,10 +67,20 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       linkToHeadOffice = true;
     }
 
-    UUID contractManagerGuid =
-        lspOfficeCreateV2.getContractManager() != null
-            ? lspOfficeCreateV2.getContractManager().getContractManagerGUID()
-            : null;
+    UUID contractManagerGuid = null;
+    boolean useDefaultContractManager = false;
+    boolean useHeadOfficeContractManager = false;
+
+    if (lspOfficeCreateV2.getContractManager() instanceof ContractManagerLinkByGUIDV2 cmLink) {
+      if (cmLink.getContractManagerGUID() == null) {
+        throw new IllegalArgumentException("contractManagerGUID must be provided");
+      }
+      contractManagerGuid = cmLink.getContractManagerGUID();
+    } else if (lspOfficeCreateV2.getContractManager() instanceof ContractManagerLinkDefaultV2) {
+      useDefaultContractManager = true;
+    } else if (lspOfficeCreateV2.getContractManager() instanceof ContractManagerLinkHeadOfficeV2) {
+      useHeadOfficeContractManager = true;
+    }
 
     OfficeCreationResult result =
         officeService.createLspOffice(
@@ -79,7 +92,9 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
             linkToHeadOffice,
             existingLmGuid,
             lspOfficeCreateV2.getPayment(),
-            contractManagerGuid);
+            contractManagerGuid,
+            useDefaultContractManager,
+            useHeadOfficeContractManager);
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(

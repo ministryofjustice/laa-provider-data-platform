@@ -54,7 +54,7 @@ class CreateOfficeLiaisonManagerE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "First",

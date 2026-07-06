@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -129,6 +130,13 @@ public class OfficeService {
    * <p>If {@code payment} is non-null and its {@code paymentMethod} is {@code EFT}, a bank account
    * is created (or an existing one linked) and associated with the office.
    *
+   * <p>Exactly one contract manager option should be active per call: {@code contractManagerGuid}
+   * non-null links that contract manager directly; {@code useDefaultContractManager} links the
+   * system default; {@code useHeadOfficeContractManager} links whichever contract manager is
+   * currently assigned to the provider's head office (DSTEW-1663 "trickle-down" - a one-off copy
+   * taken at creation time, not a live reference: later changes to the head office's contract
+   * manager do not affect this office).
+   *
    * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
    * @param officeTemplate unpersisted office entity with address and contact fields populated
    * @param linkTemplate unpersisted link entity with payment and VAT fields populated
@@ -140,12 +148,19 @@ public class OfficeService {
    * @param payment payment details from the request, or {@code null}
    * @param contractManagerGuid GUID of a contract manager to assign to the new office, or {@code
    *     null}
+   * @param useDefaultContractManager if {@code true}, link the system default contract manager
+   * @param useHeadOfficeContractManager if {@code true}, link the contract manager currently
+   *     assigned to the provider's head office
    * @return identifiers for the created provider, office, and link
    * @throws ItemNotFoundException if no provider matches the given identifier, or if {@code
    *     linkToHeadOfficeLiaisonManager} is true but no head office or active LM is found, or if
-   *     {@code existingLmGuid} does not match any liaison manager
+   *     {@code existingLmGuid} does not match any liaison manager, or if {@code
+   *     useHeadOfficeContractManager} is true but no head office is found for the provider
    * @throws IllegalArgumentException if {@code contractManagerGuid} is non-null and does not match
    *     any contract manager
+   * @throws IllegalStateException if {@code useDefaultContractManager} is true and no default
+   *     contract manager is configured, or if {@code useHeadOfficeContractManager} is true but the
+   *     head office has no contract manager assigned
    */
   public OfficeCreationResult createLspOffice(
       String providerFirmGUIDorFirmNumber,
@@ -156,7 +171,9 @@ public class OfficeService {
       boolean linkToHeadOfficeLiaisonManager,
       @Nullable UUID existingLmGuid,
       @Nullable PaymentDetailsCreateOrLinkV2 payment,
-      @Nullable UUID contractManagerGuid) {
+      @Nullable UUID contractManagerGuid,
+      boolean useDefaultContractManager,
+      boolean useHeadOfficeContractManager) {
 
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
 
@@ -190,7 +207,11 @@ public class OfficeService {
 
     persistBankDetails(payment, provider, savedLink);
 
-    if (contractManagerGuid != null) {
+    if (useHeadOfficeContractManager) {
+      linkHeadOfficeContractManager(provider, savedLink);
+    } else if (useDefaultContractManager) {
+      linkDefaultContractManager(savedLink);
+    } else if (contractManagerGuid != null) {
       linkContractManager(savedLink, contractManagerGuid);
     }
 
@@ -203,7 +224,8 @@ public class OfficeService {
   }
 
   /**
-   * Convenience overload that creates an LSP office with no liaison manager.
+   * Convenience overload that creates an LSP office with no liaison manager and no contract
+   * manager.
    *
    * @param providerFirmGUIDorFirmNumber GUID or firm number identifying the parent provider
    * @param officeTemplate unpersisted office entity with address and contact fields populated
@@ -224,7 +246,9 @@ public class OfficeService {
         false,
         null,
         null,
-        null);
+        null,
+        false,
+        false);
   }
 
   /**
@@ -801,6 +825,54 @@ public class OfficeService {
         OfficeContractManagerLinkEntity.builder()
             .officeLink(savedLink)
             .contractManager(manager)
+            .build());
+  }
+
+  private void linkDefaultContractManager(LspProviderOfficeLinkEntity savedLink) {
+    ContractManagerEntity manager =
+        contractManagerRepository
+            .findByDefaultContractManagerTrue()
+            .orElseThrow(
+                () -> new IllegalStateException("No default contract manager is configured"));
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(savedLink)
+            .contractManager(manager)
+            .build());
+  }
+
+  /**
+   * Implements the DSTEW-1663 "Firm Contract Manager trickle-down" business rule: copies whichever
+   * contract manager is currently linked to the provider's head office onto the newly created child
+   * office. This is a one-off copy at creation time, not a live reference - later changes to the
+   * head office's contract manager do not retroactively affect this office.
+   */
+  private void linkHeadOfficeContractManager(
+      ProviderEntity provider, LspProviderOfficeLinkEntity newOfficeLink) {
+    var headOfficeLink =
+        lspProviderOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(provider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        "Head office not found for provider: " + provider.getGuid()));
+
+    var headOfficeManager =
+        officeContractManagerLinkRepository
+            .findByOfficeLink_Guid(headOfficeLink.getGuid(), PageRequest.of(0, 1))
+            .stream()
+            .findFirst()
+            .map(OfficeContractManagerLinkEntity::getContractManager)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Head office has no contract manager assigned for provider: "
+                            + provider.getGuid()));
+
+    officeContractManagerLinkRepository.save(
+        OfficeContractManagerLinkEntity.builder()
+            .officeLink(newOfficeLink)
+            .contractManager(headOfficeManager)
             .build());
   }
 

@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
@@ -53,6 +54,8 @@ class CreateProviderFirmOfficeE2eTest {
                 "postcode", "BS1 1AA"),
             "payment",
             Map.of("paymentMethod", "EFT"),
+            "contractManager",
+            Map.of("useHeadOfficeContractManager", true),
             "liaisonManager",
             Map.of(
                 "firstName", "Office",
@@ -129,7 +132,7 @@ class CreateProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Head",
@@ -166,6 +169,8 @@ class CreateProviderFirmOfficeE2eTest {
                         "postcode", "EC1A 1BB"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("useHeadOfficeLiaisonManager", true)))
             .when()
@@ -220,7 +225,7 @@ class CreateProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Parent",
@@ -257,6 +262,8 @@ class CreateProviderFirmOfficeE2eTest {
                         "postcode", "EC1A 1BB"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of(
                         "firstName", "Office",
@@ -316,7 +323,7 @@ class CreateProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Original",
@@ -363,6 +370,8 @@ class CreateProviderFirmOfficeE2eTest {
                         "postcode", "EC1A 1BB"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("useHeadOfficeLiaisonManager", true)))
             .when()
@@ -414,6 +423,8 @@ class CreateProviderFirmOfficeE2eTest {
             Map.of("line1", "1 Street", "townOrCity", "London", "postcode", "EC1A 1BB"),
             "payment",
             Map.of("paymentMethod", "EFT"),
+            "contractManager",
+            Map.of("useHeadOfficeContractManager", true),
             "liaisonManager",
             Map.of(
                 "firstName", "Test",
@@ -535,6 +546,226 @@ class CreateProviderFirmOfficeE2eTest {
                 Map.of("useHeadOfficeLiaisonManager", true),
                 "contractManager",
                 Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000")))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
+  }
+
+  /// Creates an isolated LSP firm, then POSTs a child office with `contractManagerGUID: null`
+  /// (i.e. the object is present but neither option is actually supplied); expects 400 and
+  /// verifies no office is created. Confirms this does not silently succeed with no Contract
+  /// Manager assigned, nor silently fall back to the system default.
+  ///
+  /// - DSTEW-1663: Firm Contract Manager trickle-down - the `contractManager` union must resolve
+  ///   to an explicit choice (`contractManagerGUID` or `useDefaultContractManager`); an
+  ///   incomplete/null selection is rejected rather than silently ignored.
+  @Test
+  void dstew1663_createOffice_contractManagerGUIDExplicitlyNull_returns400AndOfficeNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-NULL-CM", ts);
+
+    // Map.of(...) rejects null values, so HashMap is used to serialise an explicit
+    // contractManagerGUID: null.
+    Map<String, Object> contractManager = new HashMap<>();
+    contractManager.put("contractManagerGUID", null);
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "1 Null CM Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true),
+                "contractManager",
+                contractManager))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
+  }
+
+  /// Creates an isolated LSP firm, then POSTs a child office with the `contractManager` field
+  /// omitted entirely (not just null); expects 400 and verifies no office is created.
+  /// `contractManager` is a mandatory field for LSP Child Offices (BR-21).
+  ///
+  /// - DSTEW-1663: Firm Contract Manager trickle-down - `contractManager` must be provided; a
+  ///   fully-omitted field is rejected rather than silently defaulting or skipping assignment.
+  @Test
+  void dstew1663_createOffice_contractManagerOmittedEntirely_returns400AndOfficeNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-OMITTED-CM", ts);
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "1 Omitted CM Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true)))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
+  }
+
+  /// Creates an isolated LSP firm, then POSTs a child office with both `contractManagerGUID` and
+  /// `useDefaultContractManager: true` supplied together; expects 400 and verifies no office is
+  /// created.
+  ///
+  /// - DSTEW-1663: Firm Contract Manager trickle-down - the `contractManager` union permits
+  ///   exactly one option; conflicting instructions are rejected.
+  @Test
+  void dstew1663_createOffice_contractManagerGUIDWithUseDefault_returns400AndOfficeNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-GUID-DEFAULT", ts);
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "1 Conflict Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true),
+                "contractManager",
+                Map.of(
+                    "contractManagerGUID",
+                    E2eConfig.defaultContractManagerGUID(),
+                    "useDefaultContractManager",
+                    true)))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
+  }
+
+  /// Creates an isolated LSP firm, then POSTs a child office with both `contractManagerGUID` and
+  /// `useHeadOfficeContractManager: true` supplied together; expects 400 and verifies no office
+  /// is created.
+  ///
+  /// - DSTEW-1663: Firm Contract Manager trickle-down - the `contractManager` union permits
+  ///   exactly one option; conflicting instructions are rejected.
+  @Test
+  void dstew1663_createOffice_contractManagerGUIDWithUseHeadOffice_returns400AndOfficeNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-GUID-HEADOFFICE", ts);
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "1 Conflict Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true),
+                "contractManager",
+                Map.of(
+                    "contractManagerGUID",
+                    E2eConfig.defaultContractManagerGUID(),
+                    "useHeadOfficeContractManager",
+                    true)))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
+  }
+
+  /// Creates an isolated LSP firm, then POSTs a child office with both
+  /// `useDefaultContractManager: true` and `useHeadOfficeContractManager: true` supplied
+  /// together; expects 400 and verifies no office is created.
+  ///
+  /// - DSTEW-1663: Firm Contract Manager trickle-down - the `contractManager` union permits
+  ///   exactly one option; conflicting instructions are rejected.
+  @Test
+  void dstew1663_createOffice_useDefaultWithUseHeadOffice_returns400AndOfficeNotCreated() {
+    long ts = System.currentTimeMillis();
+    String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-DEFAULT-HEADOFFICE", ts);
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", "1 Conflict Street",
+                    "townOrCity", "London",
+                    "postcode", "EC1A 1BB"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true),
+                "contractManager",
+                Map.of(
+                    "useDefaultContractManager", true,
+                    "useHeadOfficeContractManager", true)))
         .when()
         .post("/provider-firms/{firmId}/offices")
         .then()
@@ -787,6 +1018,8 @@ class CreateProviderFirmOfficeE2eTest {
                         "B1 1AA"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("useHeadOfficeLiaisonManager", true),
                     "dxDetails",
@@ -850,6 +1083,8 @@ class CreateProviderFirmOfficeE2eTest {
                         "postcode", "EC1A 1BB"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("liaisonManagerGUID", headOfficeLmGuid)))
             .when()
@@ -1021,7 +1256,7 @@ class CreateProviderFirmOfficeE2eTest {
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
                     "contractManager",
-                    Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                    Map.of("useDefaultContractManager", true),
                     "liaisonManager",
                     Map.of(
                         "firstName", "Isolated",

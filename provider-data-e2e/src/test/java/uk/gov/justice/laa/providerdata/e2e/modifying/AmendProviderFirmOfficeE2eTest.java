@@ -49,7 +49,7 @@ class AmendProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "Amend",
@@ -76,6 +76,8 @@ class AmendProviderFirmOfficeE2eTest {
                         "postcode", "M1 1AA"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("useHeadOfficeLiaisonManager", true)))
             .when()
@@ -387,7 +389,7 @@ class AmendProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "DX",
@@ -414,6 +416,8 @@ class AmendProviderFirmOfficeE2eTest {
                         "postcode", "B1 1AA"),
                     "payment",
                     Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useHeadOfficeContractManager", true),
                     "liaisonManager",
                     Map.of("useHeadOfficeLiaisonManager", true)))
             .when()
@@ -530,7 +534,7 @@ class AmendProviderFirmOfficeE2eTest {
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "contractManager",
-                        Map.of("contractManagerGUID", "12345678-1234-1234-1234-123456789012"),
+                        Map.of("useDefaultContractManager", true),
                         "liaisonManager",
                         Map.of(
                             "firstName", "CM",

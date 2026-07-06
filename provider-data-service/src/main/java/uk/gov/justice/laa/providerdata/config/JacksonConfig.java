@@ -19,6 +19,11 @@ import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkHeadOfficeV2;
+import uk.gov.justice.laa.providerdata.model.HeadOfficeContractManagerLinkV2;
+import uk.gov.justice.laa.providerdata.model.LSPOfficeContractManagerLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
@@ -215,6 +220,44 @@ public class JacksonConfig {
                     return LiaisonManagerLinkByGUIDV2.class;
                   } else {
                     return LiaisonManagerCreateV2.class;
+                  }
+                }))
+        .addDeserializer(
+            LSPOfficeContractManagerLinkV2.class,
+            new TypeResolvingDeserializer<>(
+                LSPOfficeContractManagerLinkV2.class,
+                (node, p) -> {
+                  if (node.has("useHeadOfficeContractManager")) {
+                    rejectConflictingFields(
+                        node,
+                        p,
+                        "useHeadOfficeContractManager",
+                        "useDefaultContractManager",
+                        "contractManagerGUID");
+                    return ContractManagerLinkHeadOfficeV2.class;
+                  } else if (node.has("useDefaultContractManager")) {
+                    rejectConflictingFields(
+                        node,
+                        p,
+                        "useDefaultContractManager",
+                        "useHeadOfficeContractManager",
+                        "contractManagerGUID");
+                    return ContractManagerLinkDefaultV2.class;
+                  } else {
+                    return ContractManagerLinkByGUIDV2.class;
+                  }
+                }))
+        .addDeserializer(
+            HeadOfficeContractManagerLinkV2.class,
+            new TypeResolvingDeserializer<>(
+                HeadOfficeContractManagerLinkV2.class,
+                (node, p) -> {
+                  if (node.has("useDefaultContractManager")) {
+                    rejectConflictingFields(
+                        node, p, "useDefaultContractManager", "contractManagerGUID");
+                    return ContractManagerLinkDefaultV2.class;
+                  } else {
+                    return ContractManagerLinkByGUIDV2.class;
                   }
                 }))
         .addDeserializer(

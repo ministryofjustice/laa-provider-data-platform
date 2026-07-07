@@ -17,13 +17,16 @@ import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepos
  *       the office is removed before creating a new link.
  *   <li>Looks up the {@code ContractManagerEntity} by its GUID and throws an {@link
  *       IllegalArgumentException} if it does not exist.
- *   <li>When no GUID is supplied, falls back to the record flagged as the system default
- *       (DSTEW-1660/DSTEW-1661 AC2 – "Mr Default").
+ *   <li>When {@code useDefault} is true, assigns the record flagged as the system default
+ *       (DSTEW-1924 AC2 – "Mr Default").
+ *   <li>When {@code useHeadOffice} is true, assigns the contract manager currently linked to the
+ *       provider's head office (DSTEW-1924 AC5 – trickle-down via patch).
  *   <li>Treats re-assigning the same contract manager to the same office as idempotent.
  * </ul>
  *
- * <p>The {@link #assign(String, String, UUID)} method is transactional. It will atomically remove
- * any previous assignment for the office and persist the new link or roll back on failure.
+ * <p>The {@link #assign(String, String, UUID, boolean, boolean)} method is transactional. It will
+ * atomically remove any previous assignment for the office and persist the new link or roll back on
+ * failure.
  */
 @Service
 public class OfficeContractManagerAssignmentService {
@@ -60,46 +63,54 @@ public class OfficeContractManagerAssignmentService {
    * link GUID or the office account number. It deletes any existing {@link
    * OfficeContractManagerLinkEntity} for the resolved office before creating the new link.
    *
-   * <p>If {@code contractManagerGuid} is {@code null}, the contract manager flagged as {@code
-   * defaultContractManager} is used (DSTEW-1660/DSTEW-1661 AC2). An {@link
-   * IllegalArgumentException} is thrown if no default is configured.
-   *
-   * <p>The contract manager must exist; otherwise an {@link IllegalArgumentException} is thrown.
-   * Provider and office resolution follow the same semantics as the other provider-office endpoints
-   * in the application.
+   * <p>Exactly one of {@code contractManagerGuid}, {@code useDefault}, or {@code useHeadOffice}
+   * must be active (non-null/true). The controller is responsible for enforcing this before calling
+   * this method.
    *
    * @param providerGuidOrFirmNumber the provider GUID or firm number
    * @param officeGuidOrCode the provider office link GUID or office account number
-   * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} being assigned, or
-   *     {@code null} to assign the system default contract manager
+   * @param contractManagerGuid the GUID of the {@link ContractManagerEntity} to assign, or {@code
+   *     null} if {@code useDefault} or {@code useHeadOffice} is true
+   * @param useDefault if {@code true}, assign the system default contract manager (DSTEW-1924 AC2)
+   * @param useHeadOffice if {@code true}, assign the contract manager linked to the provider's head
+   *     office (DSTEW-1924 AC5)
    * @return an {@link AssignmentResult} containing the provider office link GUID and the assigned
    *     contract manager's external/business ID
    * @throws IllegalArgumentException if no contract manager exists with the given {@code
    *     contractManagerGuid}
-   * @throws IllegalStateException if {@code contractManagerGuid} is {@code null} and no default
-   *     contract manager is configured
+   * @throws IllegalStateException if {@code useDefault} is true and no default contract manager is
+   *     configured, or if {@code useHeadOffice} is true and the head office has no contract manager
+   * @throws ItemNotFoundException if {@code useHeadOffice} is true and no head office is found
    */
   @Transactional
   public AssignmentResult assign(
       String providerGuidOrFirmNumber,
       String officeGuidOrCode,
-      @Nullable UUID contractManagerGuid) {
-    ContractManagerEntity manager =
-        contractManagerGuid != null
-            ? contractManagerRepository
-                .findById(contractManagerGuid)
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "Unknown contractManagerGUID: " + contractManagerGuid))
-            : contractManagerRepository
-                .findByDefaultContractManagerTrue()
-                .orElseThrow(
-                    () -> new IllegalStateException("No default contract manager is configured"));
-
+      @Nullable UUID contractManagerGuid,
+      boolean useDefault,
+      boolean useHeadOffice) {
     var provider = providerService.getProvider(providerGuidOrFirmNumber);
     var providerOfficeLink = officeService.getProviderOfficeLink(provider, officeGuidOrCode);
     UUID providerOfficeLinkGuid = providerOfficeLink.getGuid();
+
+    ContractManagerEntity manager;
+    if (contractManagerGuid != null) {
+      manager =
+          contractManagerRepository
+              .findById(contractManagerGuid)
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Unknown contractManagerGUID: " + contractManagerGuid));
+    } else if (useDefault) {
+      manager =
+          contractManagerRepository
+              .findByDefaultContractManagerTrue()
+              .orElseThrow(
+                  () -> new IllegalStateException("No default contract manager is configured"));
+    } else {
+      manager = officeService.resolveHeadOfficeContractManager(provider);
+    }
 
     if (linkRepository.existsByOfficeLink_GuidAndContractManager_Guid(
         providerOfficeLinkGuid, manager.getGuid())) {

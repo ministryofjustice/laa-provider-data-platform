@@ -13,7 +13,7 @@
 
 ## Overview
 
-The Provider Details API (R1)'s CI/CD process is implemented using GitHub Actions.
+The Provider Details API r1's CI/CD process is implemented using GitHub Actions.
 Deployment into Cloud Platform is implemented using `helm` and a Helm chart.
 
 ## Pipeline workflows
@@ -240,7 +240,7 @@ End-to-end test" workflow against a PR preview app or a release environment.
 ### Overview (E2E tests)
 
 The "Reusable workflow: End-to-end test" GitHub Actions workflow
-executes end-to-end (E2E) tests for the Provider Details API (R1)
+executes end-to-end (E2E) tests for the Provider Details API r1
 against a release in a chosen namespace (**uat**, **staging**, **prod**) or a
 PR preview app in **uat**.
 

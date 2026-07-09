@@ -6,7 +6,7 @@ weight: 20
 
 # API reference
 
-The LAA Provider Data API is described using the
+The Provider Data API r2 is described using the
 [OpenAPI 3.0 specification](https://spec.openapis.org/oas/v3.0.3).
 
 The specification source is

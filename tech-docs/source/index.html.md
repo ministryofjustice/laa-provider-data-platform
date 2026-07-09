@@ -29,16 +29,16 @@ the Provider Data APIs and related services.
 
 The generic term **Provider Data APIs** - also sometimes abbreviated as **PDA** - can refer to:
 
-* The **[Provider Details API (R1)](#provider-details-api-r1)** exposes data about
+* The **[Provider Details API r1](#provider-details-api-r1)** exposes data about
   provider firms, offices, contracts and schedules from CWA
-* The **[Provider Data API (R2)](#provider-data-api-r2)**  will own data about
+* The **[Provider Data API r2](#provider-data-api-r2)**  will own data about
   provider firms and offices (and, later on, contracts and schedules)
 
 ---
 
-## Provider Details API (R1)
+## Provider Details API r1
 
-The **[Provider Details API (R1)](pda-r1/)** exposes data about provider firms, offices,
+The **[Provider Details API r1](pda-r1/)** exposes data about provider firms, offices,
 contracts and schedules from CWA.
 
 Most data is currently sourced from the CWA database (a few entities are augmented with a CCMS ID,
@@ -50,9 +50,9 @@ Platform and serves live traffic to a variety of consumer LAA services.
 
 ---
 
-## Provider Data API (R2)
+## Provider Data API r2
 
-The **[Provider Data API (R2)](pda-r2/)** will own data about provider firms and offices
+The **[Provider Data API r2](pda-r2/)** will own data about provider firms and offices
 (and, later on, contracts and schedules).
 
 Also known as **[PDA-r2](pda-r2/)**, the service has its own data store, and a

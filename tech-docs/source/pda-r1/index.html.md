@@ -1,18 +1,18 @@
 ---
 source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/index.html.md
-title: Provider Details API (R1)
+title: Provider Details API r1
 weight: 10
 ---
 
-# Provider Details API (R1)
+# Provider Details API r1
 
-The **Provider Details API (R1)** is a read-only REST API that retrieves provider data from
+The **Provider Details API r1** is a read-only REST API that retrieves provider data from
 Oracle database snapshots. It is deployed to Cloud Platform and serves live traffic.
 
 ## Who is this documentation for?
 
 This is technical documentation for LAA Digital teams at the Ministry of Justice who use or develop
-the Provider Details API (R1) and related services.
+the Provider Details API r1 and related services.
 
 ## Documentation
 

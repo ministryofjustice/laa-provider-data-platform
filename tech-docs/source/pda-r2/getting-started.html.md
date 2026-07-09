@@ -4,9 +4,9 @@ title: Getting started
 weight: 20
 ---
 
-# Getting started with Provider Data API (R2)
+# Getting started with Provider Data API r2
 
-This guide covers setting up and running the Provider Data API (R2) locally.
+This guide covers setting up and running the Provider Data API r2 locally.
 
 ## Prerequisites
 

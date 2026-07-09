@@ -9,7 +9,7 @@
 repos:
   # Ministry of Justice DevSecOps hooks for secret detection
   - repo: https://github.com/ministryofjustice/devsecops-hooks
-    rev: v1.6.0
+    rev: 53d252e406bae2bbbd0c0f3205b72870a02c9b3f  # frozen: v2.0.2
     hooks:
       - id: baseline
         stages: [commit, push]

@@ -28,7 +28,6 @@ jobs:
 
       - name: "Generate API spec pages"
         run: |
-          mkdir -p tech-docs/source/pda-r2/api
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \

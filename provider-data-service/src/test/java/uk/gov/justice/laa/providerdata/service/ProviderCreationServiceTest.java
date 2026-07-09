@@ -319,24 +319,13 @@ class ProviderCreationServiceTest {
   }
 
   @Test
-  void createPractitionerFirm_savesProviderOnly_returnsNullOfficeFields() {
-    UUID providerGuid = UUID.randomUUID();
-    when(providerRepository.save(any()))
-        .thenAnswer(
-            inv -> {
-              ProviderEntity provider = inv.getArgument(0);
-              provider.setGuid(providerGuid);
-              return provider;
-            });
-
-    var result =
-        service.createPractitionerFirm(
-            AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null);
-
-    assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
-    assertThat(result.firmNumber()).isNotBlank();
-    assertThat(result.headOfficeGUID()).isNull();
-    assertThat(result.headOfficeAccountNumber()).isNull();
+  void createPractitionerFirm_withNullParentFirms_throwsIllegalArgumentException() {
+    assertThatThrownBy(
+            () ->
+                service.createPractitionerFirm(
+                    AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Exactly one parent Chamber");
   }
 
   @Test
@@ -485,6 +474,11 @@ class ProviderCreationServiceTest {
   @Test
   void createPractitionerFirm_withEftPayment_persistsBankAccount() {
     UUID providerGuid = UUID.randomUUID();
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
+    OfficeEntity parentOffice = new OfficeEntity();
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+
     when(providerRepository.save(any()))
         .thenAnswer(
             inv -> {
@@ -492,6 +486,11 @@ class ProviderCreationServiceTest {
               provider.setGuid(providerGuid);
               return provider;
             });
+    when(providerRepository.findByFirmNumber("100002")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var createDetails =
         new BankAccountProviderOfficeCreateV2("Advocate Account", "12-34-56", "87654321");
@@ -503,21 +502,37 @@ class ProviderCreationServiceTest {
             .bankAccountDetails(createDetails);
 
     service.createPractitionerFirm(
-        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+        payment);
 
-    verify(bankDetailsService).createAndLinkToProvider(eq(accountTemplate), any());
+    verify(bankDetailsService)
+        .createAndLink(
+            eq(accountTemplate), any(), any(AdvocateProviderOfficeLinkEntity.class), isNull());
   }
 
   @Test
   void createPractitionerFirm_withCheckPayment_doesNotPersistBankAccount() {
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
+    OfficeEntity parentOffice = new OfficeEntity();
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.findByFirmNumber("100002")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var payment = new PaymentDetailsCreateV2(PaymentDetailsPaymentMethodV2.CHECK);
 
     service.createPractitionerFirm(
-        AdvocatePractitionerEntity.builder().name("A. Advocate").build(), null, payment);
+        AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
+        List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+        payment);
 
-    verify(bankDetailsService, never()).createAndLinkToProvider(any(), any());
+    verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
   }
 
   // --- bank details wiring ---

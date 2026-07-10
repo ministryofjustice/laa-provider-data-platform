@@ -301,56 +301,52 @@ public class ProviderCreationService {
   }
 
   /**
-   * Creates a new Practitioner firm with a head office linked to the first parent's Chambers
-   * office.
+   * Creates a new Practitioner firm with a head office linked to the parent Chambers office.
    *
-   * <p>If {@code parentFirms} is provided, a {@link ProviderParentLinkEntity} is saved for each
-   * entry and an {@link AdvocateProviderOfficeLinkEntity} is created pointing to the first parent's
-   * head office. If {@code payment} specifies EFT with bank account details, a bank account is
-   * created and linked to the provider and that office link.
-   *
-   * <p>If no parent firms are provided, no office link is created and bank account details (if any)
-   * are linked to the provider only.
+   * <p>A {@link ProviderParentLinkEntity} is saved for the single parent and an {@link
+   * AdvocateProviderOfficeLinkEntity} is created pointing to that parent's head office. If {@code
+   * payment} specifies EFT with bank account details, a bank account is created and linked to the
+   * provider and that office link.
    *
    * @param practitionerTemplate partially-populated provider entity (firmType and name set)
-   * @param parentFirms parent firm references from the request, or {@code null}/empty
+   * @param parentFirms parent firm references from the request; must contain exactly one entry
+   *     (BR-31, DS_MAPD_FR_024 AC5)
    * @param payment payment details from the request, or {@code null}
-   * @return identifiers for the created provider and head office (if created)
+   * @return identifiers for the created provider and office
+   * @throws IllegalArgumentException if {@code parentFirms} does not contain exactly one entry, or
+   *     if the referenced parent Chamber is inactive (BR-27, DS_MAPD_FR_024 AC3)
    */
   @Transactional
   public ProviderCreationResult createPractitionerFirm(
       PractitionerEntity practitionerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
       @Nullable PaymentDetailsCreateV2 payment) {
+    // BR-31 (DS_MAPD_FR_024 AC5): A practitioner must be linked to exactly one Chamber at
+    // creation time. This constraint may change in future to allow moves between Chambers;
+    // see DSTEW-1734 AC5 for context.
+    if (parentFirms == null || parentFirms.size() != 1) {
+      throw new IllegalArgumentException(
+          "Exactly one parent Chamber must be provided when creating a practitioner");
+    }
+
     practitionerTemplate.setFirmNumber(
         ReferenceNumberUtils.generateFirmNumber(
             practitionerTemplate.getFirmType(), practitionerTemplate.getAdvocateType()));
     PractitionerEntity saved = (PractitionerEntity) providerRepository.save(practitionerTemplate);
 
-    AdvocateProviderOfficeLinkEntity officeLink = null;
-    if (parentFirms != null && !parentFirms.isEmpty()) {
-      persistParentLinks(parentFirms, saved);
-      ProviderEntity firstParent = resolveParent(parentFirms.get(0));
-      officeLink = createAdvocateOfficeLink(saved, firstParent);
-    }
+    persistParentLinks(parentFirms, saved);
+    ProviderEntity firstParent = resolveParent(parentFirms.get(0));
+    AdvocateProviderOfficeLinkEntity officeLink = createAdvocateOfficeLink(saved, firstParent);
 
-    if (officeLink != null) {
-      persistBankDetailsForOffice(payment, saved, officeLink);
-      var sample = io.micrometer.core.instrument.Timer.start();
-      sample.stop(practitionerFirmCreationTimer);
-      practitionerFirmCreationCounter.increment();
-      return new ProviderCreationResult(
-          saved.getGuid(),
-          saved.getFirmNumber(),
-          officeLink.getGuid(),
-          officeLink.getAccountNumber());
-    }
-
-    persistBankDetailsForPractitioner(payment, saved);
+    persistBankDetailsForOffice(payment, saved, officeLink);
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(practitionerFirmCreationTimer);
     practitionerFirmCreationCounter.increment();
-    return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+    return new ProviderCreationResult(
+        saved.getGuid(),
+        saved.getFirmNumber(),
+        officeLink.getGuid(),
+        officeLink.getAccountNumber());
   }
 
   private AdvocateProviderOfficeLinkEntity createAdvocateOfficeLink(
@@ -362,6 +358,11 @@ public class ProviderCreationService {
                 () ->
                     new ItemNotFoundException(
                         "Parent firm has no head office: " + parent.getGuid()));
+    // BR-27 (DS_MAPD_FR_024 AC3): The parent Chamber must be active (activeDateTo not set).
+    if (parentHeadOffice.getActiveDateTo() != null) {
+      throw new IllegalArgumentException(
+          "Parent Chamber is inactive; a practitioner cannot be created under an inactive Chamber");
+    }
     AdvocateProviderOfficeLinkEntity link = new AdvocateProviderOfficeLinkEntity();
     link.setProvider(practitioner);
     link.setOffice(parentHeadOffice.getOffice());

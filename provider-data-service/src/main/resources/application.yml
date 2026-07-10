@@ -6,6 +6,11 @@
 spring:
   application:
     name: PDA-r2
+  autoconfigure:
+    # Enable starter auth only through ApiKeyAuthenticationConfig.
+    exclude:
+      - uk.gov.laa.springboot.auth.SecurityFilterChainAutoConfiguration
+      - uk.gov.laa.springboot.auth.config.OpenApiConfiguration
   jackson:
     default-property-inclusion: non_null
   datasource:
@@ -34,6 +39,20 @@ spring:
             log:
               # Log only slow queries (ms threshold). Applies in all environments.
               LOG_QUERIES_SLOWER_THAN_MS: 100
+
+app:
+  security:
+    apikey:
+      enabled: ${APP_SECURITY_API_KEY_ENABLED:false}
+
+laa:
+  springboot:
+    starter:
+      auth:
+        authentication-header: "X-Authorization"
+        authorized-clients: ${AUTHORIZED_CLIENTS}
+        authorized-roles: ${AUTHORIZED_ROLES}
+        unprotected-uris: ${UNPROTECTED_URIS}
 
 info:
   app:

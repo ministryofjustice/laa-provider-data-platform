@@ -14,9 +14,7 @@ paths:
     get:
       summary: Retrieve a liaison manager
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getLiaisonManager
       tags:
         - Provider Liaison Managers
@@ -44,9 +42,7 @@ paths:
     patch:
       summary: Amend a liaison manager
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: updateLiaisonManager
       tags:
         - Provider Liaison Managers
@@ -88,9 +84,7 @@ paths:
     get:
       summary: Retrieve a list of event headers
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderEvents
       tags:
         - Events
@@ -170,9 +164,7 @@ paths:
     get:
       summary: Retrieve event by GUID
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getEventByGUID
       tags:
         - Events
@@ -224,9 +216,7 @@ paths:
     get:
       summary: Retrieve a list of contract managers
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderContractManagers
       tags:
         - Contract Managers
@@ -312,9 +302,7 @@ paths:
     post:
       summary: Create a provider firm
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: createProviderFirm
       tags:
         - Provider Firms
@@ -386,9 +374,7 @@ paths:
     get:
       summary: Retrieve providers with optional filters
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirms
       tags:
         - Provider Firms
@@ -517,9 +503,7 @@ paths:
     get:
       summary: Retrieve provider details by GUID or firm number
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmByGUIDorFirmNumber
       tags:
         - Provider Firms
@@ -563,9 +547,7 @@ paths:
     patch:
       summary: Update provider firm details
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: updateProviderFirm
       tags:
         - Provider Firms
@@ -634,9 +616,7 @@ paths:
     get:
       summary: Retrieve a list of provider bank accounts with optional filters
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmBankAccounts
       tags:
         - Provider Firm Bank Accounts
@@ -722,9 +702,7 @@ paths:
     get:
       summary: Retrieve a list of provider's office bank accounts with optional filters
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmOfficeBankAccounts
       tags:
         - Provider Firm Bank Accounts
@@ -805,9 +783,7 @@ paths:
     post:
       summary: Create an office for a Legal Service Provider firm
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: createProviderFirmOffice
       tags:
         - Provider Firm Offices
@@ -874,9 +850,7 @@ paths:
     get:
       summary: Retrieve a list of provider offices with optional filters
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmOffices
       tags:
         - Provider Firm Offices
@@ -945,9 +919,7 @@ paths:
     get:
       summary: Retrieve a list of provider offices with optional filters
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getOffices
       tags:
         - Provider Firm Offices
@@ -1027,9 +999,7 @@ paths:
     get:
       summary: Retrieve provider office details by GUID or office code
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmOfficeByGUID
       tags:
         - Provider Firm Offices
@@ -1073,9 +1043,7 @@ paths:
     patch:
       summary: Update provider office details
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: updateProviderFirmOffice
       tags:
         - Provider Firm Offices
@@ -1161,9 +1129,7 @@ paths:
       summary: >-
         Create a liaison manager for office. Creating new manager end-dates all other managers.
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: createProviderFirmOfficeLiaisonManager
       tags:
         - Provider Firm Offices Liaison Managers
@@ -1241,9 +1207,7 @@ paths:
     get:
       summary: Retrieve liaison managers for a given office
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmOfficeLiaisonManagers
       tags:
         - Provider Firm Offices Liaison Managers
@@ -1301,9 +1265,7 @@ paths:
       summary: >-
         Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: createProviderFirmOfficeContractManager
       tags:
         - Provider Firm Offices Contract Managers
@@ -1377,9 +1339,7 @@ paths:
     get:
       summary: Retrieve contract managers for a given provider office
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmOfficeContractManagers
       tags:
         - Provider Firm Offices Contract Managers
@@ -1433,9 +1393,7 @@ paths:
     get:
       summary: Retrieve practitioners for a given Chambers
       security:
-        - bearerAuth: []
-        - AzureAD:
-            - api://<client-id>/access_as_user
+        - ApiKeyAuth: []
       operationId: getProviderFirmPractitioners
       tags:
         - Chambers Practitioners
@@ -1495,19 +1453,10 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-    AzureAD:
-      type: oauth2
-      flows:
-        authorizationCode:
-          authorizationUrl: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize
-          tokenUrl: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
-          scopes:
-            api://<client-id>/access_as_user: Access the API as an authenticated user
+    ApiKeyAuth:
+      type: apiKey
+      name: X-Authorization
+      in: header
 
   schemas:
     BaseEntityGUIDV2:
@@ -3539,4 +3488,4 @@ components:
       description: Page size for given request (default is 100)
 
 security:
-  - bearerAuth: []
+  - ApiKeyAuth: []

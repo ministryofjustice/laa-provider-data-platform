@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import uk.gov.justice.laa.providerdata.security.ApiKeyAuthenticationFilter;
 import uk.gov.laa.springboot.auth.AuthenticationProperties;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
@@ -35,10 +36,13 @@ public class ApiKeyAuthenticationConfig {
   public SecurityFilterChain permitAllSecurityFilterChain(HttpSecurity httpSecurity)
       throws Exception {
     httpSecurity
-        .csrf(AbstractHttpConfigurer::disable)
-        .httpBasic(AbstractHttpConfigurer::disable)
-        .formLogin(AbstractHttpConfigurer::disable)
-        .logout(AbstractHttpConfigurer::disable)
+      .csrf(
+          csrf ->
+              csrf.ignoringRequestMatchers(
+                  PathPatternRequestMatcher.withDefaults().matcher("/**")))
+      .httpBasic(AbstractHttpConfigurer::disable)
+      .formLogin(AbstractHttpConfigurer::disable)
+      .logout(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
@@ -68,7 +72,10 @@ public class ApiKeyAuthenticationConfig {
         HttpSecurity httpSecurity, ApiKeyAuthenticationFilter apiKeyAuthenticationFilter)
         throws Exception {
       httpSecurity
-          .csrf(AbstractHttpConfigurer::disable)
+            .csrf(
+             csrf ->
+                 csrf.ignoringRequestMatchers(
+                     PathPatternRequestMatcher.withDefaults().matcher("/**")))
           .httpBasic(AbstractHttpConfigurer::disable)
           .formLogin(AbstractHttpConfigurer::disable)
           .logout(AbstractHttpConfigurer::disable)

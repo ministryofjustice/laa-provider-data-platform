@@ -57,7 +57,7 @@ laa:
 info:
   app:
     name: PDA-r2
-    description: "The Provider Data API (R2) will own data about provider firms and offices (and, later on, contracts and schedules)"
+    description: "The Provider Data API r2 will own data about provider firms and offices (and, later on, contracts and schedules)"
 
 logging:
   level:

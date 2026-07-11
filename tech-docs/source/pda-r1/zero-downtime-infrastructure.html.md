@@ -7,12 +7,12 @@ weight: 20
 # Zero-downtime infrastructure
 
 This document describes the infrastructure building blocks that enable zero-downtime operations for
-the Provider Data API (R1). These building blocks can be combined to achieve various
+the Provider Details API r1. These building blocks can be combined to achieve various
 zero-downtime scenarios such as cache rotation and database switchover.
 
 ## Overview
 
-The Provider Data API (R1) is designed to support zero-downtime maintenance operations through
+The Provider Details API r1 is designed to support zero-downtime maintenance operations through
 a combination of:
 
 1. **Dual Helm releases** (stable and canary) that can run simultaneously

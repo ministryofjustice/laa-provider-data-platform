@@ -6,7 +6,7 @@ weight: 4
 
 # API reference
 
-The Provider Details API (R1) provides RESTful endpoints for accessing provider data.
+The Provider Details API r1 provides RESTful endpoints for accessing provider data.
 
 The primary documentation for the REST endpoints is the Swagger UI - which is available at each of
 the following PDA-r1 environment URLs:

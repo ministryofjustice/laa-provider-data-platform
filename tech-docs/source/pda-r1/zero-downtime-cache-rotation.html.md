@@ -6,7 +6,7 @@ weight: 21
 
 # Zero-downtime cache rotation
 
-This guide explains how to reload the Provider Data API (R1) cache without causing service
+This guide explains how to reload the Provider Details API r1 cache without causing service
 downtime. This is useful when you need to refresh cached data from the database (e.g., after a data
 correction) without impacting users.
 

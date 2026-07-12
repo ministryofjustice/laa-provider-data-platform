@@ -241,28 +241,93 @@ class ProviderServiceTest {
   }
 
   @Test
-  void patchProvider_updatesParentFirms() {
+  void patchProvider_rejectsBlankSolicitorRegulationAuthorityRollNumber() {
     UUID guid = UUID.randomUUID();
-    UUID parentGuid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Old Name").build();
+    existing.setGuid(guid);
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2().solicitorRegulationAuthorityRollNumber(" "));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("solicitorRegulationAuthorityRollNumber must not be blank");
+  }
+
+  @Test
+  void patchProvider_updatesParentFirm_whenSingleParentProvided() {
+    UUID guid = UUID.randomUUID();
     String parentFirmNumber = "200001";
 
     AdvocatePractitionerEntity existing =
         AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
     existing.setGuid(guid);
 
-    ProviderEntity parentByGuid = ProviderEntity.builder().name("Parent 1").build();
-    parentByGuid.setGuid(parentGuid);
-
-    ProviderEntity parentByFirmNumber =
-        ProviderEntity.builder().firmNumber(parentFirmNumber).name("Parent 2").build();
-    parentByFirmNumber.setGuid(UUID.randomUUID());
+    ProviderEntity parent =
+        ChambersProviderEntity.builder()
+            .firmNumber(parentFirmNumber)
+            .firmType(FirmType.CHAMBERS)
+            .name("Parent Chambers")
+            .build();
+    parent.setGuid(UUID.randomUUID());
+    ProviderOfficeLinkEntity parentHeadOffice = new ProviderOfficeLinkEntity();
+    parentHeadOffice.setOffice(new OfficeEntity());
+    parentHeadOffice.setActiveDateTo(null);
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
-    when(providerRepository.findById(parentGuid)).thenReturn(Optional.of(parentByGuid));
-    when(providerRepository.findByFirmNumber(parentFirmNumber))
-        .thenReturn(Optional.of(parentByFirmNumber));
+    when(providerRepository.findByFirmNumber(parentFirmNumber)).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.findByProvider(existing)).thenReturn(List.of());
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentHeadOffice));
     when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .parentFirms(
+                        List.of(new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
+
+    service.patchProvider(guid.toString(), patch);
+
+    ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
+        org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
+    verify(providerParentLinkRepository).save(linkCaptor.capture());
+
+    ProviderParentLinkEntity savedLink = linkCaptor.getValue();
+    assertThat(savedLink.getProvider()).isEqualTo(existing);
+    assertThat(savedLink.getParent()).isEqualTo(parent);
+    verify(providerParentLinkRepository).deleteAll(any());
+  }
+
+  @Test
+  void patchProvider_rejectsPractitionerParentFirms_whenArrayIsEmpty() {
+    UUID guid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2().practitioner(new PractitionerDetailsPatchV2().parentFirms(List.of()));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Exactly one parent Chamber");
+  }
+
+  @Test
+  void patchProvider_rejectsPractitionerParentFirms_whenArrayContainsMultipleEntries() {
+    UUID guid = UUID.randomUUID();
+    UUID parentGuid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
 
     ProviderPatchV2 patch =
         new ProviderPatchV2()
@@ -271,21 +336,85 @@ class ProviderServiceTest {
                     .parentFirms(
                         List.of(
                             new PractitionerDetailsParentUpdateV2OneOf(parentGuid),
-                            new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
+                            new PractitionerDetailsParentUpdateV2OneOf1("200001"))));
 
-    service.patchProvider(guid.toString(), patch);
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Exactly one parent Chamber");
+  }
 
-    ArgumentCaptor<ProviderParentLinkEntity> linkCaptor =
-        org.mockito.ArgumentCaptor.forClass(ProviderParentLinkEntity.class);
-    verify(providerParentLinkRepository, org.mockito.Mockito.times(2)).save(linkCaptor.capture());
+  @Test
+  void patchProvider_rejectsPractitionerParentFirm_whenParentNotFound() {
+    UUID guid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.findByFirmNumber("UNKNOWN")).thenReturn(Optional.empty());
 
-    List<ProviderParentLinkEntity> savedLinks = linkCaptor.getAllValues();
-    assertThat(savedLinks).hasSize(2);
-    assertThat(savedLinks.get(0).getProvider()).isEqualTo(existing);
-    assertThat(savedLinks.get(0).getParent()).isEqualTo(parentByGuid);
-    assertThat(savedLinks.get(1).getProvider()).isEqualTo(existing);
-    assertThat(savedLinks.get(1).getParent()).isEqualTo(parentByFirmNumber);
-    verify(providerParentLinkRepository).deleteAll(any());
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .parentFirms(List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN"))));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(ItemNotFoundException.class)
+        .hasMessageContaining("Parent provider not found");
+  }
+
+  @Test
+  void patchProvider_rejectsPractitionerParentFirm_whenParentChambersIsInactive() {
+    UUID guid = UUID.randomUUID();
+    String parentFirmNumber = "200001";
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder().firmNumber("100003").name("Practitioner").build();
+    existing.setGuid(guid);
+    ProviderEntity parent =
+        ChambersProviderEntity.builder()
+            .firmNumber(parentFirmNumber)
+            .firmType(FirmType.CHAMBERS)
+            .name("Inactive Chambers")
+            .build();
+    parent.setGuid(UUID.randomUUID());
+    ProviderOfficeLinkEntity parentHeadOffice = new ProviderOfficeLinkEntity();
+    parentHeadOffice.setOffice(new OfficeEntity());
+    parentHeadOffice.setActiveDateTo(LocalDate.now());
+
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+    when(providerRepository.findByFirmNumber(parentFirmNumber)).thenReturn(Optional.of(parent));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentHeadOffice));
+
+    ProviderPatchV2 patch =
+        new ProviderPatchV2()
+            .practitioner(
+                new PractitionerDetailsPatchV2()
+                    .parentFirms(
+                        List.of(new PractitionerDetailsParentUpdateV2OneOf1(parentFirmNumber))));
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Parent Chamber is inactive");
+  }
+
+  @Test
+  void patchProvider_rejectsNamePatch_forPractitioner() {
+    UUID guid = UUID.randomUUID();
+    AdvocatePractitionerEntity existing =
+        AdvocatePractitionerEntity.builder()
+            .firmNumber("100003")
+            .firmType(FirmType.ADVOCATE)
+            .name("Practitioner")
+            .build();
+    existing.setGuid(guid);
+    when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
+
+    ProviderPatchV2 patch = new ProviderPatchV2().name("Updated Name");
+
+    assertThatThrownBy(() -> service.patchProvider(guid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("name must not be amended for practitioners");
   }
 
   @Test

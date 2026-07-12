@@ -128,6 +128,9 @@ public class ProviderService {
     ProviderEntity provider = getProvider(providerFirmGUIDorFirmNumber);
 
     if (patch.getName() != null) {
+      if (FirmType.ADVOCATE.equals(provider.getFirmType())) {
+        throw new IllegalArgumentException("name must not be amended for practitioners");
+      }
       if (patch.getName().isBlank()) {
         throw new IllegalArgumentException("name must not be blank");
       }
@@ -260,42 +263,57 @@ public class ProviderService {
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderRepository providerRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+    // BR-31 (DS_MAPD_FR_025 AC4): A practitioner must be linked to exactly one Chamber when
+    // amending parentFirms. This constraint may change in future to support movement between
+    // Chambers; see DSTEW-1735 AC4 for context. `null` means "no parent change"; [] and 2+ are
+    // invalid.
+    if (parentFirms.size() != 1) {
+      throw new IllegalArgumentException(
+          "Exactly one parent Chamber must be provided when amending a practitioner");
+    }
+
+    ProviderEntity parent = resolveParent(parentFirms.get(0), providerRepository);
+    ProviderOfficeLinkEntity parentOfficeLink =
+        resolveAndValidateParentHeadOffice(parent, providerOfficeLinkRepository);
+
     if (provider instanceof PractitionerEntity) {
       List<ProviderParentLinkEntity> existingLinks =
           providerParentLinkRepository.findByProvider(provider);
       providerParentLinkRepository.deleteAll(existingLinks);
 
-      for (PractitionerDetailsParentUpdateV2 parentUpdate : parentFirms) {
-        ProviderEntity parent = resolveParent(parentUpdate, providerRepository);
-
-        providerParentLinkRepository.save(
-            ProviderParentLinkEntity.builder().provider(provider).parent(parent).build());
-      }
+      providerParentLinkRepository.save(
+          ProviderParentLinkEntity.builder().provider(provider).parent(parent).build());
     } else {
       Optional<AdvocateProviderOfficeLinkEntity> existingLink =
           advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
       existingLink.ifPresent(advocateProviderOfficeLinkRepository::delete);
 
-      if (!parentFirms.isEmpty()) {
-        PractitionerDetailsParentUpdateV2 parentUpdate = parentFirms.get(0);
-        ProviderEntity parent = resolveParent(parentUpdate, providerRepository);
-
-        ProviderOfficeLinkEntity parentOfficeLink =
-            providerOfficeLinkRepository
-                .findByProviderAndHeadOfficeFlagTrue(parent)
-                .orElseThrow(
-                    () ->
-                        new ItemNotFoundException(
-                            "Parent provider has no head office: " + parent.getGuid()));
-
-        advocateProviderOfficeLinkRepository.save(
-            AdvocateProviderOfficeLinkEntity.builder()
-                .provider(provider)
-                .office(parentOfficeLink.getOffice())
-                .headOfficeFlag(true)
-                .build());
-      }
+      advocateProviderOfficeLinkRepository.save(
+          AdvocateProviderOfficeLinkEntity.builder()
+              .provider(provider)
+              .office(parentOfficeLink.getOffice())
+              .headOfficeFlag(true)
+              .build());
     }
+  }
+
+  private static ProviderOfficeLinkEntity resolveAndValidateParentHeadOffice(
+      ProviderEntity parent, ProviderOfficeLinkRepository providerOfficeLinkRepository) {
+    if (!FirmType.CHAMBERS.equals(parent.getFirmType())) {
+      throw new IllegalArgumentException("Parent firm must be Chambers");
+    }
+
+    ProviderOfficeLinkEntity parentOfficeLink =
+        providerOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(parent)
+            .orElseThrow(() -> new IllegalArgumentException("Parent Chamber has no head office"));
+
+    // BR-27 (DSTEW-1735 AC3): an amended practitioner must not be linked to an inactive Chamber.
+    if (parentOfficeLink.getActiveDateTo() != null) {
+      throw new IllegalArgumentException(
+          "Parent Chamber is inactive; practitioner cannot be linked to an inactive Chamber");
+    }
+    return parentOfficeLink;
   }
 
   private static ProviderEntity resolveParent(
@@ -345,6 +363,11 @@ public class ProviderService {
           advocateProviderOfficeLinkRepository,
           providerRepository,
           providerOfficeLinkRepository);
+    } else if (practitionerPatch.getParentFirms() != null
+        && practitionerPatch.getParentFirms().isEmpty()
+        && hasNoOtherPractitionerPatchFields(practitionerPatch)) {
+      throw new IllegalArgumentException(
+          "Exactly one parent Chamber must be provided when amending a practitioner");
     }
 
     if (practitionerPatch.getLiaisonManager() != null) {
@@ -357,21 +380,30 @@ public class ProviderService {
           liaisonManagerRepository,
           providerOfficeLinkRepository);
     }
+
     switch (provider) {
       case AdvocatePractitionerEntity advocate -> {
         if (practitionerPatch.getAdvocateLevel() != null) {
           advocate.setAdvocateLevel(practitionerPatch.getAdvocateLevel().getValue());
         }
         if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber() != null) {
+          if (practitionerPatch.getSolicitorRegulationAuthorityRollNumber().isBlank()) {
+            throw new IllegalArgumentException(
+                "solicitorRegulationAuthorityRollNumber must not be blank");
+          }
           advocate.setSolicitorRegulationAuthorityRollNumber(
               practitionerPatch.getSolicitorRegulationAuthorityRollNumber());
         }
       }
+
       case BarristerPractitionerEntity barrister -> {
         if (practitionerPatch.getBarristerLevel() != null) {
           barrister.setBarristerLevel(practitionerPatch.getBarristerLevel().getValue());
         }
         if (practitionerPatch.getBarCouncilRollNumber() != null) {
+          if (practitionerPatch.getBarCouncilRollNumber().isBlank()) {
+            throw new IllegalArgumentException("barCouncilRollNumber must not be blank");
+          }
           barrister.setBarCouncilRollNumber(practitionerPatch.getBarCouncilRollNumber());
         }
       }
@@ -379,6 +411,15 @@ public class ProviderService {
           throw new IllegalArgumentException(
               "practitioner updates require an Advocate provider: " + providerFirmGUIDorFirmNumber);
     }
+  }
+
+  private static boolean hasNoOtherPractitionerPatchFields(
+      PractitionerDetailsPatchV2 practitionerPatch) {
+    return practitionerPatch.getLiaisonManager() == null
+        && practitionerPatch.getAdvocateLevel() == null
+        && practitionerPatch.getSolicitorRegulationAuthorityRollNumber() == null
+        && practitionerPatch.getBarristerLevel() == null
+        && practitionerPatch.getBarCouncilRollNumber() == null;
   }
 
   /**

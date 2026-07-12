@@ -1686,6 +1686,9 @@ components:
 
     ProviderCreatePractitionerV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"createdTimestamp"})
       required:
         - practitioner
       properties:
@@ -1778,6 +1781,9 @@ components:
 
     ProviderPatchPractitionerV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"createdTimestamp"})
       properties:
         practitioner:
           $ref: "#/components/schemas/PractitionerDetailsPatchV2"

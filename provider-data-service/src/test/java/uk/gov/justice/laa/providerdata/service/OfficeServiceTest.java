@@ -1531,6 +1531,7 @@ class OfficeServiceTest {
     provider.setGuid(providerGuid);
 
     var link = lspLinkWithOffice(linkGuid, "ACC004");
+    when(bankDetailsService.hasPrimaryBankAccountLink(link)).thenReturn(true);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
@@ -1836,6 +1837,7 @@ class OfficeServiceTest {
     provider.setGuid(providerGuid);
 
     var link = lspLinkWithOffice(linkGuid, "ACC013");
+    when(bankDetailsService.hasPrimaryBankAccountLink(link)).thenReturn(true);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
@@ -1970,6 +1972,7 @@ class OfficeServiceTest {
     provider.setGuid(providerGuid);
 
     var link = lspLinkWithOffice(linkGuid, "ACC022");
+    when(bankDetailsService.hasPrimaryBankAccountLink(link)).thenReturn(true);
 
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))

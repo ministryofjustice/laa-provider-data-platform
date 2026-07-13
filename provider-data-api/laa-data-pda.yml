@@ -1690,6 +1690,9 @@ components:
         - practitioner
       properties:
         practitioner:
+          x-class-extra-annotation: >-
+            @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+            {"address", "telephoneNumber", "emailAddress", "website", "dxDetails"})
           allOf:
             - $ref: "#/components/schemas/PractitionerDetailsCreateV2"
             - $ref: "#/components/schemas/PractitionerHeadOfficeCreateV2"
@@ -2098,7 +2101,8 @@ components:
     PractitionerDetailsPatchV2:
       x-class-extra-annotation: >-
         @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"advocateType", "name", "accountNumber"})
+        {"advocateType", "name", "accountNumber", "address", "telephoneNumber", "emailAddress",
+        "website", "dxDetails"})
       allOf:
         - $ref: "#/components/schemas/PractitionerDetailsPatchBaseV2"
         - type: object

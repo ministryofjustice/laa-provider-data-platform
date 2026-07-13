@@ -59,6 +59,8 @@ repos:
             echo "  feature/my-description2"
             echo "  feature/PROJECT-1234"
             echo "  feature/prepare-for-version-2.0"
+            echo "Rename current branch: git branch -m <new-name>"
+            echo "Rename another branch: git branch -m <old-name> <new-name>"
             exit 1
           fi
           ' --

@@ -122,6 +122,12 @@ class AmendPractitionerLiaisonManagerE2eTest {
                             "Junior",
                             "solicitorRegulationAuthorityRollNumber",
                             "A123456"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Advocate",
+                            "lastName", "LM-Original",
+                            "emailAddress", "advocate.original@example.com",
+                            "telephoneNumber", "020 1111 1111"),
                         "payment",
                         Map.of("paymentMethod", "CHECK"))))
             .when()
@@ -146,25 +152,6 @@ class AmendPractitionerLiaisonManagerE2eTest {
             .statusCode(200)
             .extract()
             .path("data.content[0].guid");
-
-    // Create initial LM for the advocate via PATCH (creation payload ignores liaisonManager)
-    given()
-        .pathParam("firmId", advocateFirmNumber)
-        .contentType(ContentType.JSON)
-        .body(
-            Map.of(
-                "practitioner",
-                Map.of(
-                    "liaisonManager",
-                    Map.of(
-                        "firstName", "Advocate",
-                        "lastName", "LM-Original",
-                        "emailAddress", "advocate.original@example.com",
-                        "telephoneNumber", "020 1111 1111"))))
-        .when()
-        .patch("/provider-firms/{firmId}")
-        .then()
-        .statusCode(200);
   }
 
   // -- Option 1: Link to chambers' liaison manager
@@ -246,7 +233,7 @@ class AmendPractitionerLiaisonManagerE2eTest {
     String newAdvocateFirmName =
         "E2E-DSTEW-1647-UC5 Advocate-Option3 " + System.currentTimeMillis();
 
-    // Create a fresh advocate without an initial LM
+    // Create a fresh advocate with an initial LM, then replace it
     Response advocateCreateResponse =
         given()
             .contentType(ContentType.JSON)
@@ -268,6 +255,12 @@ class AmendPractitionerLiaisonManagerE2eTest {
                             "Junior",
                             "solicitorRegulationAuthorityRollNumber",
                             "A123789"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Advocate",
+                            "lastName", "LM-Seed",
+                            "emailAddress", "advocate.seed@example.com",
+                            "telephoneNumber", "020 2222 2222"),
                         "payment",
                         Map.of("paymentMethod", "CHECK"))))
             .when()

@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.service;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -24,7 +25,11 @@ import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
+import uk.gov.justice.laa.providerdata.model.AdvocateOfficeLiaisonManagerCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
@@ -311,6 +316,7 @@ public class ProviderCreationService {
    * @param practitionerTemplate partially-populated provider entity (firmType and name set)
    * @param parentFirms parent firm references from the request; must contain exactly one entry
    *     (BR-31, DS_MAPD_FR_024 AC5)
+   * @param liaisonManager liaison-manager selection for the practitioner office; mandatory
    * @param payment payment details from the request, or {@code null}
    * @return identifiers for the created provider and office
    * @throws IllegalArgumentException if {@code parentFirms} does not contain exactly one entry, or
@@ -320,6 +326,7 @@ public class ProviderCreationService {
   public ProviderCreationResult createPractitionerFirm(
       PractitionerEntity practitionerTemplate,
       @Nullable List<PractitionerDetailsParentUpdateV2> parentFirms,
+      @Nullable AdvocateOfficeLiaisonManagerCreateOrLinkV2 liaisonManager,
       @Nullable PaymentDetailsCreateV2 payment) {
     // BR-31 (DS_MAPD_FR_024 AC5): A practitioner must be linked to exactly one Chamber at
     // creation time. This constraint may change in future to allow moves between Chambers;
@@ -337,6 +344,7 @@ public class ProviderCreationService {
     persistParentLinks(parentFirms, saved);
     ProviderEntity firstParent = resolveParent(parentFirms.get(0));
     AdvocateProviderOfficeLinkEntity officeLink = createAdvocateOfficeLink(saved, firstParent);
+    assignPractitionerLiaisonManager(firstParent, officeLink, liaisonManager);
 
     persistBankDetailsForOffice(payment, saved, officeLink);
     var sample = io.micrometer.core.instrument.Timer.start();
@@ -347,6 +355,77 @@ public class ProviderCreationService {
         saved.getFirmNumber(),
         officeLink.getGuid(),
         officeLink.getAccountNumber());
+  }
+
+  private void assignPractitionerLiaisonManager(
+      ProviderEntity parentChambers,
+      AdvocateProviderOfficeLinkEntity practitionerOfficeLink,
+      @Nullable AdvocateOfficeLiaisonManagerCreateOrLinkV2 liaisonManager) {
+    if (liaisonManager == null) {
+      throw new IllegalArgumentException(
+          "liaisonManager must be provided when creating a practitioner");
+    }
+    final LocalDate today = LocalDate.now();
+    switch (liaisonManager) {
+      case LiaisonManagerCreateV2 create ->
+          saveLiaisonManagerLink(
+              LiaisonManagerEntity.builder()
+                  .firstName(create.getFirstName())
+                  .lastName(create.getLastName())
+                  .emailAddress(create.getEmailAddress())
+                  .telephoneNumber(create.getTelephoneNumber())
+                  .build(),
+              OfficeLiaisonManagerLinkEntity.builder()
+                  .activeDateFrom(today)
+                  .activeDateTo(null)
+                  .linkedFlag(Boolean.FALSE)
+                  .build(),
+              null,
+              practitionerOfficeLink);
+      case LiaisonManagerLinkByGUIDV2 byGuid ->
+          saveLiaisonManagerLink(
+              null,
+              OfficeLiaisonManagerLinkEntity.builder()
+                  .activeDateFrom(today)
+                  .activeDateTo(null)
+                  .linkedFlag(Boolean.FALSE)
+                  .build(),
+              byGuid.getLiaisonManagerGUID(),
+              practitionerOfficeLink);
+      case LiaisonManagerLinkChambersV2 useChambers -> {
+        if (!Boolean.TRUE.equals(useChambers.getUseChambersLiaisonManager())) {
+          throw new IllegalArgumentException("useChambersLiaisonManager must be true");
+        }
+        ProviderOfficeLinkEntity chambersOfficeLink =
+            providerOfficeLinkRepository
+                .findByProviderAndHeadOfficeFlagTrue(parentChambers)
+                .orElseThrow(
+                    () ->
+                        new ItemNotFoundException(
+                            "Parent firm has no head office: " + parentChambers.getGuid()));
+        List<OfficeLiaisonManagerLinkEntity> activeLinksForOffice =
+            officeLiaisonManagerLinkRepository.findByOfficeLinkAndActiveDateToIsNull(
+                chambersOfficeLink);
+        if (activeLinksForOffice.isEmpty()) {
+          throw new ItemNotFoundException(
+              "No active liaison manager found for chambers office: "
+                  + chambersOfficeLink.getGuid());
+        }
+        saveLiaisonManagerLink(
+            null,
+            OfficeLiaisonManagerLinkEntity.builder()
+                .activeDateFrom(today)
+                .activeDateTo(null)
+                .linkedFlag(Boolean.TRUE)
+                .build(),
+            activeLinksForOffice.getFirst().getLiaisonManager().getGuid(),
+            practitionerOfficeLink);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported liaison manager request type: "
+                  + liaisonManager.getClass().getSimpleName());
+    }
   }
 
   private AdvocateProviderOfficeLinkEntity createAdvocateOfficeLink(

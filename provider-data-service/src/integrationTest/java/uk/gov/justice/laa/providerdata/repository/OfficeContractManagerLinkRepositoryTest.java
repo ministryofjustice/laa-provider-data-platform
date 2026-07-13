@@ -36,7 +36,8 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
   void assign_byProviderFirmNumberAndOfficeCode_thenRepositoryCanQueryByOfficeGuid() {
     TestData testData = createTestData();
 
-    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+    var result =
+        service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), false, false);
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }
@@ -50,7 +51,9 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
         service.assign(
             testData.provider().getGuid().toString(),
             testData.providerOfficeLink().getGuid().toString(),
-            testData.contractManager().getGuid());
+            testData.contractManager().getGuid(),
+            false,
+            false);
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }
@@ -60,8 +63,9 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
   void assign_sameContractManagerTwice_isIdempotent() {
     TestData testData = createTestData();
 
-    service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
-    var result = service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid());
+    service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), false, false);
+    var result =
+        service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), false, false);
 
     assertAssignmentPersisted(testData, result.officeGuid());
   }
@@ -89,7 +93,9 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
     // Act: assign the same contract manager again — must not throw a unique constraint violation
     assertThatNoException()
         .isThrownBy(
-            () -> service.assign("FRM-CM-TEST", "ACC001", testData.contractManager().getGuid()));
+            () ->
+                service.assign(
+                    "FRM-CM-TEST", "ACC001", testData.contractManager().getGuid(), false, false));
 
     // Assert: exactly one assignment still exists
     var links =
@@ -101,12 +107,12 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
   }
 
   /**
-   * AC2: verifies that calling {@code assign()} with a {@code null} contract manager GUID uses the
-   * system default contract manager seeded by the V4 migration ("Mr Default").
+   * AC2: verifies that calling {@code assign()} with {@code useDefault=true} assigns the system
+   * default contract manager seeded by the V4 migration ("Mr Default").
    */
   @Test
   @Transactional
-  void assign_whenNoContractManagerGuidProvided_usesDefaultContractManager() {
+  void assign_useDefault_assignsDefaultContractManager() {
     ContractManagerEntity defaultCm =
         contractManagerRepository
             .findByDefaultContractManagerTrue()
@@ -139,8 +145,8 @@ class OfficeContractManagerLinkRepositoryTest extends PostgresqlSpringBootTest {
                     .headOfficeFlag(true)
                     .build());
 
-    // Act: null GUID triggers the default CM fallback
-    var result = service.assign("FRM-DEFAULT-TEST", "ACC-DEFAULT", null);
+    // Act: assign the system default CM explicitly
+    var result = service.assign("FRM-DEFAULT-TEST", "ACC-DEFAULT", null, true, false);
 
     // Assert: the system default CM was assigned
     assertThat(result.contractManagerId()).isEqualTo(defaultCm.getContractManagerId());

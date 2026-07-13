@@ -3197,10 +3197,15 @@ components:
         already exists and you want to assign it to an office without creating a duplicate.
 
     ContractManagerProviderPatchV2:
-      type: object
-      properties:
-        contractManagerGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+      oneOf:
+        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
+        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
+        - $ref: "#/components/schemas/ContractManagerLinkHeadOfficeV2"
+      description: |
+        Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
+        `useHeadOfficeContractManager` must be provided. `useHeadOfficeContractManager` assigns
+        whichever contract manager is currently linked to the provider's head office and is
+        applicable for LSP child offices only.
 
     ContractManagerLinkByGUIDV2:
       type: object

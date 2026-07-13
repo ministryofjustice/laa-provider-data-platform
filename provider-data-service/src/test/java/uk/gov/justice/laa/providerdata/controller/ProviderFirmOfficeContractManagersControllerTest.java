@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,15 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.ContractManagerEntity;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.service.ContractManagerService;
@@ -42,6 +42,7 @@ import uk.gov.justice.laa.providerdata.service.OfficeContractManagerAssignmentSe
  * </ul>
  */
 @WebMvcTest(ProviderFirmOfficeContractManagersController.class)
+@Import(JacksonConfig.class)
 class ProviderFirmOfficeContractManagersControllerTest {
 
   @Autowired private MockMvc mockMvc;
@@ -69,7 +70,9 @@ class ProviderFirmOfficeContractManagersControllerTest {
     when(assignmentService.assign(
             eq(providerGuid.toString()),
             eq(providerOfficeLinkGuid.toString()),
-            eq(contractManagerGuid)))
+            eq(contractManagerGuid),
+            eq(false),
+            eq(false)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
                 providerOfficeLinkGuid, ContractManagerEntity.DEFAULT_ID));
@@ -103,7 +106,8 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(
+            eq("100001"), eq("ACC001"), eq(contractManagerGuid), eq(false), eq(false)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
                 providerOfficeLinkGuid, "CM-001"));
@@ -126,18 +130,36 @@ class ProviderFirmOfficeContractManagersControllerTest {
   }
 
   /**
-   * DSTEW-1660/DSTEW-1661 AC2: verifies that omitting {@code contractManagerGUID} from the request
-   * body causes the controller to pass {@code null} to the service, which resolves and assigns the
-   * system default contract manager, and that the endpoint returns HTTP 201.
+   * DSTEW-1924 AC1: verifies that an empty request body (no instruction provided) is rejected with
+   * 400 Bad Request. After DSTEW-1924, omitting the contract manager instruction is no longer
+   * silently defaulted.
    *
    * @throws Exception if the request fails to execute
    */
   @Test
-  void postContractManagers_returns201_whenContractManagerGuidAbsent_usesDefaultContractManager()
-      throws Exception {
+  void postContractManagers_returns400_whenContractManagerInstructionAbsent() throws Exception {
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    "100001",
+                    "ACC001")
+                .contentType(APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  /**
+   * DSTEW-1924 AC2: verifies that {@code useDefaultContractManager: true} causes the service to
+   * assign the system default contract manager and returns 201.
+   *
+   * @throws Exception if the request fails to execute
+   */
+  @Test
+  void postContractManagers_returns201_whenUseDefaultContractManagerTrue() throws Exception {
     UUID providerOfficeLinkGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("100001"), eq("ACC001"), isNull()))
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(null), eq(true), eq(false)))
         .thenReturn(
             new OfficeContractManagerAssignmentService.AssignmentResult(
                 providerOfficeLinkGuid, ContractManagerEntity.DEFAULT_ID));
@@ -149,21 +171,29 @@ class ProviderFirmOfficeContractManagersControllerTest {
                     "100001",
                     "ACC001")
                 .contentType(APPLICATION_JSON)
-                .content("{}"))
+                .content(
+                    """
+                    { "useDefaultContractManager": true }
+                    """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.contractManagerId").value(ContractManagerEntity.DEFAULT_ID));
   }
 
   /**
-   * Ensures HTTP 400 is returned when {@code contractManagerGUID} contains only whitespace.
+   * DSTEW-1924 AC5: verifies that {@code useHeadOfficeContractManager: true} delegates to the
+   * service with the head-office flag set, returning 201.
    *
    * @throws Exception if the request fails to execute
    */
-  @Disabled(
-      "Skipping as the controller allows nullable values and does not validate the format of the "
-          + "UUID. Validation is handled in the service layer.")
   @Test
-  void postContractManagers_returns400_whenContractManagerGuidIsBlank() throws Exception {
+  void postContractManagers_returns201_whenUseHeadOfficeContractManagerTrue() throws Exception {
+    UUID providerOfficeLinkGuid = UUID.randomUUID();
+
+    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(null), eq(false), eq(true)))
+        .thenReturn(
+            new OfficeContractManagerAssignmentService.AssignmentResult(
+                providerOfficeLinkGuid, "CM-001"));
+
     mockMvc
         .perform(
             post(
@@ -173,10 +203,61 @@ class ProviderFirmOfficeContractManagersControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                          "contractManagerGUID": "   "
-                                        }
-                                        """))
+                    { "useHeadOfficeContractManager": true }
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.contractManagerId").value("CM-001"));
+  }
+
+  /**
+   * DSTEW-1924 AC4: verifies that providing both {@code contractManagerGUID} and {@code
+   * useDefaultContractManager} in the same request is rejected with 400.
+   *
+   * @throws Exception if the request fails to execute
+   */
+  @Test
+  void postContractManagers_returns400_whenGuidAndUseDefaultBothProvided() throws Exception {
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    "100001",
+                    "ACC001")
+                .contentType(APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "contractManagerGUID": "%s",
+                          "useDefaultContractManager": true
+                        }
+                        """
+                        .formatted(UUID.randomUUID())))
+        .andExpect(status().isBadRequest());
+  }
+
+  /**
+   * Verifies that providing both {@code contractManagerGUID} and {@code
+   * useHeadOfficeContractManager} in the same request is rejected with 400.
+   *
+   * @throws Exception if the request fails to execute
+   */
+  @Test
+  void postContractManagers_returns400_whenGuidAndUseHeadOfficeBothProvided() throws Exception {
+    mockMvc
+        .perform(
+            post(
+                    "/provider-firms/{providerFirmId}/offices/{officeId}/contract-managers",
+                    "100001",
+                    "ACC001")
+                .contentType(APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "contractManagerGUID": "%s",
+                          "useHeadOfficeContractManager": true
+                        }
+                        """
+                        .formatted(UUID.randomUUID())))
         .andExpect(status().isBadRequest());
   }
 
@@ -215,7 +296,8 @@ class ProviderFirmOfficeContractManagersControllerTest {
     UUID officeGuid = UUID.randomUUID();
     UUID contractManagerGuid = UUID.randomUUID();
 
-    when(assignmentService.assign(eq("100001"), eq("ACC001"), eq(contractManagerGuid)))
+    when(assignmentService.assign(
+            eq("100001"), eq("ACC001"), eq(contractManagerGuid), eq(false), eq(false)))
         .thenThrow(new RuntimeException("boom"));
 
     mockMvc

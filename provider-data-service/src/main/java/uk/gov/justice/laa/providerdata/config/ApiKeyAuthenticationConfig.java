@@ -36,13 +36,13 @@ public class ApiKeyAuthenticationConfig {
   public SecurityFilterChain permitAllSecurityFilterChain(HttpSecurity httpSecurity)
       throws Exception {
     httpSecurity
-      .csrf(
-          csrf ->
-              csrf.ignoringRequestMatchers(
-                  PathPatternRequestMatcher.withDefaults().matcher("/**")))
-      .httpBasic(AbstractHttpConfigurer::disable)
-      .formLogin(AbstractHttpConfigurer::disable)
-      .logout(AbstractHttpConfigurer::disable)
+        .csrf(
+            csrf ->
+                csrf.ignoringRequestMatchers(
+                    PathPatternRequestMatcher.withDefaults().matcher("/**")))
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .formLogin(AbstractHttpConfigurer::disable)
+        .logout(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
@@ -72,10 +72,10 @@ public class ApiKeyAuthenticationConfig {
         HttpSecurity httpSecurity, ApiKeyAuthenticationFilter apiKeyAuthenticationFilter)
         throws Exception {
       httpSecurity
-            .csrf(
-             csrf ->
-                 csrf.ignoringRequestMatchers(
-                     PathPatternRequestMatcher.withDefaults().matcher("/**")))
+          .csrf(
+              csrf ->
+                  csrf.ignoringRequestMatchers(
+                      PathPatternRequestMatcher.withDefaults().matcher("/**")))
           .httpBasic(AbstractHttpConfigurer::disable)
           .formLogin(AbstractHttpConfigurer::disable)
           .logout(AbstractHttpConfigurer::disable)

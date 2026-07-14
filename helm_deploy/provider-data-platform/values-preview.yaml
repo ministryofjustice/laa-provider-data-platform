@@ -6,6 +6,25 @@
 target:
   environment: preview
 
+# The app container's default 512Mi heap (see values.yaml javaToolOptions) was too small once
+# e2eModifying started running here alongside e2eReadOnly: the JVM hit a genuine heap
+# OutOfMemoryError partway through the combined suite (confirmed via `-XX:+ExitOnOutOfMemoryError`
+# exit code 3 in the pod's container status), which killed in-flight requests and cascaded into
+# connection-refused failures for the rest of the run. Raise the heap and container memory limit
+# for preview only — other environments are unaffected.
+resources:
+  requests:
+    memory: "768Mi"
+    cpu: "500m"
+  limits:
+    memory: "1536Mi"
+    cpu: "1000m"
+javaToolOptions: >-
+  -Xms512M -Xmx900M -Xss256K
+  -XX:MaxDirectMemorySize=180M
+  -XX:MaxMetaspaceSize=120M
+  -XX:ReservedCodeCacheSize=120M
+
 # replicaCount must be 1 when postgresContainer.enabled=true — each pod has its own
 # independent sidecar database; multiple replicas would have inconsistent data.
 replicaCount: 1

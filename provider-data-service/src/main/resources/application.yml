@@ -6,11 +6,6 @@
 spring:
   application:
     name: PDA-r2
-  autoconfigure:
-    # Enable starter auth only through ApiKeyAuthenticationConfig.
-    exclude:
-      - uk.gov.laa.springboot.auth.SecurityFilterChainAutoConfiguration
-      - uk.gov.laa.springboot.auth.config.OpenApiConfiguration
   jackson:
     default-property-inclusion: non_null
   datasource:

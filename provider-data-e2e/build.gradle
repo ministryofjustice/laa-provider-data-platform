@@ -86,20 +86,22 @@ tasks.register("e2eModifying", Test) {
 
     doFirst {
         def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
-        if (envName != 'local') {
+        if (envName != 'local' && envName != 'preview') {
             throw new GradleException(
-                "Data-modifying E2E tests should only run against the local environment (e2e.env=${envName}). " +
-                "Use 'e2eReadOnly' instead, or target e2e.env=local."
+                "Data-modifying E2E tests should only run against the local or preview environment " +
+                "(e2e.env=${envName}). Use 'e2eReadOnly' instead, or target e2e.env=local/preview."
             )
         }
     }
 }
 
 tasks.register("e2eTest") {
-    description = "Run read-only E2E tests in all environments. Also runs data-modifying E2E tests when e2e.env=local."
+    description = "Run read-only E2E tests in all environments. Also runs data-modifying E2E tests " +
+            "when e2e.env=local or preview."
     group = "verification"
     dependsOn "e2eReadOnly"
-    if ((project.findProperty('e2e.env') as String) == 'local') {
+    def envName = project.findProperty('e2e.env') as String
+    if (envName == 'local' || envName == 'preview') {
         dependsOn "e2eModifying"
     }
     outputs.upToDateWhen { false }

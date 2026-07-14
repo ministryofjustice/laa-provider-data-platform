@@ -18,7 +18,6 @@ public class ApiKeyAuthenticationConfig {
       matchIfMissing = true)
   public WebSecurityCustomizer permitAllWebSecurityCustomizer() {
     return web ->
-        web.ignoring()
-            .requestMatchers(PathPatternRequestMatcher.withDefaults().matcher("/**"));
+        web.ignoring().requestMatchers(PathPatternRequestMatcher.withDefaults().matcher("/**"));
   }
 }

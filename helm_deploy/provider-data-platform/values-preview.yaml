@@ -28,12 +28,15 @@ postgresContainer:
   database: providerdata
   username: postgres
   password: ""  # Always overridden at deploy time — never relies on this default.
+  # Memory raised from 128Mi/256Mi: the previous limit was OOM-killing the sidecar under the
+  # write load of e2eModifying (now running in CI alongside e2eReadOnly), which dropped the
+  # app's DB connections and cascaded into connection-refused failures for the rest of the run.
   resources:
     requests:
-      memory: "128Mi"
+      memory: "256Mi"
       cpu: "50m"
     limits:
-      memory: "256Mi"
+      memory: "512Mi"
       cpu: "250m"
 
 prometheus:

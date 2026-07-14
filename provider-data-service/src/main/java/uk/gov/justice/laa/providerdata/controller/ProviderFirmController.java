@@ -293,6 +293,7 @@ public class ProviderFirmController {
     return providerFirmCreationService.createPractitionerFirm(
         buildPractitionerTemplate(request.getName(), request.getPractitioner()),
         request.getPractitioner().getParentFirms(),
+        request.getPractitioner().getLiaisonManager(),
         request.getPractitioner().getPayment());
   }
 

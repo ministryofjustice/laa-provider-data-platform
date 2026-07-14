@@ -842,13 +842,18 @@ public class OfficeService {
   }
 
   /**
-   * Implements the DSTEW-1663 "Firm Contract Manager trickle-down" business rule: copies whichever
-   * contract manager is currently linked to the provider's head office onto the newly created child
-   * office. This is a one-off copy at creation time, not a live reference - later changes to the
-   * head office's contract manager do not retroactively affect this office.
+   * Returns the {@link ContractManagerEntity} currently assigned to the head office of the given
+   * provider, or throws if the head office or its contract manager cannot be found.
+   *
+   * <p>Used by the DSTEW-1663 trickle-down rule (child office creation) and the DSTEW-1924
+   * standalone assignment endpoint.
+   *
+   * @param provider the provider whose head office contract manager should be resolved
+   * @return the {@link ContractManagerEntity} linked to the head office
+   * @throws ItemNotFoundException if no head office exists for the provider
+   * @throws IllegalStateException if the head office has no contract manager assigned
    */
-  private void linkHeadOfficeContractManager(
-      ProviderEntity provider, LspProviderOfficeLinkEntity newOfficeLink) {
+  public ContractManagerEntity resolveHeadOfficeContractManager(ProviderEntity provider) {
     var headOfficeLink =
         lspProviderOfficeLinkRepository
             .findByProviderAndHeadOfficeFlagTrue(provider)
@@ -857,22 +862,30 @@ public class OfficeService {
                     new ItemNotFoundException(
                         "Head office not found for provider: " + provider.getGuid()));
 
-    var headOfficeManager =
-        officeContractManagerLinkRepository
-            .findByOfficeLink_Guid(headOfficeLink.getGuid(), PageRequest.of(0, 1))
-            .stream()
-            .findFirst()
-            .map(OfficeContractManagerLinkEntity::getContractManager)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Head office has no contract manager assigned for provider: "
-                            + provider.getGuid()));
+    return officeContractManagerLinkRepository
+        .findByOfficeLink_Guid(headOfficeLink.getGuid(), PageRequest.of(0, 1))
+        .stream()
+        .findFirst()
+        .map(OfficeContractManagerLinkEntity::getContractManager)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Head office has no contract manager assigned for provider: "
+                        + provider.getGuid()));
+  }
 
+  /**
+   * Implements the DSTEW-1663 "Firm Contract Manager trickle-down" business rule: copies whichever
+   * contract manager is currently linked to the provider's head office onto the newly created child
+   * office. This is a one-off copy at creation time, not a live reference - later changes to the
+   * head office's contract manager do not retroactively affect this office.
+   */
+  private void linkHeadOfficeContractManager(
+      ProviderEntity provider, LspProviderOfficeLinkEntity newOfficeLink) {
     officeContractManagerLinkRepository.save(
         OfficeContractManagerLinkEntity.builder()
             .officeLink(newOfficeLink)
-            .contractManager(headOfficeManager)
+            .contractManager(resolveHeadOfficeContractManager(provider))
             .build());
   }
 

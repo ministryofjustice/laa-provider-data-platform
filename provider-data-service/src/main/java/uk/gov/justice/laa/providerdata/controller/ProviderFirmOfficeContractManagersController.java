@@ -1,10 +1,15 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import uk.gov.justice.laa.providerdata.api.ProviderFirmOfficesContractManagersApi;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerLinkHeadOfficeV2;
 import uk.gov.justice.laa.providerdata.model.ContractManagerProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirmOfficeContractManager201ResponseData;
@@ -32,6 +37,7 @@ public class ProviderFirmOfficeContractManagersController
    * Constructs the controller with required dependencies.
    *
    * @param assignmentService service handling creation of office-to-contract-manager assignments
+   * @param contractManagerService service handling retrieval of contract manager assignments
    */
   public ProviderFirmOfficeContractManagersController(
       OfficeContractManagerAssignmentService assignmentService,
@@ -46,15 +52,16 @@ public class ProviderFirmOfficeContractManagersController
    * <ul>
    *   <li>The provider identifier may be either a GUID or a firm number.
    *   <li>The office identifier may be either the provider office link GUID or the office code.
-   *   <li>If {@code contractManagerGUID} is omitted from the request body, the system default
-   *       contract manager is assigned (AC2).
+   *   <li>Exactly one of {@code contractManagerGUID}, {@code useDefaultContractManager}, or {@code
+   *       useHeadOfficeContractManager} must be provided; any other combination is rejected with
+   *       400.
    *   <li>The service replaces any existing assignment for that office.
    *   <li>The response includes the provider office link GUID and contract manager ID.
    * </ul>
    *
    * @param providerFirmGUIDorFirmNumber provider firm identifier
    * @param officeGUIDorCode the provider office link GUID or office code
-   * @param contractManagerProviderPatchV2 body optionally containing the contract manager GUID
+   * @param contractManagerProviderPatchV2 body specifying the contract manager to assign
    * @param traceparent request traceId and spanId (optional)
    * @return HTTP 201 response containing minimal assignment details
    */
@@ -65,11 +72,14 @@ public class ProviderFirmOfficeContractManagersController
           String officeGUIDorCode,
           ContractManagerProviderPatchV2 contractManagerProviderPatchV2,
           String traceparent) {
-    // contractManagerGUID == null means to use the default contract manager
-    UUID contractManagerGUID = contractManagerProviderPatchV2.getContractManagerGUID();
+    ContractManagerSelection selection = resolveContractManager(contractManagerProviderPatchV2);
     OfficeContractManagerAssignmentService.AssignmentResult result =
         assignmentService.assign(
-            providerFirmGUIDorFirmNumber, officeGUIDorCode, contractManagerGUID);
+            providerFirmGUIDorFirmNumber,
+            officeGUIDorCode,
+            selection.guid(),
+            selection.useDefault(),
+            selection.useHeadOffice());
 
     // populate what we can without additional lookups
     CreateProviderFirmOfficeContractManager201ResponseData data =
@@ -116,4 +126,26 @@ public class ProviderFirmOfficeContractManagersController
 
     return ResponseEntity.ok(response);
   }
+
+  private ContractManagerSelection resolveContractManager(
+      ContractManagerProviderPatchV2 contractManager) {
+    if (contractManager instanceof ContractManagerLinkDefaultV2) {
+      return new ContractManagerSelection(null, true, false);
+    } else if (contractManager instanceof ContractManagerLinkHeadOfficeV2) {
+      return new ContractManagerSelection(null, false, true);
+    } else if (contractManager instanceof ContractManagerLinkByGUIDV2 link) {
+      UUID guid = link.getContractManagerGUID();
+      if (guid == null) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "contractManagerGUID must not be null");
+      }
+      return new ContractManagerSelection(guid, false, false);
+    } else {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Unrecognised contract manager instruction");
+    }
+  }
+
+  private record ContractManagerSelection(
+      @Nullable UUID guid, boolean useDefault, boolean useHeadOffice) {}
 }

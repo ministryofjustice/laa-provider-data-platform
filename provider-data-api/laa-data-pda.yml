@@ -1727,6 +1727,9 @@ components:
 
     ProviderPatchPractitionerV2:
       type: object
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber"})
       properties:
         practitioner:
           $ref: "#/components/schemas/PractitionerDetailsPatchV2"
@@ -2042,6 +2045,9 @@ components:
           $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
 
     PractitionerDetailsPatchV2:
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"advocateType", "name", "accountNumber"})
       allOf:
         - $ref: "#/components/schemas/PractitionerDetailsPatchBaseV2"
         - type: object
@@ -3146,10 +3152,15 @@ components:
         already exists and you want to assign it to an office without creating a duplicate.
 
     ContractManagerProviderPatchV2:
-      type: object
-      properties:
-        contractManagerGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+      oneOf:
+        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
+        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
+        - $ref: "#/components/schemas/ContractManagerLinkHeadOfficeV2"
+      description: |
+        Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
+        `useHeadOfficeContractManager` must be provided. `useHeadOfficeContractManager` assigns
+        whichever contract manager is currently linked to the provider's head office and is
+        applicable for LSP child offices only.
 
     ContractManagerLinkByGUIDV2:
       type: object

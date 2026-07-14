@@ -22,6 +22,7 @@ import uk.gov.justice.laa.providerdata.model.ChambersOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
 import uk.gov.justice.laa.providerdata.model.ContractManagerLinkHeadOfficeV2;
+import uk.gov.justice.laa.providerdata.model.ContractManagerProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.HeadOfficeContractManagerLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeContractManagerLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficeLiaisonManagerCreateOrLinkV2;
@@ -255,6 +256,31 @@ public class JacksonConfig {
                   if (node.has("useDefaultContractManager")) {
                     rejectConflictingFields(
                         node, p, "useDefaultContractManager", "contractManagerGUID");
+                    return ContractManagerLinkDefaultV2.class;
+                  } else {
+                    return ContractManagerLinkByGUIDV2.class;
+                  }
+                }))
+        .addDeserializer(
+            ContractManagerProviderPatchV2.class,
+            new TypeResolvingDeserializer<>(
+                ContractManagerProviderPatchV2.class,
+                (node, p) -> {
+                  if (node.has("useHeadOfficeContractManager")) {
+                    rejectConflictingFields(
+                        node,
+                        p,
+                        "useHeadOfficeContractManager",
+                        "useDefaultContractManager",
+                        "contractManagerGUID");
+                    return ContractManagerLinkHeadOfficeV2.class;
+                  } else if (node.has("useDefaultContractManager")) {
+                    rejectConflictingFields(
+                        node,
+                        p,
+                        "useDefaultContractManager",
+                        "useHeadOfficeContractManager",
+                        "contractManagerGUID");
                     return ContractManagerLinkDefaultV2.class;
                   } else {
                     return ContractManagerLinkByGUIDV2.class;

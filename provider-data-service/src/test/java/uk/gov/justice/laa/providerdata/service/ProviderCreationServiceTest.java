@@ -39,6 +39,7 @@ import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.BankAccountMapper;
 import uk.gov.justice.laa.providerdata.model.BankAccountProviderOfficeCreateV2;
+import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
@@ -323,13 +324,17 @@ class ProviderCreationServiceTest {
     assertThatThrownBy(
             () ->
                 service.createPractitionerFirm(
-                    AdvocatePractitionerEntity.builder().name("A. Barrister").build(), null, null))
+                    AdvocatePractitionerEntity.builder().name("A. Barrister").build(),
+                    null,
+                    practitionerLiaisonManagerCreateRequest(),
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Exactly one parent Chamber");
   }
 
   @Test
   void createPractitionerFirm_withParentFirmByNumber_savesParentLink() {
+    stubLiaisonManagerCreatePersistence();
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
     ProviderEntity parent = ChambersProviderEntity.builder().build();
@@ -354,6 +359,7 @@ class ProviderCreationServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+        practitionerLiaisonManagerCreateRequest(),
         null);
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
@@ -362,6 +368,7 @@ class ProviderCreationServiceTest {
 
   @Test
   void createPractitionerFirm_withParentFirmByGuid_savesParentLink() {
+    stubLiaisonManagerCreatePersistence();
     UUID providerGuid = UUID.randomUUID();
     UUID parentGuid = UUID.randomUUID();
     ProviderEntity parent = ChambersProviderEntity.builder().build();
@@ -386,6 +393,7 @@ class ProviderCreationServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf(parentGuid)),
+        practitionerLiaisonManagerCreateRequest(),
         null);
 
     verify(providerParentLinkRepository).save(any(ProviderParentLinkEntity.class));
@@ -394,6 +402,7 @@ class ProviderCreationServiceTest {
 
   @Test
   void createPractitionerFirm_withParentFirm_returnsOfficeFieldsFromCreatedLink() {
+    stubLiaisonManagerCreatePersistence();
     UUID parentGuid = UUID.randomUUID();
     ProviderEntity parent = ChambersProviderEntity.builder().build();
     parent.setGuid(parentGuid);
@@ -428,6 +437,7 @@ class ProviderCreationServiceTest {
         service.createPractitionerFirm(
             AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
             List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+            practitionerLiaisonManagerCreateRequest(),
             null);
 
     assertThat(result.headOfficeGUID()).isEqualTo(advocateOfficeLinkGuid);
@@ -451,6 +461,7 @@ class ProviderCreationServiceTest {
                 service.createPractitionerFirm(
                     AdvocatePractitionerEntity.builder().name("A.").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("CH-NO-OFFICE")),
+                    practitionerLiaisonManagerCreateRequest(),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("no head office");
@@ -466,6 +477,7 @@ class ProviderCreationServiceTest {
                 service.createPractitionerFirm(
                     AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
                     List.of(new PractitionerDetailsParentUpdateV2OneOf1("UNKNOWN")),
+                    practitionerLiaisonManagerCreateRequest(),
                     null))
         .isInstanceOf(ItemNotFoundException.class)
         .hasMessageContaining("UNKNOWN");
@@ -473,6 +485,7 @@ class ProviderCreationServiceTest {
 
   @Test
   void createPractitionerFirm_withEftPayment_persistsBankAccount() {
+    stubLiaisonManagerCreatePersistence();
     UUID providerGuid = UUID.randomUUID();
     ProviderEntity parent = ChambersProviderEntity.builder().build();
     OfficeEntity parentOffice = new OfficeEntity();
@@ -504,6 +517,7 @@ class ProviderCreationServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+        practitionerLiaisonManagerCreateRequest(),
         payment);
 
     verify(bankDetailsService)
@@ -513,6 +527,7 @@ class ProviderCreationServiceTest {
 
   @Test
   void createPractitionerFirm_withCheckPayment_doesNotPersistBankAccount() {
+    stubLiaisonManagerCreatePersistence();
     ProviderEntity parent = ChambersProviderEntity.builder().build();
     OfficeEntity parentOffice = new OfficeEntity();
     ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
@@ -530,6 +545,7 @@ class ProviderCreationServiceTest {
     service.createPractitionerFirm(
         AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
         List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+        practitionerLiaisonManagerCreateRequest(),
         payment);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
@@ -600,6 +616,51 @@ class ProviderCreationServiceTest {
         false);
 
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+  }
+
+  @Test
+  void createPractitionerFirm_withNullLiaisonManager_throwsIllegalArgumentException() {
+    ProviderEntity parent = ChambersProviderEntity.builder().build();
+    OfficeEntity parentOffice = new OfficeEntity();
+    ProviderOfficeLinkEntity parentOfficeLink = new ProviderOfficeLinkEntity();
+    parentOfficeLink.setOffice(parentOffice);
+    when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerRepository.findByFirmNumber("100002")).thenReturn(Optional.of(parent));
+    when(providerParentLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
+        .thenReturn(Optional.of(parentOfficeLink));
+    when(advocateProviderOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    assertThatThrownBy(
+            () ->
+                service.createPractitionerFirm(
+                    AdvocatePractitionerEntity.builder().name("A. Advocate").build(),
+                    List.of(new PractitionerDetailsParentUpdateV2OneOf1("100002")),
+                    null,
+                    null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("liaisonManager must be provided");
+  }
+
+  private LiaisonManagerCreateV2 practitionerLiaisonManagerCreateRequest() {
+    return new LiaisonManagerCreateV2()
+        .firstName("A")
+        .lastName("Manager")
+        .emailAddress("advocate.lm@example.com")
+        .telephoneNumber("020 1234 5678");
+  }
+
+  private void stubLiaisonManagerCreatePersistence() {
+    when(liaisonManagerRepository.save(any()))
+        .thenAnswer(
+            inv -> {
+              LiaisonManagerEntity lm = inv.getArgument(0);
+              if (lm.getGuid() == null) {
+                lm.setGuid(UUID.randomUUID());
+              }
+              return lm;
+            });
+    when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
   }
 
   @Test

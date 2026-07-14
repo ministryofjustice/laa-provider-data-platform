@@ -10,7 +10,9 @@ import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.BarristerPractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
@@ -36,6 +38,11 @@ import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateLevelV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsBarristerDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PractitionerDetailsBarristerLevelV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerOfficeCoreDetailsV2;
@@ -124,6 +131,7 @@ public interface ProviderMapper {
       if (advocateOfficeLink != null) {
         practitioner.office(toPractitionerOfficeDetails(advocateOfficeLink));
       }
+      applyAdvocateOrBarristerDetails(entity, practitioner);
       result.setPractitioner(practitioner);
     } else if (FirmType.ADVOCATE.equals(entity.getFirmType())) {
       result.setPractitioner(new PractitionerDetailsV2());
@@ -182,7 +190,6 @@ public interface ProviderMapper {
       ProviderEntity entity,
       @Nullable AdvocateProviderOfficeLinkEntity officeLink,
       List<ProviderParentLinkEntity> parentLinks) {
-    OfficePractitionerV2 result = toOfficePractitionerV2(entity);
     PractitionerDetailsV2 practitioner = new PractitionerDetailsV2();
     if (officeLink != null) {
       practitioner.setOffice(toPractitionerOfficeDetails(officeLink));
@@ -190,8 +197,9 @@ public interface ProviderMapper {
     if (!parentLinks.isEmpty()) {
       practitioner.setParentFirms(toParentFirms(parentLinks));
     }
+    applyAdvocateOrBarristerDetails(entity, practitioner);
+    OfficePractitionerV2 result = toOfficePractitionerV2(entity);
     result.setPractitioner(practitioner);
-
     return result;
   }
 
@@ -336,6 +344,43 @@ public interface ProviderMapper {
 
   private LocalDate toLocalDate(@Nullable OffsetDateTime timestamp) {
     return timestamp != null ? timestamp.toLocalDate() : null;
+  }
+
+  /**
+   * Populates the {@code advocateType}, {@code advocate} and {@code barrister} sub-details on a
+   * {@link PractitionerDetailsV2} from the concrete {@link PractitionerEntity} subtype, if the
+   * given entity is a practitioner.
+   */
+  private void applyAdvocateOrBarristerDetails(
+      ProviderEntity entity, PractitionerDetailsV2 practitioner) {
+    switch (entity) {
+      case AdvocatePractitionerEntity advocate ->
+          practitioner
+              .advocateType(PractitionerDetailsAdvocateTypeV2.ADVOCATE)
+              .advocate(
+                  new PractitionerDetailsAdvocateDetailsV2()
+                      .advocateLevel(
+                          advocate.getAdvocateLevel() != null
+                              ? PractitionerDetailsAdvocateLevelV2.fromValue(
+                                  advocate.getAdvocateLevel())
+                              : null)
+                      .solicitorRegulationAuthorityRollNumber(
+                          advocate.getSolicitorRegulationAuthorityRollNumber()));
+      case BarristerPractitionerEntity barrister ->
+          practitioner
+              .advocateType(PractitionerDetailsAdvocateTypeV2.BARRISTER)
+              .barrister(
+                  new PractitionerDetailsBarristerDetailsV2()
+                      .barristerLevel(
+                          barrister.getBarristerLevel() != null
+                              ? PractitionerDetailsBarristerLevelV2.fromValue(
+                                  barrister.getBarristerLevel())
+                              : null)
+                      .barCouncilRollNumber(barrister.getBarCouncilRollNumber()));
+      default -> {
+        /* do nothing. */
+      }
+    }
   }
 
   /** Maps a Chambers head office link to a {@link ChambersOfficeCoreDetailsV2}. */

@@ -89,6 +89,11 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       // validation.request.body.schema.minLength:
       // Negative tests exercise enum, identifier-format, and string-length constraints and must
       // reach the API to assert expected 400 problem responses.
+      //
+      // validation.request.body.schema.type:
+      // Negative tests send an explicit JSON null for a required string field (e.g.
+      // contractManagerGUID: null) to verify the service rejects it. Without this suppression the
+      // request never reaches the API.
       OpenApiInteractionValidator validator =
           OpenApiInteractionValidator.createForInlineApiSpecification(spec)
               .withLevelResolver(
@@ -118,6 +123,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                           "validation.request.body.schema.format.uuid", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.minLength", ValidationReport.Level.WARN)
+                      .withLevel("validation.request.body.schema.type", ValidationReport.Level.WARN)
                       .build())
               .build();
       return new OpenApiValidationFilter(validator);

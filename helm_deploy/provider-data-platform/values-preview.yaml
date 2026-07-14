@@ -6,12 +6,14 @@
 target:
   environment: preview
 
-# The app container's default 512Mi heap (see values.yaml javaToolOptions) was too small once
-# e2eModifying started running here alongside e2eReadOnly: the JVM hit a genuine heap
-# OutOfMemoryError partway through the combined suite (confirmed via `-XX:+ExitOnOutOfMemoryError`
-# exit code 3 in the pod's container status), which killed in-flight requests and cascaded into
-# connection-refused failures for the rest of the run. Raise the heap and container memory limit
-# for preview only — other environments are unaffected.
+# The app container was hitting a genuine Metaspace OutOfMemoryError partway through the
+# e2eModifying suite (confirmed via `-XX:+ExitOnOutOfMemoryError` exit code 3, with
+# "Terminating due to java.lang.OutOfMemoryError: Metaspace" logged just before the crash),
+# which killed in-flight requests and cascaded into connection-refused failures for the rest
+# of the run. values.yaml's default 120M metaspace is too tight for this app's class count
+# (~20,822 classes at startup) once running requests generate further dynamic proxy classes
+# under sustained load. Raise metaspace (and code cache, container memory) for preview only —
+# other environments are unaffected.
 resources:
   requests:
     memory: "768Mi"
@@ -20,10 +22,10 @@ resources:
     memory: "1536Mi"
     cpu: "1000m"
 javaToolOptions: >-
-  -Xms512M -Xmx900M -Xss256K
+  -Xms512M -Xmx600M -Xss256K
   -XX:MaxDirectMemorySize=180M
-  -XX:MaxMetaspaceSize=120M
-  -XX:ReservedCodeCacheSize=120M
+  -XX:MaxMetaspaceSize=300M
+  -XX:ReservedCodeCacheSize=150M
 
 # replicaCount must be 1 when postgresContainer.enabled=true — each pod has its own
 # independent sidecar database; multiple replicas would have inconsistent data.
@@ -47,15 +49,12 @@ postgresContainer:
   database: providerdata
   username: postgres
   password: ""  # Always overridden at deploy time — never relies on this default.
-  # Memory raised from 128Mi/256Mi: the previous limit was OOM-killing the sidecar under the
-  # write load of e2eModifying (now running in CI alongside e2eReadOnly), which dropped the
-  # app's DB connections and cascaded into connection-refused failures for the rest of the run.
   resources:
     requests:
-      memory: "256Mi"
+      memory: "128Mi"
       cpu: "50m"
     limits:
-      memory: "512Mi"
+      memory: "256Mi"
       cpu: "250m"
 
 prometheus:

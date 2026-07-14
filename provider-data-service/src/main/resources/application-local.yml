@@ -39,6 +39,16 @@ feature:
   trace-demo:
     enabled: true
 
+laa:
+  springboot:
+    starter:
+      auth:
+        authentication-header: "X-Authorization"
+        authorized-clients: ${AUTHORIZED_CLIENTS:[{"name":"Team1","roles":["STANDARD"],"token":"Dummy1"}]}
+        authorized-roles: ${AUTHORIZED_ROLES:[{"name":"STANDARD","uris":["/**"]}]}
+        # Disabled-by-default behaviour: keep all routes unprotected unless explicitly overridden.
+        unprotected-uris: ${UNPROTECTED_URIS:/**}
+
 logging:
   level:
     uk.gov.justice.laadata.providers: DEBUG

@@ -43,6 +43,9 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      if (E2eConfig.authToken() == null || E2eConfig.authToken().isBlank()) {
+        spec = removeSecurityRequirements(spec);
+      }
       // Schema validation suppressions: E2E tests deliberately send invalid payloads (missing
       // required fields, invalid enums, malformed UUIDs, etc.) to verify the API returns 400 Bad
       // Request. Without these suppressions, the validator would block payloads before reaching
@@ -114,6 +117,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                       .withLevel(
                           "validation.request.body.schema.required", ValidationReport.Level.WARN)
                       .withLevel("validation.request.body.schema.enum", ValidationReport.Level.WARN)
+                      .withLevel("validation.request.body.schema.type", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.format.uuid", ValidationReport.Level.WARN)
                       .withLevel(
@@ -130,6 +134,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   public void beforeAll(ExtensionContext context) {
     String baseUri = E2eConfig.baseUri();
     String authToken = E2eConfig.authToken();
+    boolean authEnabled = authToken != null && !authToken.isBlank();
 
     if (baseUri == null || baseUri.isBlank()) {
       throw new IllegalStateException(
@@ -143,7 +148,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
             .setContentType(ContentType.JSON)
             .addFilter(OPENAPI_FILTER);
 
-    if (authToken != null && !authToken.isBlank()) {
+    if (authEnabled) {
       builder.addHeader("X-Authorization", authToken);
     }
 
@@ -157,5 +162,9 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                     .setParam("http.socket.timeout", SOCKET_TIMEOUT_MS));
 
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+  }
+
+  private static String removeSecurityRequirements(String spec) {
+    return spec.replaceAll("(?ms)^\\s*security:\\n(?:^\\s*-\\s*ApiKeyAuth:\\s*\\[\\]\\n?)+", "");
   }
 }

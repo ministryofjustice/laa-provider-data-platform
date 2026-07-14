@@ -1783,7 +1783,7 @@ components:
       type: object
       x-class-extra-annotation: >-
         @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"createdTimestamp"})
+        {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "createdTimestamp"})
       properties:
         practitioner:
           $ref: "#/components/schemas/PractitionerDetailsPatchV2"
@@ -2099,6 +2099,9 @@ components:
           $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
 
     PractitionerDetailsPatchV2:
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"advocateType", "name", "accountNumber"})
       allOf:
         - $ref: "#/components/schemas/PractitionerDetailsPatchBaseV2"
         - type: object

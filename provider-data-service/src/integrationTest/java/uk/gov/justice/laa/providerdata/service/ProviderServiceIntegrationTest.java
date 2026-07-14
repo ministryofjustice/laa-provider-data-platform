@@ -234,6 +234,7 @@ class ProviderServiceIntegrationTest extends PostgresqlSpringBootTest {
 
     // Execute: Patch with null liaison manager (Option 2 - keep existing)
     PractitionerDetailsPatchV2 practitionerPatch = new PractitionerDetailsPatchV2();
+    practitionerPatch.setParentFirms(null);
     // liaisonManager is null - this triggers the guard to skip the patch
     ProviderPatchV2 patch = new ProviderPatchV2().practitioner(practitionerPatch);
 

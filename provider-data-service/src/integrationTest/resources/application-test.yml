@@ -24,3 +24,19 @@ management:
 feature:
   trace-demo:
     enabled: true
+
+app:
+  security:
+    apikey:
+      enabled: false
+
+laa:
+  springboot:
+    starter:
+      auth:
+        authentication-header: X-Authorization
+        authorized-clients: >
+          [{"name":"TestClient","roles":["STANDARD"],"token":"Dummy1"}]
+        authorized-roles: >
+          [{"name":"STANDARD","uris":["/**"]}]
+        unprotected-uris: /error,/actuator/**

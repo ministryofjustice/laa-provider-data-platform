@@ -473,6 +473,7 @@ public class OfficeService {
             lsp.getFalseBalanceFlag(),
             provider,
             link);
+        applyIntervenedPatchToLink(lsp.getIntervened(), link);
         applyPaymentPatchToLink(lsp.getPayment(), provider, link);
       }
       case ChambersOfficePatchV2 chambers -> {
@@ -500,6 +501,7 @@ public class OfficeService {
             advocate.getFalseBalanceFlag(),
             provider,
             link);
+        applyIntervenedPatchToLink(advocate.getIntervened(), link);
         applyPaymentPatchToLink(advocate.getPayment(), provider, link);
       }
       default ->
@@ -838,6 +840,9 @@ public class OfficeService {
    * {@code payment} fields are present.
    *
    * <p>No-op if {@code payment} is null or the link type does not support payment fields.
+   *
+   * @throws IllegalArgumentException if the EFT/bank-account or held-flag/reason conditional rules
+   *     (DSTEW-1735 AC5) are violated
    */
   private void applyPaymentPatchToLink(
       @Nullable PaymentDetailsPatchOrLinkV2 payment,
@@ -846,6 +851,7 @@ public class OfficeService {
     if (payment == null) {
       return;
     }
+    validatePaymentPatch(payment);
     switch (link) {
       case LspProviderOfficeLinkEntity lspLink -> {
         lspLink.setPaymentMethod(payment.getPaymentMethod().getValue());
@@ -865,11 +871,70 @@ public class OfficeService {
   }
 
   /**
-   * Creates or links a bank account from a patch payment request.
+   * Validates the conditional field rules for a patch payment request (DSTEW-1735 AC5).
    *
-   * <p>Only acts when {@code paymentMethod=EFT} and {@code bankAccountDetails} is non-null. The
-   * existing primary {@link OfficeBankAccountLinkEntity} is end-dated by {@link
-   * BankDetailsService#saveOfficeBankAccountLink} before the new one is saved.
+   * <ul>
+   *   <li>{@code paymentMethod=EFT} requires {@code bankAccountDetails}; any other {@code
+   *       paymentMethod} must not include {@code bankAccountDetails}.
+   *   <li>{@code paymentHeldFlag=true} requires {@code paymentHeldReason}; {@code
+   *       paymentHeldFlag=false} must not include {@code paymentHeldReason}.
+   * </ul>
+   */
+  private void validatePaymentPatch(PaymentDetailsPatchOrLinkV2 payment) {
+    boolean isElectronic = PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod());
+    if (isElectronic && payment.getBankAccountDetails() == null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must be provided when paymentMethod is EFT");
+    }
+    if (!isElectronic && payment.getBankAccountDetails() != null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must not be provided when paymentMethod is not EFT");
+    }
+    boolean isHeld = Boolean.TRUE.equals(payment.getPaymentHeldFlag());
+    if (isHeld && payment.getPaymentHeldReason() == null) {
+      throw new IllegalArgumentException(
+          "paymentHeldReason must be provided when paymentHeldFlag is true");
+    }
+    if (!isHeld && payment.getPaymentHeldReason() != null) {
+      throw new IllegalArgumentException(
+          "paymentHeldReason must not be provided when paymentHeldFlag is false");
+    }
+  }
+
+  /**
+   * Applies the {@code intervened} conditional fields to the link entity (DSTEW-1735 AC5). No-op if
+   * {@code intervened} is {@code null}, meaning no change is requested.
+   *
+   * @throws IllegalArgumentException if {@code intervenedFlag=true} without {@code
+   *     intervenedChangeDate}, or {@code intervenedFlag=false} with {@code intervenedChangeDate}
+   *     provided
+   */
+  private void applyIntervenedPatchToLink(
+      @Nullable IntervenedOfficeDetailsPatchV2 intervened, ProviderOfficeLinkEntity link) {
+    if (intervened == null) {
+      return;
+    }
+    boolean isIntervened = Boolean.TRUE.equals(intervened.getIntervenedFlag());
+    if (isIntervened && intervened.getIntervenedChangeDate() == null) {
+      throw new IllegalArgumentException(
+          "intervenedChangeDate must be provided when intervenedFlag is true");
+    }
+    if (!isIntervened && intervened.getIntervenedChangeDate() != null) {
+      throw new IllegalArgumentException(
+          "intervenedChangeDate must not be provided when intervenedFlag is false");
+    }
+    link.setIntervenedFlag(intervened.getIntervenedFlag());
+    link.setIntervenedChangeDate(isIntervened ? intervened.getIntervenedChangeDate() : null);
+  }
+
+  /**
+   * Creates or links a bank account from a patch payment request, or deactivates the existing
+   * primary bank account link when the payment method is no longer {@code EFT}.
+   *
+   * <p>When {@code paymentMethod=EFT}, the new bank account is saved and linked, end-dating the
+   * previous primary link (via {@link BankDetailsService#saveOfficeBankAccountLink}). Otherwise,
+   * the existing primary {@link OfficeBankAccountLinkEntity}, if any, is end-dated with no
+   * replacement (DSTEW-1735 AC5).
    *
    * @throws ItemNotFoundException if the request links by GUID and no matching account exists
    */
@@ -877,11 +942,13 @@ public class OfficeService {
       PaymentDetailsPatchOrLinkV2 payment,
       ProviderEntity provider,
       ProviderOfficeLinkEntity officeLink) {
-    if (!PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
-        || payment.getBankAccountDetails() == null) {
-      return;
+    if (PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())) {
+      if (payment.getBankAccountDetails() != null) {
+        persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
+      }
+    } else {
+      bankDetailsService.deactivatePrimaryOfficeBankAccountLink(officeLink);
     }
-    persistBankAccountDetails(payment.getBankAccountDetails(), provider, officeLink);
   }
 
   private ProviderEntity findProvider(String providerFirmGUIDorFirmNumber) {

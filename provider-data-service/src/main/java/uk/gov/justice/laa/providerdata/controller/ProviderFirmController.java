@@ -386,6 +386,7 @@ public class ProviderFirmController {
     }
     if (request.getPractitioner() != null) {
       variantCount++;
+      validatePractitioner(request.getPractitioner());
     }
     if (variantCount != 1) {
       throw new IllegalArgumentException(
@@ -419,6 +420,53 @@ public class ProviderFirmController {
       throw new IllegalArgumentException(
           "bankAccountDetails must be provided when paymentMethod is EFT");
     }
+    if (!isElectronic && payment.getBankAccountDetails() != null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must not be provided when paymentMethod is not EFT");
+    }
+  }
+
+  /**
+   * Validates a practitioner (Advocate/Barrister) creation request.
+   *
+   * <p>{@code advocateType}, the matching {@code advocate}/{@code barrister} sub-object, {@code
+   * payment} and {@code liaisonManager} are declared {@code required} in the OpenAPI spec, but the
+   * generated {@code oneOf}/{@code allOf} composition does not enforce this via bean validation, so
+   * it is checked explicitly here (DSTEW-1734 AC4).
+   */
+  private void validatePractitioner(ProviderCreatePractitionerV2Practitioner practitioner) {
+    if (practitioner.getAdvocateType() == null) {
+      throw new IllegalArgumentException("advocateType must be provided");
+    }
+    if (PractitionerDetailsAdvocateTypeV2.ADVOCATE.equals(practitioner.getAdvocateType())) {
+      if (practitioner.getAdvocate() == null) {
+        throw new IllegalArgumentException(
+            "advocate details must be provided when advocateType is Advocate");
+      }
+    } else if (practitioner.getBarrister() == null) {
+      throw new IllegalArgumentException(
+          "barrister details must be provided when advocateType is Barrister");
+    }
+    if (practitioner.getLiaisonManager() == null) {
+      throw new IllegalArgumentException("liaisonManager must be provided");
+    }
+    if (practitioner.getLiaisonManager() instanceof LiaisonManagerCreateV2 create
+        && (isNullOrBlank(create.getFirstName())
+            || isNullOrBlank(create.getLastName())
+            || isNullOrBlank(create.getEmailAddress())
+            || isNullOrBlank(create.getTelephoneNumber()))) {
+      throw new IllegalArgumentException(
+          "firstName, lastName, emailAddress and telephoneNumber are required to create a new"
+              + " liaison manager");
+    }
+    validatePayment(practitioner.getPayment());
+    if (practitioner.getPayment() == null) {
+      throw new IllegalArgumentException("payment must be provided");
+    }
+  }
+
+  private static boolean isNullOrBlank(@Nullable String value) {
+    return value == null || value.isBlank();
   }
 
   private static void validateFirmTypeConsistency(ProviderCreateV2 request) {

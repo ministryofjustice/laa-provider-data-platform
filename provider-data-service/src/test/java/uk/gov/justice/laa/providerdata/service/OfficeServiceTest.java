@@ -1478,7 +1478,8 @@ class OfficeServiceTest {
 
   @Test
   void patchOffice_bankAccountAmendmentWithNonEftPaymentMethod_doesNotPersistBankDetails() {
-    // AC1 variation: When paymentMethod is not EFT, bank account details should not be processed
+    // AC1 variation (DSTEW-1735 AC5): non-EFT paymentMethod must not be combined with
+    // bankAccountDetails - the amendment is rejected.
     var providerGuid = UUID.randomUUID();
     var linkGuid = UUID.randomUUID();
 
@@ -1490,8 +1491,6 @@ class OfficeServiceTest {
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
         .thenReturn(Optional.of(link));
-    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var bankAccountDetails =
         new BankAccountProviderOfficeCreateV2()
@@ -1507,20 +1506,20 @@ class OfficeServiceTest {
 
     var patch = new LSPOfficePatchV2().payment(payment);
 
-    // Execute the patch
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("bankAccountDetails must not be provided");
 
-    // Verify identifiers are returned
-    assertThat(result.providerGUID()).isEqualTo(providerGuid);
-
-    // Verify bankDetailsService was NOT called because paymentMethod is not EFT
+    // Verify bankDetailsService was NOT called and nothing was persisted
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(providerOfficeLinkRepository, never()).save(any());
   }
 
   /**
-   * Verifies that no bank account operations are performed when bank account details are null in
-   * the patch request.
+   * Verifies that amending an office to EFT without providing bank account details is rejected
+   * (DSTEW-1735 AC5).
    */
   @Test
   void patchOffice_bankAccountAmendmentWhenNullBankAccountDetails_doesNotPersistBankDetails() {
@@ -1536,8 +1535,6 @@ class OfficeServiceTest {
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
         .thenReturn(Optional.of(link));
-    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var payment =
         new PaymentDetailsPatchOrLinkV2()
@@ -1547,15 +1544,15 @@ class OfficeServiceTest {
 
     var patch = new LSPOfficePatchV2().payment(payment);
 
-    // Execute the patch
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("bankAccountDetails must be provided");
 
-    // Verify identifiers are returned
-    assertThat(result.providerGUID()).isEqualTo(providerGuid);
-
-    // Verify bankDetailsService was NOT called
+    // Verify bankDetailsService was NOT called and nothing was persisted
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(providerOfficeLinkRepository, never()).save(any());
   }
 
   /**
@@ -1783,8 +1780,8 @@ class OfficeServiceTest {
   }
 
   /**
-   * Verifies that bank account linking is prevented when payment method is not EFT, even if bank
-   * account details are provided.
+   * Verifies that bank account linking is rejected when payment method is not EFT and bank account
+   * details are provided (DSTEW-1735 AC5).
    */
   @Test
   void patchOffice_bankAccountAmendment_paymentMethodNotAmendableWithBankDetails() {
@@ -1800,8 +1797,6 @@ class OfficeServiceTest {
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
         .thenReturn(Optional.of(link));
-    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var bankAccountLink = new BankAccountProviderOfficeLinkV2().bankAccountGUID(bankAccountGuid);
 
@@ -1809,24 +1804,23 @@ class OfficeServiceTest {
         new PaymentDetailsPatchOrLinkV2()
             .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK) // NOT EFT
             .paymentHeldFlag(false)
-            .bankAccountDetails(bankAccountLink); // This should be ignored
+            .bankAccountDetails(bankAccountLink);
 
     var patch = new LSPOfficePatchV2().payment(payment);
 
-    // Execute the patch
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("bankAccountDetails must not be provided");
 
-    // Verify success (patch doesn't fail, but bank details are not processed)
-    assertThat(result.providerGUID()).isEqualTo(providerGuid);
-
-    // Verify bankDetailsService was NOT called (bank details operation blocked by paymentMethod
-    // gate)
+    // Verify bankDetailsService was NOT called and nothing was persisted
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
+    verify(providerOfficeLinkRepository, never()).save(any());
   }
 
   /**
-   * Verifies that attempting to amend payment details without providing a replacement bank account
-   * does not orphan the office.
+   * Verifies that an EFT amendment without a replacement bank account is rejected rather than
+   * silently leaving the office's existing account in place (DSTEW-1735 AC5).
    */
   @Test
   void patchOffice_bankAccountAmendment_doesNotRemoveOrphanExistingAccount() {
@@ -1842,8 +1836,6 @@ class OfficeServiceTest {
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
         .thenReturn(Optional.of(link));
-    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // Patch with EFT payment but null bankAccountDetails (no replacement account provided)
     var payment =
@@ -1854,16 +1846,15 @@ class OfficeServiceTest {
 
     var patch = new LSPOfficePatchV2().payment(payment);
 
-    // Execute the patch
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("bankAccountDetails must be provided");
 
-    // Verify success (no error; existing account remains)
-    assertThat(result.providerGUID()).isEqualTo(providerGuid);
-
-    // Verify linkExisting/createAndLink NOT called (no replacement, so no change)
+    // Verify linkExisting/createAndLink NOT called and nothing was persisted
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
-    // Office retains its current bank account; no orphan state created
+    verify(providerOfficeLinkRepository, never()).save(any());
   }
 
   /**
@@ -1957,7 +1948,10 @@ class OfficeServiceTest {
     verify(bankDetailsService).linkExisting(eq(bankAccountGuid), eq(provider), eq(link), any());
   }
 
-  /** AC5: Null bank account details do not trigger account operations. */
+  /**
+   * Verifies that switching to EFT without a bank account is rejected (DSTEW-1735 AC5): EFT
+   * requires bankAccountDetails to avoid the office having no linked account.
+   */
   @Test
   void patchOffice_bankAccountAmendment_preventsBankAccountOrphaning() {
 
@@ -1977,8 +1971,6 @@ class OfficeServiceTest {
     when(providerRepository.findById(providerGuid)).thenReturn(Optional.of(provider));
     when(providerOfficeLinkRepository.findByProviderAndGuid(provider, linkGuid))
         .thenReturn(Optional.of(link));
-    when(officeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(providerOfficeLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     var payment =
         new PaymentDetailsPatchOrLinkV2()
@@ -1987,10 +1979,13 @@ class OfficeServiceTest {
 
     var patch = new LSPOfficePatchV2().payment(payment);
 
-    var result = service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch);
-    assertThat(result.providerGUID()).isEqualTo(providerGuid);
+    assertThatThrownBy(
+            () -> service.patchOffice(providerGuid.toString(), linkGuid.toString(), patch))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("bankAccountDetails must be provided");
 
     verify(bankDetailsService, never()).linkExisting(any(), any(), any(), any());
     verify(bankDetailsService, never()).createAndLink(any(), any(), any(), any());
+    verify(providerOfficeLinkRepository, never()).save(any());
   }
 }

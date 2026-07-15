@@ -319,6 +319,9 @@ class AmendPractitionerE2eTest {
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
+        // intervenedFlag is a required field on IntervenedOfficeDetailsPatchV2, so this is
+        // rejected at request deserialization with a generic "Invalid request content" detail
+        // rather than the field-specific message produced by service-level validation.
         .statusCode(400);
 
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
@@ -346,6 +349,9 @@ class AmendPractitionerE2eTest {
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
+        // paymentHeldFlag is a required field on PaymentDetailsPatchOrLinkV2, so this is
+        // rejected at request deserialization with a generic "Invalid request content" detail
+        // rather than the field-specific message produced by service-level validation.
         .statusCode(400);
 
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
@@ -584,6 +590,12 @@ class AmendPractitionerE2eTest {
                             "Junior",
                             "solicitorRegulationAuthorityRollNumber",
                             initialRollNumber),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Amend",
+                            "lastName", "PractitionerLM",
+                            "emailAddress", "amend.practitioner.lm." + seedTs + "@example.com",
+                            "telephoneNumber", "020 2222 8888"),
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "liaisonManager",
@@ -631,6 +643,12 @@ class AmendPractitionerE2eTest {
                         "Barrister",
                         "barrister",
                         Map.of("barristerLevel", "KC", "barCouncilRollNumber", initialRollNumber),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "AmendBarrister",
+                            "lastName", "PractitionerLM",
+                            "emailAddress", "amend.barrister.lm." + seedTs + "@example.com",
+                            "telephoneNumber", "020 3333 7777"),
                         "payment",
                         Map.of("paymentMethod", "CHECK"),
                         "liaisonManager",

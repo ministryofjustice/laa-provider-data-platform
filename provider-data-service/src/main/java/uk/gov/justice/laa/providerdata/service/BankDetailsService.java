@@ -161,6 +161,27 @@ public class BankDetailsService {
   }
 
   /**
+   * End-dates the office's current primary bank account link, if any, without linking a
+   * replacement.
+   *
+   * <p>Used when an office's {@code paymentMethod} is patched away from {@code EFT} (DSTEW-1735
+   * AC5): the office no longer has an active bank account, but the historical link is preserved
+   * with {@code primaryFlag=false} and {@code activeDateTo} set. No-op if no primary link exists.
+   *
+   * @param officeLink the office link whose primary bank account link should be deactivated
+   */
+  public void deactivatePrimaryOfficeBankAccountLink(ProviderOfficeLinkEntity officeLink) {
+    officeBankAccountLinkRepository
+        .findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink)
+        .ifPresent(
+            existing -> {
+              existing.setPrimaryFlag(Boolean.FALSE);
+              existing.setActiveDateTo(LocalDate.now());
+              officeBankAccountLinkRepository.save(existing);
+            });
+  }
+
+  /**
    * Returns a paginated page of bank accounts linked to the given provider.
    *
    * <p>For {@code firmType=Chambers}, resolves all member Advocates and returns their combined

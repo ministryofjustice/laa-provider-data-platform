@@ -636,7 +636,12 @@ class ProviderServiceTest {
     when(officeLiaisonManagerLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    var lmCreate = new LiaisonManagerCreateV2().firstName("Alice").lastName("Jones");
+    var lmCreate =
+        new LiaisonManagerCreateV2()
+            .firstName("Alice")
+            .lastName("Jones")
+            .emailAddress("alice.jones@example.com")
+            .telephoneNumber("020 1111 2222");
     ProviderPatchV2 patch =
         new ProviderPatchV2()
             .practitioner(new PractitionerDetailsPatchV2().liaisonManager(lmCreate));

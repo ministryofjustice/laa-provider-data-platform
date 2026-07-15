@@ -200,7 +200,6 @@ public interface ProviderMapper {
     applyAdvocateOrBarristerDetails(entity, practitioner);
     OfficePractitionerV2 result = toOfficePractitionerV2(entity);
     result.setPractitioner(practitioner);
-
     return result;
   }
 

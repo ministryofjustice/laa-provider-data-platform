@@ -15,11 +15,11 @@ tasks.withType(org.gradle.testing.jacoco.tasks.JacocoCoverageVerification).confi
 
 dependencies {
     // JUnit: use BOM to constrain versions for both compile & runtime tests
-    testImplementation platform('org.junit:junit-bom:6.1.1')
+    testImplementation platform('org.junit:junit-bom:6.1.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // Rest Assured
-    testImplementation platform('io.rest-assured:rest-assured-bom:6.0.0')
+    testImplementation platform('io.rest-assured:rest-assured-bom:6.0.1')
     testImplementation 'io.rest-assured:rest-assured'
     // OpenAPI response validation against laa-data-pda.yml
     testImplementation project(':provider-data-api')

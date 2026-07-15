@@ -236,6 +236,20 @@ public class BankDetailsService {
   }
 
   /**
+   * Reports whether an office link currently has a primary bank account link.
+   *
+   * @param officeLink the office link to check
+   * @return {@code true} if a primary {@link OfficeBankAccountLinkEntity} exists for the office
+   *     link
+   */
+  @Transactional(readOnly = true)
+  public boolean hasPrimaryBankAccountLink(ProviderOfficeLinkEntity officeLink) {
+    return officeBankAccountLinkRepository
+        .findByProviderOfficeLinkAndPrimaryFlagTrue(officeLink)
+        .isPresent();
+  }
+
+  /**
    * Resolves the set of office links whose bank accounts should be returned for a given link.
    *
    * <p>For a Chambers office link, returns all Advocate office links for practitioners belonging to

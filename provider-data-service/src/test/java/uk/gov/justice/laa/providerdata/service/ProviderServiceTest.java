@@ -275,14 +275,21 @@ class ProviderServiceTest {
             .build();
     parent.setGuid(UUID.randomUUID());
     ProviderOfficeLinkEntity parentHeadOffice = new ProviderOfficeLinkEntity();
-    parentHeadOffice.setOffice(new OfficeEntity());
+    OfficeEntity parentOffice = new OfficeEntity();
+    parentHeadOffice.setOffice(parentOffice);
     parentHeadOffice.setActiveDateTo(null);
+
+    AdvocateProviderOfficeLinkEntity practitionerOfficeLink =
+        new AdvocateProviderOfficeLinkEntity();
+    practitionerOfficeLink.setOffice(new OfficeEntity());
 
     when(providerRepository.findById(guid)).thenReturn(Optional.of(existing));
     when(providerRepository.findByFirmNumber(parentFirmNumber)).thenReturn(Optional.of(parent));
     when(providerParentLinkRepository.findByProvider(existing)).thenReturn(List.of());
     when(providerOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(parent))
         .thenReturn(Optional.of(parentHeadOffice));
+    when(advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(existing))
+        .thenReturn(Optional.of(practitionerOfficeLink));
     when(providerRepository.save(any(ProviderEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ProviderPatchV2 patch =
@@ -302,6 +309,10 @@ class ProviderServiceTest {
     assertThat(savedLink.getProvider()).isEqualTo(existing);
     assertThat(savedLink.getParent()).isEqualTo(parent);
     verify(providerParentLinkRepository).deleteAll(any());
+
+    // DSTEW-1741 AC3: the practitioner's office link is repointed at the new parent's office.
+    assertThat(practitionerOfficeLink.getOffice()).isEqualTo(parentOffice);
+    verify(advocateProviderOfficeLinkRepository).save(practitionerOfficeLink);
   }
 
   @Test

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -128,7 +129,7 @@ class PractitionerActiveFromDateE2eTest {
                 "createdTimestamp",
                 "2000-01-01T00:00:00Z",
                 "practitioner",
-                Map.of("advocateLevel", "Junior")))
+                Map.of("advocateLevel", "KC")))
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
@@ -136,6 +137,15 @@ class PractitionerActiveFromDateE2eTest {
         .body("error.errorCode", notNullValue());
 
     assertEquals(beforeCreatedTimestamp, getProviderCreatedTimestamp(practitionerFirmNumber));
+    // The rejected request also attempted to change advocateLevel to "KC": confirm that change was
+    // not partially applied alongside the rejected createdTimestamp field.
+    given()
+        .pathParam("firmId", practitionerFirmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .body("data.practitioner.advocate.advocateLevel", equalTo("Junior"));
   }
 
   @Test
@@ -145,16 +155,26 @@ class PractitionerActiveFromDateE2eTest {
     String practitionerFirmNumber = createResponse.path("data.providerFirmNumber");
     String beforeCreatedTimestamp = getProviderCreatedTimestamp(practitionerFirmNumber);
 
+    // Practitioners' top-level "name" cannot be amended (see ProviderService#patchProvider), so a
+    // valid amendment here targets a genuinely permitted field instead.
     given()
         .pathParam("firmId", practitionerFirmNumber)
         .contentType(ContentType.JSON)
-        .body(Map.of("name", "E2E-DSTEW-1742 AC4 AMENDED " + ts))
+        .body(Map.of("practitioner", Map.of("advocateLevel", "KC")))
         .when()
         .patch("/provider-firms/{firmId}")
         .then()
         .statusCode(200);
 
     assertEquals(beforeCreatedTimestamp, getProviderCreatedTimestamp(practitionerFirmNumber));
+    // Confirm the permitted amendment actually took effect, not just that the request succeeded.
+    given()
+        .pathParam("firmId", practitionerFirmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .body("data.practitioner.advocate.advocateLevel", equalTo("KC"));
   }
 
   @Test
@@ -198,27 +218,32 @@ class PractitionerActiveFromDateE2eTest {
 
   private Map<String, Object> basePractitionerCreatePayload(
       String practitionerName, String sraNumber) {
-    return Map.of(
-        "firmType",
-        "Advocate",
-        "name",
-        practitionerName,
-        "practitioner",
+    // Mutable map (not Map.of(...)): callers add "createdTimestamp" to test rejection of that
+    // field, which Map.of(...)'s immutable result does not support.
+    return new HashMap<>(
         Map.of(
-            "parentFirms",
-            List.of(Map.of("parentFirmNumber", chambersFirmNumber)),
-            "advocateType",
+            "firmType",
             "Advocate",
-            "advocate",
-            Map.of("advocateLevel", "Junior", "solicitorRegulationAuthorityRollNumber", sraNumber),
-            "liaisonManager",
+            "name",
+            practitionerName,
+            "practitioner",
             Map.of(
-                "firstName", "Practitioner",
-                "lastName", "Manager",
-                "emailAddress", "practitioner.lm." + System.currentTimeMillis() + "@example.com",
-                "telephoneNumber", "020 7111 1111"),
-            "payment",
-            Map.of("paymentMethod", "CHECK")));
+                "parentFirms",
+                List.of(Map.of("parentFirmNumber", chambersFirmNumber)),
+                "advocateType",
+                "Advocate",
+                "advocate",
+                Map.of(
+                    "advocateLevel", "Junior", "solicitorRegulationAuthorityRollNumber", sraNumber),
+                "liaisonManager",
+                Map.of(
+                    "firstName", "Practitioner",
+                    "lastName", "Manager",
+                    "emailAddress",
+                        "practitioner.lm." + System.currentTimeMillis() + "@example.com",
+                    "telephoneNumber", "020 7111 1111"),
+                "payment",
+                Map.of("paymentMethod", "CHECK"))));
   }
 
   private String getProviderCreatedTimestamp(String practitionerFirmNumber) {

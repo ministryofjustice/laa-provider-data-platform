@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.providerdata.entity.AdvocateProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
@@ -177,6 +178,84 @@ class OfficeMapperTest {
     LspProviderOfficeLinkEntity link = linkWith(office);
 
     assertThat(mapper.toLspOfficeV2(link).getVersion()).isNull();
+  }
+
+  @Test
+  void toAdvocateOfficeV2_mapsAllFields() {
+    OfficeEntity office = new OfficeEntity();
+    OffsetDateTime now = OffsetDateTime.now();
+    office.setVersion(2L);
+    office.setCreatedBy("user1");
+    office.setCreatedTimestamp(now);
+    office.setLastUpdatedBy("user2");
+    office.setLastUpdatedTimestamp(now);
+    office.setAddressLine1("3 Advocate Street");
+    office.setAddressTownOrCity("London");
+    office.setAddressPostCode("EC4A 2AA");
+    office.setTelephoneNumber("020 7000 0099");
+    office.setEmailAddress("advocate@example.com");
+    office.setDxDetailsNumber("DX 00099");
+    office.setDxDetailsCentre("London DX Centre");
+
+    AdvocateProviderOfficeLinkEntity link = new AdvocateProviderOfficeLinkEntity();
+    UUID officeLinkGuid = UUID.randomUUID();
+    link.setGuid(officeLinkGuid);
+    link.setOffice(office);
+    link.setAccountNumber("ADV123");
+    link.setFirmType(FirmType.ADVOCATE);
+    link.setActiveDateTo(null);
+    link.setWebsite("https://advocate.example");
+    link.setVatRegistrationNumber("GB987654321");
+    link.setPaymentMethod("EFT");
+    link.setPaymentHeldFlag(Boolean.TRUE);
+    link.setPaymentHeldReason("Under review");
+    link.setDebtRecoveryFlag(Boolean.TRUE);
+    link.setFalseBalanceFlag(Boolean.TRUE);
+    link.setIntervenedFlag(Boolean.TRUE);
+    link.setIntervenedChangeDate(LocalDate.of(2025, 6, 1));
+
+    OfficeV2 result = mapper.toAdvocateOfficeV2(link);
+
+    assertThat(result.getGuid()).isEqualTo(officeLinkGuid);
+    assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.ADVOCATE);
+    assertThat(result.getAccountNumber()).isEqualTo("ADV123");
+    assertThat(result.getDebtRecoveryFlag()).isTrue();
+    assertThat(result.getFalseBalanceFlag()).isTrue();
+    assertThat(result.getWebsite()).isEqualTo(URI.create("https://advocate.example"));
+
+    assertThat(result.getVatRegistration().getVatNumber()).isEqualTo("GB987654321");
+
+    assertThat(result.getPayment().getPaymentMethod()).isEqualTo(PaymentDetailsPaymentMethodV2.EFT);
+    assertThat(result.getPayment().getPaymentHeldFlag()).isTrue();
+    assertThat(result.getPayment().getPaymentHeldReason()).isEqualTo("Under review");
+
+    assertThat(result.getIntervened().getIntervenedFlag()).isTrue();
+    assertThat(result.getIntervened().getIntervenedChangeDate())
+        .isEqualTo(LocalDate.of(2025, 6, 1));
+  }
+
+  @Test
+  void toOfficeV2_dispatchesAdvocateLinkToFullMapping() {
+    OfficeEntity office = officeWithGuid();
+    AdvocateProviderOfficeLinkEntity link = new AdvocateProviderOfficeLinkEntity();
+    link.setGuid(UUID.randomUUID());
+    link.setOffice(office);
+    link.setAccountNumber("ADV456");
+    link.setFirmType(FirmType.ADVOCATE);
+    link.setDebtRecoveryFlag(Boolean.TRUE);
+    link.setPaymentHeldFlag(Boolean.TRUE);
+    link.setPaymentHeldReason("Held reason");
+    link.setIntervenedFlag(Boolean.TRUE);
+    link.setIntervenedChangeDate(LocalDate.of(2025, 1, 1));
+
+    OfficeV2 result = mapper.toOfficeV2(link);
+
+    assertThat(result.getDebtRecoveryFlag()).isTrue();
+    assertThat(result.getPayment().getPaymentHeldFlag()).isTrue();
+    assertThat(result.getPayment().getPaymentHeldReason()).isEqualTo("Held reason");
+    assertThat(result.getIntervened().getIntervenedFlag()).isTrue();
+    assertThat(result.getIntervened().getIntervenedChangeDate())
+        .isEqualTo(LocalDate.of(2025, 1, 1));
   }
 
   @Test

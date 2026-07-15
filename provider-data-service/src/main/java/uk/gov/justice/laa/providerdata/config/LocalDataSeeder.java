@@ -102,6 +102,7 @@ public class LocalDataSeeder implements CommandLineRunner {
   private static final String ADVOCATE_FIRM_NUMBER = "100003";
   private static final String CHAMBERS_DX_FIRM_NUMBER = "100004";
   private static final String LSP2_FIRM_NUMBER = "100005";
+  private static final String ADVOCATE2_FIRM_NUMBER = "100006";
 
   @Override
   @Transactional
@@ -110,6 +111,7 @@ public class LocalDataSeeder implements CommandLineRunner {
       log.info("Base test data already seeded");
       seedDxChambersIfMissing();
       seedLsp2IfMissing();
+      seedAdvocate2IfMissing();
       return;
     }
     log.info("Starting local data seeding for foundation tables");
@@ -129,6 +131,7 @@ public class LocalDataSeeder implements CommandLineRunner {
     log.info("Local data seeding completed successfully");
     seedDxChambersIfMissing();
     seedLsp2IfMissing();
+    seedAdvocate2IfMissing();
   }
 
   /// Seeded separately so it can be applied to environments that already ran the initial seed.
@@ -292,6 +295,115 @@ public class LocalDataSeeder implements CommandLineRunner {
             .build());
 
     log.info("Seeded LSP2 (firmNumber {})", LSP2_FIRM_NUMBER);
+  }
+
+  /**
+   * Seeds a second Advocate practitioner (firmNumber 100006, office ACC007) with every optional
+   * "View Legal Practitioner" (DSTEW-1738 / DS_MAPD_FR_026) field populated — advocate level, roll
+   * number, VAT registration, website, payment details (including a held-payment reason and an
+   * intervened date), false-balance/debt-recovery flags, a liaison manager, and a bank account — so
+   * read-only view tests can verify every field without creating data of their own.
+   *
+   * <p>A dedicated second Advocate is used (rather than enriching the original, minimally-seeded
+   * Advocate at firmNumber 100003) so this fixture is self-contained and does not risk affecting
+   * any existing test relying on the original Advocate's minimal state.
+   *
+   * <p>All data is clearly fictional (test.example.com addresses, 000-series phone numbers, etc.).
+   */
+  private void seedAdvocate2IfMissing() {
+    if (providerRepository.findByFirmNumber(ADVOCATE2_FIRM_NUMBER).isPresent()) {
+      log.info("Advocate2 already seeded (firmNumber {})", ADVOCATE2_FIRM_NUMBER);
+      return;
+    }
+    log.info("Seeding Advocate2 (firmNumber {})", ADVOCATE2_FIRM_NUMBER);
+
+    ProviderEntity chambers =
+        providerRepository
+            .findByFirmNumber(CHAMBERS_FIRM_NUMBER)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Chambers (firmNumber " + CHAMBERS_FIRM_NUMBER + ") must be seeded first"));
+
+    ProviderEntity advocate2 =
+        providerRepository.save(
+            AdvocatePractitionerEntity.builder()
+                .firmNumber(ADVOCATE2_FIRM_NUMBER)
+                .name("Test Advocate With Full Details")
+                .advocateLevel("KC")
+                .solicitorRegulationAuthorityRollNumber("SRA-000099")
+                .build());
+
+    providerParentLinkRepository.save(
+        ProviderParentLinkEntity.builder().provider(advocate2).parent(chambers).build());
+
+    OfficeEntity office =
+        officeRepository.save(
+            OfficeEntity.builder()
+                .addressLine1("3 Test Advocate Street")
+                .addressLine2("Chambers Annexe")
+                .addressTownOrCity("London")
+                .addressCounty("Greater London")
+                .addressPostCode("EC4A 2AA")
+                .telephoneNumber("020 7000 0099")
+                .emailAddress("advocate2@test.example.com")
+                .dxDetailsNumber("DX 00099")
+                .dxDetailsCentre("London DX Centre")
+                .build());
+
+    AdvocateProviderOfficeLinkEntity officeLink =
+        (AdvocateProviderOfficeLinkEntity)
+            providerOfficeLinkRepository.save(
+                AdvocateProviderOfficeLinkEntity.builder()
+                    .provider(advocate2)
+                    .office(office)
+                    .accountNumber("ACC007")
+                    .headOfficeFlag(true)
+                    .website("https://example-advocate2.com")
+                    .intervenedFlag(true)
+                    .intervenedChangeDate(LocalDate.now())
+                    .vatRegistrationNumber("GB000000099")
+                    .paymentMethod("EFT")
+                    .paymentHeldFlag(true)
+                    .paymentHeldReason("Test hold reason")
+                    .debtRecoveryFlag(true)
+                    .falseBalanceFlag(true)
+                    .build());
+
+    LiaisonManagerEntity lm =
+        liaisonManagerRepository.save(
+            LiaisonManagerEntity.builder()
+                .firstName("Test")
+                .lastName("Advocate2Lm")
+                .emailAddress("advocate2-lm@test.example.com")
+                .telephoneNumber("020 7000 0098")
+                .build());
+
+    officeLiaisonManagerLinkRepository.save(
+        OfficeLiaisonManagerLinkEntity.builder()
+            .officeLink(officeLink)
+            .liaisonManager(lm)
+            .activeDateFrom(LocalDate.now())
+            .linkedFlag(true)
+            .build());
+
+    BankAccountEntity bankAccount =
+        bankAccountRepository.save(
+            BankAccountEntity.builder()
+                .accountName("Test Advocate2 Account")
+                .sortCode("400000")
+                .accountNumber("00000099")
+                .build());
+
+    officeBankAccountLinkRepository.save(
+        OfficeBankAccountLinkEntity.builder()
+            .providerOfficeLink(officeLink)
+            .bankAccount(bankAccount)
+            .primaryFlag(true)
+            .activeDateFrom(LocalDate.now())
+            .build());
+
+    log.info("Seeded Advocate2 (firmNumber {})", ADVOCATE2_FIRM_NUMBER);
   }
 
   private BankAccountEntity[] seedBankAccounts() {
@@ -465,7 +577,7 @@ public class LocalDataSeeder implements CommandLineRunner {
             .accountNumber("ACC003")
             .headOfficeFlag(true)
             .intervenedFlag(false)
-            .paymentMethod("BACS")
+            .paymentMethod("EFT")
             .paymentHeldFlag(false)
             .debtRecoveryFlag(false)
             .falseBalanceFlag(false)

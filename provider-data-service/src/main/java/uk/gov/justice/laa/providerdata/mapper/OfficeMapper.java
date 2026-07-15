@@ -178,6 +178,19 @@ public interface OfficeMapper {
   PaymentDetailsV2 toPayment(LspProviderOfficeLinkEntity link);
 
   /**
+   * Maps payment fields of an {@link AdvocateProviderOfficeLinkEntity} to a {@link
+   * PaymentDetailsV2}.
+   */
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(
+      target = "paymentMethod",
+      source = "paymentMethod",
+      qualifiedByName = "paymentMethodFromValue")
+  @Mapping(target = "paymentHeldFlag", source = "paymentHeldFlag")
+  @Mapping(target = "paymentHeldReason", source = "paymentHeldReason")
+  PaymentDetailsV2 toPayment(AdvocateProviderOfficeLinkEntity link);
+
+  /**
    * Maps intervention fields of an {@link LspProviderOfficeLinkEntity} to an {@link
    * IntervenedOfficeDetailsV2}.
    */
@@ -185,6 +198,15 @@ public interface OfficeMapper {
   @Mapping(target = "intervenedFlag", source = "intervenedFlag")
   @Mapping(target = "intervenedChangeDate", source = "intervenedChangeDate")
   IntervenedOfficeDetailsV2 toIntervened(LspProviderOfficeLinkEntity link);
+
+  /**
+   * Maps intervention fields of an {@link AdvocateProviderOfficeLinkEntity} to an {@link
+   * IntervenedOfficeDetailsV2}.
+   */
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(target = "intervenedFlag", source = "intervenedFlag")
+  @Mapping(target = "intervenedChangeDate", source = "intervenedChangeDate")
+  IntervenedOfficeDetailsV2 toIntervened(AdvocateProviderOfficeLinkEntity link);
 
   /**
    * Maps an {@link LspProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO.
@@ -217,9 +239,40 @@ public interface OfficeMapper {
   }
 
   /**
+   * Maps an {@link AdvocateProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO.
+   *
+   * @param link the Advocate provider-office link entity (with eagerly-loaded {@code office})
+   * @return the populated response DTO
+   */
+  default OfficeV2 toAdvocateOfficeV2(AdvocateProviderOfficeLinkEntity link) {
+    OfficeEntity office = link.getOffice();
+    return new OfficeV2()
+        .guid(link.getGuid())
+        .version(office.getVersion())
+        .createdBy(office.getCreatedBy())
+        .createdTimestamp(office.getCreatedTimestamp())
+        .lastUpdatedBy(office.getLastUpdatedBy())
+        .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
+        .firmType(firmTypeFromEntity(link))
+        .accountNumber(link.getAccountNumber())
+        .activeDateTo(link.getActiveDateTo())
+        .debtRecoveryFlag(link.getDebtRecoveryFlag())
+        .falseBalanceFlag(link.getFalseBalanceFlag())
+        .address(toAddress(office))
+        .telephoneNumber(office.getTelephoneNumber())
+        .emailAddress(office.getEmailAddress())
+        .website(stringToUri(link.getWebsite()))
+        .dxDetails(toDxDetails(office))
+        .vatRegistration(toVatRegistration(link))
+        .payment(toPayment(link))
+        .intervened(toIntervened(link));
+  }
+
+  /**
    * Maps a {@link ProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO using only the
-   * fields present on the base entity. LSP-specific fields (VAT, payment details, intervention,
-   * debt/false-balance flags) are omitted; for those, use {@link #toLspOfficeV2}.
+   * fields present on the base entity. LSP/Advocate-specific fields (VAT, payment details,
+   * intervention, debt/false-balance flags) are omitted; for those, use {@link #toLspOfficeV2} or
+   * {@link #toAdvocateOfficeV2}.
    *
    * @param link any provider-office link entity (with eagerly-loaded {@code office})
    * @return the populated response DTO
@@ -227,6 +280,9 @@ public interface OfficeMapper {
   default OfficeV2 toOfficeV2(ProviderOfficeLinkEntity link) {
     if (link instanceof LspProviderOfficeLinkEntity lspLink) {
       return toLspOfficeV2(lspLink);
+    }
+    if (link instanceof AdvocateProviderOfficeLinkEntity advocateLink) {
+      return toAdvocateOfficeV2(advocateLink);
     }
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
@@ -273,6 +329,13 @@ public interface OfficeMapper {
 
   /** Returns a {@link VATRegistrationV2} when a VAT number is present; otherwise {@code null}. */
   default @Nullable VATRegistrationV2 toVatRegistration(LspProviderOfficeLinkEntity link) {
+    return link.getVatRegistrationNumber() != null
+        ? new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber())
+        : null;
+  }
+
+  /** Returns a {@link VATRegistrationV2} when a VAT number is present; otherwise {@code null}. */
+  default @Nullable VATRegistrationV2 toVatRegistration(AdvocateProviderOfficeLinkEntity link) {
     return link.getVatRegistrationNumber() != null
         ? new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber())
         : null;

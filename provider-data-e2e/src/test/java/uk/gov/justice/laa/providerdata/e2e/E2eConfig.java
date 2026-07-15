@@ -199,6 +199,43 @@ public final class E2eConfig {
     return require("lsp2.contractManager.lastName");
   }
 
+  // --- Advocate2 (fully-populated practitioner for view tests) ---
+
+  /**
+   * Firm number for the second seeded Advocate practitioner, which has every optional "View Legal
+   * Practitioner" (DSTEW-1738) field populated — advocate level, roll number, VAT, website, payment
+   * details, flags, liaison manager, and bank account — so view tests can verify every field
+   * without creating data of their own.
+   */
+  public static String advocate2FirmNumber() {
+    return require("advocate2.firmNumber");
+  }
+
+  /** Account number for the seeded Advocate2 office. */
+  public static String advocate2OfficeCode() {
+    return require("advocate2.office.code");
+  }
+
+  /** Firm number of the seeded Chambers that is Advocate2's parent. */
+  public static String advocate2ParentFirmNumber() {
+    return require("advocate2.parentFirmNumber");
+  }
+
+  /** Expected advocate level for the Advocate2 fixture. */
+  public static String advocate2Level() {
+    return require("advocate2.level");
+  }
+
+  /** Expected SRA roll number for the Advocate2 fixture. */
+  public static String advocate2RollNumber() {
+    return require("advocate2.rollNumber");
+  }
+
+  /** Expected liaison manager last name for the Advocate2 fixture. */
+  public static String advocate2LiaisonManagerLastName() {
+    return require("advocate2.liaisonManager.lastName");
+  }
+
   // --- Helpers ---
 
   private static String resolve(String sysPropKey, String envVarKey) {

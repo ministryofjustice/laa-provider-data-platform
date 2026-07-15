@@ -597,9 +597,7 @@ class AmendPractitionerE2eTest {
                             "emailAddress", "amend.practitioner.lm." + seedTs + "@example.com",
                             "telephoneNumber", "020 2222 8888"),
                         "payment",
-                        Map.of("paymentMethod", "CHECK"),
-                        "liaisonManager",
-                        Map.of("useChambersLiaisonManager", true))))
+                        Map.of("paymentMethod", "CHECK"))))
             .when()
             .post("/provider-firms")
             .then()
@@ -650,9 +648,7 @@ class AmendPractitionerE2eTest {
                             "emailAddress", "amend.barrister.lm." + seedTs + "@example.com",
                             "telephoneNumber", "020 3333 7777"),
                         "payment",
-                        Map.of("paymentMethod", "CHECK"),
-                        "liaisonManager",
-                        Map.of("useChambersLiaisonManager", true))))
+                        Map.of("paymentMethod", "CHECK"))))
             .when()
             .post("/provider-firms")
             .then()

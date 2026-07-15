@@ -1601,6 +1601,14 @@ components:
       example: "Legal Services Co."
 
     ProviderCreateV2:
+      # x-class-extra-annotation is placed here (not on ProviderCreatePractitionerV2) because
+      # openapi-generator flattens this allOf/oneOf into a single ProviderCreateV2 class, which
+      # is the class actually deserialized for POST /provider-firms (see ProviderFirmController).
+      # createdTimestamp is a server-assigned audit field for every provider type, not just
+      # practitioners, so it must be rejected here regardless of firmType.
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"createdTimestamp"})
       allOf:
         - $ref: "#/components/schemas/ProviderCreateBaseV2"
         - oneOf:
@@ -1708,6 +1716,13 @@ components:
         Provider of `firmType=Advocate`
 
     ProviderPatchV2:
+      # x-class-extra-annotation is placed here (not on ProviderPatchPractitionerV2) because
+      # openapi-generator flattens this allOf/oneOf into a single ProviderPatchV2 class, which
+      # is the class actually deserialized for PATCH /provider-firms/{id} (see
+      # ProviderFirmController). These fields must be rejected regardless of firmType.
+      x-class-extra-annotation: >-
+        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+        {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "createdTimestamp"})
       allOf:
         - $ref: "#/components/schemas/ProviderPatchBaseV2"
         - oneOf:
@@ -1736,9 +1751,6 @@ components:
 
     ProviderPatchPractitionerV2:
       type: object
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber"})
       properties:
         practitioner:
           $ref: "#/components/schemas/PractitionerDetailsPatchV2"

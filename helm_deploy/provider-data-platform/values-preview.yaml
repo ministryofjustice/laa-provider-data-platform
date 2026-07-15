@@ -6,6 +6,27 @@
 target:
   environment: preview
 
+# The app container was hitting a genuine Metaspace OutOfMemoryError partway through the
+# e2eModifying suite (confirmed via `-XX:+ExitOnOutOfMemoryError` exit code 3, with
+# "Terminating due to java.lang.OutOfMemoryError: Metaspace" logged just before the crash),
+# which killed in-flight requests and cascaded into connection-refused failures for the rest
+# of the run. values.yaml's default 120M metaspace is too tight for this app's class count
+# (~20,822 classes at startup) once running requests generate further dynamic proxy classes
+# under sustained load. Raise metaspace (and code cache, container memory) for preview only —
+# other environments are unaffected.
+resources:
+  requests:
+    memory: "768Mi"
+    cpu: "500m"
+  limits:
+    memory: "1536Mi"
+    cpu: "1000m"
+javaToolOptions: >-
+  -Xms512M -Xmx600M -Xss256K
+  -XX:MaxDirectMemorySize=180M
+  -XX:MaxMetaspaceSize=300M
+  -XX:ReservedCodeCacheSize=150M
+
 # replicaCount must be 1 when postgresContainer.enabled=true — each pod has its own
 # independent sidecar database; multiple replicas would have inconsistent data.
 replicaCount: 1

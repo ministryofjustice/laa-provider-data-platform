@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,8 @@ import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
+import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.service.OfficeCreationResult;
 import uk.gov.justice.laa.providerdata.service.OfficeService;
 import uk.gov.justice.laa.providerdata.util.PageLinks;
@@ -82,6 +85,8 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
       useHeadOfficeContractManager = true;
     }
 
+    validatePayment(lspOfficeCreateV2.getPayment());
+
     OfficeCreationResult result =
         officeService.createLspOffice(
             providerFirmGUIDorFirmNumber,
@@ -105,6 +110,26 @@ public class ProviderFirmOfficesController implements ProviderFirmOfficesApi {
                         .providerFirmNumber(result.firmNumber())
                         .officeGUID(result.officeGUID())
                         .officeCode(result.accountNumber())));
+  }
+
+  /**
+   * Validates the EFT/bank-account conditional rule for a create-or-link office payment request
+   * (DSTEW-1735 AC5): {@code paymentMethod=EFT} requires {@code bankAccountDetails} to be provided;
+   * any other {@code paymentMethod} must not include {@code bankAccountDetails}.
+   */
+  private static void validatePayment(@Nullable PaymentDetailsCreateOrLinkV2 payment) {
+    if (payment == null) {
+      return;
+    }
+    boolean isElectronic = PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod());
+    if (isElectronic && payment.getBankAccountDetails() == null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must be provided when paymentMethod is EFT");
+    }
+    if (!isElectronic && payment.getBankAccountDetails() != null) {
+      throw new IllegalArgumentException(
+          "bankAccountDetails must not be provided when paymentMethod is not EFT");
+    }
   }
 
   @Override

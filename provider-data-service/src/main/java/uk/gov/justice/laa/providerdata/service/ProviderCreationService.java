@@ -507,9 +507,17 @@ public class ProviderCreationService {
               .findById(existingLmGuid)
               .orElseThrow(
                   () -> new ItemNotFoundException("Liaison manager not found: " + existingLmGuid));
-      OfficeLiaisonManagerLinkEntity newLink = new OfficeLiaisonManagerLinkEntity();
-      newLink.setActiveDateFrom(java.time.LocalDate.now());
-      newLink.setLinkedFlag(Boolean.FALSE);
+      // Reuse the caller's template (if provided) rather than building a fresh one, so that a
+      // caller-set linkedFlag (e.g. true for DSTEW-1740 AC1's "use Chambers' liaison manager"
+      // option) is preserved instead of always defaulting to false.
+      OfficeLiaisonManagerLinkEntity newLink =
+          lmLinkTemplate != null ? lmLinkTemplate : new OfficeLiaisonManagerLinkEntity();
+      if (newLink.getActiveDateFrom() == null) {
+        newLink.setActiveDateFrom(java.time.LocalDate.now());
+      }
+      if (newLink.getLinkedFlag() == null) {
+        newLink.setLinkedFlag(Boolean.FALSE);
+      }
       newLink.setLiaisonManager(lm);
       newLink.setOfficeLink(savedOfficeLink);
       officeLiaisonManagerLinkRepository.save(newLink);

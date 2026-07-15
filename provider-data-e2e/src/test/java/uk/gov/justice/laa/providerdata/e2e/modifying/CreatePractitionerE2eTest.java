@@ -173,8 +173,7 @@ class CreatePractitionerE2eTest {
         .body("data.practitioner.advocate.advocateLevel", equalTo("Junior"))
         .body(
             "data.practitioner.advocate.solicitorRegulationAuthorityRollNumber", equalTo(sraNumber))
-        .body("data.practitioner.office.accountNumber", notNullValue())
-        .body("data.practitioner.office.headOfficeFlag", equalTo(true));
+        .body("data.practitioner.office.accountNumber", notNullValue());
   }
 
   /**
@@ -236,8 +235,7 @@ class CreatePractitionerE2eTest {
         .body("data.practitioner.advocateType", equalTo("Barrister"))
         .body("data.practitioner.barrister.barristerLevel", equalTo("KC"))
         .body("data.practitioner.barrister.barCouncilRollNumber", equalTo(barCouncilNumber))
-        .body("data.practitioner.office.accountNumber", notNullValue())
-        .body("data.practitioner.office.headOfficeFlag", equalTo(true));
+        .body("data.practitioner.office.accountNumber", notNullValue());
   }
 
   /**

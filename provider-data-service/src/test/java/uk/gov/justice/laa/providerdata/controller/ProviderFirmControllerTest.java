@@ -132,7 +132,22 @@ class ProviderFirmControllerTest {
                                         {
                                           "firmType": "Advocate",
                                           "name": "A. Barrister",
-                                          "practitioner": {}
+                                          "practitioner": {
+                                            "advocateType": "Barrister",
+                                            "barrister": {
+                                              "barristerLevel": "Junior",
+                                              "barCouncilRollNumber": "12345"
+                                            },
+                                            "liaisonManager": {
+                                              "firstName": "John",
+                                              "lastName": "Doe",
+                                              "emailAddress": "john.smith@example.com",
+                                              "telephoneNumber": "020 1234 5678"
+                                            },
+                                            "payment": {
+                                              "paymentMethod": "CHECK"
+                                            }
+                                          }
                                         }
                                         """))
         .andExpect(status().isCreated())

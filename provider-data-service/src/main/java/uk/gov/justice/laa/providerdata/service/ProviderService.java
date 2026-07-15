@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -413,6 +414,10 @@ public class ProviderService {
     }
   }
 
+  private static boolean isNullOrBlank(@Nullable String value) {
+    return value == null || value.isBlank();
+  }
+
   private static boolean hasNoOtherPractitionerPatchFields(
       PractitionerDetailsPatchV2 practitionerPatch) {
     return practitionerPatch.getLiaisonManager() == null
@@ -459,6 +464,20 @@ public class ProviderService {
 
     switch (lmRequest) {
       case LiaisonManagerCreateV2 create -> {
+        // The oneOf branches (link-by-GUID, link-chambers, create) are resolved by a custom
+        // deserializer rather than a discriminated union, so an empty/partial payload (e.g. {})
+        // falls through to this "create" branch without triggering bean validation on the
+        // required fields. Validate explicitly so an incomplete payload is rejected with 400
+        // instead of reaching persistence and surfacing as a raw constraint-violation 409.
+        if (isNullOrBlank(create.getFirstName())
+            || isNullOrBlank(create.getLastName())
+            || isNullOrBlank(create.getEmailAddress())
+            || isNullOrBlank(create.getTelephoneNumber())) {
+          throw new IllegalArgumentException(
+              "firstName, lastName, emailAddress and telephoneNumber are required to create a new"
+                  + " liaison manager");
+        }
+
         // Option 3: DSTEW-1652 AC4 – end-date any existing active links before creating the new
         // one.
         var existingLinks =

@@ -45,6 +45,7 @@ class CreateProviderFirmOfficeE2eTest {
   ///   variant enforcement.
   @Test
   void dstew1650_ac1_createOffice_forExistingLspFirm_persisted() {
+    String accountNumber = "8" + (System.currentTimeMillis() % 10_000_000L);
     Map<String, Object> body =
         Map.of(
             "address",
@@ -53,7 +54,14 @@ class CreateProviderFirmOfficeE2eTest {
                 "townOrCity", "Bristol",
                 "postcode", "BS1 1AA"),
             "payment",
-            Map.of("paymentMethod", "EFT"),
+            Map.of(
+                "paymentMethod",
+                "EFT",
+                "bankAccountDetails",
+                Map.of(
+                    "accountName", "New Office Account",
+                    "sortCode", "601111",
+                    "accountNumber", accountNumber)),
             "contractManager",
             Map.of("useHeadOfficeContractManager", true),
             "liaisonManager",
@@ -417,12 +425,20 @@ class CreateProviderFirmOfficeE2eTest {
   /// - DS_MAPD_FR_025: Create Child Office – the referenced parent LSP firm must exist.
   @Test
   void dstew1667_ac3_createOffice_forUnknownFirm_returns404AndOfficeNotCreated() {
+    String accountNumber = "8" + (System.currentTimeMillis() % 10_000_000L);
     Map<String, Object> body =
         Map.of(
             "address",
             Map.of("line1", "1 Street", "townOrCity", "London", "postcode", "EC1A 1BB"),
             "payment",
-            Map.of("paymentMethod", "EFT"),
+            Map.of(
+                "paymentMethod",
+                "EFT",
+                "bankAccountDetails",
+                Map.of(
+                    "accountName", "Unknown Firm Account",
+                    "sortCode", "601111",
+                    "accountNumber", accountNumber)),
             "contractManager",
             Map.of("useHeadOfficeContractManager", true),
             "liaisonManager",

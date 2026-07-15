@@ -31,6 +31,7 @@ class PatchOfficeActivationE2eTest {
 
   @BeforeAll
   static void createNonHeadOffice() {
+    String accountNumber = "8" + (System.currentTimeMillis() % 10_000_000L);
     Map<String, Object> body =
         Map.of(
             "address",
@@ -41,7 +42,14 @@ class PatchOfficeActivationE2eTest {
             "telephoneNumber",
             "0113 000 0001",
             "payment",
-            Map.of("paymentMethod", "EFT"),
+            Map.of(
+                "paymentMethod",
+                "EFT",
+                "bankAccountDetails",
+                Map.of(
+                    "accountName", "Non Head Office Account",
+                    "sortCode", "601111",
+                    "accountNumber", accountNumber)),
             "liaisonManager",
             Map.of("useHeadOfficeLiaisonManager", true),
             "contractManager",

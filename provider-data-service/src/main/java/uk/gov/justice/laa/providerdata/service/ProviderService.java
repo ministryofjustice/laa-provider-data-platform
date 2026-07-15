@@ -284,6 +284,19 @@ public class ProviderService {
 
       providerParentLinkRepository.save(
           ProviderParentLinkEntity.builder().provider(provider).parent(parent).build());
+
+      // BR-28 (DSTEW-1741 AC3): a practitioner's contact details are inherited from its parent
+      // Chamber's office, so reassigning the parent must repoint the practitioner's office link
+      // to the new parent's head office.
+      AdvocateProviderOfficeLinkEntity practitionerOfficeLink =
+          advocateProviderOfficeLinkRepository
+              .findByProviderAndHeadOfficeFlagTrue(provider)
+              .orElseThrow(
+                  () ->
+                      new ItemNotFoundException(
+                          "Practitioner has no head office link: " + provider.getGuid()));
+      practitionerOfficeLink.setOffice(parentOfficeLink.getOffice());
+      advocateProviderOfficeLinkRepository.save(practitionerOfficeLink);
     } else {
       Optional<AdvocateProviderOfficeLinkEntity> existingLink =
           advocateProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);

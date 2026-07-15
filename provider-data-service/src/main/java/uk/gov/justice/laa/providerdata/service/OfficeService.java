@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import java.net.URI;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -446,10 +447,14 @@ public class OfficeService {
   public OfficeCreationResult patchOffice(
       String providerFirmGUIDorFirmNumber, String officeGUIDorCode, OfficePatchV2 patch) {
 
+    validateOfficeConditionalRules(patch);
+
     ProviderEntity provider = findProvider(providerFirmGUIDorFirmNumber);
     ProviderOfficeLinkEntity link =
         findProviderOfficeLink(provider, officeGUIDorCode)
             .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
+
+    validatePaymentMethodBankAccountRule(patch, link);
 
     switch (patch) {
       case LSPOfficePatchV2 lsp -> {
@@ -509,6 +514,94 @@ public class OfficeService {
 
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());
+  }
+
+  /**
+   * Validates conditional-field business rules on an office patch before any state is mutated
+   * (DS_MAPD_FR_025 AC5). Only LSP and Advocate office patches carry payment and intervened
+   * details; Chambers offices have neither.
+   *
+   * @throws IllegalArgumentException if any conditional rule is violated
+   */
+  private static void validateOfficeConditionalRules(OfficePatchV2 patch) {
+    List<String> errors = new ArrayList<>();
+    switch (patch) {
+      case LSPOfficePatchV2 lsp -> {
+        validatePaymentConditionalRules(lsp.getPayment(), errors);
+        validateIntervenedConditionalRules(lsp.getIntervened(), errors);
+      }
+      case AdvocateOfficePatchV2 advocate -> {
+        validatePaymentConditionalRules(advocate.getPayment(), errors);
+        validateIntervenedConditionalRules(advocate.getIntervened(), errors);
+      }
+      default -> {
+        /* do nothing. */
+      }
+    }
+    if (!errors.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Office patch validation failed: " + String.join("; ", errors));
+    }
+  }
+
+  private static void validatePaymentConditionalRules(
+      @Nullable PaymentDetailsPatchOrLinkV2 payment, List<String> errors) {
+    if (payment == null) {
+      return;
+    }
+    boolean heldFlagTrue = Boolean.TRUE.equals(payment.getPaymentHeldFlag());
+    boolean hasHeldReason =
+        payment.getPaymentHeldReason() != null && !payment.getPaymentHeldReason().isBlank();
+    if (heldFlagTrue && !hasHeldReason) {
+      errors.add("paymentHeldReason must be provided when paymentHeldFlag is true");
+    }
+    if (hasHeldReason && !heldFlagTrue) {
+      errors.add("paymentHeldFlag must be true when paymentHeldReason is provided");
+    }
+  }
+
+  private static void validateIntervenedConditionalRules(
+      @Nullable IntervenedOfficeDetailsPatchV2 intervened, List<String> errors) {
+    if (intervened == null) {
+      return;
+    }
+    boolean flagTrue = Boolean.TRUE.equals(intervened.getIntervenedFlag());
+    boolean hasChangeDate = intervened.getIntervenedChangeDate() != null;
+    if (flagTrue && !hasChangeDate) {
+      errors.add("intervenedChangeDate must be provided when intervenedFlag is true");
+    }
+    if (hasChangeDate && !flagTrue) {
+      errors.add("intervenedFlag must be true when intervenedChangeDate is provided");
+    }
+  }
+
+  /**
+   * Enforces the resulting-state rule that an office paid by EFT must have a bank account
+   * (DS_MAPD_FR_025 AC5). Only fires when the patch supplies payment details; a bank account is
+   * considered present if the patch links one inline or a primary bank account link already exists
+   * for the office. This deliberately allows an EFT payment method to be re-asserted without
+   * re-supplying bank details, preserving the existing anti-orphaning behaviour.
+   *
+   * @throws IllegalArgumentException if the resulting state would be EFT with no bank account
+   */
+  private void validatePaymentMethodBankAccountRule(
+      OfficePatchV2 patch, ProviderOfficeLinkEntity link) {
+    PaymentDetailsPatchOrLinkV2 payment =
+        switch (patch) {
+          case LSPOfficePatchV2 lsp -> lsp.getPayment();
+          case AdvocateOfficePatchV2 advocate -> advocate.getPayment();
+          default -> null;
+        };
+    if (payment == null) {
+      return;
+    }
+    if (PaymentDetailsPaymentMethodV2.EFT.equals(payment.getPaymentMethod())
+        && payment.getBankAccountDetails() == null
+        && !bankDetailsService.hasPrimaryBankAccountLink(link)) {
+      throw new IllegalArgumentException(
+          "Office patch validation failed: bankAccountDetails must be provided when "
+              + "paymentMethod is EFT and the office has no existing bank account");
+    }
   }
 
   /**

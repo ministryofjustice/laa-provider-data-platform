@@ -7,8 +7,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
@@ -488,4 +490,85 @@ class AssignOfficeContractManagerE2eTest {
   // TODO: Add unknownOfficeCode_returns404 test once the OpenAPI spec defines 404 for this
   // endpoint.
 
+  /**
+   * DSTEW-1904 AC1: a {@code contractManagerGUID} consisting only of whitespace must be rejected
+   * with 400 Bad Request, not a 500 Internal Server Error. No {@code useDefaultContractManager} or
+   * {@code useHeadOfficeContractManager} instruction is present, so a blank GUID leaves the request
+   * with no valid instruction at all — the same outcome as omitting the field entirely.
+   *
+   * <p>Also confirms the existing contract manager assignment is not mutated by the failed request.
+   */
+  @Test
+  void dstew1904_ac1_assignContractManager_blankGuid_returns400AndAssignmentUnchanged() {
+    assertContractManagerGuidRejectedWith400("   ");
+  }
+
+  /**
+   * DSTEW-1904 AC1: an empty-string {@code contractManagerGUID} must likewise be rejected with 400
+   * Bad Request rather than being silently treated as "no instruction provided" resulting in a
+   * different error, or causing a server error.
+   *
+   * <p>Also confirms the existing contract manager assignment is not mutated by the failed request.
+   */
+  @Test
+  void dstew1904_ac1_assignContractManager_emptyGuid_returns400AndAssignmentUnchanged() {
+    assertContractManagerGuidRejectedWith400("");
+  }
+
+  /**
+   * DSTEW-1904: an explicit {@code contractManagerGUID: null} must be rejected with 400 Bad
+   * Request, consistent with blank and empty string values, and with the field being omitted
+   * entirely (covered by the "no instruction provided" test above).
+   *
+   * <p>Also confirms the existing contract manager assignment is not mutated by the failed request.
+   */
+  @Test
+  void dstew1904_ac1_assignContractManager_nullGuid_returns400AndAssignmentUnchanged() {
+    assertContractManagerGuidRejectedWith400(null);
+  }
+
+  /**
+   * Shared assertion for DSTEW-1904: submits the given {@code contractManagerGUID} value (blank,
+   * empty, or {@code null}), asserts 400 Bad Request, and confirms the existing contract manager
+   * assignment is not mutated.
+   */
+  private static void assertContractManagerGuidRejectedWith400(
+      @Nullable String contractManagerGuidValue) {
+    // Uses a mutable map since {@link Map#of} rejects null values.
+    Map<String, Object> body = new HashMap<>();
+    body.put("contractManagerGUID", contractManagerGuidValue);
+
+    // Snapshot the existing contract manager state before the failed attempt.
+    List<String> originalContractManagerIds =
+        given()
+            .pathParam("firmId", E2eConfig.lspFirmNumber())
+            .pathParam("officeCode", E2eConfig.lspOfficeCode())
+            .when()
+            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("data.content.contractManagerId");
+
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .body(body)
+        .when()
+        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(400);
+
+    // Assert the office's contract manager state is identical to the pre-request snapshot.
+    given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", E2eConfig.lspOfficeCode())
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(originalContractManagerIds.size()))
+        .body("data.content.contractManagerId", equalTo(originalContractManagerIds));
+  }
 }

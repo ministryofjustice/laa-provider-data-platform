@@ -47,9 +47,9 @@ laa:
     starter:
       auth:
         authentication-header: "X-Authorization"
-        authorized-clients: ${AUTHORIZED_CLIENTS}
-        authorized-roles: ${AUTHORIZED_ROLES}
-        unprotected-uris: ${UNPROTECTED_URIS}
+        authorized-clients: ${AUTHORIZED_CLIENTS:[]}
+        authorized-roles: ${AUTHORIZED_ROLES:[]}
+        unprotected-uris: ${UNPROTECTED_URIS:/error,/actuator/**}
       oauth2:
         resourceserver:
           jwt:

@@ -140,6 +140,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   public void beforeAll(ExtensionContext context) {
     String baseUri = E2eConfig.baseUri();
     String authToken = E2eConfig.authToken();
+    String authHeader = E2eConfig.authHeader();
     boolean authEnabled = authToken != null && !authToken.isBlank();
 
     if (baseUri == null || baseUri.isBlank()) {
@@ -155,7 +156,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
             .addFilter(OPENAPI_FILTER);
 
     if (authEnabled) {
-      builder.addHeader("X-Authorization", authToken);
+      builder.addHeader(authHeader, authToken);
     }
 
     RestAssured.requestSpecification = builder.build();
@@ -171,6 +172,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   }
 
   private static String removeSecurityRequirements(String spec) {
-    return spec.replaceAll("(?ms)^\\s*security:\\n(?:^\\s*-\\s*ApiKeyAuth:\\s*\\[\\]\\n?)+", "");
+    return spec.replaceAll(
+        "(?ms)^\\s*security:\\n(?:^\\s*-\\s*(?:ApiKeyAuth|AzureAD|bearerAuth):\\s*\\[\\]\\n?)+",
+        "");
   }
 }

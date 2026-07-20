@@ -65,6 +65,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
+    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-oauth2'
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
@@ -92,6 +93,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    integrationTestImplementation 'org.springframework.security:spring-security-oauth2-jose'
     integrationTestImplementation 'org.testcontainers:testcontainers-postgresql'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'

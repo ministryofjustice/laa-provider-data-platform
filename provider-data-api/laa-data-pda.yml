@@ -15,6 +15,7 @@ paths:
       summary: Retrieve a liaison manager
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getLiaisonManager
       tags:
         - Provider Liaison Managers
@@ -43,6 +44,7 @@ paths:
       summary: Amend a liaison manager
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: updateLiaisonManager
       tags:
         - Provider Liaison Managers
@@ -85,6 +87,7 @@ paths:
       summary: Retrieve a list of event headers
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderEvents
       tags:
         - Events
@@ -165,6 +168,7 @@ paths:
       summary: Retrieve event by GUID
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getEventByGUID
       tags:
         - Events
@@ -217,6 +221,7 @@ paths:
       summary: Retrieve a list of contract managers
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderContractManagers
       tags:
         - Contract Managers
@@ -303,6 +308,7 @@ paths:
       summary: Create a provider firm
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: createProviderFirm
       tags:
         - Provider Firms
@@ -384,6 +390,7 @@ paths:
       summary: Retrieve providers with optional filters
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirms
       tags:
         - Provider Firms
@@ -513,6 +520,7 @@ paths:
       summary: Retrieve provider details by GUID or firm number
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmByGUIDorFirmNumber
       tags:
         - Provider Firms
@@ -557,6 +565,7 @@ paths:
       summary: Update provider firm details
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: updateProviderFirm
       tags:
         - Provider Firms
@@ -626,6 +635,7 @@ paths:
       summary: Retrieve a list of provider bank accounts with optional filters
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmBankAccounts
       tags:
         - Provider Firm Bank Accounts
@@ -712,6 +722,7 @@ paths:
       summary: Retrieve a list of provider's office bank accounts with optional filters
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmOfficeBankAccounts
       tags:
         - Provider Firm Bank Accounts
@@ -793,6 +804,7 @@ paths:
       summary: Create an office for a Legal Service Provider firm
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: createProviderFirmOffice
       tags:
         - Provider Firm Offices
@@ -860,6 +872,7 @@ paths:
       summary: Retrieve a list of provider offices with optional filters
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmOffices
       tags:
         - Provider Firm Offices
@@ -929,6 +942,7 @@ paths:
       summary: Retrieve a list of provider offices with optional filters
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getOffices
       tags:
         - Provider Firm Offices
@@ -1009,6 +1023,7 @@ paths:
       summary: Retrieve provider office details by GUID or office code
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmOfficeByGUID
       tags:
         - Provider Firm Offices
@@ -1053,6 +1068,7 @@ paths:
       summary: Update provider office details
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: updateProviderFirmOffice
       tags:
         - Provider Firm Offices
@@ -1139,6 +1155,7 @@ paths:
         Create a liaison manager for office. Creating new manager end-dates all other managers.
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: createProviderFirmOfficeLiaisonManager
       tags:
         - Provider Firm Offices Liaison Managers
@@ -1217,6 +1234,7 @@ paths:
       summary: Retrieve liaison managers for a given office
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmOfficeLiaisonManagers
       tags:
         - Provider Firm Offices Liaison Managers
@@ -1275,6 +1293,7 @@ paths:
         Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: createProviderFirmOfficeContractManager
       tags:
         - Provider Firm Offices Contract Managers
@@ -1349,6 +1368,7 @@ paths:
       summary: Retrieve contract managers for a given provider office
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmOfficeContractManagers
       tags:
         - Provider Firm Offices Contract Managers
@@ -1403,6 +1423,7 @@ paths:
       summary: Retrieve practitioners for a given Chambers
       security:
         - ApiKeyAuth: []
+        - AzureAD: []
       operationId: getProviderFirmPractitioners
       tags:
         - Chambers Practitioners
@@ -1466,6 +1487,13 @@ components:
       type: apiKey
       name: X-Authorization
       in: header
+    AzureAD:
+      type: oauth2
+      description: OAuth2 client credentials via Microsoft Entra ID.
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
+          scopes: {}
 
   schemas:
     BaseEntityGUIDV2:
@@ -3525,3 +3553,4 @@ components:
 
 security:
   - ApiKeyAuth: []
+  - AzureAD: []

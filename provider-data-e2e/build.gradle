@@ -56,6 +56,11 @@ def configureE2E = { Test t ->
             t.systemProperty 'e2e.authToken', authToken
         }
 
+        def authHeader = System.getProperty('e2e.authHeader') ?: System.getenv('E2E_AUTHHEADER')
+        if (authHeader) {
+            t.systemProperty 'e2e.authHeader', authHeader
+        }
+
         println "E2E using e2e.env=${envName}"
     }
 }

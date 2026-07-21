@@ -29,6 +29,8 @@ app:
   security:
     apikey:
       enabled: false
+    oauth2:
+      enabled: false
 
 laa:
   springboot:
@@ -39,4 +41,14 @@ laa:
           [{"name":"TestClient","roles":["STANDARD"],"token":"Dummy1"}]
         authorized-roles: >
           [{"name":"STANDARD","uris":["/**"]}]
+        unprotected-uris: /error,/actuator/**
+      oauth2:
+        resourceserver:
+          jwt:
+            tenants:
+              - issuer-uri: https://login.microsoftonline.com/test-tenant/v2.0
+                audiences:
+                  - api://pda-r2
+        authorized-roles: >
+          [{"name":"PDA_ACCESS","uris":["/**"]}]
         unprotected-uris: /error,/actuator/**

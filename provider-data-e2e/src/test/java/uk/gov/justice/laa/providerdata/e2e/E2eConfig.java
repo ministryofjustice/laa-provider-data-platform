@@ -36,6 +36,12 @@ public final class E2eConfig {
     return resolve("e2e.authToken", "E2E_AUTHTOKEN");
   }
 
+  /** HTTP header name used to transmit the auth token to the API. */
+  public static String authHeader() {
+    String resolved = resolve("e2e.authHeader", "E2E_AUTHHEADER");
+    return resolved == null || resolved.isBlank() ? "X-Authorization" : resolved;
+  }
+
   // --- Legal Services Provider ---
 
   public static String lspFirmNumber() {

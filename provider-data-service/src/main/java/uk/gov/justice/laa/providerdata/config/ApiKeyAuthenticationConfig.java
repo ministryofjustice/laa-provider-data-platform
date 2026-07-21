@@ -13,7 +13,7 @@ public class ApiKeyAuthenticationConfig {
   /** Disable Spring Security entirely when API key auth is turned off. */
   @Bean
   @ConditionalOnProperty(
-      name = "app.security.apikey.enabled",
+      name = {"app.security.apikey.enabled", "app.security.oauth2.enabled"},
       havingValue = "false",
       matchIfMissing = true)
   public WebSecurityCustomizer permitAllWebSecurityCustomizer() {

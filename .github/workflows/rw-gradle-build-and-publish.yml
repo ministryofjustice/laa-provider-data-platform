@@ -49,6 +49,7 @@ jobs:
       - name: "Build and test app"
         shell: bash
         env:
+          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.gh_token }}
           ITAG:         ${{ inputs.itag }}
         run: |

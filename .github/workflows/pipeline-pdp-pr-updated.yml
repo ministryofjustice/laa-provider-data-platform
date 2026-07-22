@@ -60,7 +60,6 @@ jobs:
     with:
       itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
     secrets:
-      gh_token:      ${{ github.token }}
       slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
 
   ecr-publish-image:

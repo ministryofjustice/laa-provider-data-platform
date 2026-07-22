@@ -113,7 +113,6 @@ jobs:
     with:
       itag: ${{ needs.plan.outputs.gtag }}
     secrets:
-      gh_token:      ${{ github.token }}
       slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
 
   ecr-publish-image:

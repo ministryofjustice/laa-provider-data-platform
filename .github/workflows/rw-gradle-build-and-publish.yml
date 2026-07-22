@@ -9,7 +9,7 @@ on:
       checkstyle_report_path:       { type: string, required: false, default: "provider-data-service/build/reports/checkstyle" }
       jacoco_coverage_report_path:  { type: string, required: false, default: "provider-data-service/build/reports/jacoco" }
     secrets:
-      gh_token:      { required: true }
+      gh_token:      { required: false }
       slack_webhook: { required: false }
   workflow_dispatch:
     inputs:
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token || github.token }}
           ITAG:         ${{ inputs.itag }}
         run: |
           set -eu
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.gh_token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token || github.token }}
         run: |
           ./gradlew :provider-data-api:publish --info
 
@@ -73,7 +73,7 @@ jobs:
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.gh_token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token || github.token }}
         run: |
           ./gradlew :provider-data-service:publish --info
 

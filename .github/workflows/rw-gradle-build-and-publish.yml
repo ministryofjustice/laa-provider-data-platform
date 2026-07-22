@@ -50,7 +50,7 @@ jobs:
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.gh_token }}
+          GITHUB_TOKEN: ${{ github.token }}
           ITAG:         ${{ inputs.itag }}
         run: |
           set -eu

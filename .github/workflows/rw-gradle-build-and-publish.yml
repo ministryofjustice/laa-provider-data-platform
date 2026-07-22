@@ -4,9 +4,20 @@ on:
   workflow_call:
     inputs:
       itag: { type: string, required: true }
+      junit_results_path:           { type: string, required: false, default: "provider-data-service/build/reports/integrationTest" }
+      junit_report_path:            { type: string, required: false, default: "provider-data-service/build/reports/tests" }
+      checkstyle_report_path:       { type: string, required: false, default: "provider-data-service/build/reports/checkstyle" }
+      jacoco_coverage_report_path:  { type: string, required: false, default: "provider-data-service/build/reports/jacoco" }
+    secrets:
+      gh_token:      { required: true }
+      slack_webhook: { required: false }
   workflow_dispatch:
     inputs:
       itag: { type: string, required: true, description: "Registry tag (e.g. 'v1.4.2', 'pr-925-0af')" }
+      junit_results_path:          { type: string, required: false, default: "provider-data-service/build/reports/integrationTest", description: "Path to integration test report artifact" }
+      junit_report_path:           { type: string, required: false, default: "provider-data-service/build/reports/tests", description: "Path to JUnit HTML report" }
+      checkstyle_report_path:      { type: string, required: false, default: "provider-data-service/build/reports/checkstyle", description: "Path to Checkstyle report" }
+      jacoco_coverage_report_path: { type: string, required: false, default: "provider-data-service/build/reports/jacoco", description: "Path to JaCoCo report" }
 
 jobs:
   gradle-build-and-publish:
@@ -38,11 +49,11 @@ jobs:
       - name: "Build and test app"
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
           ITAG:         ${{ inputs.itag }}
         run: |
           set -eu
-          # Substitute in gradle.properties `version=<itag>`
+          # Substitute in gradle.properties `version=<itag>` (remove initial `v` if has one)
           sed -E -i.bak -e "s|^(version[[:space:]]*=[[:space:]]*).*|\1${ITAG#v}|" gradle.properties \
               && rm -f gradle.properties.bak
           ./gradlew clean build integrationTest
@@ -52,16 +63,16 @@ jobs:
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
         run: |
           ./gradlew :provider-data-api:publish --info
 
-      - name: "Publish provider-data-service (main branch)"
+      - name: "Publish plain JAR containing JPA entities (main branch)"
         if:   github.ref == 'refs/heads/main'
         shell: bash
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
         run: |
           ./gradlew :provider-data-service:publish --info
 
@@ -70,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: checkstyle-report
-          path: provider-data-service/build/reports/checkstyle
+          path: ${{ inputs.checkstyle_report_path }}
           retention-days: 7
 
       - name: "Upload test report for app"
@@ -78,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-report
-          path: provider-data-service/build/reports/tests
+          path: ${{ inputs.junit_report_path }}
           retention-days: 7
 
       - name: "Upload integration test report for app"
@@ -86,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: integration-test-report
-          path: provider-data-service/build/reports/integrationTest
+          path: ${{ inputs.junit_results_path }}
           retention-days: 7
 
       - name: "Upload JaCoCo coverage report"
@@ -94,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: jacoco-coverage-report
-          path: provider-data-service/build/reports/jacoco
+          path: ${{ inputs.jacoco_coverage_report_path }}
           retention-days: 7
 
       - name: "Send failure Slack message"
@@ -111,4 +122,4 @@ jobs:
             *)    MESSAGE=" :github-failure:  Failed to build tag [${RTAG}]. View run log at ${RUN_URL}" ;;
           esac
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" \
-              "${{ secrets.SLACK_WEBHOOK }}"
+              "${{ secrets.slack_webhook }}"

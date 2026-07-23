@@ -1,16 +1,39 @@
 # Pre-commit hooks configuration
-# See https://pre-commit.com for more information
+# Run via `prek` (a Rust drop-in replacement for the `pre-commit` framework — no Python required).
+# See https://pre-commit.com and https://github.com/j178/prek for more information.
 
 # This configuration integrates:
-# 1. devsecops-hooks: Secret scanning using GitLeaks
-# 2. Spotless: Code formatting (Java)
-# 3. Commit message validation: Ensures conventional commit format
+# 1. pre-commit-hooks: Generic file hygiene checks (whitespace, EOF, YAML/JSON, large files, etc.)
+# 2. devsecops-hooks: Secret scanning using GitLeaks
+# 3. Local hooks: Commit message/branch name checks, commit-signing reminder, and
+#    Java formatting/style checks (Spotless, Checkstyle)
 
 default_install_hook_types:
   - pre-commit
   - commit-msg
 
 repos:
+  # Generic hygiene checks (whitespace, EOF newline, YAML/merge-conflict validation)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        # Spring profile config files (e.g. application.yml) use multiple `---`-separated
+        # YAML documents; Helm templates contain Go templating syntax and are not valid
+        # plain YAML until rendered.
+        args: [--allow-multiple-documents]
+        exclude: ^helm_deploy/provider-data-platform/templates/
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: detect-private-key
+
   # Ministry of Justice DevSecOps hooks for secret detection
   - repo: https://github.com/ministryofjustice/devsecops-hooks
     rev: 53d252e406bae2bbbd0c0f3205b72870a02c9b3f  # frozen: v2.0.2
@@ -30,11 +53,11 @@ repos:
             tech-docs/
           )
 
-  # Local hook for commit message validation
+  # Local hooks for commit/branch conventions and Java formatting
   - repo: local
     hooks:
-      - id: commit-msg-validation
-        name: Commit message validation
+      - id: commit-msg-check
+        name: Commit message format (must mirror the GitHub ruleset regex)
         entry: |
           bash -c '
           MSG=$(head -n 1 "$1")
@@ -74,8 +97,8 @@ repos:
         always_run: true
         pass_filenames: false
 
-      - id: commit-signing-config
-        name: Commit signing configured
+      - id: commit-signing-reminder
+        name: Commit signing configuration reminder (not enforced here — see GitHub's required-signed-commits setting)
         entry: |
           bash -c '
           KEY="$(git config --get user.signingkey || true)"
@@ -90,15 +113,15 @@ repos:
         pass_filenames: false
 
       - id: spotless-format
-        name: Spotless Java formatting
+        name: Spotless Java auto-format
         entry: bash -c './gradlew spotlessApply'
         language: system
         stages: [commit]
         types: [java]
         pass_filenames: false
 
-      - id: checkstyle-staged
-        name: Checkstyle validation
+      - id: checkstyle-check
+        name: Checkstyle validation (staged files)
         entry: bash -c 'IFS=,; ./gradlew checkstyleStaged "-PcheckstyleFiles=$*"' --
         language: system
         stages: [commit]

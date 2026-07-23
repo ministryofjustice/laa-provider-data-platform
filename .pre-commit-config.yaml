@@ -5,6 +5,9 @@
 # 1. devsecops-hooks: Secret scanning using GitLeaks
 # 2. Spotless: Code formatting (Java)
 # 3. Commit message validation: Ensures conventional commit format
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
 
 repos:
   # Ministry of Justice DevSecOps hooks for secret detection
@@ -35,8 +38,8 @@ repos:
           MSG=$(head -n 1 "$1")
           [[ "$MSG" =~ ^Merge\ branch ]] && exit 0
           [[ "$MSG" =~ ^Revert ]] && exit 0
-          [[ "$MSG" =~ ^(feat|fix|chore|refactor|test|spike|docs|ci|infra)(\(|:|\s) ]] && exit 0
-          echo "⛔ Invalid commit message. Must start with: feat|fix|chore|refactor|test|spike|docs|ci|infra"
+          [[ "$MSG" =~ ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]_.-]+\))?(!)?:\ .+$ ]] && exit 0
+          echo "⛔ Invalid commit message. Must start with: build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
           exit 1' --
         language: system
         stages: [commit-msg]
@@ -48,7 +51,7 @@ repos:
           bash -c '
           BRANCH="$(git rev-parse --abbrev-ref HEAD)"
           MAX_LEN=50
-          PATTERN="^(feature|chore|refactor|bugfix)/(([A-Z][A-Z0-9_]{0,9}-[0-9]{1,10})(-[a-z0-9]+([.-][a-z0-9]+)*)?|[a-z0-9]+([.-][a-z0-9]+)*)$"
+          PATTERN="^(bugfix|chore|feat|feature|fix|hotfix|release)\/(([A-Z][A-Z0-9_]{0,9}-[0-9]{1,10})(-[a-z0-9]+([.-][a-z0-9]+)*)?|[a-z0-9]+([.-][a-z0-9]+)*)$"
           if (( ${#BRANCH} > MAX_LEN )) || [[ ! "$BRANCH" =~ $PATTERN ]]; then
             echo "⛔ Invalid branch name: $BRANCH"
             echo "Expected: (feature|chore|refactor|bugfix)/[<JIRA-ISSUE>-]<description>"

@@ -5,6 +5,7 @@
 # 1. devsecops-hooks: Secret scanning using GitLeaks
 # 2. Spotless: Code formatting (Java)
 # 3. Commit message validation: Ensures conventional commit format
+
 default_install_hook_types:
   - pre-commit
   - commit-msg
@@ -19,13 +20,14 @@ repos:
         # Exclude directories that are not part of the codebase
         exclude: |
           (?x)^(
-            build/|
+            .git/|
             .gradle/|
             .idea/|
-            .git/|
+            bin/|
+            build/|
+            gradle/|
             reports/|
-            tech-docs/|
-            gradle/
+            tech-docs/
           )
 
   # Local hook for commit message validation

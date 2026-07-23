@@ -56,7 +56,7 @@ repos:
           PATTERN="^(bugfix|chore|feat|feature|fix|hotfix|release)\/(([A-Z][A-Z0-9_]{0,9}-[0-9]{1,10})(-[a-z0-9]+([.-][a-z0-9]+)*)?|[a-z0-9]+([.-][a-z0-9]+)*)$"
           if (( ${#BRANCH} > MAX_LEN )) || [[ ! "$BRANCH" =~ $PATTERN ]]; then
             echo "⛔ Invalid branch name: $BRANCH"
-            echo "Expected: (feature|chore|refactor|bugfix)/[<JIRA-ISSUE>-]<description>"
+            echo "Expected: (bugfix|chore|feat|feature|fix|hotfix|release)/[<JIRA-ISSUE>-]<description>"
             echo "<JIRA-ISSUE>: Jira ticket ID (for example PROJECT-1234)"
             echo "<description>: lower-case letters/numbers, with '-' or '.' separators"
             echo "Examples:"

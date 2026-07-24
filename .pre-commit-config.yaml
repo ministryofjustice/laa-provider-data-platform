@@ -1,12 +1,39 @@
 # Pre-commit hooks configuration
-# See https://pre-commit.com for more information
+# Run via `prek` (a Rust drop-in replacement for the `pre-commit` framework — no Python required).
+# See https://pre-commit.com and https://github.com/j178/prek for more information.
 
 # This configuration integrates:
-# 1. devsecops-hooks: Secret scanning using GitLeaks
-# 2. Spotless: Code formatting (Java)
-# 3. Commit message validation: Ensures conventional commit format
+# 1. pre-commit-hooks: Generic file hygiene checks (whitespace, EOF, YAML/JSON, large files, etc.)
+# 2. devsecops-hooks: Secret scanning using GitLeaks
+# 3. Local hooks: Commit message/branch name checks, commit-signing reminder, and
+#    Java formatting/style checks (Spotless, Checkstyle)
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
 
 repos:
+  # Generic hygiene checks (whitespace, EOF newline, YAML/merge-conflict validation)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        # Spring profile config files (e.g. application.yml) use multiple `---`-separated
+        # YAML documents; Helm templates contain Go templating syntax and are not valid
+        # plain YAML until rendered.
+        args: [--allow-multiple-documents]
+        exclude: ^helm_deploy/provider-data-platform/templates/
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: detect-private-key
+
   # Ministry of Justice DevSecOps hooks for secret detection
   - repo: https://github.com/ministryofjustice/devsecops-hooks
     rev: 53d252e406bae2bbbd0c0f3205b72870a02c9b3f  # frozen: v2.0.2
@@ -16,27 +43,28 @@ repos:
         # Exclude directories that are not part of the codebase
         exclude: |
           (?x)^(
-            build/|
+            .git/|
             .gradle/|
             .idea/|
-            .git/|
+            bin/|
+            build/|
+            gradle/|
             reports/|
-            tech-docs/|
-            gradle/
+            tech-docs/
           )
 
-  # Local hook for commit message validation
+  # Local hooks for commit/branch conventions and Java formatting
   - repo: local
     hooks:
-      - id: commit-msg-validation
-        name: Commit message validation
+      - id: commit-msg-check
+        name: Commit message format (must mirror the GitHub ruleset regex)
         entry: |
           bash -c '
           MSG=$(head -n 1 "$1")
           [[ "$MSG" =~ ^Merge\ branch ]] && exit 0
           [[ "$MSG" =~ ^Revert ]] && exit 0
-          [[ "$MSG" =~ ^(feat|fix|chore|refactor|test|spike|docs|ci|infra)(\(|:|\s) ]] && exit 0
-          echo "⛔ Invalid commit message. Must start with: feat|fix|chore|refactor|test|spike|docs|ci|infra"
+          [[ "$MSG" =~ ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]_.-]+\))?(!)?:\ .+$ ]] && exit 0
+          echo "⛔ Invalid commit message. Must start with: build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
           exit 1' --
         language: system
         stages: [commit-msg]
@@ -48,10 +76,10 @@ repos:
           bash -c '
           BRANCH="$(git rev-parse --abbrev-ref HEAD)"
           MAX_LEN=50
-          PATTERN="^(feature|chore|refactor|bugfix)/(([A-Z][A-Z0-9_]{0,9}-[0-9]{1,10})(-[a-z0-9]+([.-][a-z0-9]+)*)?|[a-z0-9]+([.-][a-z0-9]+)*)$"
+          PATTERN="^(bugfix|chore|feat|feature|fix|hotfix|release)\/(([A-Z][A-Z0-9_]{0,9}-[0-9]{1,10})(-[a-z0-9]+([.-][a-z0-9]+)*)?|[a-z0-9]+([.-][a-z0-9]+)*)$"
           if (( ${#BRANCH} > MAX_LEN )) || [[ ! "$BRANCH" =~ $PATTERN ]]; then
             echo "⛔ Invalid branch name: $BRANCH"
-            echo "Expected: (feature|chore|refactor|bugfix)/[<JIRA-ISSUE>-]<description>"
+            echo "Expected: (bugfix|chore|feat|feature|fix|hotfix|release)/[<JIRA-ISSUE>-]<description>"
             echo "<JIRA-ISSUE>: Jira ticket ID (for example PROJECT-1234)"
             echo "<description>: lower-case letters/numbers, with '-' or '.' separators"
             echo "Examples:"
@@ -69,8 +97,8 @@ repos:
         always_run: true
         pass_filenames: false
 
-      - id: commit-signing-config
-        name: Commit signing configured
+      - id: commit-signing-reminder
+        name: Commit signing configuration reminder (not enforced here — see GitHub's required-signed-commits setting)
         entry: |
           bash -c '
           KEY="$(git config --get user.signingkey || true)"
@@ -85,15 +113,15 @@ repos:
         pass_filenames: false
 
       - id: spotless-format
-        name: Spotless Java formatting
+        name: Spotless Java auto-format
         entry: bash -c './gradlew spotlessApply'
         language: system
         stages: [commit]
         types: [java]
         pass_filenames: false
 
-      - id: checkstyle-staged
-        name: Checkstyle validation
+      - id: checkstyle-check
+        name: Checkstyle validation (staged files)
         entry: bash -c 'IFS=,; ./gradlew checkstyleStaged "-PcheckstyleFiles=$*"' --
         language: system
         stages: [commit]

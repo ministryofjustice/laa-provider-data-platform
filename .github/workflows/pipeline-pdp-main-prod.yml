@@ -11,7 +11,7 @@ jobs:
     name: "Query staging version"
     permissions: { contents: read }
     runs-on: ubuntu-latest
-    environment: staging
+    environment: "staging"
     outputs:
       staging_fulltag: ${{ steps.versions.outputs.staging_fulltag }}
       staging_rtag:    ${{ steps.versions.outputs.staging_rtag }}
@@ -22,10 +22,10 @@ jobs:
         id:   kube_auth
         uses: ./.github/actions/cp-kube-auth
         with:
-          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
-          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
-          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
-          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+          kube_cert:      ${{ secrets.KUBE_CERT }}
+          kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
 
       - name: "Get deployed image registry tag"
         id:   versions
@@ -56,10 +56,10 @@ jobs:
         id:   kube_auth
         uses: ./.github/actions/cp-kube-auth
         with:
-          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
-          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
-          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
-          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+          kube_cert:      ${{ secrets.KUBE_CERT }}
+          kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+          kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+          kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
 
       - name: "Get deployed image registry tag"
         id:   versions
@@ -78,13 +78,14 @@ jobs:
   preflight-summary:
     name: "Preflight"
     needs: [ query-staging-version, query-prod-version ]
-    permissions: { contents: read }
+    # permissions needed for `gh api` to get release notes
+    permissions: { contents: write }
     runs-on: ubuntu-latest
     steps:
       - name: "Production deployment"
         env:
-          GH_TOKEN:     ${{ github.token }}
-          PREVIOUS_TAG: ${{ needs.query-prod-version.outputs.prod_rtag }}
+          GH_TOKEN:      ${{ github.token }}
+          PREVIOUS_TAG:  ${{ needs.query-prod-version.outputs.prod_rtag }}
           TAG_TO_DEPLOY: ${{ inputs.rtag }}
         run: |
           set -euo pipefail
@@ -114,7 +115,7 @@ jobs:
             -f "previous_tag_name=v${PREVIOUS_TAG#v}" \
             -f "tag_name=v${TAG_TO_DEPLOY#v}" \
             | jq -r '.body' \
-            | sed -E 's|https://github\\.com/([^/]+)/([^/]+)/pull/([0-9]+)|[#\\3](https://github.com/\\1/\\2/pull/\\3)|g' \
+            | sed -E 's|https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)|[#\3](https://github.com/\1/\2/pull/\3)|g' \
             >> "$GITHUB_STEP_SUMMARY" \
             || echo "_Release notes unavailable._" >> "$GITHUB_STEP_SUMMARY"
 
@@ -145,7 +146,15 @@ jobs:
     with:
       rtag:   ${{ inputs.rtag }}
       target: "prod"
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      ip_allowlist:       ${{ secrets.IP_ALLOWLIST }}
+      kube_cert:          ${{ secrets.KUBE_CERT }}
+      kube_cluster:       ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace:     ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:         ${{ secrets.DEPLOYER_KUBE_TOKEN }}
 
   e2e-test-prod:
     name: "E2E test prod"
@@ -155,4 +164,8 @@ jobs:
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
       target: "prod_auto_without_approval"
-    secrets: inherit
+    secrets:
+      kube_cert:      ${{ secrets.KUBE_CERT }}
+      kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}

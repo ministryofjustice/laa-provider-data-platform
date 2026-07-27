@@ -109,11 +109,20 @@ You can find more information regarding the setup and usage of the Gradle plugin
   help reduce boilerplate code.
 - [Springdoc OpenAPI](https://springdoc.org/) - used to generate OpenAPI documentation. It
   automatically generates Swagger UI, JSON documentation based on your Spring REST APIs.
+- [Flyway](https://documentation.red-gate.com/flyway) - used to manage and apply database schema
+  migrations for PostgreSQL, alongside the
+  [PostgreSQL JDBC driver](https://jdbc.postgresql.org/) for database connectivity.
 - [Lombok](https://projectlombok.org/) - used to help to reduce boilerplate Java code by
   automatically generating common methods like getters, setters, constructors etc. at compile-time
   using annotations.
 - [MapStruct](https://mapstruct.org/) - used for object mapping, specifically for converting
   between different Java object types, such as Data Transfer Objects (DTOs) and Entity objects.
   It generates mapping code at compile code.
+- [Micrometer Prometheus registry](https://micrometer.io/docs/registry/prometheus) - used to
+  expose metrics in Prometheus format.
+- [OpenAPI Generator](https://openapi-generator.tech/) - used for contract-first code generation
+  from the OpenAPI specification in `provider-data-api`.
+- [REST Assured](https://rest-assured.io/) - used only by `provider-data-e2e` for end-to-end API
+  tests.
 - [Testcontainers](https://java.testcontainers.org/) - used to provide a database for integration
   testing only and should not be used for local development, shared environments or in production.

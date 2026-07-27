@@ -6,6 +6,15 @@ on:
       rtag:   { type: string, required: true }
       target: { type: string, required: true }
       prnum:  { type: string, required: true }
+    secrets:
+      ecr_region:         { required: true }
+      ecr_repository:     { required: true }
+      ecr_role_to_assume: { required: true }
+      ip_allowlist:       { required: true }
+      kube_cert:          { required: true }
+      kube_cluster:       { required: true }
+      kube_namespace:     { required: true }
+      kube_token:         { required: true }
   workflow_dispatch:
     inputs:
       prnum:  { type: number, required: true, description: "Pull request # (e.g. '942')" }
@@ -19,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  https://laa-provider-data-platform-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-api-pr-${{ inputs.prnum }}.apps.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -50,17 +59,17 @@ jobs:
         id:   ecr_auth
         uses: ./.github/actions/cp-ecr-auth
         with:
-          ecr_region:         ${{ vars.DPD_ECR_REGION }}
-          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+          ecr_region:         ${{ secrets.ecr_region }}
+          ecr_role_to_assume: ${{ secrets.ecr_role_to_assume }}
 
       - name: "Authenticate with Kubernetes cluster"
         id:   kube_auth
         uses: ./.github/actions/cp-kube-auth
         with:
-          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
-          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
-          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
-          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+          kube_cert:      ${{ secrets.kube_cert }}
+          kube_cluster:   ${{ secrets.kube_cluster }}
+          kube_namespace: ${{ secrets.kube_namespace }}
+          kube_token:     ${{ secrets.kube_token }}
 
       - name: "Install Helm release ${{ steps.vars.outputs.release }}"
         if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
@@ -68,7 +77,7 @@ jobs:
         shell: bash
         env:
           CHART:   ${{ steps.vars.outputs.chart }}
-          IMAGE:   ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          IMAGE:   ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ secrets.ecr_repository }}
           PR_HOST: ${{ steps.vars.outputs.pr_host }}
           PTAG:    ${{ steps.vars.outputs.ptag }}
           RELEASE: ${{ steps.vars.outputs.release }}
@@ -76,7 +85,7 @@ jobs:
         run: |
           set -eu
           echo "Upgrade Helm release - chart: [${CHART}], image: [${IMAGE}], tag: [${PTAG}${RTAG}], target: [${{ inputs.target }}], release: [${RELEASE}]"
-          BASE_IPS=$(printf '%s' "${{ secrets.IP_ALLOWLIST }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
+          BASE_IPS=$(printf '%s' "${{ secrets.ip_allowlist }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
           IP_ALLOWLIST="${BASE_IPS}"
           PG_PASSWORD="$(openssl rand -hex 16)"
           HELM_OPTS=(

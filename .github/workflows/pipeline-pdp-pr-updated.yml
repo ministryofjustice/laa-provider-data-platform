@@ -59,7 +59,8 @@ jobs:
     uses: ./.github/workflows/rw-gradle-build-and-publish.yml
     with:
       itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
-    secrets: inherit
+    secrets:
+      slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
 
   ecr-publish-image:
     name: "Publish PR #${{ needs.plan.outputs.prnum }}"
@@ -69,7 +70,12 @@ jobs:
     with:
       itag: "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
       mtag: "pr-${{ needs.plan.outputs.prnum }}"
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      snyk_token:         ${{ secrets.SNYK_TOKEN }}
+      slack_webhook:      ${{ secrets.SLACK_WEBHOOK }}
 
   deploy-pr:
     name: "Deploy PR #${{ needs.plan.outputs.prnum }}"
@@ -81,7 +87,15 @@ jobs:
       prnum:  ${{ needs.plan.outputs.prnum }}
       target: "uat"
       rtag:   "pr-${{ needs.plan.outputs.prnum }}-${{ needs.plan.outputs.short }}"
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      ip_allowlist:       ${{ secrets.IP_ALLOWLIST }}
+      kube_cert:          ${{ secrets.KUBE_CERT }}
+      kube_cluster:       ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace:     ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:         ${{ secrets.DEPLOYER_KUBE_TOKEN }}
 
   e2etest-pr:
     name: "E2E test PR #${{ needs.plan.outputs.prnum }}"
@@ -92,4 +106,8 @@ jobs:
       target:     "uat"
       rel:        "pr-${{ needs.plan.outputs.prnum }}"
       e2eProfile: "preview"
-    secrets: inherit
+    secrets:
+      kube_cert:      ${{ secrets.KUBE_CERT }}
+      kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}

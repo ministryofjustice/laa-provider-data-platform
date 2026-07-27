@@ -5,10 +5,16 @@ on:
     inputs:
       itag: { type: string, required: true }
       mtag: { type: string, required: false }
+    secrets:
+      ecr_region:            { required: true }
+      ecr_repository:        { required: true }
+      ecr_role_to_assume:    { required: true }
+      snyk_token:            { required: true }
+      slack_webhook:         { required: false }
   workflow_dispatch:
     inputs:
       itag: { type: string, required: true, description: "Immutable registry tag (e.g. 'v1.4.2', 'pr-925-0af')" }
-      mtag: { type: string, required: false, description: "Optional mutable registry tag (e.g. 'pr-925')" }
+      mtag: { type: string, required: false, description: "Optional mutable registry tag (e.g. '', 'pr-925')" }
 
 jobs:
   ecr-publish-image:
@@ -45,8 +51,8 @@ jobs:
         id:   ecr_guard
         shell: bash
         env:
-          ECR_REGION:         ${{ vars.DPD_ECR_REGION }}
-          ECR_ROLE_TO_ASSUME: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+          ECR_REGION:         ${{ secrets.ecr_region }}
+          ECR_ROLE_TO_ASSUME: ${{ secrets.ecr_role_to_assume }}
         run: |
           if [ -n "$ECR_REGION" ] && [ -n "$ECR_ROLE_TO_ASSUME" ]; then
             echo "ecr_auth_attempted=true" >> "$GITHUB_OUTPUT"
@@ -58,8 +64,8 @@ jobs:
         if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
         uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
         with:
-          aws-region:     ${{ vars.DPD_ECR_REGION }}
-          role-to-assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+          aws-region:     ${{ secrets.ecr_region }}
+          role-to-assume: ${{ secrets.ecr_role_to_assume }}
 
       - name: "Log in to Amazon ECR"
         if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true'
@@ -71,7 +77,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          IMAGE:        ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          IMAGE:        ${{ steps.ecr_login.outputs.registry }}/${{ secrets.ecr_repository }}
           ITAG:         ${{ inputs.itag }}
           MODULE_DIR:   provider-data-service
         run: |
@@ -85,7 +91,7 @@ jobs:
         if:   steps.ecr_guard.outputs.ecr_auth_attempted == 'true' && inputs.mtag != ''
         shell: bash
         env:
-          IMAGE: ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          IMAGE: ${{ steps.ecr_login.outputs.registry }}/${{ secrets.ecr_repository }}
           ITAG:  ${{ inputs.itag }}
           MTAG:  ${{ inputs.mtag }}
         run: |
@@ -99,9 +105,9 @@ jobs:
         continue-on-error: true
         uses: snyk/actions/docker@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.snyk_token }}
         with:
-          image: ${{ steps.ecr_login.outputs.registry }}/${{ vars.DPD_ECR_REPOSITORY }}:pdp-${{ inputs.itag }}
+          image: ${{ steps.ecr_login.outputs.registry }}/${{ secrets.ecr_repository }}:pdp-${{ inputs.itag }}
           sarif: true
           args: --json-file-output=snyk.json --policy-path=.snyk --sarif-file-output=snyk.sarif
 
@@ -161,4 +167,4 @@ jobs:
             *)    MESSAGE=" :github-failure:  Failed to build tag [${RTAG}]. View run log at ${RUN_URL}" ;;
           esac
           curl -X POST -H "Content-Type: application/json" --data "{\"text\": \"${MESSAGE}\"}" \
-              "${{ secrets.SLACK_WEBHOOK }}"
+              "${{ secrets.slack_webhook }}"

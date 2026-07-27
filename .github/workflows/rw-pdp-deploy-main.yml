@@ -6,6 +6,15 @@ on:
       rtag:   { type: string, required: true }
       target: { type: string, required: true }
       rel:    { type: string, required: false, default: "" }
+    secrets:
+      ecr_region:         { required: true }
+      ecr_repository:     { required: true }
+      ecr_role_to_assume: { required: true }
+      ip_allowlist:       { required: true }
+      kube_cert:          { required: true }
+      kube_cluster:       { required: true }
+      kube_namespace:     { required: true }
+      kube_token:         { required: true }
   workflow_dispatch:
     inputs:
       rtag:   { type: string, required: true, description: "Registry tag name (e.g. 'v1.4.2')" }
@@ -21,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url:  https://laa-provider-data-platform-${{ inputs.target }}.apps.live.cloud-platform.service.justice.gov.uk
+      url:  https://laa-provider-data-api-${{ inputs.target }}.apps.live.cloud-platform.service.justice.gov.uk
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -79,17 +88,17 @@ jobs:
         id:   ecr_auth
         uses: ./.github/actions/cp-ecr-auth
         with:
-          ecr_region:         ${{ vars.DPD_ECR_REGION }}
-          ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+          ecr_region:         ${{ secrets.ecr_region }}
+          ecr_role_to_assume: ${{ secrets.ecr_role_to_assume }}
 
       - name: "Authenticate with Kubernetes cluster"
         id:   kube_auth
         uses: ./.github/actions/cp-kube-auth
         with:
-          kube_cert:      ${{ secrets.DPD_KUBE_CERT }}
-          kube_cluster:   ${{ secrets.DPD_KUBE_CLUSTER }}
-          kube_namespace: ${{ secrets.DPD_KUBE_NAMESPACE }}
-          kube_token:     ${{ secrets.DPD_KUBE_TOKEN }}
+          kube_cert:      ${{ secrets.kube_cert }}
+          kube_cluster:   ${{ secrets.kube_cluster }}
+          kube_namespace: ${{ secrets.kube_namespace }}
+          kube_token:     ${{ secrets.kube_token }}
 
       - name: "Install Helm release ${{ steps.vars.outputs.release }}"
         if:   steps.ecr_auth.outputs.ecr_auth_attempted == 'true'
@@ -100,7 +109,7 @@ jobs:
           CHART:           ${{ steps.vars.outputs.chart }}
           DATACFG_SECRET:  ${{ steps.vars.outputs.datacfg_secret }}
           HOSTNAME_SUFFIX: ${{ steps.vars.outputs.hostname_suffix }}
-          IMAGE:           ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ vars.DPD_ECR_REPOSITORY }}
+          IMAGE:           ${{ steps.ecr_auth.outputs.ecr_registry }}/${{ secrets.ecr_repository }}
           PTAG:            ${{ steps.vars.outputs.ptag }}
           RELEASE:         ${{ steps.vars.outputs.release }}
           RTAG:            ${{ inputs.rtag }}
@@ -109,7 +118,7 @@ jobs:
           set -eu
           echo "Upgrade Helm release - canary_role: [${CANARY_ROLE}], chart: [${CHART}], datacfg_secret: [${DATACFG_SECRET}]"
           echo "  hostname_suffix: [${HOSTNAME_SUFFIX}], image: [${IMAGE}], release: [${RELEASE}], tag: [${PTAG}${RTAG}], target: [${TARGET}]"
-          BASE_IPS=$(printf '%s' "${{ secrets.IP_ALLOWLIST }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
+          BASE_IPS=$(printf '%s' "${{ secrets.ip_allowlist }}" | sed 's/#.*//' | tr ',\t' '  ' | tr -s ' ' '\n' | grep -E '^[0-9]' | tr '\n' ',' | sed 's/,$//')
           PINGDOM_IPS=$(curl -s https://my.pingdom.com/probes/ipv4 | tr -d ' ' | tr '\n' ',' | sed 's/,$//')
           IP_ALLOWLIST="${BASE_IPS},${PINGDOM_IPS}"
           HELM_OPTS=(

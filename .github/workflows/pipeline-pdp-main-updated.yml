@@ -112,7 +112,8 @@ jobs:
     uses: ./.github/workflows/rw-gradle-build-and-publish.yml
     with:
       itag: ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
+    secrets:
+      slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
 
   ecr-publish-image:
     name: "Publish ${{ needs.plan.outputs.gtag }}"
@@ -122,7 +123,12 @@ jobs:
     uses: ./.github/workflows/rw-ecr-publish-image.yml
     with:
       itag: ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
+    secrets:
+      ecr_region:            ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:        ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume:    ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      snyk_token:            ${{ secrets.SNYK_TOKEN }}
+      slack_webhook:         ${{ secrets.SLACK_WEBHOOK }}
 
   create-release:
     name: "GitHub Release"
@@ -161,7 +167,15 @@ jobs:
     with:
       target: "dev"
       rtag:   ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      ip_allowlist:       ${{ secrets.IP_ALLOWLIST }}
+      kube_cert:          ${{ secrets.KUBE_CERT }}
+      kube_cluster:       ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace:     ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:         ${{ secrets.DEPLOYER_KUBE_TOKEN }}
 
   deploy-uat:
     name: "Deploy to uat"
@@ -174,7 +188,15 @@ jobs:
     with:
       target: "uat"
       rtag:   ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      ip_allowlist:       ${{ secrets.IP_ALLOWLIST }}
+      kube_cert:          ${{ secrets.KUBE_CERT }}
+      kube_cluster:       ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace:     ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:         ${{ secrets.DEPLOYER_KUBE_TOKEN }}
 
   e2etest-uat:
     name: "E2E test uat"
@@ -183,7 +205,11 @@ jobs:
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
       target: "uat"
-    secrets: inherit
+    secrets:
+      kube_cert:      ${{ secrets.KUBE_CERT }}
+      kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
 
   deploy-staging:
     name: "Deploy to staging"
@@ -196,7 +222,15 @@ jobs:
     with:
       target: "staging"
       rtag:   ${{ needs.plan.outputs.gtag }}
-    secrets: inherit
+    secrets:
+      ecr_region:         ${{ vars.DPD_ECR_REGION }}
+      ecr_repository:     ${{ vars.DPD_ECR_REPOSITORY }}
+      ecr_role_to_assume: ${{ secrets.DPD_ECR_ROLE_TO_ASSUME }}
+      ip_allowlist:       ${{ secrets.IP_ALLOWLIST }}
+      kube_cert:          ${{ secrets.KUBE_CERT }}
+      kube_cluster:       ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace:     ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:         ${{ secrets.DEPLOYER_KUBE_TOKEN }}
 
   e2etest-staging:
     name: "E2E test staging"
@@ -205,4 +239,8 @@ jobs:
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
       target: "staging"
-    secrets: inherit
+    secrets:
+      kube_cert:      ${{ secrets.KUBE_CERT }}
+      kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
+      kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
+      kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}

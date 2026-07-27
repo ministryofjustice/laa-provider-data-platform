@@ -37,25 +37,35 @@ project.ext.gitPackageUser = <your-github-username>
 project.ext.gitPackageKey = <your-github-personal-access-token>
 ```
 
-Authorise the token for `ministryofjustice` if SSO is required. Full setup details:
+You will need to authorise the token for `ministryofjustice` SSO in GitHub. Full setup details:
 [laa-spring-boot-common plugin setup](https://github.com/ministryofjustice/laa-spring-boot-common?tab=readme-ov-file#using-the-plugins)
 
 ### Shared environment access (uat, staging, prod)
 
 The shared environments are deployed, but currently have no meaningful data. E2E tests and ingress
-to these environments are currently disabled.
+to these environments are currently disabled. Use `kubectl port-forward` to access the service and
+web UI. Install `kubectl` first with `brew install kubernetes-cli` if needed.
 
-Use `kubectl port-forward` to access the service and web UI. Install `kubectl` with
-`brew install kubernetes-cli` if needed.
+Example (replace namespace):
+
+1. Set namespace, for example `NAMESPACE=laa-data-provider-data-uat`
+2. Start port-forward:
+   `kubectl -n "$NAMESPACE" port-forward svc/pdp-stable-provider-data-platform 8080:8080`
+4. Open http://localhost:8080/swagger-ui/index.html
 
 ### Local E2E test note
 
 Running E2E tests locally can trigger a Spring Devtools restart in `provider-data-service`, making
-the service unavailable while tests are running.
+the service unavailable as the E2E tests start running. If this happens, start the
+`provider-data-service` with the VM option `-Dspring.devtools.restart.enabled=false`
 
-If this happens, start `provider-data-service` with:
+In IntelliJ IDEA:
 
-`-Dspring.devtools.restart.enabled=false`
+1. Open **Run | Edit Configurations...**
+2. Select the `provider-data-service` (might be named `Application`) run configuration
+3. Add `-Dspring.devtools.restart.enabled=false` to **VM options** (add from **Modify options**
+   dropdown if field is not available)
+4. Apply, then run the application again
 
 ## Application endpoints
 

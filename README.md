@@ -11,7 +11,7 @@ firm and office (and, later on, contract and schedule) data.
 
 Includes the following subprojects:
 
-- `provider-data-api` - OpenAPI specification used for generating API stub interfaces and 
+- `provider-data-api` - OpenAPI specification used for generating API stub interfaces and
   documentation.
 - `provider-data-service` - REST API service with CRUD operations interfacing a JPA repository
   with an in-memory database.
@@ -27,6 +27,35 @@ Includes the following subprojects:
 
 Install the Git hooks with `prek install` after cloning the repository. If `prek` is not installed,
 install it first, for example with `brew install prek`.
+
+### Gradle plugin access for local development
+
+Set GitHub Packages credentials in `~/.gradle/gradle.properties` before running `./gradlew`:
+
+```properties
+project.ext.gitPackageUser = <your-github-username>
+project.ext.gitPackageKey = <your-github-personal-access-token>
+```
+
+Authorise the token for `ministryofjustice` if SSO is required. Full setup details:
+[laa-spring-boot-common plugin setup](https://github.com/ministryofjustice/laa-spring-boot-common?tab=readme-ov-file#using-the-plugins)
+
+### Shared environment access (uat, staging, prod)
+
+The shared environments are deployed, but currently have no meaningful data. E2E tests and ingress
+to these environments are currently disabled.
+
+Use `kubectl port-forward` to access the service and web UI. Install `kubectl` with
+`brew install kubernetes-cli` if needed.
+
+### Local E2E test note
+
+Running E2E tests locally can trigger a Spring Devtools restart in `provider-data-service`, making
+the service unavailable while tests are running.
+
+If this happens, start `provider-data-service` with:
+
+`-Dspring.devtools.restart.enabled=false`
 
 ## Application endpoints
 

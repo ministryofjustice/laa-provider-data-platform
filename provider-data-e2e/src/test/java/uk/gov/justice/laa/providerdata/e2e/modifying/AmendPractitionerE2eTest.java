@@ -17,12 +17,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
-/**
- * Data-modifying E2E tests for DS_MAPD_FR_025: Amend Legal Practitioner (DSTEW-1735).
- *
- * <p>The ticket language is logical-model based: "Legal Practitioner" maps to {@code
- * firmType=Advocate}, including both Advocate and Barrister variants.
- */
+/// Data-modifying E2E tests for DS_MAPD_FR_025: Amend Legal Practitioner (DSTEW-1735).
+///
+/// The ticket language is logical-model based: "Legal Practitioner" maps to `firmType=Advocate`,
+/// including both Advocate and Barrister variants.
 @ModifyingTest
 @DisplayName("DSTEW-1735: Amend Legal Practitioner (DS_MAPD_FR_025)")
 class AmendPractitionerE2eTest {
@@ -43,12 +41,12 @@ class AmendPractitionerE2eTest {
     barristerPractitioner = createBarristerPractitioner(activeChambersA.firmNumber(), ts);
   }
 
-  /**
-   * AC1 - Amend Practitioner with valid data.
-   *
-   * <p>Given an existing practitioner and valid amendable data, PATCH succeeds and persisted values
-   * are visible on subsequent GET.
-   */
+  /// Given an existing practitioner and valid amendable data, PATCH succeeds and persisted values
+  /// are visible on subsequent GET.
+  ///
+  /// - DSTEW-1735 AC1 – amending a practitioner with valid data succeeds. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac1_amendPractitioner_withValidData_returns200AndPersists() {
     String updatedRollNumber = "SRA-AMEND-" + System.currentTimeMillis();
@@ -87,12 +85,12 @@ class AmendPractitionerE2eTest {
             equalTo(updatedRollNumber));
   }
 
-  /**
-   * AC1 - Amend Practitioner with valid data.
-   *
-   * <p>Given an existing Barrister practitioner and valid amendable data, PATCH succeeds and
-   * persisted values are visible on subsequent GET.
-   */
+  /// Given an existing Barrister practitioner and valid amendable data, PATCH succeeds and
+  /// persisted values are visible on subsequent GET.
+  ///
+  /// - DSTEW-1735 AC1 – amending a practitioner with valid data succeeds. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac1_amendBarrister_withValidData_returns200AndPersists() {
     String updatedRollNumber = "BAR-AMEND-" + System.currentTimeMillis();
@@ -129,11 +127,11 @@ class AmendPractitionerE2eTest {
         .body("data.practitioner.barrister.barCouncilRollNumber", equalTo(updatedRollNumber));
   }
 
-  /**
-   * AC2 - Mandatory fields cannot be cleared.
-   *
-   * <p>Rejects blank and whitespace-only roll-number values and leaves practitioner unchanged.
-   */
+  /// Rejects blank and whitespace-only roll-number values and leaves practitioner unchanged.
+  ///
+  /// - DSTEW-1735 AC2 – mandatory fields cannot be cleared. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac2_rollNumberBlankOrWhitespace_returns400AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -161,12 +159,12 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC2 - Mandatory fields cannot be cleared.
-   *
-   * <p>Rejects blank and whitespace-only Barrister roll-number values and leaves practitioner
-   * unchanged.
-   */
+  /// Rejects blank and whitespace-only Barrister roll-number values and leaves practitioner
+  /// unchanged.
+  ///
+  /// - DSTEW-1735 AC2 – mandatory fields cannot be cleared. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac2_barristerRollNumberBlankOrWhitespace_returns400AndUnchanged() {
     BarristerSnapshot before = snapshotBarrister(barristerPractitioner.firmNumber());
@@ -194,11 +192,11 @@ class AmendPractitionerE2eTest {
     assertBarristerUnchanged(barristerPractitioner.firmNumber(), before);
   }
 
-  /**
-   * AC3 - Parent Chamber validation.
-   *
-   * <p>Non-existent parent Chamber returns 404 and no practitioner fields are changed.
-   */
+  /// Non-existent parent Chamber returns 404 and no practitioner fields are changed.
+  ///
+  /// - DSTEW-1735 AC3 – parent Chamber validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac3_parentChamberNotFound_returns404AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -219,11 +217,11 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC3 - Parent Chamber validation.
-   *
-   * <p>Inactive parent Chamber is rejected with 400 and no practitioner fields are changed.
-   */
+  /// Inactive parent Chamber is rejected with 400 and no practitioner fields are changed.
+  ///
+  /// - DSTEW-1735 AC3 – parent Chamber validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac3_parentChamberInactive_returns400AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -246,11 +244,11 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC4 - Single Chamber association enforcement.
-   *
-   * <p>Rejects amendments that would result in multiple parent Chambers.
-   */
+  /// Rejects amendments that would result in multiple parent Chambers.
+  ///
+  /// - DSTEW-1735 AC4 – single Chamber association enforcement. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac4_parentFirmsMultiple_returns400AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -275,12 +273,11 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC4 - Single Chamber association enforcement.
-   *
-   * <p>Rejects empty {@code parentFirms} arrays; {@code null}/absent still means "no parent
-   * change".
-   */
+  /// Rejects empty `parentFirms` arrays; `null`/absent still means "no parent change".
+  ///
+  /// - DSTEW-1735 AC4 – single Chamber association enforcement. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac4_parentFirmsEmptyArray_returns400AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -298,15 +295,15 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC5 - Conditional field validation.
-   *
-   * <p>Office-level intervened details must include the required {@code intervenedFlag}. The flag
-   * is a required field of the intervened block in the OpenAPI spec, so omitting it is rejected as
-   * invalid request content. The AC only requires that the amendment is rejected and the record
-   * remains unchanged, so this test asserts a 400 and an unchanged office rather than a specific
-   * error message.
-   */
+  /// Office-level intervened details must include the required `intervenedFlag`. The flag is a
+  /// required field of the intervened block in the OpenAPI spec, so omitting it is rejected as
+  /// invalid request content. The AC only requires that the amendment is rejected and the record
+  /// remains unchanged, so this test asserts a 400 and an unchanged office rather than a specific
+  /// error message.
+  ///
+  /// - DSTEW-1735 AC5 – conditional field validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac5_intervenedDateWithoutFlag_returns400AndOfficeUnchanged() {
     OfficeSnapshot before = snapshotOffice(practitioner.firmNumber(), practitioner.officeCode());
@@ -327,15 +324,15 @@ class AmendPractitionerE2eTest {
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
   }
 
-  /**
-   * AC5 - Conditional field validation.
-   *
-   * <p>Office-level hold-payment reason must not be provided without its required {@code
-   * paymentHeldFlag}. The flag is a required field of the payment block in the OpenAPI spec, so
-   * omitting it is rejected as invalid request content. The AC only requires that the amendment is
-   * rejected and the record remains unchanged, so this test asserts a 400 and an unchanged office
-   * rather than a specific error message.
-   */
+  /// Office-level hold-payment reason must not be provided without its required
+  /// `paymentHeldFlag`. The flag is a required field of the payment block in the OpenAPI spec, so
+  /// omitting it is rejected as invalid request content. The AC only requires that the amendment
+  /// is rejected and the record remains unchanged, so this test asserts a 400 and an unchanged
+  /// office rather than a specific error message.
+  ///
+  /// - DSTEW-1735 AC5 – conditional field validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac5_paymentHeldReasonWithoutFlag_returns400AndOfficeUnchanged() {
     OfficeSnapshot before = snapshotOffice(practitioner.firmNumber(), practitioner.officeCode());
@@ -357,11 +354,11 @@ class AmendPractitionerE2eTest {
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
   }
 
-  /**
-   * AC5 - Conditional field validation.
-   *
-   * <p>Office-level intervened flag must not be provided without intervened change date.
-   */
+  /// Office-level intervened flag must not be provided without intervened change date.
+  ///
+  /// - DSTEW-1735 AC5 – conditional field validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac5_intervenedFlagWithoutDate_returns400AndOfficeUnchanged() {
     OfficeSnapshot before = snapshotOffice(practitioner.firmNumber(), practitioner.officeCode());
@@ -380,11 +377,11 @@ class AmendPractitionerE2eTest {
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
   }
 
-  /**
-   * AC5 - Conditional field validation.
-   *
-   * <p>Office-level hold-payment flag true must not be provided without hold-payment reason.
-   */
+  /// Office-level hold-payment flag true must not be provided without hold-payment reason.
+  ///
+  /// - DSTEW-1735 AC5 – conditional field validation. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac5_paymentHeldFlagTrueWithoutReason_returns400AndOfficeUnchanged() {
     OfficeSnapshot before = snapshotOffice(practitioner.firmNumber(), practitioner.officeCode());
@@ -403,11 +400,15 @@ class AmendPractitionerE2eTest {
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
   }
 
-  /**
-   * AC5 - Conditional field validation.
-   *
-   * <p>Office-level EFT payment must include bank account details.
-   */
+  /// Office-level EFT payment must include bank account details.
+  ///
+  /// - DSTEW-1735 AC5 – conditional field validation. (DS_MAPD_FR_025)
+  /// - DSTEW-1998 AC1 – EFT requires a valid active Bank Account association. (DS_MAPD_FR_038)
+  /// - DSTEW-1998 AC6 – no partial update where the Payment Method / Bank Account change is
+  ///   rejected. (DS_MAPD_FR_038)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
+  /// - DS_MAPD_FR_038: Assign a bank account to a Legal Practitioner.
   @Test
   void dstew1735_ac5_eftWithoutBankAccountDetails_returns400AndOfficeUnchanged() {
     OfficeSnapshot before = snapshotOffice(practitioner.firmNumber(), practitioner.officeCode());
@@ -426,12 +427,12 @@ class AmendPractitionerE2eTest {
     assertOfficeUnchanged(practitioner.firmNumber(), practitioner.officeCode(), before);
   }
 
-  /**
-   * AC6 - Redacted field protection.
-   *
-   * <p>Redacted/non-amendable fields are rejected: provider-level practitioner name and
-   * practitioner type.
-   */
+  /// Redacted/non-amendable fields are rejected: provider-level practitioner name and
+  /// practitioner type.
+  ///
+  /// - DSTEW-1735 AC6 – redacted field protection. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac6_redactedFieldsRejected_returns400AndUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());
@@ -470,11 +471,11 @@ class AmendPractitionerE2eTest {
     assertPractitionerUnchanged(practitioner.firmNumber(), before);
   }
 
-  /**
-   * AC7 - Complete record enforcement.
-   *
-   * <p>When amendment validation fails, no partial changes are persisted.
-   */
+  /// When amendment validation fails, no partial changes are persisted.
+  ///
+  /// - DSTEW-1735 AC7 – complete record enforcement. (DS_MAPD_FR_025)
+  ///
+  /// - DS_MAPD_FR_025: Amend practitioner.
   @Test
   void dstew1735_ac7_failedAmendment_rollsBackAndLeavesRecordUnchanged() {
     PractitionerSnapshot before = snapshotPractitioner(practitioner.firmNumber());

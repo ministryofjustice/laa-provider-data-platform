@@ -16,15 +16,22 @@ import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
-/**
- * Data-modifying e2e tests for bank account reassignment via {@code PATCH
- * /provider-firms/{firmId}/offices/{officeCode}}.
- *
- * <p>Each test patches the E2E LSP office's payment details. Because {@link
- * uk.gov.justice.laa.providerdata.service.BankDetailsService} end-dates the previous primary link
- * before creating the new one, repeated runs accumulate historical records rather than causing
- * constraint violations.
- */
+/// Data-modifying e2e tests for bank account reassignment via `PATCH
+/// /provider-firms/{firmId}/offices/{officeCode}`.
+///
+/// Each test patches the E2E LSP office's payment details. Because
+/// {@link uk.gov.justice.laa.providerdata.service.BankDetailsService} end-dates the previous
+/// primary link before creating the new one, repeated runs accumulate historical records rather
+/// than causing constraint violations.
+///
+/// These tests were built up across several tickets that progressively defined the Bank Account
+/// lifecycle for the LSP head office target entity - DSTEW-1601 (Create a Bank Account),
+/// DSTEW-1627 (Amend Bank Account), and DSTEW-1634 (Effective Start Date) - and each test's
+/// Javadoc cites the specific ticket and AC it was written against. DSTEW-1998 (Manage Payment
+/// Method and Bank Account Association) later consolidated this behaviour across all target
+/// entity types; where a test also demonstrates one of its ACs, that is noted alongside the
+/// originating ticket. Equivalent coverage for the LSP child office and Legal Practitioner target
+/// entities is in {@link PaymentMethodBankAccountAssociationE2eTest}.
 @ModifyingTest
 class PatchOfficeBankAccountE2eTest {
 
@@ -43,6 +50,20 @@ class PatchOfficeBankAccountE2eTest {
             .path("data.content[0].guid");
   }
 
+  /// Assigns an existing Bank Account to the LSP head office by GUID and sets it as the primary
+  /// association.
+  ///
+  /// - DSTEW-1601 AC9 – assigning an existing Bank Account ends the previous association and
+  ///   assigns the replacement as current. (DS_MAPD_FR_031)
+  /// - DSTEW-1601 AC10 – the Primary Bank Account flag moves to the newly-assigned account.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC3 – changing Payment Method to EFT using an existing Bank Account assigns
+  ///   it as the current, Primary association. (DS_MAPD_FR_036)
+  /// - DSTEW-1998 AC10 – the incoming association's Effective Start Date and Primary flag are
+  ///   set on assignment. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void patchOffice_linkExistingBankAccount_returns200WithGuids() {
     Map<String, Object> body =
@@ -89,6 +110,20 @@ class PatchOfficeBankAccountE2eTest {
         .body("data.content.find { it.primaryFlag == true }.lastUpdatedTimestamp", notNullValue());
   }
 
+  /// Creates a new Bank Account and assigns it to the LSP head office as the primary
+  /// association.
+  ///
+  /// - DSTEW-1601 AC1 – a new Bank Account can be created and assigned to a target in a single
+  ///   request. (DS_MAPD_FR_031)
+  /// - DSTEW-1601 AC10 – the Primary Bank Account flag moves to the newly-assigned account.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC4 – changing Payment Method to EFT using a new Bank Account creates and
+  ///   assigns it as the current, Primary association. (DS_MAPD_FR_036)
+  /// - DSTEW-1998 AC10 – the incoming association's Effective Start Date and Primary flag are
+  ///   set on assignment. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void patchOffice_createAndLinkNewBankAccount_returns200WithGuids() {
     String uniqueAccountNumber = "9" + (System.currentTimeMillis() % 10_000_000L);
@@ -158,6 +193,16 @@ class PatchOfficeBankAccountE2eTest {
             notNullValue());
   }
 
+  /// Links to an unknown Bank Account GUID; the request must be rejected and no partial change
+  /// applied to the office's existing bank account associations.
+  ///
+  /// - DSTEW-1601 AC6 – an invalid or unresolvable Bank Account reference must not result in a
+  ///   partial record. (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC6 – no partial update where the Payment Method / Bank Account change fails.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void patchOffice_linkUnknownBankAccountGuid_returns404() {
     Integer countBefore =
@@ -202,14 +247,22 @@ class PatchOfficeBankAccountE2eTest {
         .body("data.metadata.pagination.totalItems", equalTo(countBefore));
   }
 
-  /**
-   * Verifies that only one bank account is marked as primary for an office at any given time.
-   *
-   * <p>Creates a new LSP firm via {@code POST /provider-firms} with an initial EFT bank account,
-   * then performs a PATCH request linking a distinct new bank account to the head office. After the
-   * switch the office b ank-details endpoint must return exactly one record with {@code
-   * primaryFlag=true}.
-   */
+  /// Creates a new LSP firm via `POST /provider-firms` with an initial EFT bank account, then
+  /// performs a PATCH request linking a distinct new bank account to the head office. After the
+  /// switch the office bank-details endpoint must return exactly one record with
+  /// `primaryFlag=true`.
+  ///
+  /// - DSTEW-1601 AC8 – only one Bank Account may be marked Primary per target at a time.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1601 AC10 – the Primary Bank Account flag moves during replacement.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC9 – the outgoing association's Primary flag is set to No.
+  ///   (DS_MAPD_FR_036)
+  /// - DSTEW-1998 AC10 – the incoming association's Primary flag is set to Yes.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void postFirmWithBankAccount_thenSwitch_onlyOneRecordIsPrimaryAtATime() {
     long ts = System.currentTimeMillis();
@@ -349,14 +402,18 @@ class PatchOfficeBankAccountE2eTest {
         .body("data.content.findAll { it.lastUpdatedTimestamp == null }", hasSize(0));
   }
 
-  /**
-   * AC11 – Previous association retained as history (not deleted).
-   *
-   * <p>Creates a new LSP firm with an initial EFT bank account, then switches to a new account via
-   * PATCH. The GET response for the office bank-details must still contain the original link row
-   * (with {@code primaryFlag=false} and a non-null {@code activeDateTo}), proving it was end-dated
-   * rather than deleted.
-   */
+  /// Creates a new LSP firm with an initial EFT bank account, then switches to a new account via
+  /// PATCH. The GET response for the office bank-details must still contain the original link row
+  /// (with `primaryFlag=false` and a non-null `activeDateTo`), proving it was end-dated rather
+  /// than deleted.
+  ///
+  /// - DSTEW-1601 AC11 – the previous association is retained as history, not deleted.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC12 – historical retention: the previous association is retained and not
+  ///   deleted. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void postFirmWithBankAccount_thenSwitch_previousAssociationRetainedAsHistory() {
     long timestamp = System.currentTimeMillis();
@@ -469,19 +526,22 @@ class PatchOfficeBankAccountE2eTest {
         .body("data.content.findAll { it.lastUpdatedTimestamp == null }", hasSize(0));
   }
 
-  /**
-   * AC12 – Revert to a previously associated Bank Account (make it Primary again).
-   *
-   * <p>Creates a new LSP firm with an initial EFT bank account (account 0), switches to a new
-   * account A, then re-links back to account 0 by GUID. After reverting:
-   *
-   * <ul>
-   *   <li>Account 0 is the current primary ({@code primaryFlag=true}, null {@code activeDateTo}).
-   *   <li>Account A is end-dated ({@code primaryFlag=false}, non-null {@code activeDateTo}).
-   *   <li>Three rows exist in total (account 0 history, account A history, account 0 current) —
-   *       nothing is deleted.
-   * </ul>
-   */
+  /// Creates a new LSP firm with an initial EFT bank account (account 0), switches to a new
+  /// account A, then re-links back to account 0 by GUID. After reverting:
+  ///
+  /// - Account 0 is the current primary (`primaryFlag=true`, null `activeDateTo`).
+  /// - Account A is end-dated (`primaryFlag=false`, non-null `activeDateTo`).
+  /// - Three rows exist in total (account 0 history, account A history, account 0 current) -
+  ///   nothing is deleted.
+  ///
+  /// - DSTEW-1601 AC12 – reverting to a previously-associated Bank Account makes it Primary
+  ///   again; nothing is deleted. (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC8 – change to an existing Bank Account ends the current association and
+  ///   assigns the replacement as current. (DS_MAPD_FR_036)
+  /// - DSTEW-1998 AC12 – historical retention: no association is ever deleted. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void postFirmWithBankAccount_thenSwitch_thenRevertToPrevious_previousBecomesCurrentPrimary() {
     long ts = System.currentTimeMillis();
@@ -644,10 +704,16 @@ class PatchOfficeBankAccountE2eTest {
         .statusCode(404);
   }
 
-  /**
-   * AC1 – When a new bank account is assigned to an office, the old (existing) bank account link is
-   * marked as non-primary and its activeDateTo is set to the current date.
-   */
+  /// When a new bank account is assigned to an office, the old (existing) bank account link is
+  /// marked as non-primary and its `activeDateTo` is set to the current date.
+  ///
+  /// - DSTEW-1627 AC2 – the outgoing association's End Date is set and its Primary flag is set
+  ///   to No. (DS_MAPD_FR_032)
+  /// - DSTEW-1998 AC9 – update outgoing association: Effective End Date and Primary flag=No.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_032: Change Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void assignNewBankAccount_marksOldAsNonPrimaryWithActiveDateTo() {
     long timestamp = System.currentTimeMillis();
@@ -780,7 +846,17 @@ class PatchOfficeBankAccountE2eTest {
             nullValue());
   }
 
-  /** AC2 – Restricted fields must not be amended when a new bank account is assigned. */
+  /// The previous Bank Account association's own data (account name, sort code, account number)
+  /// must remain unchanged when it is superseded by a new assignment; only the association
+  /// metadata (`primaryFlag`/`activeDateTo`) changes.
+  ///
+  /// - DSTEW-1627 AC5 – historical retention: the superseded association's own data is not
+  ///   altered. (DS_MAPD_FR_032)
+  /// - DSTEW-1998 AC12 – historical retention: the previous association is retained and not
+  ///   deleted. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_032: Change Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void restrictedFields_remainUnchangedWhenAssigningNewAccount() {
     long timestamp = System.currentTimeMillis();
@@ -923,7 +999,17 @@ class PatchOfficeBankAccountE2eTest {
             equalTo(newAccountNumber));
   }
 
-  /** AC3 – Bank Account validity must be preserved. */
+  /// Both the outgoing and incoming Bank Account associations must remain complete and valid (no
+  /// orphaned or corrupted records) after an amendment, with exactly one association marked
+  /// primary.
+  ///
+  /// - DSTEW-1601 AC7 / BR-10 – a Bank Account must always have at least one association to
+  ///   exist. (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC7 / BR-10 – a Bank Account must always have at least one association to
+  ///   exist. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void bankAccountValidityPreserved_afterAmendment() {
     long timestamp = System.currentTimeMillis();
@@ -1046,7 +1132,14 @@ class PatchOfficeBankAccountE2eTest {
             notNullValue());
   }
 
-  /** AC4 – No partial bank account update on validation failure. */
+  /// No partial bank account update on validation failure.
+  ///
+  /// - DSTEW-1627 AC7 – no partial update on failure. (DS_MAPD_FR_032)
+  /// - DSTEW-1998 AC6 – no partial update where the Payment Method / Bank Account change fails.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_032: Change Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void noPartialUpdate_whenValidationFails() {
     long timestamp = System.currentTimeMillis();
@@ -1158,13 +1251,17 @@ class PatchOfficeBankAccountE2eTest {
         .body("data.content[0].accountNumber", equalTo(initialAccountNumber));
   }
 
-  /**
-   * AC5 – Bank Account must always have an association to exist.
-   *
-   * <p>Verifies that bank accounts in the system are always associated with at least one
-   * provider-office link. Tests that querying bank details returns only accounts with valid
-   * associations, and that the amendment doesn't result in orphaned accounts.
-   */
+  /// Verifies that bank accounts in the system are always associated with at least one
+  /// provider-office link. Tests that querying bank details returns only accounts with valid
+  /// associations, and that the amendment doesn't result in orphaned accounts.
+  ///
+  /// - DSTEW-1601 AC7 – a Bank Account must always have an association to exist.
+  ///   (DS_MAPD_FR_031)
+  /// - DSTEW-1998 AC7 – a Bank Account must always have at least one association to exist.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_031: Create a Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void ac5_bankAccountAlwaysHasAssociation() {
     long timestamp = System.currentTimeMillis();
@@ -1289,7 +1386,14 @@ class PatchOfficeBankAccountE2eTest {
             "data.content.findAll { it.accountNumber == '" + newAccountNumber + "' }", hasSize(1));
   }
 
-  /** AC4 – Start and end date alignment. */
+  /// Start and end date alignment.
+  ///
+  /// - DSTEW-1627 AC4 – the outgoing Effective End Date and incoming Effective Start Date are
+  ///   the same date/time. (DS_MAPD_FR_032)
+  /// - DSTEW-1998 AC11 – start and end date alignment on replacement. (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_032: Change Bank Account.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void startDateAndEndDate_areAlignedOnUpdate() {
     long timestamp = System.currentTimeMillis();
@@ -1402,7 +1506,15 @@ class PatchOfficeBankAccountE2eTest {
         "Start and end dates must align", outgoingEndDate, equalTo(incomingStartDate));
   }
 
-  /** AC1 – Effective Start Date set to today’s date on assignment. */
+  /// Effective Start Date set to today's date on assignment.
+  ///
+  /// - DSTEW-1634 AC1 – the Effective Start Date is set to today's date when an assignment
+  ///   succeeds. (DS_MAPD_FR_034)
+  /// - DSTEW-1998 AC10 – the incoming association's Effective Start Date is set on assignment.
+  ///   (DS_MAPD_FR_036)
+  ///
+  /// - DS_MAPD_FR_034: Set bank account Effective Start Date.
+  /// - DS_MAPD_FR_036: Assign a bank account to a Legal Organisation.
   @Test
   void effectiveStartDate_isSetToCurrentDateOnAssignment() {
     long timestamp = System.currentTimeMillis();
@@ -1485,10 +1597,17 @@ class PatchOfficeBankAccountE2eTest {
         "Effective Start Date should be today's date", activeDateFrom, equalTo(today));
   }
 
-  /**
-   * AC2 – Applicable to all assignment targets. This test verifies that the Effective Start Date is
-   * set when a bank account is assigned to a Legal Organisation Child Office.
-   */
+  /// Applicable to all assignment targets. This test verifies that the Effective Start Date is
+  /// set when a bank account is assigned to a Legal Organisation Child Office.
+  ///
+  /// - DSTEW-1634 AC2 – the Effective Start Date rule is applicable to all assignment target
+  ///   types. (DS_MAPD_FR_034)
+  /// - DSTEW-1998 AC10 – the incoming association's Effective Start Date is set on assignment,
+  ///   uniformly across target types. (DS_MAPD_FR_037)
+  ///
+  /// - DS_MAPD_FR_034: Set bank account Effective Start Date.
+  /// - DS_MAPD_FR_037: Assign an existing Legal Organisation Bank Account to a Legal
+  ///   Organisation Child Office.
   @Test
   void effectiveStartDate_isSetForOfficeAssignment() {
     long timestamp = System.currentTimeMillis();

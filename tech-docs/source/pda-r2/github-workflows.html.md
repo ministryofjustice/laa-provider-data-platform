@@ -113,47 +113,49 @@ been resolved.
 The pipeline workflows make use of a number of reusable workflows (as `workflow_call`),
 which can also be invoked manually (as `workflow_dispatch`) to perform individual tasks.
 
-### "Reusable workflow: Build, push & publish" ([`rw-pdp-build.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-pdp-build.yml))
+### "Reusable workflow: Gradle build and publish" ([`rw-gradle-build-and-publish.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-gradle-build-and-publish.yml))
 
-The Gradle root project and its subprojects are built using the same command-line that
-developers use for local development:
+Builds and tests the project using:
 
 ```shell
-  ./gradlew clean build integrationTest
+./gradlew clean build integrationTest
 ```
 
 which causes compilation, packaging (`assemble`), style-checking (`checkstyleMain`), unit
 tests (`test`), and integration tests (`integrationTest`) to execute.
 
-The Docker image (which is OCI-compatible) is built using the command-line:
-
-```shell
-  ./gradlew bootBuildImage --imageName="host/namespace/repository:tag"
-```
-
-which can also be run by developers doing local development.
-
-This is then pushed using the `docker push` command-line into Amazon ECR with either
-one or two image tag names.
-
-For a PR build of, say, pull request #999 with tip commit `c033174`, these tags are named
-like `pr-999` (this tag is moveable and moves each time the PR is updated) and
-`pr-999-c033174` (this tag is immutable and always points at the same version build).
-
-For a `main` build, a version tag like `v1.4.2` is determined from the release type and
-the last version tag found. The Git repository is tagged with this version, and a GitHub
-Release is created with release notes.
+On `main`, it also publishes the OpenAPI specification models library and the JPA entities JAR
+to GitHub Packages. Checkstyle, unit test, integration test, and JaCoCo coverage reports are
+uploaded as workflow artifacts.
 
 #### Manual dispatch parameters
 
-The "Reusable workflow: Build, push & publish" workflow can also be invoked manually (as
-`workflow_dispatch`) in case, for example, you want to build and push a branch or
-`main` without necessarily deploying.
+The "Reusable workflow: Gradle build and publish" workflow can also be invoked manually (as
+`workflow_dispatch`) in case, for example, you want to build and publish a branch or `main`
+without deploying.
 
-- **Immutable tag name**: Primary image tag name that will also be used for deployment
-- **Optional mutable tag name**: An optional secondary image tag that's easier to use
+- **Registry tag** (`itag`): Tag name for this build (e.g. `v1.4.2`, `pr-925-0af`)
 
-![Screenshot of the "Reusable workflow: Build, push & publish" workflow dispatch form](./images/rw-pdp-build.png)
+### "Reusable workflow: ECR publish image" ([`rw-ecr-publish-image.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-ecr-publish-image.yml))
+
+Builds the OCI image using `./gradlew :provider-data-service:bootBuildImage` and pushes it to
+Amazon ECR with an immutable tag (e.g. `pdp-v1.4.2` or `pdp-pr-999-c033174`) and an optional
+mutable tag (e.g. `pdp-pr-999`, updated on each push to the PR).
+
+The image is then scanned with Snyk and the results are uploaded to GitHub Security as SARIF.
+
+#### Manual dispatch parameters
+
+The "Reusable workflow: ECR publish image" workflow can also be invoked manually (as
+`workflow_dispatch`) in case, for example, you want to push an image to ECR without running
+the full pipeline.
+
+- **Immutable tag name** (`itag`): Primary image tag used for deployment (e.g. `v1.4.2`,
+  `pr-925-0af`)
+- **Optional mutable tag name** (`mtag`): Secondary image tag that's easier to reference
+  (e.g. `pr-925`)
+
+![Screenshot of the "Reusable workflow: ECR publish image" workflow dispatch form](./images/rw-pdp-build.png)
 
 ### "Reusable workflow: Deploy PR" ([`rw-pdp-deploy-pr.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-pdp-deploy-pr.yml))
 
@@ -200,7 +202,8 @@ choose which environment(s) to install into.
 | `pipeline-pdp-pr-updated.yml`   | **Pipeline: PR opened/updated**                       | Triggered by a new or updated PR                      |
 | `pipeline-pdp-pr-closed.yml`    | **Pipeline: PR closed/merged**                        | Triggered by a closed or merged PR                    |
 | `pipeline-pdp-main-updated.yml` | **Pipeline: Branch main updated                       | Triggered by pushes to `main`                         |
-| `rw-pdp-build.yml`              | **Reusable workflow: Build, push & publish**          | Called by both `pipeline-pdp-*-updated.yml` pipelines |
+| `rw-gradle-build-and-publish.yml` | **Reusable workflow: Gradle build and publish** | Called by both `pipeline-pdp-*-updated.yml` pipelines |
+| `rw-ecr-publish-image.yml`        | **Reusable workflow: ECR publish image**        | Called by both `pipeline-pdp-*-updated.yml` pipelines |
 | `rw-pdp-deploy-pr.yml`          | **Reusable workflow: Deploy PR**                      | Called by `pipeline-pdp-pr-updated.yml`               |
 | `rw-pdp-deploy-main.yml`        | **Reusable workflow: Deploy main**                    | Called by `pipeline-pdp-main-updated.yml`             |
 

@@ -36,7 +36,7 @@ dependencies have been updated subsequently).
 ### LAA plugin version (4 files)
 
 **Reference:**
-[LAA Spring Boot Common release notes](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0) \
+[LAA Spring Boot Common release notes](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/laa-spring-boot-common-2.0.0) \
 **Files changed:** `**/build.gradle`
 
 ```groovy
@@ -206,7 +206,7 @@ Spring Boot 4.0 changed `ProblemDetail` JSON serialisation (Jackson 3 + RFC 7807
 - JSON property order is no longer guaranteed (and has changed)
 
 ```java
-// Before: brittle - exact string matching 
+// Before: brittle - exact string matching
 .andExpect(content().string("{\"type\":\"about:blank\",\"title\":\"Bad Request\"," +
     "\"status\":400,\"detail\":\"Invalid request content.\",\"instance\":\"/api/v1/items\"}"));
 
@@ -279,7 +279,7 @@ See previous section on the Jackson dependency.
 ### Build and runtime platform changes
 
 **Reference:**
-[Review system requirements](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#review-system-requirements) 
+[Review system requirements](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#review-system-requirements)
 
 The build already used Java 25 and Gradle 9.2.0 at the time of migration, which were ahead of
 Spring Boot 4.0's minimum requirements of Java 17+ and Gradle 8.14+, so no change was needed.
@@ -303,6 +303,6 @@ However, the annotation **imports** required updating (see test annotation packa
 
 - [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
   (official guide)
-- [LAA Spring Boot Common v2.0.0](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/v2.0.0)
+- [LAA Spring Boot Common v2.0.0](https://github.com/ministryofjustice/laa-spring-boot-common/releases/tag/laa-spring-boot-common-2.0.0)
 - [SpringDoc OpenAPI compatibility](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot)
 - [OpenAPI Generator 7.18.0](https://github.com/OpenAPITools/openapi-generator/releases/tag/v7.18.0)

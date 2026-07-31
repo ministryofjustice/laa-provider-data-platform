@@ -117,4 +117,5 @@ jobs:
           npx linkinator . --recurse --markdown \
             --skip https://ministryofjustice.github.io/laa-provider-data-platform/images/ \
             --skip javascripts/govuk_frontend.js \
-            --skip 'http://localhost:.*'
+            --skip 'http://localhost:.*' \
+            --skip https://github.com/ministryofjustice/laa-data-provider-data

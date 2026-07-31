@@ -1,3 +1,7 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r1/end-to-end-tests.html.md
+---
+
 # End-to-end (E2E) API tests
 
 This module contains **end-to-end (E2E) API tests** for the service.

@@ -58,6 +58,6 @@ A dummy API key for local development is available in the `application-local.yml
 
 ## Next steps
 
-- See [Configuration](documentation/configuration.html) for environment variables
-- See [API Reference](documentation/api-reference.html) for endpoint documentation
-- See [Development](documentation/development.html) for development setup
+- See [Configuration](configuration.html) for environment variables
+- See [API Reference](api-reference.html) for endpoint documentation
+- See [Development](development.html) for development setup

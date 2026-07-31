@@ -1,3 +1,7 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r2/github-workflows.html.md
+---
+
 # GitHub workflows
 
 ## Table of contents
@@ -39,7 +43,7 @@ Deployment into Cloud Platform is implemented using `helm` and a Helm chart.
   `on: { workflow_dispatch: {...}}` trigger. See [below](#reusable-workflows)
   for more details on how to run them manually.
 
-### "Pipeline: PR opened/updated" ([`pipeline-pdp-pr-updated.yml`](./pipeline-pdp-pr-updated.yml))
+### "Pipeline: PR opened/updated" ([`pipeline-pdp-pr-updated.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/pipeline-pdp-pr-updated.yml))
 
 When a pull request is opened or updated, this workflow builds the project using Gradle,
 runs tests, and builds a Docker image. The image is pushed to Amazon ECR container
@@ -50,7 +54,7 @@ If the pull request was labelled with the label `no-preview` at the time that it
 created or updated, then the deployment reusable workflow is not called. Otherwise,
 it is called with appropriate parameters to deploy the just-built artefacts.
 
-### "Pipeline: PR closed/merged" ([`pipeline-pdp-pr-closed.yml`](./pipeline-pdp-pr-closed.yml))
+### "Pipeline: PR closed/merged" ([`pipeline-pdp-pr-closed.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/pipeline-pdp-pr-closed.yml))
 
 When the pull request is closed or merged, this workflow removes the preview app from
 the **uat** namespace and cleans up associated resources.
@@ -69,7 +73,7 @@ you must enter which pull request to uninstall.
 
 ![Screenshot of the "Pipeline: PR closed/merged" workflow dispatch form](./images/pipeline-pdp-pr-closed.png)
 
-### "Pipeline: Branch main updated" ([`pipeline-pdp-main-updated.yml`](./pipeline-pdp-main-updated.yml))
+### "Pipeline: Branch main updated" ([`pipeline-pdp-main-updated.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/pipeline-pdp-main-updated.yml))
 
 When the `main` branch is updated (for example, a PR is merged), this workflow examines
 the set of commits since the last release tag:
@@ -109,7 +113,7 @@ been resolved.
 The pipeline workflows make use of a number of reusable workflows (as `workflow_call`),
 which can also be invoked manually (as `workflow_dispatch`) to perform individual tasks.
 
-### "Reusable workflow: Build, push & publish" ([`rw-pdp-build.yml`](./rw-pdp-build.yml))
+### "Reusable workflow: Build, push & publish" ([`rw-pdp-build.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-pdp-build.yml))
 
 The Gradle root project and its subprojects are built using the same command-line that
 developers use for local development:
@@ -151,7 +155,7 @@ The "Reusable workflow: Build, push & publish" workflow can also be invoked manu
 
 ![Screenshot of the "Reusable workflow: Build, push & publish" workflow dispatch form](./images/rw-pdp-build.png)
 
-### "Reusable workflow: Deploy PR" ([`rw-pdp-deploy-pr.yml`](./rw-pdp-deploy-pr.yml))
+### "Reusable workflow: Deploy PR" ([`rw-pdp-deploy-pr.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-pdp-deploy-pr.yml))
 
 This workflow deploys the Docker image with tag `pr-{number}` as a preview app,
 intended as a temporary application for reviewing a pull request.
@@ -170,7 +174,7 @@ tag). When invoked manually, you choose which pull request to install.
 
 ![Screenshot of the "Reusable workflow: Deploy PR" workflow dispatch form](./images/rw-pdp-deploy-pr.png)
 
-### "Reusable workflow: Deploy main" ([`rw-pdp-deploy-main.yml`](./rw-pdp-deploy-main.yml))
+### "Reusable workflow: Deploy main" ([`rw-pdp-deploy-main.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/.github/workflows/rw-pdp-deploy-main.yml))
 
 This workflow deploys the specified Docker image as a release app, intended for shared
 testing or production usage, depending on the environment.

@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -20,69 +21,113 @@ import uk.gov.justice.laa.providerdata.e2e.E2eConfig;
 import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 
 /**
- * Data-modifying e2e tests for office activation/deactivation via {@code PATCH
- * /provider-firms/{firmId}/offices/{officeCode}}, including the DSTEW-1674 {@code
- * paymentHeldFlag}/{@code falseBalanceFlag} same-request transition rules (DS_MAPD_FR_045 status
- * flag rules for LSP entities).
+ * Data-modifying e2e tests for Practitioner (i.e. {@code firmType=Advocate}) office
+ * activation/deactivation via {@code PATCH /provider-firms/{firmId}/offices/{officeCode}},
+ * including the DSTEW-1675 {@code paymentHeldFlag}/{@code falseBalanceFlag} same-request transition
+ * rules (DS_MAPD_FR_047 status flag rules for Practitioner entities).
  *
  * <p><strong>Note:</strong> unlike the rest of this codebase's e2e tests, which are independent of
  * execution order, this class deliberately uses {@link TestMethodOrder} with {@link
  * OrderAnnotation} because its tests share a single office fixture and chain state transitions
  * (active &rarr; inactive &rarr; active) across the suite; each test's assertions depend on the
  * office being left in the state the previous test produced. This is specific to this class and
- * {@link PatchPractitionerOfficeActivationE2eTest}, not a general convention. A fresh non-head
- * office is created in {@code @BeforeAll} so that deactivation does not cascade to other offices or
- * affect other test classes.
+ * {@link PatchOfficeActivationE2eTest}, not a general convention. A fresh Chambers parent and
+ * Practitioner are created in {@code @BeforeAll}. Unlike LSP offices, Practitioner offices have no
+ * head-office/child-office cascade concept.
  *
- * <p>DSTEW-1674 AC3 ("Status Flag Rules Validated at LSP Entity Creation or Amendment") is only
- * covered here for amendment: {@code debtRecoveryFlag}/{@code falseBalanceFlag} are absent from
- * {@code LSPOfficeCreateV2}/{@code LSPHeadOfficeCreateV2} in the OpenAPI spec, so there is no
- * creation-time request path that can set these flags to validate.
+ * <p>DSTEW-1675 AC3 ("Status Flag Rules Validated at Practitioner Entity Creation or Amendment") is
+ * only covered here for amendment: {@code debtRecoveryFlag}/{@code falseBalanceFlag} are absent
+ * from {@code PractitionerHeadOfficeCreateV2} in the OpenAPI spec, so there is no creation-time
+ * request path that can set these flags to validate.
  */
 @ModifyingTest
 @TestMethodOrder(OrderAnnotation.class)
-@DisplayName("DSTEW-1674: Status flag rules for LSP office activation")
-class PatchOfficeActivationE2eTest {
+@DisplayName("DSTEW-1675: Status flag rules for Practitioner office activation")
+class PatchPractitionerOfficeActivationE2eTest {
 
+  private static String practitionerFirmNumber;
   private static String officeCode;
 
   @BeforeAll
-  static void createNonHeadOffice() {
-    String accountNumber = "8" + (System.currentTimeMillis() % 10_000_000L);
-    Map<String, Object> body =
-        Map.of(
-            "address",
-            Map.of(
-                "line1", "1 Test Street",
-                "townOrCity", "Leeds",
-                "postcode", "LS1 1AA"),
-            "telephoneNumber",
-            "0113 000 0001",
-            "payment",
-            Map.of(
-                "paymentMethod",
-                "EFT",
-                "bankAccountDetails",
+  static void createPractitioner() {
+    long ts = System.currentTimeMillis();
+
+    String chambersFirmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
                 Map.of(
-                    "accountName", "Non Head Office Account",
-                    "sortCode", "601111",
-                    "accountNumber", accountNumber)),
-            "liaisonManager",
-            Map.of("useHeadOfficeLiaisonManager", true),
-            "contractManager",
-            Map.of("useHeadOfficeContractManager", true));
+                    "firmType",
+                    "Chambers",
+                    "name",
+                    "E2E-DSTEW-1675 Chambers " + ts,
+                    "chambers",
+                    Map.of(
+                        "address",
+                        Map.of(
+                            "line1", "1 Chambers Street",
+                            "townOrCity", "London",
+                            "postcode", "WC1A 1AA"),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Chambers",
+                            "lastName", "Liaison",
+                            "emailAddress", "dstew1675.chambers." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 2222"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .body("data.providerFirmNumber", notNullValue())
+            .extract()
+            .path("data.providerFirmNumber");
+
+    practitionerFirmNumber =
+        given()
+            .contentType(ContentType.JSON)
+            .body(
+                Map.of(
+                    "firmType",
+                    "Advocate",
+                    "name",
+                    "E2E-DSTEW-1675 Practitioner " + ts,
+                    "practitioner",
+                    Map.of(
+                        "parentFirms",
+                        List.of(Map.of("parentFirmNumber", chambersFirmNumber)),
+                        "advocateType",
+                        "Advocate",
+                        "advocate",
+                        Map.of(
+                            "advocateLevel",
+                            "Junior",
+                            "solicitorRegulationAuthorityRollNumber",
+                            "SRA" + ts),
+                        "liaisonManager",
+                        Map.of(
+                            "firstName", "Practitioner",
+                            "lastName", "Liaison",
+                            "emailAddress", "dstew1675.practitioner." + ts + "@example.com",
+                            "telephoneNumber", "020 1111 3333"),
+                        "payment",
+                        Map.of("paymentMethod", "CHECK"))))
+            .when()
+            .post("/provider-firms")
+            .then()
+            .statusCode(201)
+            .body("data.providerFirmNumber", notNullValue())
+            .extract()
+            .path("data.providerFirmNumber");
 
     officeCode =
         given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .body(body)
+            .pathParam("firmId", practitionerFirmNumber)
             .when()
-            .post("/provider-firms/{firmId}/offices")
+            .get("/provider-firms/{firmId}/offices")
             .then()
-            .statusCode(201)
+            .statusCode(200)
             .extract()
-            .path("data.officeCode");
+            .path("data.content[0].accountNumber");
   }
 
   @Test
@@ -90,7 +135,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_setDebtRecoveryFlagTrue_onActiveOffice_returns200() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("debtRecoveryFlag", true))
         .when()
@@ -98,21 +143,23 @@ class PatchOfficeActivationE2eTest {
         .then()
         .statusCode(200)
         .body("data.providerFirmGUID", notNullValue())
-        .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
+        .body("data.providerFirmNumber", equalTo(practitionerFirmNumber))
         .body("data.officeGUID", notNullValue())
         .body("data.officeCode", equalTo(officeCode));
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(200)
         .body("data.debtRecoveryFlag", equalTo(true))
-        // Unrelated fields from the @BeforeAll fixture must survive this narrow flag patch.
-        .body("data.address.line1", equalTo("1 Test Street"))
-        .body("data.telephoneNumber", equalTo("0113 000 0001"));
+        // Unrelated field (address inherited from the Chambers parent) must survive this narrow
+        // flag patch. Note: unlike the LSP fixture, payment.paymentMethod is not persisted at
+        // Practitioner creation time (pre-existing behaviour, out of scope here), so address is
+        // used instead as the stable unrelated field.
+        .body("data.address.line1", equalTo("1 Chambers Street"));
   }
 
   @Test
@@ -120,7 +167,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_setFalseBalanceFlagTrue_onActiveOffice_returns400() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("falseBalanceFlag", true))
         .when()
@@ -133,7 +180,7 @@ class PatchOfficeActivationE2eTest {
     // No partial update: debtRecoveryFlag set in the previous test is untouched, and the
     // rejected falseBalanceFlag change was not applied.
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -146,15 +193,15 @@ class PatchOfficeActivationE2eTest {
   /// Deactivation is rejected when `paymentHeldFlag` is not explicitly held true in the
   /// same request (unless it is already true).
   ///
-  /// - DSTEW-1674 AC2 – invalid status flag change rejected. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC2 – invalid status flag change rejected. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(3)
-  void dstew1674_ac2_deactivateOffice_withoutPaymentHeldFlag_returns400() {
+  void dstew1675_ac2_deactivateOffice_withoutPaymentHeldFlag_returns400() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("activeDateTo", LocalDate.now().toString()))
         .when()
@@ -165,7 +212,7 @@ class PatchOfficeActivationE2eTest {
         .body("detail", containsString("payment.paymentHeldFlag"));
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -177,17 +224,17 @@ class PatchOfficeActivationE2eTest {
   /// Deactivation succeeds when `payment.paymentHeldFlag` is explicitly set to `true` in
   /// the same request.
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(4)
-  void dstew1674_ac1_deactivateOffice_withPaymentHeldFlagTrue_returns200() {
+  void dstew1675_ac1_deactivateOffice_withPaymentHeldFlagTrue_returns200() {
     String deactivationDate = LocalDate.now().toString();
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -208,10 +255,10 @@ class PatchOfficeActivationE2eTest {
         .body("data.officeCode", equalTo(officeCode));
 
     // Full effect verified: activeDateTo set, payment.paymentHeldFlag held, and debtRecoveryFlag
-    // auto-reset to false per the OpenAPI spec ("activeDateTo set on an LSP office ... the
-    // debtRecoveryFlag should be set to false").
+    // auto-reset to false per the OpenAPI spec ("activeDateTo set on ... an Advocate/Barrister
+    // office, the debtRecoveryFlag should be set to false").
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -227,7 +274,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_setDebtRecoveryFlagTrue_onInactiveOffice_returns400() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("debtRecoveryFlag", true))
         .when()
@@ -239,7 +286,7 @@ class PatchOfficeActivationE2eTest {
 
     // No partial update: office remains inactive and debtRecoveryFlag remains false.
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -254,7 +301,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_setFalseBalanceFlagTrue_onInactiveOffice_returns200() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("falseBalanceFlag", true))
         .when()
@@ -264,7 +311,7 @@ class PatchOfficeActivationE2eTest {
         .body("data.officeCode", equalTo(officeCode));
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -276,15 +323,15 @@ class PatchOfficeActivationE2eTest {
   /// Reactivation is rejected when `falseBalanceFlag`/`payment.paymentHeldFlag` are
   /// already `true` and are not explicitly cleared in the same request.
   ///
-  /// - DSTEW-1674 AC2 – invalid status flag change rejected. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC2 – invalid status flag change rejected. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(7)
-  void dstew1674_ac2_reactivateOffice_withoutClearingFlags_returns400() {
+  void dstew1675_ac2_reactivateOffice_withoutClearingFlags_returns400() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("clearActiveDateTo", true))
         .when()
@@ -295,7 +342,7 @@ class PatchOfficeActivationE2eTest {
         .body("detail", containsString("payment.paymentHeldFlag"));
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -309,15 +356,15 @@ class PatchOfficeActivationE2eTest {
   /// Reactivation succeeds when `falseBalanceFlag` and `payment.paymentHeldFlag` are
   /// explicitly cleared in the same request.
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(8)
-  void dstew1674_ac1_reactivateOffice_withFlagsExplicitlyCleared_returns200() {
+  void dstew1675_ac1_reactivateOffice_withFlagsExplicitlyCleared_returns200() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -334,7 +381,7 @@ class PatchOfficeActivationE2eTest {
         .body("data.officeCode", equalTo(officeCode));
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -350,7 +397,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_activeDateToAndClearActiveDateToTogether_returns400() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -358,8 +405,8 @@ class PatchOfficeActivationE2eTest {
                 LocalDate.now().toString(),
                 "clearActiveDateTo",
                 true,
-                "telephoneNumber",
-                "0113 000 0001"))
+                "debtRecoveryFlag",
+                false))
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
@@ -369,7 +416,7 @@ class PatchOfficeActivationE2eTest {
 
     // No partial update: office remains active (from the previous test's reactivation).
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -381,15 +428,15 @@ class PatchOfficeActivationE2eTest {
   /// Debt Recovery status can be removed on its own, independent of the office's
   /// activation state (logic table: Debt Recovery removal has no status dependency).
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(10)
-  void dstew1674_ac1_removeDebtRecoveryFlag_whileActive_returns200() {
+  void dstew1675_ac1_removeDebtRecoveryFlag_whileActive_returns200() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("debtRecoveryFlag", true))
         .when()
@@ -399,7 +446,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("debtRecoveryFlag", false))
         .when()
@@ -408,7 +455,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -423,15 +470,15 @@ class PatchOfficeActivationE2eTest {
   /// regarding whether same-request coupling with activation is actually required by the BA; this
   /// test documents that the API currently permits `paymentHeldFlag` changes on their own too.
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(11)
-  void dstew1674_ac1_setAndClearPaymentHeldFlag_independentOfActivation_returns200() {
+  void dstew1675_ac1_setAndClearPaymentHeldFlag_independentOfActivation_returns200() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -449,7 +496,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -460,7 +507,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("payment", Map.of("paymentMethod", "CHECK", "paymentHeldFlag", false)))
         .when()
@@ -469,7 +516,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -482,17 +529,17 @@ class PatchOfficeActivationE2eTest {
   /// reactivating it in the same request (logic table: False Balance removal only depends on the
   /// office being inactive, not on a reactivation transition).
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(12)
-  void dstew1674_ac1_removeFalseBalanceFlag_whileInactive_withoutReactivating_returns200() {
+  void dstew1675_ac1_removeFalseBalanceFlag_whileInactive_withoutReactivating_returns200() {
     String deactivationDate = LocalDate.now().toString();
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -513,7 +560,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("falseBalanceFlag", true))
         .when()
@@ -523,7 +570,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("falseBalanceFlag", false))
         .when()
@@ -532,7 +579,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -547,16 +594,16 @@ class PatchOfficeActivationE2eTest {
   /// office on its own, but the whole request must still be rejected because `debtRecoveryFlag`
   /// cannot be set to `true` while inactive, and neither field must be applied.
   ///
-  /// - DSTEW-1674 AC2 – invalid status flag change rejected. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC2 – invalid status flag change rejected. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(13)
-  void dstew1674_ac2_conflictingFlagsInSameRequest_rejectsWholeRequest_returns400() {
+  void dstew1675_ac2_conflictingFlagsInSameRequest_rejectsWholeRequest_returns400() {
     // Arrange: ensure the office is inactive (it already is, from Order(12)) with both flags
     // false, so this test only observes the effect of this request's own field combination.
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -568,7 +615,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(Map.of("debtRecoveryFlag", true, "falseBalanceFlag", true))
         .when()
@@ -580,7 +627,7 @@ class PatchOfficeActivationE2eTest {
     // No partial update: falseBalanceFlag (which would have been valid alone) must not have been
     // applied either, since the whole request was rejected.
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -595,16 +642,16 @@ class PatchOfficeActivationE2eTest {
   /// the same request is accepted, because the office is validated against its post-transition
   /// (active) state.
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(14)
-  void dstew1674_ac1_reactivateOffice_withDebtRecoveryFlagTrue_returns200() {
+  void dstew1675_ac1_reactivateOffice_withDebtRecoveryFlagTrue_returns200() {
     // Arrange: office is inactive from Order(13), with debtRecoveryFlag/falseBalanceFlag false
     // and payment.paymentHeldFlag true (set during Order(12)'s deactivation, never cleared).
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -614,7 +661,7 @@ class PatchOfficeActivationE2eTest {
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -632,7 +679,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -646,16 +693,16 @@ class PatchOfficeActivationE2eTest {
   /// (even redundantly, when it is already `true`) in the same request must fail, because the
   /// office is validated against its post-transition (inactive) state.
   ///
-  /// - DSTEW-1674 AC2 – invalid status flag change rejected. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC2 – invalid status flag change rejected. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(15)
-  void dstew1674_ac2_deactivateOffice_withDebtRecoveryFlagTrue_returns400() {
+  void dstew1675_ac2_deactivateOffice_withDebtRecoveryFlagTrue_returns400() {
     // Arrange: office is active from Order(14), with debtRecoveryFlag already true.
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -679,7 +726,7 @@ class PatchOfficeActivationE2eTest {
 
     // No partial update: office remains active and debtRecoveryFlag remains unchanged.
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -694,18 +741,18 @@ class PatchOfficeActivationE2eTest {
   /// post-transition (inactive) state, exactly as already proven for `debtRecoveryFlag` +
   /// reactivation above.
   ///
-  /// - DSTEW-1674 AC1 – successful status flag change accepted. (DS_MAPD_FR_045)
+  /// - DSTEW-1675 AC1 – successful status flag change accepted. (DS_MAPD_FR_047)
   ///
-  /// - DS_MAPD_FR_045: Implement Status Flag Rules for LSP Entities.
+  /// - DS_MAPD_FR_047: Implement Status Flag Rules for Practitioner Entities.
   @Test
   @Order(16)
-  void dstew1674_ac1_deactivateOffice_withFalseBalanceFlagTrue_returns200() {
+  void dstew1675_ac1_deactivateOffice_withFalseBalanceFlagTrue_returns200() {
     // Arrange: office is active from Order(15), with falseBalanceFlag false.
     String deactivationDate = LocalDate.now().toString();
 
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .body(
             Map.of(
@@ -727,7 +774,7 @@ class PatchOfficeActivationE2eTest {
         .statusCode(200);
 
     given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", officeCode)
         .when()
         .get("/provider-firms/{firmId}/offices/{officeCode}")
@@ -742,7 +789,7 @@ class PatchOfficeActivationE2eTest {
   void patchOffice_unknownOfficeCode_returns404() {
     given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("firmId", practitionerFirmNumber)
         .pathParam("officeCode", E2eConfig.invalidOfficeCode())
         .body(Map.of("debtRecoveryFlag", true))
         .when()

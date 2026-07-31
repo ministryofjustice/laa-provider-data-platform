@@ -423,16 +423,20 @@ public class OfficeService {
    *   <li>Setting {@code activeDateTo} deactivates the office and, for LSP and Advocate offices,
    *       auto-resets {@code debtRecoveryFlag} to {@code false}.
    *   <li>Deactivating the LSP head office cascades the same {@code activeDateTo} to all active
-   *       child offices.
+   *       child offices and auto-resets each child's {@code debtRecoveryFlag} to {@code false} too.
+   *       {@code paymentHeldFlag} and {@code falseBalanceFlag} on cascaded children are left
+   *       unchanged -- see {@link #cascadeDeactivationToLspChildren} for the open BA question this
+   *       raises.
    *   <li>Deactivating a Chambers office is rejected if any active practitioners are linked to it
    *       (DS_MAPD_FR_019). All practitioners must be deactivated or reassigned to another Chambers
    *       first.
    *   <li>{@code debtRecoveryFlag} and {@code falseBalanceFlag} apply to LSP and Advocate offices
    *       only. {@code debtRecoveryFlag} may only be {@code true} when the office is active; {@code
    *       falseBalanceFlag} may only be {@code true} when the office is inactive.
-   *   <li>Setting {@code clearActiveDateTo: true} re-activates the office and resets {@code
-   *       falseBalanceFlag} to {@code false} for LSP and Advocate offices. It must not be combined
-   *       with {@code activeDateTo} in the same request.
+   *   <li>Setting {@code clearActiveDateTo: true} re-activates the office. {@code falseBalanceFlag}
+   *       and {@code payment.paymentHeldFlag} are not reset automatically: if either is already
+   *       {@code true}, it must be explicitly set to {@code false} in the same request, for LSP and
+   *       Advocate offices. Must not be combined with {@code activeDateTo} in the same request.
    *   <li>Invalid combinations throw {@link IllegalArgumentException}, which is mapped to HTTP 400
    *       by {@link uk.gov.justice.laa.providerdata.exception.GlobalExceptionHandler}.
    * </ul>
@@ -455,6 +459,7 @@ public class OfficeService {
             .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
 
     validatePaymentMethodBankAccountRule(patch, link);
+    validateActivationFlagTransitionRules(patch, link);
 
     switch (patch) {
       case LSPOfficePatchV2 lsp -> {
@@ -605,6 +610,120 @@ public class OfficeService {
   }
 
   /**
+   * Validates {@code paymentHeldFlag} and {@code falseBalanceFlag} against a genuine {@code
+   * activeDateTo} transition, before any entity mutation (DSTEW-1674/DSTEW-1675 AC1/AC2/AC3). The
+   * API performs no auto-correction: a flag value that a transition requires must be supplied
+   * explicitly in the same request, unless it already holds that value. This only fires on a
+   * genuine transition (an inactive office becoming active, or vice versa); re-affirming the
+   * current activation state, or changing the {@code activeDateTo} date while remaining inactive,
+   * carries no additional requirement. No-op for Chambers office links, which carry no status
+   * flags.
+   *
+   * <p>Dispatches on {@code link}'s entity type rather than {@code patch}'s deserialised type,
+   * matching {@link #applyActivationPatchToLink}: an activation-only request body (e.g. just {@code
+   * activeDateTo}) has no LSP/Advocate-specific field for the {@link
+   * uk.gov.justice.laa.providerdata.config.JacksonConfig} type resolver to key off, so it
+   * deserialises as {@link ChambersOfficePatchV2} even when {@code link} is an LSP or Advocate
+   * link. {@code activeDateTo}/{@code clearActiveDateTo} are read generically via {@code patch}
+   * since all three subtypes expose them; {@code falseBalanceFlag}/{@code payment} are only present
+   * on the LSP/Advocate subtypes, so they read as {@code null} when {@code patch} happens to be the
+   * misclassified {@link ChambersOfficePatchV2} shape — which is safe, because that
+   * misclassification only occurs when the request contains neither field anyway.
+   *
+   * <p>TODO(DSTEW-1674/DSTEW-1675): confirm with the BA whether this same-request requirement is
+   * actually wanted for {@code paymentHeldFlag}. Unlike {@code falseBalanceFlag}, {@code
+   * paymentHeldFlag} has no dependency on activation state, so this rule does not enforce a genuine
+   * invariant — a client could achieve the same end state via a second, immediately following
+   * request. It may be that this rule is describing a UI convenience rather than an API constraint
+   * that should actually be enforced.
+   *
+   * @throws IllegalArgumentException if a flag required by the effective transition is missing or
+   *     has the wrong value
+   */
+  private static void validateActivationFlagTransitionRules(
+      OfficePatchV2 patch, ProviderOfficeLinkEntity link) {
+    if (link instanceof ChambersProviderOfficeLinkEntity) {
+      return; // Chambers office links carry no status flags.
+    }
+
+    LocalDate patchActiveDateTo =
+        switch (patch) {
+          case LSPOfficePatchV2 lsp -> lsp.getActiveDateTo();
+          case AdvocateOfficePatchV2 advocate -> advocate.getActiveDateTo();
+          case ChambersOfficePatchV2 chambers -> chambers.getActiveDateTo();
+          default -> null;
+        };
+    boolean clearActiveDateTo =
+        switch (patch) {
+          case LSPOfficePatchV2 lsp -> Boolean.TRUE.equals(lsp.getClearActiveDateTo());
+          case AdvocateOfficePatchV2 advocate ->
+              Boolean.TRUE.equals(advocate.getClearActiveDateTo());
+          case ChambersOfficePatchV2 chambers ->
+              Boolean.TRUE.equals(chambers.getClearActiveDateTo());
+          default -> false;
+        };
+    Boolean patchFalseBalanceFlag =
+        switch (patch) {
+          case LSPOfficePatchV2 lsp -> lsp.getFalseBalanceFlag();
+          case AdvocateOfficePatchV2 advocate -> advocate.getFalseBalanceFlag();
+          default -> null; // ChambersOfficePatchV2 has no falseBalanceFlag field.
+        };
+    PaymentDetailsPatchOrLinkV2 payment =
+        switch (patch) {
+          case LSPOfficePatchV2 lsp -> lsp.getPayment();
+          case AdvocateOfficePatchV2 advocate -> advocate.getPayment();
+          default -> null; // ChambersOfficePatchV2 has no payment field.
+        };
+
+    if (patchActiveDateTo != null && clearActiveDateTo) {
+      // Contradictory request; leave rejection to applyActivationPatchToLink so a single,
+      // unambiguous error is reported instead of a spurious flag-transition error.
+      return;
+    }
+
+    boolean wasInactive = link.getActiveDateTo() != null;
+    boolean transitioningToInactive = patchActiveDateTo != null && !wasInactive;
+    boolean transitioningToActive = clearActiveDateTo && wasInactive;
+
+    if (transitioningToInactive) {
+      boolean alreadyHeld = Boolean.TRUE.equals(link.getPaymentHeldFlag());
+      boolean requestHoldsPayment =
+          payment != null && Boolean.TRUE.equals(payment.getPaymentHeldFlag());
+      if (!alreadyHeld && !requestHoldsPayment) {
+        throw new IllegalArgumentException(
+            "Office patch validation failed: payment.paymentHeldFlag must be set to true in the"
+                + " same request when deactivating an office, unless it is already true");
+      }
+    }
+
+    if (transitioningToActive) {
+      boolean alreadyHeld = Boolean.TRUE.equals(link.getPaymentHeldFlag());
+      boolean requestClearsPayment =
+          payment != null && Boolean.FALSE.equals(payment.getPaymentHeldFlag());
+      if (alreadyHeld && !requestClearsPayment) {
+        throw new IllegalArgumentException(
+            "Office patch validation failed: payment.paymentHeldFlag must be set to false in the"
+                + " same request when reactivating an office, unless it is already false");
+      }
+
+      boolean alreadyFalseBalance =
+          switch (link) {
+            case LspProviderOfficeLinkEntity lspLink ->
+                Boolean.TRUE.equals(lspLink.getFalseBalanceFlag());
+            case AdvocateProviderOfficeLinkEntity advocateLink ->
+                Boolean.TRUE.equals(advocateLink.getFalseBalanceFlag());
+            default -> false;
+          };
+      boolean requestClearsFalseBalance = Boolean.FALSE.equals(patchFalseBalanceFlag);
+      if (alreadyFalseBalance && !requestClearsFalseBalance) {
+        throw new IllegalArgumentException(
+            "Office patch validation failed: falseBalanceFlag must be set to false in the same"
+                + " request when reactivating an office, unless it is already false");
+      }
+    }
+  }
+
+  /**
    * Applies activation-related fields ({@code activeDateTo}, {@code debtRecoveryFlag}, {@code
    * falseBalanceFlag}) to the link entity, dispatching on the entity type. This handles the case
    * where the Jackson discriminator cannot distinguish LSP from Advocate patches and deserialises
@@ -673,6 +792,12 @@ public class OfficeService {
    * debtRecoveryFlag} to {@code false} when {@code activeDateTo} is set (deactivation). Cascades
    * the deactivation date to all active child offices when the patched link is the head office.
    *
+   * <p>TODO(DSTEW-1674): the updated status-flag tables only name {@code paymentHeldFlag} and
+   * {@code falseBalanceFlag} as triggered actions on activation change, not {@code
+   * debtRecoveryFlag}. Confirm with the BA whether this auto-reset should remain (current
+   * behaviour, kept unchanged by request) or whether it should instead become a same-request
+   * rejection like {@code falseBalanceFlag}, leaving a stale {@code true} value in place otherwise.
+   *
    * @throws IllegalArgumentException if flag combinations conflict with the effective state
    */
   private void applyActivationPatchToLspLink(
@@ -697,7 +822,10 @@ public class OfficeService {
         cascadeDeactivationToLspChildren(provider, patchActiveDateTo);
       }
     } else if (clearActiveDateTo) {
-      applyReactivationToLspLink(link);
+      // Does not touch falseBalanceFlag: validateActivationFlagTransitionRules has already
+      // rejected the request unless falseBalanceFlag is already false or is being explicitly
+      // cleared in this request, so no auto-correction is needed here (DSTEW-1674 AC3).
+      link.setActiveDateTo(null);
     }
     if (patchDebtRecoveryFlag != null) {
       link.setDebtRecoveryFlag(patchDebtRecoveryFlag);
@@ -711,6 +839,9 @@ public class OfficeService {
    * Validates and applies activation patch fields to an Advocate office link.
    *
    * <p>Auto-resets {@code debtRecoveryFlag} to {@code false} when {@code activeDateTo} is set.
+   *
+   * <p>TODO(DSTEW-1675): see the equivalent TODO on {@link #applyActivationPatchToLspLink} — the
+   * same open question about whether this auto-reset should remain applies here too.
    *
    * @throws IllegalArgumentException if flag combinations conflict with the effective state
    */
@@ -732,7 +863,10 @@ public class OfficeService {
       link.setActiveDateTo(patchActiveDateTo);
       link.setDebtRecoveryFlag(Boolean.FALSE);
     } else if (clearActiveDateTo) {
-      applyReactivationToAdvocateLink(link);
+      // Does not touch falseBalanceFlag: validateActivationFlagTransitionRules has already
+      // rejected the request unless falseBalanceFlag is already false or is being explicitly
+      // cleared in this request, so no auto-correction is needed here (DSTEW-1675 AC3).
+      link.setActiveDateTo(null);
     }
     if (patchDebtRecoveryFlag != null) {
       link.setDebtRecoveryFlag(patchDebtRecoveryFlag);
@@ -740,16 +874,6 @@ public class OfficeService {
     if (patchFalseBalanceFlag != null) {
       link.setFalseBalanceFlag(patchFalseBalanceFlag);
     }
-  }
-
-  private static void applyReactivationToLspLink(LspProviderOfficeLinkEntity link) {
-    link.setActiveDateTo(null);
-    link.setFalseBalanceFlag(Boolean.FALSE);
-  }
-
-  private static void applyReactivationToAdvocateLink(AdvocateProviderOfficeLinkEntity link) {
-    link.setActiveDateTo(null);
-    link.setFalseBalanceFlag(Boolean.FALSE);
   }
 
   /**
@@ -775,6 +899,20 @@ public class OfficeService {
   /**
    * Sets {@code activeDateTo} on all active (non-head) LSP office links for the provider and
    * auto-resets their {@code debtRecoveryFlag} to {@code false}.
+   *
+   * <p>Current behaviour: only {@code activeDateTo} and {@code debtRecoveryFlag} are touched on
+   * cascaded children. {@code paymentHeldFlag} and {@code falseBalanceFlag} are left exactly as
+   * they were before the cascade -- neither reset nor validated -- so a child can end up inactive
+   * with {@code paymentHeldFlag} still {@code false} (unlike the head office itself, which requires
+   * {@code payment.paymentHeldFlag: true} to be supplied explicitly in the same request; see {@link
+   * #validateActivationFlagTransitionRules}).
+   *
+   * <p>TODO(DSTEW-1674): the head-office patch payload has no field through which a client could
+   * supply per-child flag values, so this asymmetry with the head office's own {@code
+   * paymentHeldFlag} rule is unavoidable as currently implemented. Confirm with the BA whether
+   * cascaded children should instead have {@code paymentHeldFlag} auto-set to {@code true} as part
+   * of the cascade, or whether the current behaviour (left unchanged) is acceptable. Raised as an
+   * open question for the BA, not yet resolved.
    */
   private void cascadeDeactivationToLspChildren(ProviderEntity provider, LocalDate activeDateTo) {
     lspProviderOfficeLinkRepository

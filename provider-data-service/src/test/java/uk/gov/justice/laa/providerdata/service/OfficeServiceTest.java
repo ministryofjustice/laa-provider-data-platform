@@ -1184,10 +1184,128 @@ class OfficeServiceTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+        new LSPOfficePatchV2()
+            .activeDateTo(deactivationDate)
+            .payment(
+                new PaymentDetailsPatchOrLinkV2()
+                    .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK)
+                    .paymentHeldFlag(Boolean.TRUE)
+                    .paymentHeldReason("Deactivated")));
 
     assertThat(link.getActiveDateTo()).isEqualTo(deactivationDate);
     assertThat(link.getDebtRecoveryFlag()).isFalse();
+  }
+
+  @Test
+  void patchOffice_deactivatesLspOffice_rejectedWhenPaymentHeldFlagNotExplicitlySet() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setHeadOfficeFlag(Boolean.FALSE);
+    link.setPaymentHeldFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    var deactivationDate = LocalDate.of(2025, 6, 30);
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2().activeDateTo(deactivationDate)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("paymentHeldFlag");
+
+    assertThat(link.getActiveDateTo()).isNull();
+  }
+
+  @Test
+  void patchOffice_deactivatesLspOffice_doesNotRequirePaymentHeldFlag_whenAlreadyTrue() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    LspProviderOfficeLinkEntity link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setHeadOfficeFlag(Boolean.FALSE);
+    link.setPaymentHeldFlag(Boolean.TRUE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    var deactivationDate = LocalDate.of(2025, 6, 30);
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+
+    assertThat(link.getActiveDateTo()).isEqualTo(deactivationDate);
+    assertThat(link.getPaymentHeldFlag()).isTrue();
+  }
+
+  @Test
+  void patchOffice_reactivatesLspOffice_rejectedWhenPaymentHeldFlagNotExplicitlyCleared() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+    link.setHeadOfficeFlag(Boolean.FALSE);
+    link.setPaymentHeldFlag(Boolean.TRUE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("paymentHeldFlag");
+
+    assertThat(link.getActiveDateTo()).isEqualTo(LocalDate.of(2025, 6, 30));
+    assertThat(link.getPaymentHeldFlag()).isTrue();
+  }
+
+  @Test
+  void patchOffice_reactivatesLspOffice_clearsPaymentHeldFlag_whenExplicitlyCleared() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+    link.setHeadOfficeFlag(Boolean.FALSE);
+    link.setPaymentHeldFlag(Boolean.TRUE);
+    link.setPaymentHeldReason("Under investigation");
+
+    stubProviderAndLink(provider, linkGuid, link);
+    stubSaves();
+
+    service.patchOffice(
+        providerGuid.toString(),
+        linkGuid.toString(),
+        new LSPOfficePatchV2()
+            .clearActiveDateTo(Boolean.TRUE)
+            .falseBalanceFlag(Boolean.FALSE)
+            .payment(
+                new PaymentDetailsPatchOrLinkV2()
+                    .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK)
+                    .paymentHeldFlag(Boolean.FALSE)));
+
+    assertThat(link.getActiveDateTo()).isNull();
+    assertThat(link.getPaymentHeldFlag()).isFalse();
   }
 
   @Test
@@ -1215,7 +1333,13 @@ class OfficeServiceTest {
     service.patchOffice(
         providerGuid.toString(),
         headLinkGuid.toString(),
-        new LSPOfficePatchV2().activeDateTo(deactivationDate));
+        new LSPOfficePatchV2()
+            .activeDateTo(deactivationDate)
+            .payment(
+                new PaymentDetailsPatchOrLinkV2()
+                    .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK)
+                    .paymentHeldFlag(Boolean.TRUE)
+                    .paymentHeldReason("Deactivated")));
 
     assertThat(headLink.getActiveDateTo()).isEqualTo(deactivationDate);
     assertThat(childLink.getActiveDateTo()).isEqualTo(deactivationDate);
@@ -1346,7 +1470,12 @@ class OfficeServiceTest {
                     linkGuid.toString(),
                     new LSPOfficePatchV2()
                         .activeDateTo(LocalDate.of(2025, 6, 30))
-                        .debtRecoveryFlag(Boolean.TRUE)))
+                        .debtRecoveryFlag(Boolean.TRUE)
+                        .payment(
+                            new PaymentDetailsPatchOrLinkV2()
+                                .paymentMethod(PaymentDetailsPaymentMethodV2.CHECK)
+                                .paymentHeldFlag(Boolean.TRUE)
+                                .paymentHeldReason("Deactivated"))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("debtRecoveryFlag");
   }
@@ -1375,7 +1504,7 @@ class OfficeServiceTest {
   }
 
   @Test
-  void patchOffice_reactivatesLspOffice_clearsActiveDateToAndResetsFalseBalanceFlag() {
+  void patchOffice_reactivatesLspOffice_clearsActiveDateToAndClearsFalseBalanceFlag() {
     var providerGuid = UUID.randomUUID();
     var linkGuid = UUID.randomUUID();
 
@@ -1393,14 +1522,42 @@ class OfficeServiceTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+        new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE).falseBalanceFlag(Boolean.FALSE));
 
     assertThat(link.getActiveDateTo()).isNull();
     assertThat(link.getFalseBalanceFlag()).isFalse();
   }
 
   @Test
-  void patchOffice_reactivatesAdvocateOffice_clearsActiveDateToAndResetsFalseBalanceFlag() {
+  void patchOffice_reactivatesLspOffice_rejectedWhenFalseBalanceFlagNotExplicitlyCleared() {
+    var providerGuid = UUID.randomUUID();
+    var linkGuid = UUID.randomUUID();
+
+    var provider = ProviderEntity.builder().firmNumber("100001").build();
+    provider.setGuid(providerGuid);
+
+    var link = lspLinkWithOffice(linkGuid, "ACC001");
+    link.setActiveDateTo(LocalDate.of(2025, 6, 30));
+    link.setFalseBalanceFlag(Boolean.TRUE);
+    link.setHeadOfficeFlag(Boolean.FALSE);
+
+    stubProviderAndLink(provider, linkGuid, link);
+
+    assertThatThrownBy(
+            () ->
+                service.patchOffice(
+                    providerGuid.toString(),
+                    linkGuid.toString(),
+                    new LSPOfficePatchV2().clearActiveDateTo(Boolean.TRUE)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("falseBalanceFlag");
+
+    assertThat(link.getActiveDateTo()).isEqualTo(LocalDate.of(2025, 6, 30));
+    assertThat(link.getFalseBalanceFlag()).isTrue();
+  }
+
+  @Test
+  void patchOffice_reactivatesAdvocateOffice_clearsActiveDateToAndClearsFalseBalanceFlag() {
     var providerGuid = UUID.randomUUID();
     var linkGuid = UUID.randomUUID();
 
@@ -1420,7 +1577,9 @@ class OfficeServiceTest {
     service.patchOffice(
         providerGuid.toString(),
         linkGuid.toString(),
-        new AdvocateOfficePatchV2().clearActiveDateTo(Boolean.TRUE));
+        new AdvocateOfficePatchV2()
+            .clearActiveDateTo(Boolean.TRUE)
+            .falseBalanceFlag(Boolean.FALSE));
 
     assertThat(link.getActiveDateTo()).isNull();
     assertThat(link.getFalseBalanceFlag()).isFalse();

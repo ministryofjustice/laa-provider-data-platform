@@ -16,7 +16,7 @@ jobs:
       staging_fulltag: ${{ steps.versions.outputs.staging_fulltag }}
       staging_rtag:    ${{ steps.versions.outputs.staging_rtag }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: "Authenticate with Kubernetes cluster"
         id:   kube_auth
@@ -50,7 +50,7 @@ jobs:
       prod_fulltag: ${{ steps.versions.outputs.prod_fulltag }}
       prod_rtag:    ${{ steps.versions.outputs.prod_rtag }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: "Authenticate with Kubernetes cluster"
         id:   kube_auth
@@ -92,23 +92,23 @@ jobs:
 
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           ## Previously-deployed versions
-          
+
           | Environment |                Version currently deployed                 |
           |:------------|:---------------------------------------------------------:|
           | **staging** | `${{ needs.query-staging-version.outputs.staging_rtag }}` |
           | **prod**    |    `${{ needs.query-prod-version.outputs.prod_rtag }}`    |
-          
+
           Unless rolling back, the **staging** version should be similar to the registry tag to deploy (below) and the **prod** version (above) should be an older registry tag.
-          
+
           ## Version to be deployed
-          
+
           | Workflow input name                 |      Requested value      |
           |:------------------------------------|:-------------------------:|
           | **Registry tag to deploy**          |   `${{ inputs.rtag }}`    |
           | **Skip E2E tests after deployment** | `${{ inputs.skip_e2e }}`  |
-          
+
           The registry tag `pdp-${{ inputs.rtag }}` will replace the previous `${{ needs.query-prod-version.outputs.prod_fulltag }}` version in **prod**.
-          
+
           EOF
 
           gh api "repos/${{ github.repository }}/releases/generate-notes" -X POST \
@@ -120,19 +120,19 @@ jobs:
             || echo "_Release notes unavailable._" >> "$GITHUB_STEP_SUMMARY"
 
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          
+
           ## Recommended manual checks
-          
+
           Verify that the registry tags to deploy and to roll back both still exist in Amazon ECR:
-          
-          - Log in to [AWS Console](https://justice-cloud-platform.eu.auth0.com/samlp/mQev56oEa7mrRCKAZRxSnDSoYt6Y7r5m?connection=github&region=eu-west-2), navigate to [ECR repositories](https://eu-west-2.console.aws.amazon.com/ecr/private-registry/repositories?region=eu-west-2) and filter by `laa-data-provider-data` to locate the correct repository. 
+
+          - Log in to [AWS Console](https://justice-cloud-platform.eu.auth0.com/samlp/mQev56oEa7mrRCKAZRxSnDSoYt6Y7r5m?connection=github&region=eu-west-2), navigate to [ECR repositories](https://eu-west-2.console.aws.amazon.com/ecr/private-registry/repositories?region=eu-west-2) and filter by `laa-data-provider-data` to locate the correct repository.
           - Within the registry, search for tag `pdp-${{ inputs.rtag }}` and confirm that this image version was recently pushed.
           - Search also for the older rollback tag `${{ needs.query-prod-version.outputs.prod_fulltag }}` to confirm it has not been deleted.
-          
+
           ## Next steps to proceed
-          
+
           Further deployment approval reviews are required to complete this deployment:
-          
+
           - If the information above looks good, approve the **Deploy to prod** job when ready.
           - If the deployment completes successfully, approve the **E2E test prod** job when ready.
           - If there are problems with the newly-deployed version, then roll back by running this pipeline workflow again with **Registry tag to deploy:** `${{ needs.query-prod-version.outputs.prod_rtag }}`.

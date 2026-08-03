@@ -119,4 +119,5 @@ jobs:
             --skip javascripts/govuk_frontend.js \
             --skip 'http://localhost:.*' \
             --skip https://github.com/ministryofjustice/laa-data-provider-data \
-            --skip 'images/favicon'
+            --skip 'images/favicon' \
+            --skip '\.apps\.live\.cloud-platform\.service\.justice\.gov\.uk'

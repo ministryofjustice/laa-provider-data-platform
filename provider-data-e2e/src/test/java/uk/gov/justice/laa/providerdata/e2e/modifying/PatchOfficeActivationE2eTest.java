@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import java.time.LocalDate;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -88,26 +89,14 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(1)
   void patchOffice_setDebtRecoveryFlagTrue_onActiveOffice_returns200() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("debtRecoveryFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("debtRecoveryFlag", true))
         .statusCode(200)
         .body("data.providerFirmGUID", notNullValue())
         .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
         .body("data.officeGUID", notNullValue())
         .body("data.officeCode", equalTo(officeCode));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.debtRecoveryFlag", equalTo(true))
         // Unrelated fields from the @BeforeAll fixture must survive this narrow flag patch.
@@ -118,26 +107,14 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(2)
   void patchOffice_setFalseBalanceFlagTrue_onActiveOffice_returns400() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("falseBalanceFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("falseBalanceFlag", true))
         .statusCode(400)
         // AC2 requires "an appropriate error message is sent", not just a bare 400.
         .body("detail", containsString("falseBalanceFlag"));
 
     // No partial update: debtRecoveryFlag set in the previous test is untouched, and the
     // rejected falseBalanceFlag change was not applied.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.debtRecoveryFlag", equalTo(true))
         .body("data.falseBalanceFlag", not(equalTo(true)));
@@ -152,26 +129,12 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(3)
   void dstew1674_ac2_deactivateOffice_withoutPaymentHeldFlag_returns400() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("activeDateTo", LocalDate.now().toString()))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("activeDateTo", LocalDate.now().toString()))
         .statusCode(400)
         // AC2 requires "an appropriate error message is sent", not just a bare 400.
         .body("detail", containsString("payment.paymentHeldFlag"));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.activeDateTo", nullValue());
+    getOffice().statusCode(200).body("data.activeDateTo", nullValue());
   }
 
   /// Deactivation succeeds when `payment.paymentHeldFlag` is explicitly set to `true` in
@@ -185,11 +148,7 @@ class PatchOfficeActivationE2eTest {
   void dstew1674_ac1_deactivateOffice_withPaymentHeldFlagTrue_returns200() {
     String deactivationDate = LocalDate.now().toString();
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "activeDateTo",
                 deactivationDate,
@@ -201,21 +160,13 @@ class PatchOfficeActivationE2eTest {
                     true,
                     "paymentHeldReason",
                     "Deactivation hold")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200)
         .body("data.officeCode", equalTo(officeCode));
 
     // Full effect verified: activeDateTo set, payment.paymentHeldFlag held, and debtRecoveryFlag
     // auto-reset to false per the OpenAPI spec ("activeDateTo set on an LSP office ... the
     // debtRecoveryFlag should be set to false").
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", equalTo(deactivationDate))
         .body("data.debtRecoveryFlag", equalTo(false))
@@ -225,25 +176,13 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(5)
   void patchOffice_setDebtRecoveryFlagTrue_onInactiveOffice_returns400() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("debtRecoveryFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("debtRecoveryFlag", true))
         .statusCode(400)
         // AC2 requires "an appropriate error message is sent", not just a bare 400.
         .body("detail", containsString("debtRecoveryFlag"));
 
     // No partial update: office remains inactive and debtRecoveryFlag remains false.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", notNullValue())
         .body("data.debtRecoveryFlag", not(equalTo(true)));
@@ -252,25 +191,11 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(6)
   void patchOffice_setFalseBalanceFlagTrue_onInactiveOffice_returns200() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("falseBalanceFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("falseBalanceFlag", true))
         .statusCode(200)
         .body("data.officeCode", equalTo(officeCode));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.falseBalanceFlag", equalTo(true));
+    getOffice().statusCode(200).body("data.falseBalanceFlag", equalTo(true));
   }
 
   /// Reactivation is rejected when `falseBalanceFlag`/`payment.paymentHeldFlag` are
@@ -282,24 +207,12 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(7)
   void dstew1674_ac2_reactivateOffice_withoutClearingFlags_returns400() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("clearActiveDateTo", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("clearActiveDateTo", true))
         .statusCode(400)
         // AC2 requires "an appropriate error message is sent", not just a bare 400.
         .body("detail", containsString("payment.paymentHeldFlag"));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", notNullValue())
         .body("data.falseBalanceFlag", equalTo(true))
@@ -315,11 +228,7 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(8)
   void dstew1674_ac1_reactivateOffice_withFlagsExplicitlyCleared_returns200() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "clearActiveDateTo",
                 true,
@@ -327,18 +236,10 @@ class PatchOfficeActivationE2eTest {
                 false,
                 "payment",
                 Map.of("paymentMethod", "CHECK", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200)
         .body("data.officeCode", equalTo(officeCode));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", nullValue())
         .body("data.falseBalanceFlag", not(equalTo(true)))
@@ -348,11 +249,7 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(9)
   void patchOffice_activeDateToAndClearActiveDateToTogether_returns400() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "activeDateTo",
                 LocalDate.now().toString(),
@@ -360,22 +257,12 @@ class PatchOfficeActivationE2eTest {
                 true,
                 "telephoneNumber",
                 "0113 000 0001"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(400)
         .body("detail", containsString("activeDateTo"))
         .body("detail", containsString("clearActiveDateTo"));
 
     // No partial update: office remains active (from the previous test's reactivation).
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.activeDateTo", nullValue());
+    getOffice().statusCode(200).body("data.activeDateTo", nullValue());
   }
 
   /// Debt Recovery status can be removed on its own, independent of the office's
@@ -387,34 +274,11 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(10)
   void dstew1674_ac1_removeDebtRecoveryFlag_whileActive_returns200() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("debtRecoveryFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(Map.of("debtRecoveryFlag", true)).statusCode(200);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("debtRecoveryFlag", false))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(Map.of("debtRecoveryFlag", false)).statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.debtRecoveryFlag", not(equalTo(true)));
+    getOffice().statusCode(200).body("data.debtRecoveryFlag", not(equalTo(true)));
   }
 
   /// Payment On Hold can be set and cleared independently of any activation change (logic
@@ -429,11 +293,7 @@ class PatchOfficeActivationE2eTest {
   @Test
   @Order(11)
   void dstew1674_ac1_setAndClearPaymentHeldFlag_independentOfActivation_returns200() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "payment",
                 Map.of(
@@ -443,39 +303,17 @@ class PatchOfficeActivationE2eTest {
                     true,
                     "paymentHeldReason",
                     "Standalone hold")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", nullValue())
         .body("data.payment.paymentHeldFlag", equalTo(true));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("payment", Map.of("paymentMethod", "CHECK", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("payment", Map.of("paymentMethod", "CHECK", "paymentHeldFlag", false)))
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.payment.paymentHeldFlag", not(equalTo(true)));
+    getOffice().statusCode(200).body("data.payment.paymentHeldFlag", not(equalTo(true)));
   }
 
   /// False Balance status can be removed while the office remains inactive, without
@@ -490,11 +328,7 @@ class PatchOfficeActivationE2eTest {
   void dstew1674_ac1_removeFalseBalanceFlag_whileInactive_withoutReactivating_returns200() {
     String deactivationDate = LocalDate.now().toString();
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "activeDateTo",
                 deactivationDate,
@@ -506,37 +340,13 @@ class PatchOfficeActivationE2eTest {
                     true,
                     "paymentHeldReason",
                     "Deactivation hold")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("falseBalanceFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(Map.of("falseBalanceFlag", true)).statusCode(200);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("falseBalanceFlag", false))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(Map.of("falseBalanceFlag", false)).statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", notNullValue())
         .body("data.falseBalanceFlag", not(equalTo(true)));
@@ -555,36 +365,19 @@ class PatchOfficeActivationE2eTest {
   void dstew1674_ac2_conflictingFlagsInSameRequest_rejectsWholeRequest_returns400() {
     // Arrange: ensure the office is inactive (it already is, from Order(12)) with both flags
     // false, so this test only observes the effect of this request's own field combination.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", notNullValue())
         .body("data.debtRecoveryFlag", not(equalTo(true)))
         .body("data.falseBalanceFlag", not(equalTo(true)));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("debtRecoveryFlag", true, "falseBalanceFlag", true))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(Map.of("debtRecoveryFlag", true, "falseBalanceFlag", true))
         .statusCode(400)
         .body("detail", containsString("debtRecoveryFlag"));
 
     // No partial update: falseBalanceFlag (which would have been valid alone) must not have been
     // applied either, since the whole request was rejected.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.debtRecoveryFlag", not(equalTo(true)))
         .body("data.falseBalanceFlag", not(equalTo(true)));
@@ -603,20 +396,9 @@ class PatchOfficeActivationE2eTest {
   void dstew1674_ac1_reactivateOffice_withDebtRecoveryFlagTrue_returns200() {
     // Arrange: office is inactive from Order(13), with debtRecoveryFlag/falseBalanceFlag false
     // and payment.paymentHeldFlag true (set during Order(12)'s deactivation, never cleared).
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200)
-        .body("data.activeDateTo", notNullValue());
+    getOffice().statusCode(200).body("data.activeDateTo", notNullValue());
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "clearActiveDateTo",
                 true,
@@ -626,17 +408,9 @@ class PatchOfficeActivationE2eTest {
                 false,
                 "payment",
                 Map.of("paymentMethod", "CHECK", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", nullValue())
         .body("data.debtRecoveryFlag", equalTo(true));
@@ -653,11 +427,7 @@ class PatchOfficeActivationE2eTest {
   @Order(15)
   void dstew1674_ac2_deactivateOffice_withDebtRecoveryFlagTrue_returns400() {
     // Arrange: office is active from Order(14), with debtRecoveryFlag already true.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "activeDateTo",
                 LocalDate.now().toString(),
@@ -671,19 +441,11 @@ class PatchOfficeActivationE2eTest {
                     true,
                     "paymentHeldReason",
                     "Deactivation hold")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(400)
         .body("detail", containsString("debtRecoveryFlag"));
 
     // No partial update: office remains active and debtRecoveryFlag remains unchanged.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", nullValue())
         .body("data.debtRecoveryFlag", equalTo(true));
@@ -703,11 +465,7 @@ class PatchOfficeActivationE2eTest {
     // Arrange: office is active from Order(15), with falseBalanceFlag false.
     String deactivationDate = LocalDate.now().toString();
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .body(
+    patchOffice(
             Map.of(
                 "activeDateTo",
                 deactivationDate,
@@ -721,17 +479,9 @@ class PatchOfficeActivationE2eTest {
                     true,
                     "paymentHeldReason",
                     "Deactivation hold")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice()
         .statusCode(200)
         .body("data.activeDateTo", equalTo(deactivationDate))
         .body("data.falseBalanceFlag", equalTo(true));
@@ -749,5 +499,30 @@ class PatchOfficeActivationE2eTest {
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
         .then()
         .statusCode(404);
+  }
+
+  /// Sends {@code PATCH /provider-firms/{firmId}/offices/{officeCode}} for the fixture office
+  /// created in {@code @BeforeAll}, with the given request body.
+  private static ValidatableResponse patchOffice(Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", officeCode)
+        .body(body)
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then();
+  }
+
+  /// Fetches the fixture office created in {@code @BeforeAll} via {@code GET
+  /// /provider-firms/{firmId}/offices/{officeCode}}, to verify the effect of a preceding {@link
+  /// #patchOffice}.
+  private static ValidatableResponse getOffice() {
+    return given()
+        .pathParam("firmId", E2eConfig.lspFirmNumber())
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then();
   }
 }

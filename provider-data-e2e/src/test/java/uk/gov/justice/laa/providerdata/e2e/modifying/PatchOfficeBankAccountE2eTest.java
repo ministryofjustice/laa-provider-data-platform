@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -78,14 +79,7 @@ class PatchOfficeBankAccountE2eTest {
                 Map.of("type", "link", "bankAccountGUID", existingBankAccountGuid)));
 
     Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .body(body)
-            .when()
-            .patch("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        patchOffice(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body)
             .statusCode(200)
             .body("data.providerFirmGUID", notNullValue())
             .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
@@ -96,12 +90,7 @@ class PatchOfficeBankAccountE2eTest {
 
     String officeGuid = response.path("data.officeGUID");
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(E2eConfig.lspFirmNumber(), officeGuid)
         .statusCode(200)
         .body("data.content.find { it.primaryFlag == true }.guid", equalTo(existingBankAccountGuid))
         .body("data.content.find { it.primaryFlag == true }.createdBy", notNullValue())
@@ -146,14 +135,7 @@ class PatchOfficeBankAccountE2eTest {
                     uniqueAccountNumber)));
 
     Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .body(body)
-            .when()
-            .patch("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        patchOffice(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body)
             .statusCode(200)
             .body("data.providerFirmGUID", notNullValue())
             .body("data.providerFirmNumber", equalTo(E2eConfig.lspFirmNumber()))
@@ -165,12 +147,7 @@ class PatchOfficeBankAccountE2eTest {
     String officeGuid = response.path("data.officeGUID");
 
     // Verify the new account appears as primary on the office
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(E2eConfig.lspFirmNumber(), officeGuid)
         .statusCode(200)
         .body(
             "data.content.findAll { it.primaryFlag == true }.accountNumber[0]",
@@ -206,12 +183,7 @@ class PatchOfficeBankAccountE2eTest {
   @Test
   void patchOffice_linkUnknownBankAccountGuid_returns404() {
     Integer countBefore =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
             .statusCode(200)
             .extract()
             .path("data.metadata.pagination.totalItems");
@@ -227,22 +199,9 @@ class PatchOfficeBankAccountE2eTest {
                 "bankAccountDetails",
                 Map.of("type", "link", "bankAccountGUID", UUID.randomUUID().toString())));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(404);
+    patchOffice(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body).statusCode(404);
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.metadata.pagination.totalItems", equalTo(countBefore));
   }
@@ -318,24 +277,11 @@ class PatchOfficeBankAccountE2eTest {
             .path("data.providerFirmNumber");
 
     // --- Step 2: resolve the head office GUID ---
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // Assert the initial account is primary (baseline)
     List<Boolean> flagsAfterCreate =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(firmNumber, officeGuid)
             .statusCode(200)
             .extract()
             .path("data.content.primaryFlag");
@@ -347,11 +293,9 @@ class PatchOfficeBankAccountE2eTest {
 
     // --- Step 3: first switch — assign account A ---
     String accountNumberA = "8" + ((ts + 1) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -367,18 +311,10 @@ class PatchOfficeBankAccountE2eTest {
                         "601111",
                         "accountNumber",
                         accountNumberA))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     List<Boolean> flagsAfterFirstSwitch =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(firmNumber, officeGuid)
             .statusCode(200)
             .extract()
             .path("data.content.primaryFlag");
@@ -389,12 +325,7 @@ class PatchOfficeBankAccountE2eTest {
         equalTo(1L));
 
     // DSTEW-1640 audit coverage: all returned associations should include audit fields
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content.findAll { it.createdBy == null }", hasSize(0))
         .body("data.content.findAll { it.createdTimestamp == null }", hasSize(0))
@@ -464,23 +395,13 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // switch to a new bank account
     String newAccountNumber = "4" + ((timestamp + 1) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -493,17 +414,9 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "Replacement Account",
                         "sortCode", "601111",
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content", hasSize(2))
         .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
@@ -591,22 +504,12 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     String accountANumber = "2" + ((ts + 1) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -619,27 +522,17 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "Account A",
                         "sortCode", "601111",
                         "accountNumber", accountANumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     String account0Guid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(firmNumber, officeGuid)
             .statusCode(200)
             .extract()
             .path("data.content.findAll { it.accountNumber == '" + account0Number + "' }.guid[0]");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -649,17 +542,9 @@ class PatchOfficeBankAccountE2eTest {
                     false,
                     "bankAccountDetails",
                     Map.of("type", "link", "bankAccountGUID", account0Guid))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content", hasSize(3))
         .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
@@ -693,15 +578,7 @@ class PatchOfficeBankAccountE2eTest {
                 "bankAccountDetails",
                 Map.of("type", "link", "bankAccountGUID", existingBankAccountGuid)));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.invalidOfficeCode())
-        .body(body)
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(404);
+    patchOffice(E2eConfig.lspFirmNumber(), E2eConfig.invalidOfficeCode(), body).statusCode(404);
   }
 
   /// When a new bank account is assigned to an office, the old (existing) bank account link is
@@ -765,38 +642,20 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // Capture initial state — old account before update
     Response oldAccountBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response();
+        getBankDetails(firmNumber, officeGuid).statusCode(200).extract().response();
 
     String oldAccountGuid = oldAccountBefore.path("data.content[0].guid");
     String oldAccountNumber = oldAccountBefore.path("data.content[0].accountNumber");
 
     // Assign new account
     String newAccountNumber = "1" + ((timestamp + 1) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -809,18 +668,10 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "AC1 New Account",
                         "sortCode", "601111",
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     // Verify both accounts exist in bank details
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content", hasSize(2))
         // Old account: non-primary with activeDateTo set
@@ -910,38 +761,20 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // Capture old account state before update
     Response oldAccountState =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response();
+        getBankDetails(firmNumber, officeGuid).statusCode(200).extract().response();
 
     String newAccountNumber = "0" + ((timestamp + 2) % 10_000_000L);
     String newAccountName = "AC2 New Acct " + timestamp;
     String newSortCode = "602222";
 
     // Assign new account
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -954,18 +787,10 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", newAccountName,
                         "sortCode", newSortCode,
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     // Verify old account fields are unchanged (except primaryFlag and activeDateTo)
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         // Old account core fields unchanged
         .body(
@@ -1060,22 +885,12 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     String newAccountNumber = "5" + ((timestamp + 3) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -1088,18 +903,10 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "AC3 New",
                         "sortCode", "601111",
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     // Verify validity constraints
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         // Both accounts still exist (no orphan state)
         .body("data.content", hasSize(2))
@@ -1190,37 +997,19 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // Capture state before failed update
     Response stateBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response();
+        getBankDetails(firmNumber, officeGuid).statusCode(200).extract().response();
 
     int accountCountBefore = stateBefore.path("data.content.size()");
     boolean wasPrimaryBefore = stateBefore.path("data.content[0].primaryFlag");
 
     // Attempt invalid patch with non-existent bank account GUID
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -1230,18 +1019,10 @@ class PatchOfficeBankAccountE2eTest {
                     false,
                     "bankAccountDetails",
                     Map.of("type", "link", "bankAccountGUID", UUID.randomUUID().toString()))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(404); // Should be rejected
 
     // Verify no partial update occurred (state unchanged)
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         // Account count unchanged
         .body("data.content", hasSize(accountCountBefore))
@@ -1312,22 +1093,12 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     String newAccountNumber = "9" + ((timestamp + 4) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -1340,18 +1111,10 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "AC5 New",
                         "sortCode", "601111",
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     // Verify both old and new accounts are still associated (retrievable) from the office
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content", hasSize(2))
         // Both accounts have valid office links (retrievable via office endpoint)
@@ -1444,22 +1207,12 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     String newAccountNumber = "8" + ((timestamp + 1) % 10_000_000L);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .body(
+    patchOffice(
+            firmNumber,
+            officeGuid,
             Map.of(
                 "payment",
                 Map.of(
@@ -1472,18 +1225,10 @@ class PatchOfficeBankAccountE2eTest {
                         "accountName", "AC4 New",
                         "sortCode", "601111",
                         "accountNumber", newAccountNumber))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200);
 
     Response response =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(firmNumber, officeGuid)
             .statusCode(200)
             .body("data.content", hasSize(2))
             .extract()
@@ -1566,24 +1311,11 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // Fetch the newly created bank account association
     Response response =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", officeGuid)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(firmNumber, officeGuid)
             .statusCode(200)
             .body("data.content", hasSize(1))
             .extract()
@@ -1659,25 +1391,50 @@ class PatchOfficeBankAccountE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeGuid =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].guid");
+    String officeGuid = resolveOfficeGuid(firmNumber);
 
     // The bank account is assigned to the office, so we check here
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeGuid)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(firmNumber, officeGuid)
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].activeDateFrom", notNullValue());
+  }
+
+  /// Resolves the GUID of the given firm's head office via {@code GET
+  /// /provider-firms/{firmId}/offices}.
+  private static String resolveOfficeGuid(String firmNumber) {
+    return given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .extract()
+        .path("data.content[0].guid");
+  }
+
+  /// Fetches the bank-details associations for the given office via {@code GET
+  /// /provider-firms/{firmId}/offices/{officeCode}/bank-details}.
+  private static ValidatableResponse getBankDetails(String firmId, String officeCode) {
+    return given()
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then();
+  }
+
+  /// Sends {@code PATCH /provider-firms/{firmId}/offices/{officeCode}} with the given request
+  /// body, to reassign the office's payment/bank-account details.
+  private static ValidatableResponse patchOffice(
+      String firmId, String officeCode, Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .body(body)
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then();
   }
 }

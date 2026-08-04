@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,42 @@ import uk.gov.justice.laa.providerdata.e2e.ModifyingTest;
 @ModifyingTest
 class AssignOfficeContractManagerE2eTest {
 
+  private static final String CONTRACT_MANAGERS_ENDPOINT =
+      "/provider-firms/{firmId}/offices/{officeCode}/contract-managers";
+
   private static String contractManagerGuid;
   private static String defaultContractManagerGuid;
+
+  /** POSTs the given assignment instruction body to the office's contract-managers endpoint. */
+  private static ValidatableResponse assignContractManager(
+      String firmNumber, String officeCode, Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .body(body)
+        .when()
+        .post(CONTRACT_MANAGERS_ENDPOINT)
+        .then();
+  }
+
+  /** GETs the contract managers currently assigned to the office. */
+  private static ValidatableResponse getContractManagers(String firmNumber, String officeCode) {
+    return given()
+        .pathParam("firmId", firmNumber)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get(CONTRACT_MANAGERS_ENDPOINT)
+        .then();
+  }
+
+  /** Snapshots the contract manager IDs currently assigned to the office, for later comparison. */
+  private static List<String> snapshotContractManagerIds(String firmNumber, String officeCode) {
+    return getContractManagers(firmNumber, officeCode)
+        .statusCode(200)
+        .extract()
+        .path("data.content.contractManagerId");
+  }
 
   @BeforeAll
   static void lookUpGuids() {
@@ -67,14 +102,7 @@ class AssignOfficeContractManagerE2eTest {
   void assignContractManager_forExistingOffice_returns201ThenGetReturnsAssignment() {
     Map<String, Object> body = Map.of("contractManagerGUID", contractManagerGuid);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body)
         .statusCode(201)
         .body("data.officeGUID", notNullValue())
         .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
@@ -82,12 +110,7 @@ class AssignOfficeContractManagerE2eTest {
     // DSTEW-1660/DSTEW-1661 AC1: assignment appears in the GET response.
     // DSTEW-1660/DSTEW-1661 AC3: exactly one contract manager is assigned — the service enforces
     // at-most-one per office.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content.contractManagerId", hasItem(E2eConfig.contractManagerId()));
@@ -104,15 +127,7 @@ class AssignOfficeContractManagerE2eTest {
       dstew1924_ac1_assignContractManager_noInstructionProvided_returns400AndAssignmentUnchanged() {
     // Snapshot the existing contract manager state before the failed attempt.
     List<String> originalContractManagerIds =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content.contractManagerId");
+        snapshotContractManagerIds(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode());
 
     given()
         .contentType(ContentType.JSON)
@@ -120,17 +135,12 @@ class AssignOfficeContractManagerE2eTest {
         .pathParam("officeCode", E2eConfig.lspOfficeCode())
         .body("{}")
         .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
+        .post(CONTRACT_MANAGERS_ENDPOINT)
         .then()
         .statusCode(400);
 
     // Assert the office's contract manager state is identical to the pre-request snapshot.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(originalContractManagerIds.size()))
         .body("data.content.contractManagerId", equalTo(originalContractManagerIds));
@@ -147,24 +157,15 @@ class AssignOfficeContractManagerE2eTest {
    */
   @Test
   void dstew1660_ac2_assignContractManager_useDefault_assignsDefaultContractManager() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("useDefaultContractManager", true))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("useDefaultContractManager", true))
         .statusCode(201)
         .body("data.officeGUID", notNullValue())
         .body("data.contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
 
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
@@ -182,36 +183,23 @@ class AssignOfficeContractManagerE2eTest {
   @Test
   void dstew1661_ac2_replaceExistingCm_withDefault_onlyDefaultRemains() {
     // Establish a known non-default CM on the office.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", contractManagerGuid))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", contractManagerGuid))
         .statusCode(201)
         .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
 
     // Replace it with the system default using an explicit instruction.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("useDefaultContractManager", true))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("useDefaultContractManager", true))
         .statusCode(201)
         .body("data.contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
 
     // DSTEW-1661 AC3: exactly one CM is assigned — the previous assignment was replaced.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
@@ -228,33 +216,16 @@ class AssignOfficeContractManagerE2eTest {
       dstew1924_ac4_assignContractManager_conflictingInstructions_returns400AndAssignmentUnchanged() {
     // Snapshot the existing contract manager state before the failed attempt.
     List<String> originalContractManagerIds =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content.contractManagerId");
+        snapshotContractManagerIds(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode());
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", contractManagerGuid, "useDefaultContractManager", true))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", contractManagerGuid, "useDefaultContractManager", true))
         .statusCode(400);
 
     // Assert the office's contract manager state is identical to the pre-request snapshot.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(originalContractManagerIds.size()))
         .body("data.content.contractManagerId", equalTo(originalContractManagerIds));
@@ -269,36 +240,23 @@ class AssignOfficeContractManagerE2eTest {
   @Test
   void dstew1924_ac5_assignContractManager_useHeadOffice_assignsHeadOfficeCm() {
     // Establish a known CM on the LSP2 head office.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lsp2FirmNumber())
-        .pathParam("officeCode", E2eConfig.lsp2HeadOfficeCode())
-        .body(Map.of("contractManagerGUID", contractManagerGuid))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lsp2FirmNumber(),
+            E2eConfig.lsp2HeadOfficeCode(),
+            Map.of("contractManagerGUID", contractManagerGuid))
         .statusCode(201);
 
     // Assign via head-office trickle-down to the child office.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lsp2FirmNumber())
-        .pathParam("officeCode", E2eConfig.lsp2ChildOfficeCode())
-        .body(Map.of("useHeadOfficeContractManager", true))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lsp2FirmNumber(),
+            E2eConfig.lsp2ChildOfficeCode(),
+            Map.of("useHeadOfficeContractManager", true))
         .statusCode(201)
         .body("data.officeGUID", notNullValue())
         .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
 
     // Verify the assignment is persisted and exactly one CM is assigned to the child office.
-    given()
-        .pathParam("firmId", E2eConfig.lsp2FirmNumber())
-        .pathParam("officeCode", E2eConfig.lsp2ChildOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lsp2FirmNumber(), E2eConfig.lsp2ChildOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content[0].contractManagerId", equalTo(E2eConfig.contractManagerId()));
@@ -316,38 +274,18 @@ class AssignOfficeContractManagerE2eTest {
   void assignContractManager_unknownContractManagerGuid_returns400() {
     // Snapshot the existing contract manager state before the failed attempt.
     List<String> originalContractManagerIds =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content.contractManagerId");
+        snapshotContractManagerIds(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode());
 
     // A well-formed UUID that is guaranteed not to exist in the dataset
     Map<String, Object> body =
         Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body)
         .statusCode(400);
 
     // Assert the office's contract manager state is identical to the pre-request snapshot —
     // the failed POST must not have mutated the existing assignment.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(originalContractManagerIds.size()))
         .body("data.content.contractManagerId", equalTo(originalContractManagerIds));
@@ -364,33 +302,16 @@ class AssignOfficeContractManagerE2eTest {
   void assignContractManager_malformedContractManagerGuid_returns400AndAssignmentUnchanged() {
     // Snapshot the existing contract manager state before the failed attempt.
     List<String> originalContractManagerIds =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content.contractManagerId");
+        snapshotContractManagerIds(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode());
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", "not-a-valid-uuid"))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", "not-a-valid-uuid"))
         .statusCode(400);
 
     // Assert the office's contract manager state is identical to the pre-request snapshot.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(originalContractManagerIds.size()))
         .body("data.content.contractManagerId", equalTo(originalContractManagerIds));
@@ -405,26 +326,18 @@ class AssignOfficeContractManagerE2eTest {
   @Test
   void assignContractManager_replacesExistingAssignment_onlyNewRemains() {
     // Establish a known starting state: assign the configured contract manager.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", contractManagerGuid))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", contractManagerGuid))
         .statusCode(201)
         .body("data.contractManagerId", equalTo(E2eConfig.contractManagerId()));
 
     // Replace with a different contract manager (the system default).
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", defaultContractManagerGuid))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", defaultContractManagerGuid))
         .statusCode(201)
         .body("data.contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
 
@@ -432,12 +345,7 @@ class AssignOfficeContractManagerE2eTest {
     // replaced).
     // DSTEW-1660/DSTEW-1661 AC3: exactly one contract manager is assigned to the entity after the
     // change completes.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content[0].contractManagerId", equalTo(E2eConfig.defaultContractManagerId()));
@@ -452,36 +360,23 @@ class AssignOfficeContractManagerE2eTest {
   @Test
   void assignContractManager_invalidGuid_existingAssignmentUnchanged() {
     // Establish a known good assignment so we have something whose preservation we can verify.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", contractManagerGuid))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", contractManagerGuid))
         .statusCode(201);
 
     // Submit a syntactically valid but unknown GUID — service rejects with 400.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000"))
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(
+            E2eConfig.lspFirmNumber(),
+            E2eConfig.lspOfficeCode(),
+            Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000"))
         .statusCode(400);
 
     // DSTEW-1660/DSTEW-1661 AC4: the previously assigned contract manager is still the one assigned
     // — the failed request
     // did not remove or overwrite the existing link.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(equalTo(1)))
         .body("data.content[0].contractManagerId", equalTo(E2eConfig.contractManagerId()));
@@ -540,33 +435,13 @@ class AssignOfficeContractManagerE2eTest {
 
     // Snapshot the existing contract manager state before the failed attempt.
     List<String> originalContractManagerIds =
-        given()
-            .pathParam("firmId", E2eConfig.lspFirmNumber())
-            .pathParam("officeCode", E2eConfig.lspOfficeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content.contractManagerId");
+        snapshotContractManagerIds(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode());
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .body(body)
-        .when()
-        .post("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    assignContractManager(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode(), body)
         .statusCode(400);
 
     // Assert the office's contract manager state is identical to the pre-request snapshot.
-    given()
-        .pathParam("firmId", E2eConfig.lspFirmNumber())
-        .pathParam("officeCode", E2eConfig.lspOfficeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/contract-managers")
-        .then()
+    getContractManagers(E2eConfig.lspFirmNumber(), E2eConfig.lspOfficeCode())
         .statusCode(200)
         .body("data.content", hasSize(originalContractManagerIds.size()))
         .body("data.content.contractManagerId", equalTo(originalContractManagerIds));

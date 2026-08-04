@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -546,34 +547,22 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC1-INVALID-CM", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Invalid CM Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "contractManager",
-                Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Invalid CM Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            Map.of("contractManagerGUID", "00000000-0000-0000-0000-000000000000")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with `contractManagerGUID: null`
@@ -594,34 +583,22 @@ class CreateProviderFirmOfficeE2eTest {
     Map<String, Object> contractManager = new HashMap<>();
     contractManager.put("contractManagerGUID", null);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Null CM Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "contractManager",
-                contractManager))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Null CM Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            contractManager));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with the `contractManager` field
@@ -635,32 +612,20 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-OMITTED-CM", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Omitted CM Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Omitted CM Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with both `contractManagerGUID` and
@@ -674,38 +639,26 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-GUID-DEFAULT", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "contractManager",
-                Map.of(
-                    "contractManagerGUID",
-                    E2eConfig.defaultContractManagerGUID(),
-                    "useDefaultContractManager",
-                    true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            Map.of(
+                "contractManagerGUID",
+                E2eConfig.defaultContractManagerGUID(),
+                "useDefaultContractManager",
+                true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with both `contractManagerGUID` and
@@ -719,38 +672,26 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-GUID-HEADOFFICE", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "contractManager",
-                Map.of(
-                    "contractManagerGUID",
-                    E2eConfig.defaultContractManagerGUID(),
-                    "useHeadOfficeContractManager",
-                    true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            Map.of(
+                "contractManagerGUID",
+                E2eConfig.defaultContractManagerGUID(),
+                "useHeadOfficeContractManager",
+                true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with both
@@ -764,36 +705,24 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1663-CONFLICT-DEFAULT-HEADOFFICE", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "contractManager",
-                Map.of(
-                    "useDefaultContractManager", true,
-                    "useHeadOfficeContractManager", true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "contractManager",
+            Map.of(
+                "useDefaultContractManager", true,
+                "useHeadOfficeContractManager", true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// POSTs a child office without the mandatory `address` field; expects 400 and verifies the
@@ -810,27 +739,15 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC2-ADDR", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
-            Map.of(
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// POSTs a child office without the mandatory `payment` field; expects 400 and verifies the
@@ -847,30 +764,18 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC2-PMT", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 No Payment Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true)))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 No Payment Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true)));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// POSTs a child office without the mandatory `liaisonManager` field; expects 400 and verifies
@@ -888,30 +793,18 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC2-LM", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 No LM Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 No LM Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with `dxNumber` but no `dxCentre`;
@@ -930,35 +823,22 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC4-DX-NUM", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 DX Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "dxDetails",
-                Map.of("dxNumber", "DX 13009")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 DX Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "dxDetails",
+            Map.of("dxNumber", "DX 13009")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1))
-        .body("data.content[0].dxDetails", equalTo(null));
+    assertOfficeNotCreated(firmNumber).body("data.content[0].dxDetails", equalTo(null));
   }
 
   /// Creates an isolated LSP firm, then POSTs a child office with `dxCentre` but no `dxNumber`;
@@ -976,35 +856,22 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC4-DX-CTR", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 DX Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true),
-                "dxDetails",
-                Map.of("dxCentre", "Birmingham")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 DX Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true),
+            "dxDetails",
+            Map.of("dxCentre", "Birmingham")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1))
-        .body("data.content[0].dxDetails", equalTo(null));
+    assertOfficeNotCreated(firmNumber).body("data.content[0].dxDetails", equalTo(null));
   }
 
   /// POSTs a child office with both `dxNumber` and `dxCentre`; verifies the office is created and
@@ -1135,34 +1002,22 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC6-CONFLICT-A", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of(
-                    "liaisonManagerGUID", "12345678-1234-1234-1234-123456789012",
-                    "firstName", "Alice")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of(
+                "liaisonManagerGUID", "12345678-1234-1234-1234-123456789012",
+                "firstName", "Alice")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// POSTs a child office with `useHeadOfficeLiaisonManager: true` combined with
@@ -1178,36 +1033,24 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC6-CONFLICT-B", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of(
-                    "useHeadOfficeLiaisonManager",
-                    true,
-                    "liaisonManagerGUID",
-                    "12345678-1234-1234-1234-123456789012")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of(
+                "useHeadOfficeLiaisonManager",
+                true,
+                "liaisonManagerGUID",
+                "12345678-1234-1234-1234-123456789012")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// POSTs a child office with `useHeadOfficeLiaisonManager: true` combined with new-LM properties
@@ -1222,32 +1065,20 @@ class CreateProviderFirmOfficeE2eTest {
     long ts = System.currentTimeMillis();
     String firmNumber = createIsolatedLspFirmNumber("DSTEW-1667-AC6-CONFLICT-C", ts);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .body(
+    postOfficeExpect400(
+        firmNumber,
+        Map.of(
+            "address",
             Map.of(
-                "address",
-                Map.of(
-                    "line1", "1 Conflict Street",
-                    "townOrCity", "London",
-                    "postcode", "EC1A 1BB"),
-                "payment",
-                Map.of("paymentMethod", "CHECK"),
-                "liaisonManager",
-                Map.of("useHeadOfficeLiaisonManager", true, "firstName", "Alice")))
-        .when()
-        .post("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(400);
+                "line1", "1 Conflict Street",
+                "townOrCity", "London",
+                "postcode", "EC1A 1BB"),
+            "payment",
+            Map.of("paymentMethod", "CHECK"),
+            "liaisonManager",
+            Map.of("useHeadOfficeLiaisonManager", true, "firstName", "Alice")));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}/offices")
-        .then()
-        .statusCode(200)
-        .body("data.content", hasSize(1));
+    assertOfficeNotCreated(firmNumber);
   }
 
   /// Creates an isolated LSP firm and returns its firm number.
@@ -1285,5 +1116,29 @@ class CreateProviderFirmOfficeE2eTest {
         .statusCode(201)
         .extract()
         .path("data.providerFirmNumber");
+  }
+
+  /// POSTs a child office request expected to fail validation, asserting {@code 400}.
+  private static void postOfficeExpect400(String firmId, Map<String, Object> body) {
+    given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmId)
+        .body(body)
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(400);
+  }
+
+  /// Asserts the given firm still has only its head office (i.e. no child office was created by
+  /// a preceding rejected request).
+  private static ValidatableResponse assertOfficeNotCreated(String firmId) {
+    return given()
+        .pathParam("firmId", firmId)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .body("data.content", hasSize(1));
   }
 }

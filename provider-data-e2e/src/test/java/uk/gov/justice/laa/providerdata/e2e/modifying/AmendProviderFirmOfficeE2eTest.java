@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,78 +27,121 @@ class AmendProviderFirmOfficeE2eTest {
 
   @BeforeAll
   static void setUp() {
-    long ts = System.currentTimeMillis();
-
-    firmNumber =
-        given()
-            .contentType(ContentType.JSON)
-            .body(
-                Map.of(
-                    "firmType",
-                    "Legal Services Provider",
-                    "name",
-                    "E2E-DSTEW-1668 " + ts,
-                    "legalServicesProvider",
-                    Map.of(
-                        "constitutionalStatus",
-                        "Partnership",
-                        "address",
-                        Map.of(
-                            "line1", "1 Amend Test Street",
-                            "townOrCity", "London",
-                            "postcode", "EC1A 1BB"),
-                        "payment",
-                        Map.of("paymentMethod", "CHECK"),
-                        "contractManager",
-                        Map.of("useDefaultContractManager", true),
-                        "liaisonManager",
-                        Map.of(
-                            "firstName", "Amend",
-                            "lastName", "TestLm",
-                            "emailAddress", "amend.lm." + ts + "@example.com",
-                            "telephoneNumber", "020 1111 2222"))))
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.providerFirmNumber");
-
+    firmNumber = createLspFirm("Amend", "1 Amend Test Street");
     childOfficeCode =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", firmNumber)
-            .body(
-                Map.of(
-                    "address",
-                    Map.of(
-                        "line1", "1 Child Office Street",
-                        "townOrCity", "Manchester",
-                        "postcode", "M1 1AA"),
-                    "payment",
-                    Map.of("paymentMethod", "CHECK"),
-                    "contractManager",
-                    Map.of("useHeadOfficeContractManager", true),
-                    "liaisonManager",
-                    Map.of("useHeadOfficeLiaisonManager", true)))
-            .when()
-            .post("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.officeCode");
+        createChildOffice(
+            firmNumber,
+            "1 Child Office Street",
+            "Manchester",
+            "M1 1AA",
+            Map.of("useHeadOfficeContractManager", true));
 
     // Seed DX details so AC3 and AC4 tests can verify that existing DX is preserved on rejection
     // or when dxDetails is omitted from a patch.
-    given()
+    patchOffice(
+            firmNumber,
+            childOfficeCode,
+            Map.of("dxDetails", Map.of("dxNumber", "DX 12345", "dxCentre", "Manchester")))
+        .statusCode(200);
+  }
+
+  /// Creates an isolated LSP head office firm with a default Contract Manager and a Liaison
+  /// Manager whose first name is {@code namePrefix}, for use as a fixture in tests that need
+  /// their own independent firm/office pair.
+  private static String createLspFirm(String namePrefix, String addressLine1) {
+    long ts = System.currentTimeMillis();
+    return given()
         .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("dxDetails", Map.of("dxNumber", "DX 12345", "dxCentre", "Manchester")))
+        .body(
+            Map.of(
+                "firmType",
+                "Legal Services Provider",
+                "name",
+                "E2E-DSTEW-1668-" + namePrefix + " " + ts,
+                "legalServicesProvider",
+                Map.of(
+                    "constitutionalStatus",
+                    "Partnership",
+                    "address",
+                    Map.of(
+                        "line1", addressLine1,
+                        "townOrCity", "London",
+                        "postcode", "EC1A 1BB"),
+                    "payment",
+                    Map.of("paymentMethod", "CHECK"),
+                    "contractManager",
+                    Map.of("useDefaultContractManager", true),
+                    "liaisonManager",
+                    Map.of(
+                        "firstName",
+                        namePrefix,
+                        "lastName",
+                        "TestLm",
+                        "emailAddress",
+                        namePrefix.toLowerCase() + ".lm." + ts + "@example.com",
+                        "telephoneNumber",
+                        "020 1111 2222"))))
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(201)
+        .extract()
+        .path("data.providerFirmNumber");
+  }
+
+  /// Creates a child office under {@code firmNumber}, using the head office's Liaison Manager and
+  /// the given Contract Manager instruction.
+  private static String createChildOffice(
+      String parentFirmNumber,
+      String addressLine1,
+      String city,
+      String postcode,
+      Map<String, Object> contractManager) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", parentFirmNumber)
+        .body(
+            Map.of(
+                "address",
+                Map.of(
+                    "line1", addressLine1,
+                    "townOrCity", city,
+                    "postcode", postcode),
+                "payment",
+                Map.of("paymentMethod", "CHECK"),
+                "contractManager",
+                contractManager,
+                "liaisonManager",
+                Map.of("useHeadOfficeLiaisonManager", true)))
+        .when()
+        .post("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(201)
+        .extract()
+        .path("data.officeCode");
+  }
+
+  /// PATCHes the given office with the given (partial) body.
+  private static ValidatableResponse patchOffice(
+      String firmId, String officeCode, Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .body(body)
         .when()
         .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+        .then();
+  }
+
+  /// GETs the given office.
+  private static ValidatableResponse getOffice(String firmId, String officeCode) {
+    return given()
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}")
+        .then();
   }
 
   /// PATCHes a child office with valid optional fields and verifies the changes are persisted.
@@ -109,11 +153,9 @@ class AmendProviderFirmOfficeE2eTest {
   ///   valid after amendment.
   @Test
   void dstew1668_ac1_amendOffice_withValidData_changesPersisted() {
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(
+    patchOffice(
+            firmNumber,
+            childOfficeCode,
             Map.of(
                 "address",
                 Map.of(
@@ -122,21 +164,13 @@ class AmendProviderFirmOfficeE2eTest {
                     "postcode", "LS1 1AA"),
                 "telephoneNumber",
                 "0113 999 8888"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(200)
         .body("data.providerFirmGUID", notNullValue())
         .body("data.providerFirmNumber", equalTo(firmNumber))
         .body("data.officeGUID", notNullValue())
         .body("data.officeCode", equalTo(childOfficeCode));
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.address.line1", equalTo("99 Amended Street"))
         .body("data.address.townOrCity", equalTo("Leeds"))
@@ -155,32 +189,12 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac2_amendOffice_blankMandatoryField_returns400AndRecordUnchanged() {
     String line1Before =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.address.line1");
+        getOffice(firmNumber, childOfficeCode).statusCode(200).extract().path("data.address.line1");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("address", Map.of("line1", "")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(firmNumber, childOfficeCode, Map.of("address", Map.of("line1", "")))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.address.line1", equalTo(line1Before));
   }
@@ -195,43 +209,21 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac2_amendOffice_partialAddressUpdate_omittedFieldsUnchanged() {
     String townOrCityBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        getOffice(firmNumber, childOfficeCode)
             .statusCode(200)
             .extract()
             .path("data.address.townOrCity");
 
     String postcodeBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        getOffice(firmNumber, childOfficeCode)
             .statusCode(200)
             .extract()
             .path("data.address.postcode");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("address", Map.of("line1", "Updated Street")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(firmNumber, childOfficeCode, Map.of("address", Map.of("line1", "Updated Street")))
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.address.line1", equalTo("Updated Street"))
         .body("data.address.townOrCity", equalTo(townOrCityBefore))
@@ -249,32 +241,12 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac3_amendOffice_dxNumberWithoutCentre_returns400AndDxUnchanged() {
     Object dxBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.dxDetails");
+        getOffice(firmNumber, childOfficeCode).statusCode(200).extract().path("data.dxDetails");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("dxDetails", Map.of("dxNumber", "DX 99001")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(firmNumber, childOfficeCode, Map.of("dxDetails", Map.of("dxNumber", "DX 99001")))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.dxDetails", equalTo(dxBefore));
   }
@@ -287,32 +259,12 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac3_amendOffice_dxCentreWithoutNumber_returns400AndDxUnchanged() {
     Object dxBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.dxDetails");
+        getOffice(firmNumber, childOfficeCode).statusCode(200).extract().path("data.dxDetails");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("dxDetails", Map.of("dxCentre", "Leeds")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(firmNumber, childOfficeCode, Map.of("dxDetails", Map.of("dxCentre", "Leeds")))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.dxDetails", equalTo(dxBefore));
   }
@@ -328,32 +280,12 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac4_amendOffice_noDxFields_dxUnchanged() {
     Object dxBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.dxDetails");
+        getOffice(firmNumber, childOfficeCode).statusCode(200).extract().path("data.dxDetails");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(Map.of("telephoneNumber", "0113 111 2233"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(firmNumber, childOfficeCode, Map.of("telephoneNumber", "0113 111 2233"))
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.telephoneNumber", equalTo("0113 111 2233"))
         .body("data.dxDetails", equalTo(dxBefore));
@@ -367,82 +299,22 @@ class AmendProviderFirmOfficeE2eTest {
   /// - DS_MAPD_FR_043: Amend Child Office – a complete `dxDetails` object is accepted (BR-11).
   @Test
   void dstew1668_ac3_amendOffice_withBothDxFields_dxDetailsPersisted() {
-    long ts = System.currentTimeMillis();
-    String firmNum =
-        given()
-            .contentType(ContentType.JSON)
-            .body(
-                Map.of(
-                    "firmType",
-                    "Legal Services Provider",
-                    "name",
-                    "E2E-DSTEW-1668-DX " + ts,
-                    "legalServicesProvider",
-                    Map.of(
-                        "constitutionalStatus",
-                        "Partnership",
-                        "address",
-                        Map.of(
-                            "line1", "1 DX Street",
-                            "townOrCity", "London",
-                            "postcode", "EC1A 1BB"),
-                        "payment",
-                        Map.of("paymentMethod", "CHECK"),
-                        "contractManager",
-                        Map.of("useDefaultContractManager", true),
-                        "liaisonManager",
-                        Map.of(
-                            "firstName", "DX",
-                            "lastName", "TestLm",
-                            "emailAddress", "dx.lm." + ts + "@example.com",
-                            "telephoneNumber", "020 1111 2222"))))
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.providerFirmNumber");
-
+    String firmNum = createLspFirm("DX", "1 DX Street");
     String officeCode =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", firmNum)
-            .body(
-                Map.of(
-                    "address",
-                    Map.of(
-                        "line1", "1 Child DX Street",
-                        "townOrCity", "Birmingham",
-                        "postcode", "B1 1AA"),
-                    "payment",
-                    Map.of("paymentMethod", "CHECK"),
-                    "contractManager",
-                    Map.of("useHeadOfficeContractManager", true),
-                    "liaisonManager",
-                    Map.of("useHeadOfficeLiaisonManager", true)))
-            .when()
-            .post("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.officeCode");
+        createChildOffice(
+            firmNum,
+            "1 Child DX Street",
+            "Birmingham",
+            "B1 1AA",
+            Map.of("useHeadOfficeContractManager", true));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNum)
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("dxDetails", Map.of("dxNumber", "DX 13009", "dxCentre", "Birmingham")))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(
+            firmNum,
+            officeCode,
+            Map.of("dxDetails", Map.of("dxNumber", "DX 13009", "dxCentre", "Birmingham")))
         .statusCode(200);
 
-    given()
-        .pathParam("firmId", firmNum)
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNum, officeCode)
         .statusCode(200)
         .body("data.dxDetails.dxNumber", equalTo("DX 13009"))
         .body("data.dxDetails.dxCentre", equalTo("Birmingham"));
@@ -459,35 +331,20 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac6_amendOffice_withParentGuid_returns400AndRecordUnchanged() {
     String phoneBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        getOffice(firmNumber, childOfficeCode)
             .statusCode(200)
             .extract()
             .path("data.telephoneNumber");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(
+    patchOffice(
+            firmNumber,
+            childOfficeCode,
             Map.of(
                 "providerFirmGUID", "00000000-0000-0000-0000-000000000000",
                 "telephoneNumber", "0113 000 0001"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.telephoneNumber", equalTo(phoneBefore));
   }
@@ -501,8 +358,6 @@ class AmendProviderFirmOfficeE2eTest {
   ///   so a PATCH cannot remove the CM; this test confirms that structural guarantee holds.
   @Test
   void dstew1668_ac5_amendOffice_cmRemainsAssigned_afterValidAmendment() {
-    long ts = System.currentTimeMillis();
-
     String cmGuid =
         given()
             .queryParam("contractManagerId", E2eConfig.contractManagerId())
@@ -513,64 +368,14 @@ class AmendProviderFirmOfficeE2eTest {
             .extract()
             .path("data.content[0].guid");
 
-    String firmNum =
-        given()
-            .contentType(ContentType.JSON)
-            .body(
-                Map.of(
-                    "firmType",
-                    "Legal Services Provider",
-                    "name",
-                    "E2E-DSTEW-1668-CM " + ts,
-                    "legalServicesProvider",
-                    Map.of(
-                        "constitutionalStatus",
-                        "Partnership",
-                        "address",
-                        Map.of(
-                            "line1", "1 CM Street",
-                            "townOrCity", "London",
-                            "postcode", "EC1A 1BB"),
-                        "payment",
-                        Map.of("paymentMethod", "CHECK"),
-                        "contractManager",
-                        Map.of("useDefaultContractManager", true),
-                        "liaisonManager",
-                        Map.of(
-                            "firstName", "CM",
-                            "lastName", "TestLm",
-                            "emailAddress", "cm.lm." + ts + "@example.com",
-                            "telephoneNumber", "020 1111 2222"))))
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.providerFirmNumber");
-
+    String firmNum = createLspFirm("CM", "1 CM Street");
     String officeCode =
-        given()
-            .contentType(ContentType.JSON)
-            .pathParam("firmId", firmNum)
-            .body(
-                Map.of(
-                    "address",
-                    Map.of(
-                        "line1", "1 CM Office Street",
-                        "townOrCity", "Bristol",
-                        "postcode", "BS1 1AA"),
-                    "payment",
-                    Map.of("paymentMethod", "CHECK"),
-                    "liaisonManager",
-                    Map.of("useHeadOfficeLiaisonManager", true),
-                    "contractManager",
-                    Map.of("contractManagerGUID", cmGuid)))
-            .when()
-            .post("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(201)
-            .extract()
-            .path("data.officeCode");
+        createChildOffice(
+            firmNum,
+            "1 CM Office Street",
+            "Bristol",
+            "BS1 1AA",
+            Map.of("contractManagerGUID", cmGuid));
 
     // Verify CM is assigned before amendment.
     given()
@@ -583,15 +388,7 @@ class AmendProviderFirmOfficeE2eTest {
         .body("data.content", hasSize(1));
 
     // Amend an unrelated field.
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNum)
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("telephoneNumber", "0117 999 0000"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(firmNum, officeCode, Map.of("telephoneNumber", "0117 999 0000")).statusCode(200);
 
     // CM must still be assigned after the amendment.
     given()
@@ -616,35 +413,20 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac6_amendOffice_withOfficeGuid_returns400AndRecordUnchanged() {
     String phoneBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        getOffice(firmNumber, childOfficeCode)
             .statusCode(200)
             .extract()
             .path("data.telephoneNumber");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(
+    patchOffice(
+            firmNumber,
+            childOfficeCode,
             Map.of(
                 "officeGUID", "00000000-0000-0000-0000-000000000000",
                 "telephoneNumber", "0113 000 0002"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.telephoneNumber", equalTo(phoneBefore));
   }
@@ -659,35 +441,20 @@ class AmendProviderFirmOfficeE2eTest {
   @Test
   void dstew1668_ac6_amendOffice_withAccountNumber_returns400AndRecordUnchanged() {
     String phoneBefore =
-        given()
-            .pathParam("firmId", firmNumber)
-            .pathParam("officeCode", childOfficeCode)
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}")
-            .then()
+        getOffice(firmNumber, childOfficeCode)
             .statusCode(200)
             .extract()
             .path("data.telephoneNumber");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .body(
+    patchOffice(
+            firmNumber,
+            childOfficeCode,
             Map.of(
                 "accountNumber", "FAKE001",
                 "telephoneNumber", "0113 000 0003"))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", childOfficeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    getOffice(firmNumber, childOfficeCode)
         .statusCode(200)
         .body("data.telephoneNumber", equalTo(phoneBefore));
   }

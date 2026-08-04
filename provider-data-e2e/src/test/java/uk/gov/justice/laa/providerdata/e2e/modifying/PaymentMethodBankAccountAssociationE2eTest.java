@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,22 +44,13 @@ class PaymentMethodBankAccountAssociationE2eTest {
   void dstew1998_ac1and5_headOffice_eftWithoutBankAccountDetails_returns400AndUnchanged() {
     HeadOfficeFixture office = createHeadOfficeFirm("AC1", "CHECK", null);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .body(Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(
+            office.firmNumber(),
+            office.officeGuid(),
+            Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(0));
   }
@@ -76,22 +68,13 @@ class PaymentMethodBankAccountAssociationE2eTest {
   void dstew1998_ac1and5_childOffice_eftWithoutBankAccountDetails_returns400AndUnchanged() {
     ChildOfficeFixture office = createChildOffice("AC1", "CHECK", null);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .body(Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(
+            office.firmNumber(),
+            office.officeGuid(),
+            Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(0));
   }
@@ -108,22 +91,13 @@ class PaymentMethodBankAccountAssociationE2eTest {
   void dstew1998_ac1and5_practitioner_eftWithoutBankAccountDetails_returns400AndUnchanged() {
     PractitionerFixture practitioner = createChambersAndPractitioner("AC1");
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .body(Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
+    patchOffice(
+            practitioner.firmNumber(),
+            practitioner.officeCode(),
+            Map.of("payment", Map.of("paymentMethod", "EFT", "paymentHeldFlag", false)))
         .statusCode(400);
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(0));
   }
@@ -334,12 +308,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
 
     patchOfficePayment(office.firmNumber(), office.officeGuid(), Map.of("paymentMethod", "CHECK"));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].primaryFlag", equalTo(false))
@@ -361,12 +330,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
 
     patchOfficePayment(office.firmNumber(), office.officeGuid(), Map.of("paymentMethod", "CHECK"));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].primaryFlag", equalTo(false))
@@ -403,12 +367,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
     patchOfficePayment(
         practitioner.firmNumber(), practitioner.officeCode(), Map.of("paymentMethod", "CHECK"));
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].primaryFlag", equalTo(false))
@@ -442,12 +401,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             "bankAccountDetails",
             Map.of("type", "link", "bankAccountGUID", bankAccountGuid)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content.find { it.primaryFlag == true }.guid", equalTo(bankAccountGuid))
         .body("data.content.find { it.primaryFlag == true }.activeDateTo", nullValue());
@@ -478,12 +432,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             "bankAccountDetails",
             Map.of("type", "link", "bankAccountGUID", bankAccountGuid)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content.find { it.primaryFlag == true }.guid", equalTo(bankAccountGuid))
         .body("data.content.find { it.primaryFlag == true }.activeDateTo", nullValue());
@@ -529,12 +478,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             "bankAccountDetails",
             Map.of("type", "link", "bankAccountGUID", bankAccountGuid)));
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content.find { it.primaryFlag == true }.guid", equalTo(bankAccountGuid))
         .body("data.content.find { it.primaryFlag == true }.activeDateTo", nullValue());
@@ -568,12 +512,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 "accountNumber",
                 accountNumber)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].accountNumber", equalTo(accountNumber))
@@ -605,12 +544,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             Map.of(
                 "accountName", "AC4 New", "sortCode", "601111", "accountNumber", accountNumber)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].accountNumber", equalTo(accountNumber))
@@ -646,12 +580,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 "accountNumber",
                 accountNumber)));
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].accountNumber", equalTo(accountNumber))
@@ -672,11 +601,9 @@ class PaymentMethodBankAccountAssociationE2eTest {
     String accountNumber = "5" + (ts % 10_000_000L);
     ChildOfficeFixture office = createChildOffice("AC6", "EFT", accountNumber);
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .body(
+    patchOffice(
+            office.firmNumber(),
+            office.officeGuid(),
             Map.of(
                 "payment",
                 Map.of(
@@ -686,17 +613,9 @@ class PaymentMethodBankAccountAssociationE2eTest {
                     false,
                     "bankAccountDetails",
                     Map.of("type", "link", "bankAccountGUID", UUID.randomUUID().toString()))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(404);
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].accountNumber", equalTo(accountNumber))
@@ -730,11 +649,9 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 "accountNumber",
                 accountNumber)));
 
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .body(
+    patchOffice(
+            practitioner.firmNumber(),
+            practitioner.officeCode(),
             Map.of(
                 "payment",
                 Map.of(
@@ -744,17 +661,9 @@ class PaymentMethodBankAccountAssociationE2eTest {
                     false,
                     "bankAccountDetails",
                     Map.of("type", "link", "bankAccountGUID", UUID.randomUUID().toString()))))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
         .statusCode(404);
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(1))
         .body("data.content[0].accountNumber", equalTo(accountNumber))
@@ -794,12 +703,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 "accountNumber",
                 newAccountNumber)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         .body("data.content", hasSize(2))
         .body(
@@ -855,12 +759,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 "accountNumber",
                 newAccountNumber)));
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(2))
         .body(
@@ -900,12 +799,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 newAccountNumber)));
 
     Response response =
-        given()
-            .pathParam("firmId", office.firmNumber())
-            .pathParam("officeCode", office.officeGuid())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(office.firmNumber(), office.officeGuid())
             .statusCode(200)
             .body("data.content", hasSize(2))
             .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
@@ -976,12 +870,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 newAccountNumber)));
 
     Response response =
-        given()
-            .pathParam("firmId", practitioner.firmNumber())
-            .pathParam("officeCode", practitioner.officeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
             .statusCode(200)
             .body("data.content", hasSize(2))
             .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
@@ -1024,12 +913,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
     ChildOfficeFixture office = createChildOffice("AC12", "EFT", account0Number);
 
     String account0Guid =
-        given()
-            .pathParam("firmId", office.firmNumber())
-            .pathParam("officeCode", office.officeGuid())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(office.firmNumber(), office.officeGuid())
             .statusCode(200)
             .extract()
             .path("data.content[0].guid");
@@ -1058,12 +942,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             "bankAccountDetails",
             Map.of("type", "link", "bankAccountGUID", account0Guid)));
 
-    given()
-        .pathParam("firmId", office.firmNumber())
-        .pathParam("officeCode", office.officeGuid())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(office.firmNumber(), office.officeGuid())
         .statusCode(200)
         // Three rows: account 0's original span, account A (now historical), account 0's new span.
         .body("data.content", hasSize(3))
@@ -1112,12 +991,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
                 account0Number)));
 
     String account0Guid =
-        given()
-            .pathParam("firmId", practitioner.firmNumber())
-            .pathParam("officeCode", practitioner.officeCode())
-            .when()
-            .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-            .then()
+        getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
             .statusCode(200)
             .extract()
             .path("data.content[0].guid");
@@ -1146,12 +1020,7 @@ class PaymentMethodBankAccountAssociationE2eTest {
             "bankAccountDetails",
             Map.of("type", "link", "bankAccountGUID", account0Guid)));
 
-    given()
-        .pathParam("firmId", practitioner.firmNumber())
-        .pathParam("officeCode", practitioner.officeCode())
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    getBankDetails(practitioner.firmNumber(), practitioner.officeCode())
         .statusCode(200)
         .body("data.content", hasSize(3))
         .body("data.content.findAll { it.primaryFlag == true }", hasSize(1))
@@ -1456,28 +1325,40 @@ class PaymentMethodBankAccountAssociationE2eTest {
       String firmNumber, String officeCode, Map<String, Object> payment) {
     Map<String, Object> paymentWithDefaults = new java.util.HashMap<>(payment);
     paymentWithDefaults.putIfAbsent("paymentHeldFlag", false);
-    given()
-        .contentType(ContentType.JSON)
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeCode)
-        .body(Map.of("payment", paymentWithDefaults))
-        .when()
-        .patch("/provider-firms/{firmId}/offices/{officeCode}")
-        .then()
-        .statusCode(200);
+    patchOffice(firmNumber, officeCode, Map.of("payment", paymentWithDefaults)).statusCode(200);
   }
 
   /// Looks up the GUID of the office's current primary bank account link.
   private String lookUpPrimaryBankAccountGuid(String firmNumber, String officeCode) {
-    return given()
-        .pathParam("firmId", firmNumber)
-        .pathParam("officeCode", officeCode)
-        .when()
-        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
-        .then()
+    return getBankDetails(firmNumber, officeCode)
         .statusCode(200)
         .extract()
         .path("data.content.find { it.primaryFlag == true }.guid");
+  }
+
+  /// Fetches the bank-details associations for the given target's office via {@code GET
+  /// /provider-firms/{firmId}/offices/{officeCode}/bank-details}.
+  private static ValidatableResponse getBankDetails(String firmId, String officeCode) {
+    return given()
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .when()
+        .get("/provider-firms/{firmId}/offices/{officeCode}/bank-details")
+        .then();
+  }
+
+  /// Sends {@code PATCH /provider-firms/{firmId}/offices/{officeCode}} with the given request
+  /// body.
+  private static ValidatableResponse patchOffice(
+      String firmId, String officeCode, Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .pathParam("firmId", firmId)
+        .pathParam("officeCode", officeCode)
+        .body(body)
+        .when()
+        .patch("/provider-firms/{firmId}/offices/{officeCode}")
+        .then();
   }
 
   private record HeadOfficeFixture(String firmNumber, String officeGuid) {}

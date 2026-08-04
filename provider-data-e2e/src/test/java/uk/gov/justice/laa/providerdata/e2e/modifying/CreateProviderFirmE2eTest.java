@@ -108,31 +108,9 @@ class CreateProviderFirmE2eTest {
                     "emailAddress", "test.manager@example.com",
                     "telephoneNumber", "020 1111 2222")));
 
-    Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .body(body)
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .body("data.providerFirmGUID", notNullValue())
-            .body("data.providerFirmNumber", notNullValue())
-            .extract()
-            .response();
+    String firmNumber = createFirmExpect201(body);
 
-    String firmNumber = response.path("data.providerFirmNumber");
-
-    // Verify the created firm is retrievable via GET
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}")
-        .then()
-        .statusCode(200)
-        .body("data.firmNumber", equalTo(firmNumber))
-        .body("data.name", equalTo(firmName))
-        .body("data.firmType", equalTo("Legal Services Provider"));
+    assertFirmRetrievable(firmNumber, firmName, "Legal Services Provider");
   }
 
   /** AC1 (DSTEW-1640) - Successful bank account creation records audit fields. */
@@ -245,13 +223,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /** Verifies that omitting constitutionalStatus on an LSP firm results in a 400 Bad Request. */
@@ -285,13 +257,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /// POSTs an LSP firm with the `contractManager` field omitted entirely (not just null);
@@ -332,13 +298,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /** Verifies that an unrecognised constitutionalStatus value on an LSP firm results in a 400. */
@@ -381,13 +341,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   @Test
@@ -451,31 +405,9 @@ class CreateProviderFirmE2eTest {
                     "emailAddress", "chambers.liaison@example.com",
                     "telephoneNumber", "020 3333 4444")));
 
-    Response response =
-        given()
-            .contentType(ContentType.JSON)
-            .body(body)
-            .when()
-            .post("/provider-firms")
-            .then()
-            .statusCode(201)
-            .body("data.providerFirmGUID", notNullValue())
-            .body("data.providerFirmNumber", notNullValue())
-            .extract()
-            .response();
+    String firmNumber = createFirmExpect201(body);
 
-    String firmNumber = response.path("data.providerFirmNumber");
-
-    // Verify the created firm is retrievable via GET
-    given()
-        .pathParam("firmId", firmNumber)
-        .when()
-        .get("/provider-firms/{firmId}")
-        .then()
-        .statusCode(200)
-        .body("data.firmNumber", equalTo(firmNumber))
-        .body("data.name", equalTo(firmName))
-        .body("data.firmType", equalTo("Chambers"));
+    assertFirmRetrievable(firmNumber, firmName, "Chambers");
   }
 
   @Test
@@ -543,13 +475,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", body.get("name"))
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated((String) body.get("name"));
   }
 
   /**
@@ -586,13 +512,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", body.get("name"))
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated((String) body.get("name"));
   }
 
   /** AC3 – DX Number and DX Centre provided together. */
@@ -701,13 +621,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /**
@@ -748,13 +662,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /**
@@ -788,13 +696,7 @@ class CreateProviderFirmE2eTest {
         .statusCode(409);
 
     // AC8 – Confirm no partial record was persisted
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   @Test
@@ -831,13 +733,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /// POSTs an LSP firm with `contractManager.useDefaultContractManager: true`; verifies the head
@@ -882,15 +778,7 @@ class CreateProviderFirmE2eTest {
             .response();
 
     String firmNumber = response.path("data.providerFirmNumber");
-    String headOfficeCode =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].accountNumber");
+    String headOfficeCode = getHeadOfficeCode(firmNumber);
 
     given()
         .pathParam("firmId", firmNumber)
@@ -947,13 +835,7 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
-    given()
-        .queryParam("name", firmName)
-        .when()
-        .get("/provider-firms")
-        .then()
-        .statusCode(200)
-        .body("data.metadata.pagination.totalItems", equalTo(0));
+    assertFirmNotCreated(firmName);
   }
 
   /// POSTs a Chambers firm with `contractManager.useDefaultContractManager: true`; verifies the
@@ -995,15 +877,7 @@ class CreateProviderFirmE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeCode =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].accountNumber");
+    String officeCode = getHeadOfficeCode(firmNumber);
 
     given()
         .pathParam("firmId", firmNumber)
@@ -1051,15 +925,7 @@ class CreateProviderFirmE2eTest {
             .extract()
             .path("data.providerFirmNumber");
 
-    String officeCode =
-        given()
-            .pathParam("firmId", firmNumber)
-            .when()
-            .get("/provider-firms/{firmId}/offices")
-            .then()
-            .statusCode(200)
-            .extract()
-            .path("data.content[0].accountNumber");
+    String officeCode = getHeadOfficeCode(firmNumber);
 
     given()
         .pathParam("firmId", firmNumber)
@@ -1111,6 +977,13 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(400);
 
+    assertFirmNotCreated(firmName);
+  }
+
+  /// Asserts that no firm with the given name exists, via {@code GET /provider-firms?name=}.
+  /// Used after a rejected {@code POST /provider-firms} to confirm no partial record was
+  /// persisted.
+  private void assertFirmNotCreated(String firmName) {
     given()
         .queryParam("name", firmName)
         .when()
@@ -1118,5 +991,48 @@ class CreateProviderFirmE2eTest {
         .then()
         .statusCode(200)
         .body("data.metadata.pagination.totalItems", equalTo(0));
+  }
+
+  /// POSTs the given firm creation body, asserts it succeeds with a GUID and firm number present,
+  /// and returns the created {@code providerFirmNumber}.
+  private String createFirmExpect201(Map<String, Object> body) {
+    return given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/provider-firms")
+        .then()
+        .statusCode(201)
+        .body("data.providerFirmGUID", notNullValue())
+        .body("data.providerFirmNumber", notNullValue())
+        .extract()
+        .path("data.providerFirmNumber");
+  }
+
+  /// Asserts that {@code GET /provider-firms/{firmId}} returns the expected firm number, name and
+  /// firm type, confirming the firm created by {@link #createFirmExpect201} is retrievable.
+  private void assertFirmRetrievable(String firmNumber, String firmName, String firmType) {
+    given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}")
+        .then()
+        .statusCode(200)
+        .body("data.firmNumber", equalTo(firmNumber))
+        .body("data.name", equalTo(firmName))
+        .body("data.firmType", equalTo(firmType));
+  }
+
+  /// Fetches the account number of a firm's (head) office, via {@code GET
+  /// /provider-firms/{firmId}/offices}, assuming a single office exists.
+  private String getHeadOfficeCode(String firmNumber) {
+    return given()
+        .pathParam("firmId", firmNumber)
+        .when()
+        .get("/provider-firms/{firmId}/offices")
+        .then()
+        .statusCode(200)
+        .extract()
+        .path("data.content[0].accountNumber");
   }
 }

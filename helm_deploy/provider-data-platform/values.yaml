@@ -57,9 +57,8 @@ javaToolOptions: >-
   -XX:ReservedCodeCacheSize=120M
 
 secretNames:
-  envConfig: app-secrets
-  rdspgConnection: rds-postgresql-instance-output
-  redisConnection: app-redis
+  configuration: app-secrets
+  pgsqlDetails: pda-r2-pgsql-details
 
 # PostgreSQL sidecar for PR preview environments. Configured in values-preview.yaml.
 postgresContainer:

@@ -105,7 +105,7 @@ helm upgrade --install pdl-2 helm_deploy/providers-app \
   --set-string "canary.role=canary" \
   --set-string "canary.weight=0" \
   --set-string "releaseSuffix=-2" \
-  --set-string "secretNames.dataConfig=app-secrets-secondary" \
+  --set-string "secretNames.configuration=app-secrets-secondary" \
   -n laa-data-provider-data-uat
 </code></pre></details>
 <br>
@@ -270,7 +270,7 @@ If the stable release has already been updated:
 
    ```bash
    kubectl rollout restart deployment/providers-app -n laa-data-provider-data-uat
-   
+
    # Wait for pods to be ready, then reload cache
    curl -X POST "https://laa-provider-details-api-uat.apps.live.cloud-platform.service.justice.gov.uk/admin/cache/force-reload?reason=rollback&prefix=b" \
      -H "X-Authorization: Bearer $ADMIN_TOKEN"

@@ -24,6 +24,7 @@ The repository includes the following subprojects:
 - [API reference](api/) - OpenAPI specification rendered in multiple formats
 - [Design](design/) - Domain model, architecture, and async events options
 - [End-to-end tests](end-to-end-tests.html) - E2E test setup, data management, and usage
+- [OAuth2 authentication](oauth2-authentication.html) - Entra client credentials setup for PDA-r2
 - [GitHub workflows](github-workflows.html) - CI/CD pipeline documentation
 - [Spring Boot 4.0 migration](spring-boot-4-migration.html) - Migration notes
 

@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +13,12 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.PostgresqlTestcontainersConfiguration;
-import uk.gov.laa.springboot.oauth2.testsupport.StubJwtDecoder;
 import uk.gov.laa.springboot.oauth2.testsupport.StubJwtToken;
 
 @SpringBootTest(
@@ -67,6 +69,20 @@ class Oauth2AuthenticationIntegrationTest {
   }
 
   @Test
+  void protectedEndpointWithMissingRequiredRoleReturnsForbidden() throws Exception {
+    mockMvc
+        .perform(get("/trace/1").header("Authorization", "Bearer missing-role-token"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void protectedEndpointWithWrongAudienceReturnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/trace/1").header("Authorization", "Bearer wrong-audience-token"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void unprotectedEndpointIsAccessibleWithoutBearerTokenWhenAuthEnabled() throws Exception {
     mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
   }
@@ -76,19 +92,40 @@ class Oauth2AuthenticationIntegrationTest {
 
     @Bean
     JwtDecoder jwtDecoder() {
-      return StubJwtDecoder.of(
+      Map<String, StubJwtToken> tokens = new HashMap<>();
+      tokens.put(
+          "valid-token",
           new StubJwtToken(
               "valid-token",
               "integration-test-client",
               new String[] {"PDA_ACCESS"},
               null,
-              Map.of()),
+              Map.of()));
+      tokens.put(
+          "expired-token",
           new StubJwtToken(
               "expired-token",
               "integration-test-client",
               new String[] {"PDA_ACCESS"},
               null,
               Map.of("exp", Instant.now().minusSeconds(60).getEpochSecond())));
+      tokens.put(
+          "missing-role-token",
+          new StubJwtToken(
+              "missing-role-token", "integration-test-client", new String[0], null, Map.of()));
+
+      return token -> {
+        if ("wrong-audience-token".equals(token)) {
+          throw new OAuth2AuthenticationException(
+              new OAuth2Error("invalid_token", "Invalid audience", null));
+        }
+        StubJwtToken stubJwtToken = tokens.get(token);
+        if (stubJwtToken == null) {
+          throw new OAuth2AuthenticationException(
+              new OAuth2Error("invalid_token", "No matching stub JWT token.", null));
+        }
+        return stubJwtToken.toJwt();
+      };
     }
   }
 }

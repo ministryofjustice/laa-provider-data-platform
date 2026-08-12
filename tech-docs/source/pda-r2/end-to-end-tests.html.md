@@ -41,8 +41,11 @@ The `local.properties` file includes:
 
 ### Auth token
 
-The API requires the header `X-Authorization`. Supply the token via system property
-or environment variable:
+By default, E2E tests send the token in `X-Authorization` (API key mode). You can override the
+header name (for example to `Authorization` when testing OAuth2 bearer tokens) with
+`e2e.authHeader`/`E2E_AUTHHEADER`.
+
+Supply the token via system property or environment variable:
 
 ```bash
 # System property
@@ -50,6 +53,9 @@ or environment variable:
 
 # Environment variable
 export E2E_AUTHTOKEN=your-token
+
+# Optional: switch header name for OAuth2 tests
+export E2E_AUTHHEADER=Authorization
 ```
 
 ## Running tests

@@ -1492,11 +1492,17 @@ components:
       in: header
     AzureAD:
       type: oauth2
-      description: OAuth2 client credentials via Microsoft Entra ID.
+      description: >
+        OAuth2 client credentials via Microsoft Entra ID. Callers acquire a token using
+        `scope={backend-api-application-id}/.default`. The API then enforces the
+        `PDA_ACCESS` application role from the JWT `roles` claim.
       flows:
         clientCredentials:
           tokenUrl: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
-          scopes: {}
+          scopes:
+            '{backend-api-application-id}/.default': >
+              Request app permissions granted to the client app for this API (including
+              `PDA_ACCESS`).
 
   schemas:
     BaseEntityGUIDV2:

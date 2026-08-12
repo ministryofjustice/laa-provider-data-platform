@@ -46,6 +46,9 @@ laa:
         authentication-header: "X-Authorization"
         authorized-clients: ${AUTHORIZED_CLIENTS:[{"name":"Team1","roles":["STANDARD"],"token":"Dummy1"}]}
         authorized-roles: ${AUTHORIZED_ROLES:[{"name":"STANDARD","uris":["/**"]}]}
+        unprotected-uris: ${UNPROTECTED_URIS:/error,/actuator/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**}
+      oauth2:
+        unprotected-uris: ${OAUTH2_UNPROTECTED_URIS:/error,/actuator/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**}
 
 logging:
   level:

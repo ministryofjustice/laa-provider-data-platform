@@ -51,7 +51,11 @@ public class Oauth2AuthenticationConfig {
             auth ->
                 auth.requestMatchers(
                         PathPatternRequestMatcher.withDefaults().matcher("/error"),
-                        PathPatternRequestMatcher.withDefaults().matcher("/actuator/**"))
+                        PathPatternRequestMatcher.withDefaults().matcher("/actuator/**"),
+                        PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui/**"),
+                        PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui.html"),
+                        PathPatternRequestMatcher.withDefaults().matcher("/v3/api-docs"),
+                        PathPatternRequestMatcher.withDefaults().matcher("/v3/api-docs/**"))
                     .permitAll()
                     .anyRequest()
                     .authenticated())

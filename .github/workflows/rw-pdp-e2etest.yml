@@ -8,11 +8,17 @@ on:
       servicePort: { type: string, required: false, default: "8080" }
       e2eProfile:  { type: string, required: false, default: "",
                      description: "Override the e2e.env Gradle property (defaults to the value derived from target)" }
+      gradleTask:  { type: string, required: false, default: ":provider-data-e2e:e2eTest",
+                     description: "Gradle task used to execute E2E tests" }
     secrets:
       kube_cert:      { required: true }
       kube_cluster:   { required: true }
       kube_namespace: { required: true }
       kube_token:     { required: true }
+      e2e_oauth2_token_url:   { required: false }
+      e2e_oauth2_client_id:   { required: false }
+      e2e_oauth2_client_secret: { required: false }
+      e2e_oauth2_scope:       { required: false }
   workflow_dispatch:
     inputs:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
@@ -103,6 +109,22 @@ jobs:
           echo $! > /tmp/pf.pid
           sleep 3
 
+      - name: "Validate OAuth2 E2E secrets"
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        env:
+          GRADLE_TASK:            ${{ inputs.gradleTask }}
+          E2E_OAUTH2_TOKEN_URL:   ${{ secrets.e2e_oauth2_token_url }}
+          E2E_OAUTH2_CLIENT_ID:   ${{ secrets.e2e_oauth2_client_id }}
+          E2E_OAUTH2_CLIENT_SECRET: ${{ secrets.e2e_oauth2_client_secret }}
+          E2E_OAUTH2_SCOPE:       ${{ secrets.e2e_oauth2_scope }}
+        run: |
+          if [ "${GRADLE_TASK}" = ":provider-data-e2e:e2eOauthReadOnly" ]; then
+            test -n "${E2E_OAUTH2_TOKEN_URL}" || { echo "Missing secret: E2E_OAUTH2_TOKEN_URL"; exit 1; }
+            test -n "${E2E_OAUTH2_CLIENT_ID}" || { echo "Missing secret: E2E_OAUTH2_CLIENT_ID"; exit 1; }
+            test -n "${E2E_OAUTH2_CLIENT_SECRET}" || { echo "Missing secret: E2E_OAUTH2_CLIENT_SECRET"; exit 1; }
+            test -n "${E2E_OAUTH2_SCOPE}" || { echo "Missing secret: E2E_OAUTH2_SCOPE"; exit 1; }
+          fi
+
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
@@ -110,8 +132,13 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_ACTOR: ${{ github.actor }}
           PROFILE:      ${{ steps.vars.outputs.profile }}
+          GRADLE_TASK:  ${{ inputs.gradleTask }}
+          E2E_OAUTH2_TOKEN_URL: ${{ secrets.e2e_oauth2_token_url }}
+          E2E_OAUTH2_CLIENT_ID: ${{ secrets.e2e_oauth2_client_id }}
+          E2E_OAUTH2_CLIENT_SECRET: ${{ secrets.e2e_oauth2_client_secret }}
+          E2E_OAUTH2_SCOPE: ${{ secrets.e2e_oauth2_scope }}
         run: |
-          ./gradlew :provider-data-e2e:e2eTest \
+          ./gradlew "${GRADLE_TASK}" \
             -Pe2e.env="$PROFILE" \
             -De2e.baseUri="http://127.0.0.1:18080" \
             -De2e.authToken="${AUTH_TOKEN}" \

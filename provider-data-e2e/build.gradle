@@ -61,6 +61,26 @@ def configureE2E = { Test t ->
             t.systemProperty 'e2e.authHeader', authHeader
         }
 
+        def oauth2TokenUrl = System.getProperty('e2e.oauth2.tokenUrl') ?: System.getenv('E2E_OAUTH2_TOKEN_URL')
+        if (oauth2TokenUrl) {
+            t.systemProperty 'e2e.oauth2.tokenUrl', oauth2TokenUrl
+        }
+
+        def oauth2ClientId = System.getProperty('e2e.oauth2.clientId') ?: System.getenv('E2E_OAUTH2_CLIENT_ID')
+        if (oauth2ClientId) {
+            t.systemProperty 'e2e.oauth2.clientId', oauth2ClientId
+        }
+
+        def oauth2ClientSecret = System.getProperty('e2e.oauth2.clientSecret') ?: System.getenv('E2E_OAUTH2_CLIENT_SECRET')
+        if (oauth2ClientSecret) {
+            t.systemProperty 'e2e.oauth2.clientSecret', oauth2ClientSecret
+        }
+
+        def oauth2Scope = System.getProperty('e2e.oauth2.scope') ?: System.getenv('E2E_OAUTH2_SCOPE')
+        if (oauth2Scope) {
+            t.systemProperty 'e2e.oauth2.scope', oauth2Scope
+        }
+
         println "E2E using e2e.env=${envName}"
     }
 }
@@ -78,6 +98,16 @@ tasks.register("e2eReadOnly", Test) {
     }
     configureE2E(delegate)
     useJUnitPlatform { includeTags "read-only" }
+    outputs.upToDateWhen { false }
+}
+
+tasks.register("e2eOauthReadOnly", Test) {
+    description = "Run OAuth-only read-only E2E test for shared environments."
+    group = "verification"
+    configureE2E(delegate)
+    filter {
+        includeTestsMatching "uk.gov.justice.laa.providerdata.e2e.ProviderFirmOauth2E2eTest"
+    }
     outputs.upToDateWhen { false }
 }
 

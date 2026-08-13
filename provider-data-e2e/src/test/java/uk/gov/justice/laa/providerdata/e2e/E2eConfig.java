@@ -38,8 +38,42 @@ public final class E2eConfig {
 
   /** HTTP header name used to transmit the auth token to the API. */
   public static String authHeader() {
-    String resolved = resolve("e2e.authHeader", "E2E_AUTHHEADER");
+    String resolved = authHeaderOverride();
     return resolved == null || resolved.isBlank() ? "X-Authorization" : resolved;
+  }
+
+  /** Returns true when auth header is explicitly configured by system property or environment. */
+  public static boolean hasExplicitAuthHeader() {
+    String resolved = authHeaderOverride();
+    return resolved != null && !resolved.isBlank();
+  }
+
+  /** OAuth2 token endpoint for client credentials auto-generation in E2E runs. */
+  public static String oauth2TokenUrl() {
+    return resolve("e2e.oauth2.tokenUrl", "E2E_OAUTH2_TOKEN_URL");
+  }
+
+  /** OAuth2 client ID for client credentials auto-generation in E2E runs. */
+  public static String oauth2ClientId() {
+    return resolve("e2e.oauth2.clientId", "E2E_OAUTH2_CLIENT_ID");
+  }
+
+  /** OAuth2 client secret for client credentials auto-generation in E2E runs. */
+  public static String oauth2ClientSecret() {
+    return resolve("e2e.oauth2.clientSecret", "E2E_OAUTH2_CLIENT_SECRET");
+  }
+
+  /** OAuth2 scope for client credentials auto-generation in E2E runs. */
+  public static String oauth2Scope() {
+    return resolve("e2e.oauth2.scope", "E2E_OAUTH2_SCOPE");
+  }
+
+  /** Returns true when all required OAuth2 client credentials settings are present. */
+  public static boolean hasOauth2ClientCredentialsConfig() {
+    return isNotBlank(oauth2TokenUrl())
+        && isNotBlank(oauth2ClientId())
+        && isNotBlank(oauth2ClientSecret())
+        && isNotBlank(oauth2Scope());
   }
 
   // --- Legal Services Provider ---
@@ -254,6 +288,14 @@ public final class E2eConfig {
       return value;
     }
     return FILE_PROPS.getProperty(sysPropKey);
+  }
+
+  private static String authHeaderOverride() {
+    return resolve("e2e.authHeader", "E2E_AUTHHEADER");
+  }
+
+  private static boolean isNotBlank(String value) {
+    return value != null && !value.isBlank();
   }
 
   /**

@@ -205,11 +205,16 @@ jobs:
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
       target: "uat"
+      gradleTask: ":provider-data-e2e:e2eOauthReadOnly"
     secrets:
       kube_cert:      ${{ secrets.KUBE_CERT }}
       kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
       kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
       kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
+      e2e_oauth2_token_url: ${{ secrets.E2E_OAUTH2_TOKEN_URL }}
+      e2e_oauth2_client_id: ${{ secrets.E2E_OAUTH2_CLIENT_ID }}
+      e2e_oauth2_client_secret: ${{ secrets.E2E_OAUTH2_CLIENT_SECRET }}
+      e2e_oauth2_scope: ${{ secrets.E2E_OAUTH2_SCOPE }}
 
   deploy-staging:
     name: "Deploy to staging"

@@ -55,3 +55,69 @@ export OAUTH2_AUDIENCE=api://<backend-api-application-id>
 - Valid token with expected role and audience: request authenticated.
 
 For local or non-authentication development, keep `APP_SECURITY_OAUTH2_ENABLED=false`.
+
+## Coexistence with API key authentication
+
+PDA-r2 supports **both API key and OAuth2 simultaneously** (DSTEW-1940). This enables existing API key consumers to continue using their keys while new consumers can adopt OAuth2 bearer tokens.
+
+### Configuration
+
+Enable both mechanisms in the environment:
+
+```bash
+# API key authentication
+export APP_SECURITY_API_KEY_ENABLED=true
+
+# OAuth2 authentication
+export APP_SECURITY_OAUTH2_ENABLED=true
+export OAUTH2_ISSUER_URI=https://login.microsoftonline.com/<tenant-id>/v2.0
+export OAUTH2_AUDIENCE=api://<backend-api-application-id>
+```
+
+### Request handling and precedence
+
+When both mechanisms are enabled, the request is routed based on which credentials are supplied:
+
+- **Bearer token present**: OAuth2 validation applies (issuer, audience, `PDA_ACCESS` role)
+- **No bearer, API key present**: API key validation applies
+- **Both supplied**: Bearer token takes precedence; API key is ignored
+- **Neither supplied**: Request rejected with 401
+
+### Examples
+
+**API key request:**
+```bash
+curl -H "X-Authorization: <api-key>" https://api.example.com/providers
+```
+
+**OAuth2 request:**
+```bash
+curl -H "Authorization: Bearer <access-token>" https://api.example.com/providers
+```
+
+**Both supplied (bearer takes precedence):**
+```bash
+curl \
+  -H "X-Authorization: <api-key>" \
+  -H "Authorization: Bearer <access-token>" \
+  https://api.example.com/providers
+# → OAuth2 validation applies
+```
+
+### Disabling either mechanism
+
+To disable one mechanism while keeping the other:
+
+```bash
+# Disable API key, keep OAuth2 only
+export APP_SECURITY_API_KEY_ENABLED=false
+export APP_SECURITY_OAUTH2_ENABLED=true
+
+# Disable OAuth2, keep API key only
+export APP_SECURITY_OAUTH2_ENABLED=false
+export APP_SECURITY_API_KEY_ENABLED=true
+
+# Disable both (development/testing)
+export APP_SECURITY_API_KEY_ENABLED=false
+export APP_SECURITY_OAUTH2_ENABLED=false
+```

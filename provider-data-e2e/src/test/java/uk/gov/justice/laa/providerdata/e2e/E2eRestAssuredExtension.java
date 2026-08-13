@@ -34,16 +34,14 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   private static final int CONNECTION_TIMEOUT_MS = 20_000;
   private static final int SOCKET_TIMEOUT_MS = 100_000;
 
-  private static final OpenApiValidationFilter OPENAPI_FILTER = createValidationFilter();
-
-  private static OpenApiValidationFilter createValidationFilter() {
+  private static OpenApiValidationFilter createValidationFilter(boolean authEnabled) {
     try (InputStream is =
         E2eRestAssuredExtension.class.getClassLoader().getResourceAsStream("laa-data-pda.yml")) {
       if (is == null) {
         throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-      if (E2eConfig.authToken() == null || E2eConfig.authToken().isBlank()) {
+      if (!authEnabled) {
         spec = removeSecurityRequirements(spec);
       }
       // Schema validation suppressions: E2E tests deliberately send invalid payloads (missing
@@ -139,8 +137,9 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   @Override
   public void beforeAll(ExtensionContext context) {
     String baseUri = E2eConfig.baseUri();
-    String authToken = E2eConfig.authToken();
-    String authHeader = E2eConfig.authHeader();
+    String authToken = resolveAuthToken();
+    String authHeader = resolveAuthHeader(authToken);
+    String authHeaderValue = resolveAuthHeaderValue(authHeader, authToken);
     boolean authEnabled = authToken != null && !authToken.isBlank();
 
     if (baseUri == null || baseUri.isBlank()) {
@@ -153,10 +152,10 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
         new RequestSpecBuilder()
             .setBaseUri(baseUri)
             .setContentType(ContentType.JSON)
-            .addFilter(OPENAPI_FILTER);
+            .addFilter(createValidationFilter(authEnabled));
 
     if (authEnabled) {
-      builder.addHeader(authHeader, authToken);
+      builder.addHeader(authHeader, authHeaderValue);
     }
 
     RestAssured.requestSpecification = builder.build();
@@ -175,5 +174,37 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
     return spec.replaceAll(
         "(?ms)^\\s*security:\\n(?:^\\s*-\\s*(?:ApiKeyAuth|AzureAD|bearerAuth):\\s*\\[\\]\\n?)+",
         "");
+  }
+
+  private static String resolveAuthToken() {
+    String configuredToken = E2eConfig.authToken();
+    if (configuredToken != null && !configuredToken.isBlank()) {
+      return configuredToken;
+    }
+    return Oauth2ClientCredentialsTokenProvider.getTokenIfConfigured();
+  }
+
+  private static String resolveAuthHeader(String authToken) {
+    if (authToken == null || authToken.isBlank()) {
+      return E2eConfig.authHeader();
+    }
+    if (E2eConfig.hasExplicitAuthHeader()) {
+      return E2eConfig.authHeader();
+    }
+    if (E2eConfig.hasOauth2ClientCredentialsConfig()) {
+      return "Authorization";
+    }
+    return E2eConfig.authHeader();
+  }
+
+  private static String resolveAuthHeaderValue(String authHeader, String authToken) {
+    if (authToken == null || authToken.isBlank()) {
+      return authToken;
+    }
+    if ("Authorization".equalsIgnoreCase(authHeader)
+        && !authToken.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())) {
+      return "Bearer " + authToken;
+    }
+    return authToken;
   }
 }

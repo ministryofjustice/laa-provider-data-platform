@@ -58,6 +58,22 @@ export E2E_AUTHTOKEN=your-token
 export E2E_AUTHHEADER=Authorization
 ```
 
+### OAuth2 token auto-generation (client credentials)
+
+You can let E2E generate `E2E_AUTHTOKEN` at runtime using Entra client credentials.
+
+Set these environment variables:
+
+```bash
+export E2E_OAUTH2_TOKEN_URL="https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token"
+export E2E_OAUTH2_CLIENT_ID="<client-app-id>"
+export E2E_OAUTH2_CLIENT_SECRET="<client-secret>"
+export E2E_OAUTH2_SCOPE="api://<backend-api-application-id>/.default"
+```
+
+When these are set and `E2E_AUTHTOKEN` is not provided, the E2E extension requests an access token
+before tests run and uses the `Authorization` header by default.
+
 ## Running tests
 
 ### Prerequisites
@@ -84,6 +100,12 @@ export E2E_AUTHHEADER=Authorization
 
 ```bash
 ./gradlew :provider-data-e2e:e2eReadOnly -Pe2e.env=local -De2e.authToken=Dummy1
+```
+
+### Run OAuth-only read-only test (shared environments)
+
+```bash
+./gradlew :provider-data-e2e:e2eOauthReadOnly -Pe2e.env=uat
 ```
 
 ### Run modifying tests only
@@ -113,3 +135,6 @@ docker exec -it laa-provider-data-platform-db-1 psql -U provider -d provider_dat
   will not execute E2E tests.
 - Modifying tests always run after read-only tests.
 - Modifying tests are blocked from running against non-local environments.
+- CI can provide OAuth2 client credentials using:
+  `E2E_OAUTH2_TOKEN_URL`, `E2E_OAUTH2_CLIENT_ID`, `E2E_OAUTH2_CLIENT_SECRET`,
+  `E2E_OAUTH2_SCOPE`.

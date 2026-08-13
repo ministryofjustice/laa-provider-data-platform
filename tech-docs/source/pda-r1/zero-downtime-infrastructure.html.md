@@ -71,12 +71,12 @@ the Helm release name that is to be deployed.
   # Primary release (providers-app)
   RELEASE_SUFFIX="-1"
   CANARY_ROLE="stable"
-  DATACFG_SECRET="app-secrets"
+  CONFIG_SECRET="app-secrets"
 elif [[ "${RELEASE}" == "${SECONDARY_RELEASE}" ]]; then
   # Secondary release (pdl-2)
   RELEASE_SUFFIX="-2"
   CANARY_ROLE="canary"
-  DATACFG_SECRET="app-secrets-secondary"
+  CONFIG_SECRET="app-secrets-secondary"
 fi
 </code></pre></details>
 <br>
@@ -92,7 +92,7 @@ helm upgrade --install pdl-2 helm_deploy/providers-app \
   --set-string "canary.role=canary" \
   --set-string "canary.weight=0" \
   --set-string "releaseSuffix=-2" \
-  --set-string "secretNames.dataConfig=app-secrets-secondary" \
+  --set-string "secretNames.configuration=app-secrets-secondary" \
   -n laa-data-provider-data-uat
 </code></pre></details>
 
@@ -141,7 +141,7 @@ kubectl -n laa-data-provider-data-uat patch ingress pdl-2-pda \
 ### How it works
 
 Each release can read database credentials and configuration from different Kubernetes secrets.
-This is configured via the `secretNames.dataConfig` Helm value:
+This is configured via the `secretNames.configuration` Helm value:
 
 | Release                  | Secret Name             | Purpose                                   |
 |--------------------------|-------------------------|-------------------------------------------|
@@ -157,12 +157,12 @@ env:
   - name: CWA_DB_URL
     valueFrom:
       secretKeyRef:
-        name: {{ (.Values.secretNames).dataConfig }}
+        name: {{ (.Values.secretNames).configuration }}
         key: CWA_DB_URL
   - name: CWA_DB_USER
     valueFrom:
       secretKeyRef:
-        name: {{ (.Values.secretNames).dataConfig }}
+        name: {{ (.Values.secretNames).configuration }}
         key: CWA_DB_USER
   # ... similar for CWA_DB_PASSWORD, CCMS_DB_* values
 </code></pre></details>
@@ -245,12 +245,12 @@ curl -X GET "https://api-host/admin/cache/status?prefix=b" \
 
 ## Summary of building blocks
 
-| Building Block     | Mechanism                                     | Controlled By               |
-|--------------------|-----------------------------------------------|-----------------------------|
-| Dual releases      | Helm release names (`providers-app`, `pdl-2`) | GitHub workflow `rel` input |
-| Traffic splitting  | NGINX canary ingress annotation               | `kubectl patch`             |
-| Per-release config | Kubernetes secrets per release        | `secretNames.dataConfig` Helm value |
-| Cache isolation    | Redis key prefix                              | Admin API or Redis directly |
+| Building Block     | Mechanism                                     | Controlled By                          |
+|--------------------|-----------------------------------------------|----------------------------------------|
+| Dual releases      | Helm release names (`providers-app`, `pdl-2`) | GitHub workflow `rel` input            |
+| Traffic splitting  | NGINX canary ingress annotation               | `kubectl patch`                        |
+| Per-release config | Kubernetes secrets per release                | `secretNames.configuration` Helm value |
+| Cache isolation    | Redis key prefix                              | Admin API or Redis directly            |
 
 ---
 

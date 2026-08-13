@@ -27,8 +27,9 @@ generally populated from secrets.
 
 ### Redis configuration
 
-- `REDIS_ENDPOINT`: Redis server host and port (6379)
-- `REDIS_PASSWORD`: Redis password
+- `APP_REDIS_ENDPOINT`: Redis server host
+- `APP_REDIS_PASSWORD`: Redis password
+- `APP_REDIS_PORT`: Redis server port (defaults to 6379)
 
 ## Application properties
 

@@ -94,41 +94,33 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "org.postgresql.Driver"
             {{- if .Values.postgresContainer.enabled }}
             # Sidecar PostgreSQL connection (PR preview environments).
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.postgresContainer.password | quote }}
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://localhost:{{ .Values.postgresContainer.port }}/{{ .Values.postgresContainer.database }}"
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ .Values.postgresContainer.username | quote }}
-            - name: SPRING_DATASOURCE_PASSWORD
-              value: {{ .Values.postgresContainer.password | quote }}
             {{- else }}
-            # RDS PostgreSQL connection (shared/release environments).
-            - name: DB_HOST # Intermediate var for building the JDBC URL
+            - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).rdspgConnection }}
-                  key: rds_instance_endpoint
-            - name: DB_NAME # Intermediate var for building the JDBC URL
+                  name: {{ (.Values.secretNames).pgsqlDetails }}
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: SPRING_DATASOURCE_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).rdspgConnection }}
-                  key: database_name
+                  name: {{ (.Values.secretNames).pgsqlDetails }}
+                  key: SPRING_DATASOURCE_URL
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).rdspgConnection }}
-                  key: database_username
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ (.Values.secretNames).rdspgConnection }}
-                  key: database_password
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://$(DB_HOST)/$(DB_NAME)" # "?sslmode=require"
+                  name: {{ (.Values.secretNames).pgsqlDetails }}
+                  key: SPRING_DATASOURCE_USERNAME
             {{- end }}
-            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
-              value: "org.postgresql.Driver"
 
             - name: JAVA_TOOL_OPTIONS
               value: {{ .Values.javaToolOptions | quote }}
@@ -138,28 +130,28 @@ spec:
             - name: SLACK_WEBHOOK
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: SLACK_WEBHOOK
             - name: SENTRY_DSN
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: SENTRY_DSN
                   optional: true
             - name: AUTHORIZED_CLIENTS
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: AUTHORIZED_CLIENTS
             - name: AUTHORIZED_ROLES
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: AUTHORIZED_ROLES
             - name: UNPROTECTED_URIS
               valueFrom:
                 secretKeyRef:
-                  name: {{ (.Values.secretNames).envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: UNPROTECTED_URIS
             - name: APP_SECURITY_API_KEY_ENABLED
               valueFrom:

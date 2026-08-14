@@ -160,16 +160,16 @@ jobs:
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
-          E2E_AUTHTOKEN: ${{ steps.resolve_auth.outputs.auth_token }}
+          E2E_AUTHTOKEN:  ${{ steps.resolve_auth.outputs.auth_token }}
           E2E_AUTHHEADER: ${{ steps.resolve_auth.outputs.auth_header }}
+          # Tell the E2E test framework whether the target app enforces OAuth2 bearer tokens.
+          # Derived from the presence of OAuth2 secrets: if they are supplied the app is
+          # expected to be running with APP_SECURITY_OAUTH2_ENABLED=true.
+          APP_SECURITY_OAUTH2_ENABLED: ${{ secrets.e2e_oauth2_token_url != '' && 'true' || 'false' }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_ACTOR: ${{ github.actor }}
           PROFILE:      ${{ steps.vars.outputs.profile }}
           GRADLE_TASK:  ${{ inputs.gradleTask }}
-          E2E_OAUTH2_TOKEN_URL: ${{ secrets.e2e_oauth2_token_url }}
-          E2E_OAUTH2_CLIENT_ID: ${{ secrets.e2e_oauth2_client_id }}
-          E2E_OAUTH2_CLIENT_SECRET: ${{ secrets.e2e_oauth2_client_secret }}
-          E2E_OAUTH2_SCOPE: ${{ secrets.e2e_oauth2_scope }}
         run: |
           ./gradlew "${GRADLE_TASK}" \
             -Pe2e.env="$PROFILE" \

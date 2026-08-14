@@ -142,20 +142,25 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
     String authHeaderValue = resolveAuthHeaderValue(authHeader, authToken);
     boolean authEnabled = authToken != null && !authToken.isBlank();
 
-    System.out.println(
-        "[E2E] Configuration: baseUri="
-            + baseUri
-            + ", authEnabled="
-            + authEnabled
-            + ", authHeader="
-            + authHeader);
+    log("═════════════════════════════════════════════════");
+    log("E2E Test Configuration");
+    log("═════════════════════════════════════════════════");
+    log("Base URI: " + baseUri);
+    log("Auth Enabled: " + (authEnabled ? "✓ YES" : "✗ NO"));
+
     if (authEnabled) {
-      System.out.println(
-          "[E2E] Auth token set: length="
-              + authHeaderValue.length()
-              + ", starts with Bearer="
-              + authHeaderValue.startsWith("Bearer "));
+      log("Auth Header: " + authHeader);
+      boolean isBearer = authHeaderValue.startsWith("Bearer ");
+      log("Token Type: " + (isBearer ? "Bearer JWT" : "Custom"));
+      log("Token Length: " + authHeaderValue.length() + " characters");
+
+      // Log first few characters of token for debugging (safe obfuscation)
+      if (authHeaderValue.length() > 20) {
+        String prefix = authHeaderValue.substring(0, 20);
+        log("Token Prefix: " + prefix + "...");
+      }
     }
+    log("═════════════════════════════════════════════════");
 
     if (baseUri == null || baseUri.isBlank()) {
       throw new IllegalStateException(
@@ -171,6 +176,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
 
     if (authEnabled) {
       builder.addHeader(authHeader, authHeaderValue);
+      log("✓ Added " + authHeader + " header to all requests");
     }
 
     RestAssured.requestSpecification = builder.build();
@@ -183,6 +189,7 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                     .setParam("http.socket.timeout", SOCKET_TIMEOUT_MS));
 
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    log("✓ RestAssured configured with validation filter and logging");
   }
 
   private static String removeSecurityRequirements(String spec) {
@@ -194,30 +201,45 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   private static String resolveAuthToken() {
     String configuredToken = E2eConfig.authToken();
     if (configuredToken != null && !configuredToken.isBlank()) {
-      System.out.println("[E2E] Using configured auth token from e2e.authToken");
+      log("→ Using explicit auth token from e2e.authToken property");
       return configuredToken;
     }
-    System.out.println("[E2E] No explicit auth token configured, checking for OAuth2...");
+
+    log("→ No explicit e2e.authToken found, checking OAuth2 configuration...");
+    if (!E2eConfig.hasOauth2ClientCredentialsConfig()) {
+      log("✗ OAuth2 not configured (missing E2E_OAUTH2_* environment variables)");
+      return null;
+    }
+
+    log("✓ OAuth2 configuration found, acquiring token...");
     String token = Oauth2ClientCredentialsTokenProvider.getTokenIfConfigured();
     if (token != null && !token.isBlank()) {
-      System.out.println("[E2E] Using OAuth2 token from provider");
+      log("✓ Successfully acquired OAuth2 token");
       return token;
     }
-    System.out.println("[E2E] No auth token available");
+
+    log("✗ Failed to acquire OAuth2 token");
     return null;
   }
 
   private static String resolveAuthHeader(String authToken) {
     if (authToken == null || authToken.isBlank()) {
-      return E2eConfig.authHeader();
+      String header = E2eConfig.authHeader();
+      log("→ No auth token, using default auth header: " + header);
+      return header;
     }
     if (E2eConfig.hasExplicitAuthHeader()) {
-      return E2eConfig.authHeader();
+      String header = E2eConfig.authHeader();
+      log("→ Using explicit auth header: " + header);
+      return header;
     }
     if (E2eConfig.hasOauth2ClientCredentialsConfig()) {
+      log("→ OAuth2 configured, using standard Authorization header");
       return "Authorization";
     }
-    return E2eConfig.authHeader();
+    String header = E2eConfig.authHeader();
+    log("→ Using default auth header: " + header);
+    return header;
   }
 
   private static String resolveAuthHeaderValue(String authHeader, String authToken) {
@@ -226,8 +248,13 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
     }
     if ("Authorization".equalsIgnoreCase(authHeader)
         && !authToken.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())) {
+      log("✓ Prepending 'Bearer ' to OAuth2 token");
       return "Bearer " + authToken;
     }
     return authToken;
+  }
+
+  private static void log(String message) {
+    System.out.println("[E2E Config] " + message);
   }
 }

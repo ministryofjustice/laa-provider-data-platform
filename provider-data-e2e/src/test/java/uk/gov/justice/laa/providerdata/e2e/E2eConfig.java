@@ -76,6 +76,12 @@ public final class E2eConfig {
         && isNotBlank(oauth2Scope());
   }
 
+  /** Returns true when the target application is configured to enforce OAuth2 bearer tokens. */
+  public static boolean isAppOauth2Enabled() {
+    return Boolean.parseBoolean(
+        resolve("app.security.oauth2.enabled", "APP_SECURITY_OAUTH2_ENABLED"));
+  }
+
   // --- Legal Services Provider ---
 
   public static String lspFirmNumber() {

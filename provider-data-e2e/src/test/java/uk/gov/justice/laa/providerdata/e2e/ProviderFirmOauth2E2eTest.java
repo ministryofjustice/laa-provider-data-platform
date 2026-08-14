@@ -16,12 +16,7 @@ class ProviderFirmOauth2E2eTest {
 
   @Test
   void getProviderFirm_withOauth2Configuration_returns200() {
-    assumeTrue(
-        E2eConfig.hasOauth2ClientCredentialsConfig()
-            || "Authorization".equalsIgnoreCase(E2eConfig.authHeader()),
-        "OAuth2 E2E is not configured. "
-            + "Set E2E_OAUTH2_TOKEN_URL, E2E_OAUTH2_CLIENT_ID, E2E_OAUTH2_CLIENT_SECRET, "
-            + "E2E_OAUTH2_SCOPE.");
+    assumeOauth2E2eEnabled();
 
     given()
         .pathParam("firmId", E2eConfig.lspFirmNumber())
@@ -34,12 +29,7 @@ class ProviderFirmOauth2E2eTest {
 
   @Test
   void getProviderFirm_withValidOauth2AndInvalidApiKey_returns200() {
-    assumeTrue(
-        E2eConfig.hasOauth2ClientCredentialsConfig()
-            || "Authorization".equalsIgnoreCase(E2eConfig.authHeader()),
-        "OAuth2 E2E is not configured. "
-            + "Set E2E_OAUTH2_TOKEN_URL, E2E_OAUTH2_CLIENT_ID, E2E_OAUTH2_CLIENT_SECRET, "
-            + "E2E_OAUTH2_SCOPE.");
+    assumeOauth2E2eEnabled();
 
     given()
         .header("X-Authorization", "invalid-api-key")
@@ -54,12 +44,7 @@ class ProviderFirmOauth2E2eTest {
   @Test
   void getProviderFirm_withInvalidOauth2BearerToken_returns401()
       throws IOException, InterruptedException {
-    assumeTrue(
-        E2eConfig.hasOauth2ClientCredentialsConfig()
-            || "Authorization".equalsIgnoreCase(E2eConfig.authHeader()),
-        "OAuth2 E2E is not configured. "
-            + "Set E2E_OAUTH2_TOKEN_URL, E2E_OAUTH2_CLIENT_ID, E2E_OAUTH2_CLIENT_SECRET, "
-            + "E2E_OAUTH2_SCOPE.");
+    assumeOauth2E2eEnabled();
 
     HttpRequest request =
         HttpRequest.newBuilder(
@@ -72,5 +57,17 @@ class ProviderFirmOauth2E2eTest {
         HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
     org.junit.jupiter.api.Assertions.assertEquals(401, response.statusCode());
+  }
+
+  private static void assumeOauth2E2eEnabled() {
+    assumeTrue(
+        E2eConfig.hasOauth2ClientCredentialsConfig()
+            || "Authorization".equalsIgnoreCase(E2eConfig.authHeader()),
+        "OAuth2 E2E is not configured. "
+            + "Set E2E_OAUTH2_TOKEN_URL, E2E_OAUTH2_CLIENT_ID, E2E_OAUTH2_CLIENT_SECRET, "
+            + "E2E_OAUTH2_SCOPE.");
+    assumeTrue(
+        E2eConfig.isAppOauth2Enabled(),
+        "OAuth2 E2E requires the target app to run with APP_SECURITY_OAUTH2_ENABLED=true.");
   }
 }

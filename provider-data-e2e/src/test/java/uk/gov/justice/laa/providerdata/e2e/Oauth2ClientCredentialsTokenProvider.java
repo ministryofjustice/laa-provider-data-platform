@@ -7,7 +7,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,9 +30,14 @@ final class Oauth2ClientCredentialsTokenProvider {
     if (E2eConfig.hasOauth2ClientCredentialsConfig()) {
       log(
           "✓ OAuth2 client credentials configured\n"
-              + "  Token URL: " + E2eConfig.oauth2TokenUrl() + "\n"
-              + "  Client ID: " + E2eConfig.oauth2ClientId() + "\n"
-              + "  Scope: " + E2eConfig.oauth2Scope());
+              + "  Token URL: "
+              + E2eConfig.oauth2TokenUrl()
+              + "\n"
+              + "  Client ID: "
+              + E2eConfig.oauth2ClientId()
+              + "\n"
+              + "  Scope: "
+              + E2eConfig.oauth2Scope());
     } else {
       log("✗ OAuth2 client credentials NOT configured");
     }
@@ -46,7 +50,9 @@ final class Oauth2ClientCredentialsTokenProvider {
     }
 
     // Check if cached token is still valid
-    if (cachedToken != null && !cachedToken.isBlank() && System.currentTimeMillis() < tokenExpiresAt) {
+    if (cachedToken != null
+        && !cachedToken.isBlank()
+        && System.currentTimeMillis() < tokenExpiresAt) {
       long secondsRemaining = (tokenExpiresAt - System.currentTimeMillis()) / 1000;
       log("♻ Using cached OAuth2 token (expires in " + secondsRemaining + "s)");
       return cachedToken;
@@ -54,7 +60,9 @@ final class Oauth2ClientCredentialsTokenProvider {
 
     synchronized (Oauth2ClientCredentialsTokenProvider.class) {
       // Double-check after acquiring lock
-      if (cachedToken != null && !cachedToken.isBlank() && System.currentTimeMillis() < tokenExpiresAt) {
+      if (cachedToken != null
+          && !cachedToken.isBlank()
+          && System.currentTimeMillis() < tokenExpiresAt) {
         long secondsRemaining = (tokenExpiresAt - System.currentTimeMillis()) / 1000;
         log("♻ Using cached OAuth2 token (synchronized, expires in " + secondsRemaining + "s)");
         return cachedToken;

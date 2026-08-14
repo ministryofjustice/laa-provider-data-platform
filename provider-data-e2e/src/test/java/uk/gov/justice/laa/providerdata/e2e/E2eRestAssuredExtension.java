@@ -168,6 +168,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
               + "set system property 'e2e.baseUri' or env var 'E2E_BASEURI'");
     }
 
+    RestAssured.reset();
+
     RequestSpecBuilder builder =
         new RequestSpecBuilder()
             .setBaseUri(baseUri)

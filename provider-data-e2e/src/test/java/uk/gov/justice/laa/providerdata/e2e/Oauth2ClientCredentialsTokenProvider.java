@@ -20,18 +20,37 @@ final class Oauth2ClientCredentialsTokenProvider {
 
   private Oauth2ClientCredentialsTokenProvider() {}
 
+  static {
+    if (E2eConfig.hasOauth2ClientCredentialsConfig()) {
+      System.out.println(
+          "[E2E] OAuth2 client credentials configured: "
+              + "tokenUrl="
+              + E2eConfig.oauth2TokenUrl()
+              + ", clientId="
+              + E2eConfig.oauth2ClientId()
+              + ", scope="
+              + E2eConfig.oauth2Scope());
+    }
+  }
+
   static String getTokenIfConfigured() {
     if (!E2eConfig.hasOauth2ClientCredentialsConfig()) {
       return null;
     }
     if (cachedToken != null && !cachedToken.isBlank()) {
+      System.out.println("[E2E] Using cached OAuth2 token");
       return cachedToken;
     }
     synchronized (Oauth2ClientCredentialsTokenProvider.class) {
       if (cachedToken != null && !cachedToken.isBlank()) {
+        System.out.println("[E2E] Using cached OAuth2 token (synchronized)");
         return cachedToken;
       }
+      System.out.println("[E2E] Fetching new OAuth2 token from Entra...");
       cachedToken = requestToken();
+      System.out.println(
+          "[E2E] OAuth2 token fetched successfully, length="
+              + (cachedToken != null ? cachedToken.length() : 0));
       return cachedToken;
     }
   }
@@ -53,9 +72,13 @@ final class Oauth2ClientCredentialsTokenProvider {
             .build();
 
     try {
+      System.out.println("[E2E] Sending OAuth2 token request to: " + E2eConfig.oauth2TokenUrl());
       HttpResponse<String> response =
           HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+      System.out.println("[E2E] OAuth2 token response status: " + response.statusCode());
       if (response.statusCode() != 200) {
+        System.out.println(
+            "[E2E] OAuth2 token response body: " + response.body().substring(0, 200));
         throw new IllegalStateException(
             "Failed to obtain OAuth2 access token for E2E (status " + response.statusCode() + ")");
       }

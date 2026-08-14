@@ -142,6 +142,21 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
     String authHeaderValue = resolveAuthHeaderValue(authHeader, authToken);
     boolean authEnabled = authToken != null && !authToken.isBlank();
 
+    System.out.println(
+        "[E2E] Configuration: baseUri="
+            + baseUri
+            + ", authEnabled="
+            + authEnabled
+            + ", authHeader="
+            + authHeader);
+    if (authEnabled) {
+      System.out.println(
+          "[E2E] Auth token set: length="
+              + authHeaderValue.length()
+              + ", starts with Bearer="
+              + authHeaderValue.startsWith("Bearer "));
+    }
+
     if (baseUri == null || baseUri.isBlank()) {
       throw new IllegalStateException(
           "Missing required e2e configuration: "
@@ -179,9 +194,17 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
   private static String resolveAuthToken() {
     String configuredToken = E2eConfig.authToken();
     if (configuredToken != null && !configuredToken.isBlank()) {
+      System.out.println("[E2E] Using configured auth token from e2e.authToken");
       return configuredToken;
     }
-    return Oauth2ClientCredentialsTokenProvider.getTokenIfConfigured();
+    System.out.println("[E2E] No explicit auth token configured, checking for OAuth2...");
+    String token = Oauth2ClientCredentialsTokenProvider.getTokenIfConfigured();
+    if (token != null && !token.isBlank()) {
+      System.out.println("[E2E] Using OAuth2 token from provider");
+      return token;
+    }
+    System.out.println("[E2E] No auth token available");
+    return null;
   }
 
   private static String resolveAuthHeader(String authToken) {

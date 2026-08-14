@@ -125,10 +125,43 @@ jobs:
             test -n "${E2E_OAUTH2_SCOPE}" || { echo "Missing secret: E2E_OAUTH2_SCOPE"; exit 1; }
           fi
 
+      - name: "Resolve E2E auth token"
+        id:   resolve_auth
+        if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
+        env:
+          E2E_OAUTH2_TOKEN_URL: ${{ secrets.e2e_oauth2_token_url }}
+          E2E_OAUTH2_CLIENT_ID: ${{ secrets.e2e_oauth2_client_id }}
+          E2E_OAUTH2_CLIENT_SECRET: ${{ secrets.e2e_oauth2_client_secret }}
+          E2E_OAUTH2_SCOPE: ${{ secrets.e2e_oauth2_scope }}
+        run: |
+          if [ -n "${E2E_OAUTH2_TOKEN_URL}" ] \
+            && [ -n "${E2E_OAUTH2_CLIENT_ID}" ] \
+            && [ -n "${E2E_OAUTH2_CLIENT_SECRET}" ] \
+            && [ -n "${E2E_OAUTH2_SCOPE}" ]; then
+            TOKEN_RESPONSE="$(curl --silent --show-error --fail --request POST "${E2E_OAUTH2_TOKEN_URL}" \
+              --header "Content-Type: application/x-www-form-urlencoded" \
+              --data-urlencode "grant_type=client_credentials" \
+              --data-urlencode "client_id=${E2E_OAUTH2_CLIENT_ID}" \
+              --data-urlencode "client_secret=${E2E_OAUTH2_CLIENT_SECRET}" \
+              --data-urlencode "scope=${E2E_OAUTH2_SCOPE}")"
+            AUTH_TOKEN="$(printf '%s' "${TOKEN_RESPONSE}" | python3 -c 'import json, sys; print(json.load(sys.stdin).get("access_token", ""))')"
+            if [ -z "${AUTH_TOKEN}" ]; then
+              echo "OAuth2 token response did not contain access_token"
+              exit 1
+            fi
+            echo "::add-mask::${AUTH_TOKEN}"
+            echo "auth_token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+            echo "auth_header=Authorization" >> "$GITHUB_OUTPUT"
+          else
+            echo "auth_token=" >> "$GITHUB_OUTPUT"
+            echo "auth_header=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
-          AUTH_TOKEN:   ""
+          E2E_AUTHTOKEN: ${{ steps.resolve_auth.outputs.auth_token }}
+          E2E_AUTHHEADER: ${{ steps.resolve_auth.outputs.auth_header }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_ACTOR: ${{ github.actor }}
           PROFILE:      ${{ steps.vars.outputs.profile }}
@@ -141,7 +174,6 @@ jobs:
           ./gradlew "${GRADLE_TASK}" \
             -Pe2e.env="$PROFILE" \
             -De2e.baseUri="http://127.0.0.1:18080" \
-            -De2e.authToken="${AUTH_TOKEN}" \
             --stacktrace
 
       - name: "Upload E2E reports"

@@ -34,7 +34,7 @@ laa:
           [{"name":"TestClient","roles":["STANDARD"],"token":"Dummy1"}]
         authorized-roles: >
           [{"name":"STANDARD","uris":["/**"]}]
-        unprotected-uris: /error,/actuator/**,/trace/**
+        unprotected-uris: /error,/actuator/**
       oauth2:
         resourceserver:
           jwt:
@@ -44,4 +44,4 @@ laa:
                   - api://pda-r2
         authorized-roles: >
           [{"name":"PDA_ACCESS","uris":["/**"]}]
-        unprotected-uris: /error,/actuator/**,/trace/**
+        unprotected-uris: /error,/actuator/**

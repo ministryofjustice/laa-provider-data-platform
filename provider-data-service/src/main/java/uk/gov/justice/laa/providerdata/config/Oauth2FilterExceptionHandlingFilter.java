@@ -24,19 +24,18 @@ import uk.gov.justice.laa.providerdata.model.ErrorResponseError;
  * error responses.
  *
  * <p>Exceptions occurring before DispatcherServlet (e.g., JWKS resolution failures in
- * BearerTokenAuthenticationFilter) are not caught by GlobalExceptionHandler. This filter
- * intercepts them and returns RFC 7807 ProblemDetail responses formatted according to the API
- * spec.
+ * BearerTokenAuthenticationFilter) are not caught by GlobalExceptionHandler. This filter intercepts
+ * them and returns RFC 7807 ProblemDetail responses formatted according to the API spec.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 @ConditionalOnProperty(name = "app.security.oauth2.enabled", havingValue = "true")
 @Slf4j
-public class OAuth2FilterExceptionHandlingFilter extends OncePerRequestFilter {
+public class Oauth2FilterExceptionHandlingFilter extends OncePerRequestFilter {
 
   private final ObjectMapper objectMapper;
 
-  public OAuth2FilterExceptionHandlingFilter(ObjectMapper objectMapper) {
+  public Oauth2FilterExceptionHandlingFilter(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 

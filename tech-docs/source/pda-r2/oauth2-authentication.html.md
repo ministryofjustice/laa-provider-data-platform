@@ -40,6 +40,18 @@ export OAUTH2_ISSUER_URI=https://login.microsoftonline.com/<tenant-id>/v2.0
 export OAUTH2_AUDIENCE=api://<backend-api-application-id>
 ```
 
+For deployed environments, add the OAuth2 values to the Cloud Platform configuration secret used
+by the Helm release (`app-secrets` for the stable release, `app-secrets-secondary` for the canary
+release when present):
+
+- `OAUTH2_ISSUER_URI`
+- `OAUTH2_AUDIENCE`
+- `OAUTH2_AUTHORIZED_ROLES`
+- `OAUTH2_UNPROTECTED_URIS`
+
+If `OAUTH2_AUTHORIZED_ROLES` is omitted, the service falls back to the default
+`PDA_ACCESS` mapping from `application.yml`.
+
 ## Authorisation behaviour
 
 - Missing or invalid bearer token: request rejected.

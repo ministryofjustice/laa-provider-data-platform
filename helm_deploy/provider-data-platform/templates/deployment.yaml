@@ -153,6 +153,30 @@ spec:
                 secretKeyRef:
                   name: {{ (.Values.secretNames).configuration }}
                   key: UNPROTECTED_URIS
+            - name: OAUTH2_ISSUER_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).configuration }}
+                  key: OAUTH2_ISSUER_URI
+                  optional: true
+            - name: OAUTH2_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).configuration }}
+                  key: OAUTH2_AUDIENCE
+                  optional: true
+            - name: OAUTH2_AUTHORIZED_ROLES
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).configuration }}
+                  key: OAUTH2_AUTHORIZED_ROLES
+                  optional: true
+            - name: OAUTH2_UNPROTECTED_URIS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (.Values.secretNames).configuration }}
+                  key: OAUTH2_UNPROTECTED_URIS
+                  optional: true
             - name: POD_NAME
               valueFrom:
                 fieldRef:

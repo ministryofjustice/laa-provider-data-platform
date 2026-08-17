@@ -23,8 +23,6 @@ import uk.gov.laa.springboot.oauth2.testsupport.StubJwtToken;
 
 @SpringBootTest(
     properties = {
-      "app.security.apikey.enabled=false",
-      "app.security.oauth2.enabled=true",
       "laa.springboot.starter.oauth2.resourceserver.jwt.tenants[0].issuer-uri="
           + "https://login.microsoftonline.com/test-tenant/v2.0",
       "laa.springboot.starter.oauth2.resourceserver.jwt.tenants[0].audiences[0]=api://pda-r2",

@@ -25,13 +25,6 @@ feature:
   trace-demo:
     enabled: true
 
-app:
-  security:
-    apikey:
-      enabled: false
-    oauth2:
-      enabled: false
-
 laa:
   springboot:
     starter:

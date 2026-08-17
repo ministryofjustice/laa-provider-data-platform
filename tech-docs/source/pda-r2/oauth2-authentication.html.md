@@ -30,19 +30,12 @@ curl --request POST \
 
 ## PDA-r2 configuration
 
-OAuth2 is implemented but disabled by default.
-
-```yaml
-app:
-  security:
-    oauth2:
-      enabled: ${APP_SECURITY_OAUTH2_ENABLED:false}
-```
+OAuth2 is provided by the LAA starter and is disabled by default in non-authenticated
+environments.
 
 Set the Entra issuer and audience when enabling OAuth2 in an environment:
 
 ```bash
-export APP_SECURITY_OAUTH2_ENABLED=true
 export OAUTH2_ISSUER_URI=https://login.microsoftonline.com/<tenant-id>/v2.0
 export OAUTH2_AUDIENCE=api://<backend-api-application-id>
 ```
@@ -54,4 +47,4 @@ export OAUTH2_AUDIENCE=api://<backend-api-application-id>
 - Missing `PDA_ACCESS` app role in JWT `roles` claim: request rejected.
 - Valid token with expected role and audience: request authenticated.
 
-For local or non-authentication development, keep `APP_SECURITY_OAUTH2_ENABLED=false`.
+For local or non-authentication development, leave the OAuth2 starter properties unset.

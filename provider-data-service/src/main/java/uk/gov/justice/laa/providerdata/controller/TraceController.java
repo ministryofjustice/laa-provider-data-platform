@@ -79,9 +79,7 @@ public class TraceController {
 
     TraceResponse downstream =
         Objects.requireNonNull(
-            requestSpec
-                .retrieve()
-                .body(TraceResponse.class),
+            requestSpec.retrieve().body(TraceResponse.class),
             "Downstream trace response must not be null");
 
     return currentTrace(endpoint, traceparent, downstream);

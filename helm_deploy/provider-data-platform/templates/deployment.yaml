@@ -156,31 +156,31 @@ spec:
             - name: APP_SECURITY_API_KEY_ENABLED
               valueFrom:
                 secretKeyRef:
-                  name: {{ default "app-secrets" .Values.secretNames.envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: APP_SECURITY_API_KEY_ENABLED
                   optional: true
             - name: APP_SECURITY_OAUTH2_ENABLED
               valueFrom:
                 secretKeyRef:
-                  name: {{ default "app-secrets" .Values.secretNames.envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: APP_SECURITY_OAUTH2_ENABLED
                   optional: true
             - name: OAUTH2_ISSUER_URI
               valueFrom:
                 secretKeyRef:
-                  name: {{ default "app-secrets" .Values.secretNames.envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: OAUTH2_ISSUER_URI
                   optional: true
             - name: OAUTH2_AUDIENCE
               valueFrom:
                 secretKeyRef:
-                  name: {{ default "app-secrets" .Values.secretNames.envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: OAUTH2_AUDIENCE
                   optional: true
             - name: OAUTH2_UNPROTECTED_URIS
               valueFrom:
                 secretKeyRef:
-                  name: {{ default "app-secrets" .Values.secretNames.envConfig }}
+                  name: {{ (.Values.secretNames).configuration }}
                   key: OAUTH2_UNPROTECTED_URIS
                   optional: true
             - name: POD_NAME

@@ -1,3 +1,6 @@
+---
+source_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/tech-docs/source/pda-r2/oauth2-authentication.html.md
+---
 
 # OAuth2 authentication for PDA-r2
 

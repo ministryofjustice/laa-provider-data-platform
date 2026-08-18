@@ -16,7 +16,6 @@ import uk.gov.justice.laa.providerdata.PostgresqlTestcontainersConfiguration;
 
 @SpringBootTest(
     properties = {
-      "app.security.apikey.enabled=true",
       "laa.springboot.starter.auth.authentication-header=X-Authorization",
       "laa.springboot.starter.auth.authorized-clients="
           + "[{\"name\":\"Team1\",\"roles\":[\"STANDARD\"],\"token\":\"Dummy1\"},"

@@ -149,6 +149,10 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
               + "set system property 'e2e.baseUri' or env var 'E2E_BASEURI'");
     }
 
+    // RestAssured keeps global static request state between test classes. Reset it here so
+    // repeated extension initialisation does not accumulate duplicate auth headers or filters.
+    RestAssured.reset();
+
     RequestSpecBuilder builder =
         new RequestSpecBuilder()
             .setBaseUri(baseUri)

@@ -237,6 +237,11 @@ choose which environment(s) to install into.
 
    The pipeline then deploys the release app to **dev**, **uat** and **staging**.
 
+   The deployment passes the `app-secrets` / `app-secrets-secondary` configuration secret name into
+   Helm. If OAuth2 is required in a deployed environment, that secret must contain the
+   `OAUTH2_ISSUER_URI`, `OAUTH2_AUDIENCE`, `OAUTH2_AUTHORIZED_ROLES`, and
+   `OAUTH2_UNPROTECTED_URIS` keys expected by the starter.
+
 3. The developer can manually deploy to **prod** if desired.
 
 ## Running E2E Tests for PR Branches

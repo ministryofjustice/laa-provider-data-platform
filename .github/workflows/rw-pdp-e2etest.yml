@@ -13,6 +13,8 @@ on:
       kube_cluster:   { required: true }
       kube_namespace: { required: true }
       kube_token:     { required: true }
+      e2e_api_key:    { required: true,
+                        description: "API key for E2E test authentication" }
   workflow_dispatch:
     inputs:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
@@ -106,7 +108,7 @@ jobs:
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
-          AUTH_TOKEN:   ""
+          AUTH_TOKEN:   ${{ secrets.e2e_api_key }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_ACTOR: ${{ github.actor }}
           PROFILE:      ${{ steps.vars.outputs.profile }}

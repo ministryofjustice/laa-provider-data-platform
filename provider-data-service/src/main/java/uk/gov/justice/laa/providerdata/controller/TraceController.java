@@ -47,7 +47,8 @@ public class TraceController {
   @GetMapping("/trace/{depth}")
   public TraceResponse trace(
       @PathVariable int depth,
-      @RequestHeader(value = "traceparent", required = false) @Nullable String traceparent) {
+      @RequestHeader(value = "traceparent", required = false) @Nullable String traceparent,
+      @RequestHeader(value = "X-Authorization", required = false) @Nullable String apiKey) {
     validateDepth(depth);
     String endpoint = "/trace/" + depth;
     log.info("Trace endpoint {} called", endpoint);
@@ -57,23 +58,28 @@ public class TraceController {
       return currentTrace(endpoint, traceparent, null);
     }
 
+    var requestSpec =
+        // Creates a Spring framework `RestClient` directly, so the shared `ObservationRegistry`
+        // must be added explicitly to enable child spans and `traceparent` header propagation.
+        // If `spring-boot-starter-restclient` is used later, then inject Spring Boot's own
+        // `RestClient.Builder` where the registry gets autoconfigured.
+        RestClient.builder()
+            .observationRegistry(observationRegistry)
+            .build()
+            .get()
+            .uri(
+                ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/trace/{depth}")
+                    .build(depth - 1)
+                    .toString());
+
+    if (apiKey != null) {
+      requestSpec = requestSpec.header("X-Authorization", apiKey);
+    }
+
     TraceResponse downstream =
         Objects.requireNonNull(
-            // Creates a Spring framework `RestClient` directly, so the shared `ObservationRegistry`
-            // must be added explicitly to enable child spans and `traceparent` header propagation.
-            // If `spring-boot-starter-restclient` is used later, then inject Spring Boot's own
-            // `RestClient.Builder` where the registry gets autoconfigured.
-            RestClient.builder()
-                .observationRegistry(observationRegistry)
-                .build()
-                .get()
-                .uri(
-                    ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/trace/{depth}")
-                        .build(depth - 1)
-                        .toString())
-                .retrieve()
-                .body(TraceResponse.class),
+            requestSpec.retrieve().body(TraceResponse.class),
             "Downstream trace response must not be null");
 
     return currentTrace(endpoint, traceparent, downstream);

@@ -35,13 +35,6 @@ spring:
               # Log only slow queries (ms threshold). Applies in all environments.
               LOG_QUERIES_SLOWER_THAN_MS: 100
 
-app:
-  security:
-    apikey:
-      enabled: ${APP_SECURITY_API_KEY_ENABLED:false}
-    oauth2:
-      enabled: ${APP_SECURITY_OAUTH2_ENABLED:false}
-
 laa:
   springboot:
     starter:

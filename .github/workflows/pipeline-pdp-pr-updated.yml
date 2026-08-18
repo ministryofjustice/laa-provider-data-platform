@@ -111,3 +111,4 @@ jobs:
       kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
       kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
       kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
+      e2e_api_key:    ${{ secrets.E2E_API_KEY }}

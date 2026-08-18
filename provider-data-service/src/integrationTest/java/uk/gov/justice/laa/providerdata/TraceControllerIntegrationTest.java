@@ -92,6 +92,7 @@ class TraceControllerIntegrationTest {
     HttpRequest request =
         HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
             .header("traceparent", INBOUND_TRACEPARENT)
+            .header("X-Authorization", "Dummy1")
             .GET()
             .build();
 
@@ -105,6 +106,7 @@ class TraceControllerIntegrationTest {
     HttpRequest request =
         HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
             .header("traceparent", INBOUND_TRACEPARENT)
+            .header("X-Authorization", "Dummy1")
             .GET()
             .build();
 

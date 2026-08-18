@@ -47,7 +47,6 @@ Start the application locally:
 OAuth2 is disabled by default. Enable it only when validating Entra-based authentication:
 
 ```bash
-export APP_SECURITY_OAUTH2_ENABLED=true
 export OAUTH2_ISSUER_URI=https://login.microsoftonline.com/<tenant-id>/v2.0
 export OAUTH2_AUDIENCE=api://<backend-api-application-id>
 ./gradlew bootRun

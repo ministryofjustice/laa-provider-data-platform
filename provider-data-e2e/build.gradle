@@ -33,8 +33,11 @@ test {
 tasks.named("test") { enabled = false }
 
 // Resolves the effective test-data properties using the same layering as E2eConfig
-// (default.properties -> E2E_PROPERTIES if set, else local.properties), so gating decisions
-// come from properties content rather than an e2e.env/profile name (DSTEW-2054 AC3).
+// (default.properties -> E2E_PROPERTIES if set, else local.properties if E2E_USE_LOCAL=true is
+// explicitly set), so gating decisions come from properties content rather than an
+// e2e.env/profile name (DSTEW-2054 AC3). Falling back to local.properties without an explicit
+// opt-in would be a dangerous default (silently permitting modifying tests / assuming seeded
+// data against whatever environment E2E_PROPERTIES was meant for but wasn't supplied).
 def loadEffectiveTestProperties = {
     def props = new Properties()
     def resourcesDir = file('src/test/resources')
@@ -45,13 +48,24 @@ def loadEffectiveTestProperties = {
     def overrideProps = System.getenv('E2E_PROPERTIES')
     // Explicit non-null/non-blank check (not Groovy's string truthiness) so this matches
     // E2eConfig.loadEnvSpecificProperties exactly and stays correct if ever ported to Kotlin DSL.
-    if (overrideProps != null && !overrideProps.trim().isEmpty()) {
+    def hasOverrideProps = overrideProps != null && !overrideProps.trim().isEmpty()
+    def useLocal = 'true'.equalsIgnoreCase(System.getenv('E2E_USE_LOCAL'))
+    if (hasOverrideProps && useLocal) {
+        throw new GradleException(
+            "Both E2E_PROPERTIES and E2E_USE_LOCAL=true are set - this is ambiguous. Unset " +
+            "E2E_USE_LOCAL to use E2E_PROPERTIES, or unset E2E_PROPERTIES to use local.properties.")
+    } else if (hasOverrideProps) {
         props.load(new StringReader(overrideProps))
-    } else {
+    } else if (useLocal) {
         def localFile = new File(resourcesDir, 'local.properties')
         if (localFile.exists()) {
             localFile.withInputStream { props.load(it) }
         }
+    } else {
+        throw new GradleException(
+            "Neither E2E_PROPERTIES nor E2E_USE_LOCAL=true is set. Set E2E_PROPERTIES to run " +
+            "against a real environment, or export E2E_USE_LOCAL=true to explicitly opt into " +
+            "the local.properties fixture.")
     }
     return props
 }

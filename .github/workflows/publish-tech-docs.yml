@@ -109,15 +109,15 @@ jobs:
           name: github-pages
           path: github-pages
 
+      - name: "Checkout scripts"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            tech-docs/scripts/link-check.sh
+          sparse-checkout-cone-mode: false
+
       - name: "Unpack files and check URL links"
         run: |
           cd github-pages
           tar -xf artifact.tar
-          npm install linkinator
-          npx linkinator . --recurse --markdown \
-            --skip https://ministryofjustice.github.io/laa-provider-data-platform/images/ \
-            --skip javascripts/govuk_frontend.js \
-            --skip 'http://localhost:.*' \
-            --skip https://github.com/ministryofjustice/laa-data-provider-data \
-            --skip 'images/favicon' \
-            --skip '\.apps\.live\.cloud-platform\.service\.justice\.gov\.uk'
+          sh ../tech-docs/scripts/link-check.sh

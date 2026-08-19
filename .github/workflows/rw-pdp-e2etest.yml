@@ -13,8 +13,7 @@ on:
       kube_cluster:   { required: true }
       kube_namespace: { required: true }
       kube_token:     { required: true }
-      e2e_api_key:    { required: true,
-                        description: "API key for E2E test authentication" }
+      e2e_auth_token: { required: true }
   workflow_dispatch:
     inputs:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
@@ -108,15 +107,15 @@ jobs:
       - name: "Run E2E tests"
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
-          AUTH_TOKEN:   ${{ secrets.e2e_api_key }}
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_ACTOR: ${{ github.actor }}
-          PROFILE:      ${{ steps.vars.outputs.profile }}
+          E2E_AUTH_TOKEN: ${{ secrets.e2e_auth_token }}
+          GITHUB_TOKEN:   ${{ github.token }}
+          GITHUB_ACTOR:   ${{ github.actor }}
+          PROFILE:        ${{ steps.vars.outputs.profile }}
         run: |
           ./gradlew :provider-data-e2e:e2eTest \
             -Pe2e.env="$PROFILE" \
             -De2e.baseUri="http://127.0.0.1:18080" \
-            -De2e.authToken="${AUTH_TOKEN}" \
+            -De2e.authToken="${E2E_AUTH_TOKEN}" \
             --stacktrace
 
       - name: "Upload E2E reports"

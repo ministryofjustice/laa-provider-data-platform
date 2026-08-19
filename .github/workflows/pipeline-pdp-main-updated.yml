@@ -210,6 +210,7 @@ jobs:
       kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
       kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
       kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
+      e2e_auth_token: ${{ secrets.PDAR2_E2E_AUTH_TOKEN }}
 
   deploy-staging:
     name: "Deploy to staging"
@@ -244,3 +245,4 @@ jobs:
       kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
       kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
       kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
+      e2e_auth_token: ${{ secrets.PDAR2_E2E_AUTH_TOKEN }}

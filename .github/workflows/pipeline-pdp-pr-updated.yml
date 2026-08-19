@@ -103,12 +103,15 @@ jobs:
     permissions: { contents: read, packages: read }
     uses: ./.github/workflows/rw-pdp-e2etest.yml
     with:
-      target:     "uat"
-      rel:        "pr-${{ needs.plan.outputs.prnum }}"
-      e2eProfile: "preview"
+      target: "uat"
+      rel:    "pr-${{ needs.plan.outputs.prnum }}"
     secrets:
       kube_cert:      ${{ secrets.KUBE_CERT }}
       kube_cluster:   ${{ secrets.KUBE_CLUSTER }}
       kube_namespace: ${{ secrets.KUBE_NAMESPACE }}
       kube_token:     ${{ secrets.E2ETESTER_KUBE_TOKEN }}
       e2e_auth_token: ${{ secrets.PDAR2_E2E_AUTH_TOKEN }}
+      # e2e_properties is intentionally blank: preview always uses the committed
+      # local.properties fixture, and PDAR2_E2E_PROPERTIES is shared with uat/staging/prod
+      # so must not leak in here.
+      e2e_properties: ""

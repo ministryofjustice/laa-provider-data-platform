@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.e2e;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.Properties;
 
 /**
@@ -13,12 +14,21 @@ import java.util.Properties;
  * <ol>
  *   <li>JVM system property (e.g. {@code -De2e.baseUri=...})
  *   <li>Environment variable (e.g. {@code E2E_BASEURI=...})
- *   <li>{@code <env>.properties} file on the classpath (env defaults to {@code "staging"})
+ *   <li>{@code E2E_PROPERTIES} environment variable, if set, else {@code local.properties} on the
+ *       classpath if {@code E2E_USE_LOCAL=true} is explicitly set
+ *   <li>{@code default.properties} file on the classpath
  * </ol>
  *
- * <p>Test data values are read exclusively from the properties file so that running the suite
- * against a different environment (e.g. {@code -Pe2e.env=staging}) only requires a corresponding
- * {@code staging.properties} file with values appropriate for that environment's data.
+ * <p>Test data values come from the same layered properties. {@code local.properties} is the only
+ * committed environment file; every other environment supplies its complete real values via the
+ * {@code E2E_PROPERTIES} secret, so no real firm, office or user data is ever committed to the
+ * repository (see DSTEW-2054). There is no separate {@code e2e.env}/profile concept - the correct
+ * values are simply whatever the CI job's {@code E2E_PROPERTIES} secret (scoped per GitHub
+ * Environment) provides, or the committed {@code local.properties} fixture if {@code
+ * E2E_USE_LOCAL=true} is explicitly set. Neither being set is a configuration error rather than a
+ * silent fallback, since silently defaulting to {@code local.properties} could otherwise permit
+ * modifying tests, or assume seeded data, against a real environment whose {@code E2E_PROPERTIES}
+ * secret was simply missing.
  */
 public final class E2eConfig {
 
@@ -270,15 +280,42 @@ public final class E2eConfig {
   }
 
   private static Properties loadProperties() {
-    String env = System.getProperty("e2e.env", System.getenv().getOrDefault("E2E_ENV", "staging"));
-    if (!env.matches("[a-zA-Z0-9]+")) {
-      throw new IllegalArgumentException(
-          "Invalid env value '"
-              + env
-              + "': must contain only ASCII alphanumeric characters (a-z, A-Z, 0-9)");
+    Properties props = loadPropertiesResource("/default.properties");
+    props.putAll(loadEnvSpecificProperties());
+    return props;
+  }
+
+  private static Properties loadEnvSpecificProperties() {
+    String propertiesText = System.getenv("E2E_PROPERTIES");
+    boolean hasPropertiesText = propertiesText != null && !propertiesText.isBlank();
+    boolean useLocal = "true".equalsIgnoreCase(System.getenv("E2E_USE_LOCAL"));
+    if (hasPropertiesText && useLocal) {
+      throw new IllegalStateException(
+          "Both E2E_PROPERTIES and E2E_USE_LOCAL=true are set - this is ambiguous. Unset"
+              + " E2E_USE_LOCAL to use E2E_PROPERTIES, or unset E2E_PROPERTIES to use"
+              + " local.properties.");
     }
+    if (hasPropertiesText) {
+      Properties envOverrideProps = new Properties();
+      try (StringReader reader = new StringReader(propertiesText)) {
+        envOverrideProps.load(reader);
+      } catch (IOException e) {
+        throw new IllegalStateException("Invalid properties format in E2E_PROPERTIES", e);
+      }
+      return envOverrideProps;
+    }
+    if (useLocal) {
+      return loadPropertiesResource("/local.properties");
+    }
+    throw new IllegalStateException(
+        "Neither E2E_PROPERTIES nor E2E_USE_LOCAL=true is set. Set E2E_PROPERTIES to run against"
+            + " a real environment, or export E2E_USE_LOCAL=true to explicitly opt into the"
+            + " local.properties fixture.");
+  }
+
+  private static Properties loadPropertiesResource(String resourceName) {
     Properties props = new Properties();
-    try (InputStream is = E2eConfig.class.getResourceAsStream("/" + env + ".properties")) {
+    try (InputStream is = E2eConfig.class.getResourceAsStream(resourceName)) {
       if (is != null) {
         props.load(is);
       }

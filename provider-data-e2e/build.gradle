@@ -32,6 +32,52 @@ test {
 
 tasks.named("test") { enabled = false }
 
+// Resolves the effective test-data properties using the same layering as E2eConfig
+// (default.properties -> E2E_PROPERTIES if set, else local.properties if E2E_USE_LOCAL=true is
+// explicitly set), so gating decisions come from properties content rather than an
+// e2e.env/profile name (DSTEW-2054 AC3). Falling back to local.properties without an explicit
+// opt-in would be a dangerous default (silently permitting modifying tests / assuming seeded
+// data against whatever environment E2E_PROPERTIES was meant for but wasn't supplied).
+def loadEffectiveTestProperties = {
+    def props = new Properties()
+    def resourcesDir = file('src/test/resources')
+    def defaultFile = new File(resourcesDir, 'default.properties')
+    if (defaultFile.exists()) {
+        defaultFile.withInputStream { props.load(it) }
+    }
+    def overrideProps = System.getenv('E2E_PROPERTIES')
+    // Explicit non-null/non-blank check (not Groovy's string truthiness) so this matches
+    // E2eConfig.loadEnvSpecificProperties exactly and stays correct if ever ported to Kotlin DSL.
+    def hasOverrideProps = overrideProps != null && !overrideProps.trim().isEmpty()
+    def useLocal = 'true'.equalsIgnoreCase(System.getenv('E2E_USE_LOCAL'))
+    if (hasOverrideProps && useLocal) {
+        throw new GradleException(
+            "Both E2E_PROPERTIES and E2E_USE_LOCAL=true are set - this is ambiguous. Unset " +
+            "E2E_USE_LOCAL to use E2E_PROPERTIES, or unset E2E_PROPERTIES to use local.properties.")
+    } else if (hasOverrideProps) {
+        props.load(new StringReader(overrideProps))
+    } else if (useLocal) {
+        def localFile = new File(resourcesDir, 'local.properties')
+        if (localFile.exists()) {
+            localFile.withInputStream { props.load(it) }
+        }
+    } else {
+        throw new GradleException(
+            "Neither E2E_PROPERTIES nor E2E_USE_LOCAL=true is set. Set E2E_PROPERTIES to run " +
+            "against a real environment, or export E2E_USE_LOCAL=true to explicitly opt into " +
+            "the local.properties fixture.")
+    }
+    return props
+}
+
+def isModifyingAllowed = {
+    Boolean.parseBoolean(loadEffectiveTestProperties().getProperty('e2e.modifyingAllowed', 'false'))
+}
+
+def isDataPopulated = {
+    Boolean.parseBoolean(loadEffectiveTestProperties().getProperty('e2e.dataPopulated', 'false'))
+}
+
 def configureE2E = { Test t ->
     t.testClassesDirs = sourceSets.test.output.classesDirs
     t.classpath       = sourceSets.test.runtimeClasspath
@@ -42,9 +88,6 @@ def configureE2E = { Test t ->
     }
 
     t.doFirst {
-        def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
-        t.systemProperty 'e2e.env', envName
-
         def baseUri = System.getProperty('e2e.baseUri') ?: System.getenv('E2E_BASEURI')
         if (baseUri) {
             t.systemProperty 'e2e.baseUri', baseUri
@@ -60,8 +103,6 @@ def configureE2E = { Test t ->
         if (authHeader) {
             t.systemProperty 'e2e.authHeader', authHeader
         }
-
-        println "E2E using e2e.env=${envName}"
     }
 }
 
@@ -70,11 +111,11 @@ tasks.register("e2eReadOnly", Test) {
     group = "verification"
     // TODO: Remove this guard once the PDA-r2 database has been deployed to non-local environments.
     // Read-only tests require known data. The shared RDS instances (uat, staging, prod) do not
-    // yet have populated data, so tests are restricted to local and preview until they do.
-    onlyIf("Read-only E2E tests are temporarily restricted to local and preview until the shared " +
-            "environments have populated data") {
-        def env = project.findProperty('e2e.env') as String
-        env == 'local' || env == 'preview'
+    // yet have populated data, so this stays restricted until their properties set
+    // e2e.dataPopulated=true.
+    onlyIf("Read-only E2E tests are temporarily restricted until this environment's properties " +
+            "set e2e.dataPopulated=true") {
+        isDataPopulated()
     }
     configureE2E(delegate)
     useJUnitPlatform { includeTags "read-only" }
@@ -90,11 +131,11 @@ tasks.register("e2eModifying", Test) {
     outputs.upToDateWhen { false }
 
     doFirst {
-        def envName = (project.findProperty('e2e.env') as String) ?: System.getProperty('e2e.env', 'prod')
-        if (envName != 'local' && envName != 'preview') {
+        if (!isModifyingAllowed()) {
             throw new GradleException(
-                "Data-modifying E2E tests should only run against the local or preview environment " +
-                "(e2e.env=${envName}). Use 'e2eReadOnly' instead, or target e2e.env=local/preview."
+                "Data-modifying E2E tests are not allowed here (e2e.modifyingAllowed is not " +
+                "'true' for this environment's properties). Use 'e2eReadOnly' instead, or target " +
+                "an environment whose properties opt in."
             )
         }
     }
@@ -102,11 +143,10 @@ tasks.register("e2eModifying", Test) {
 
 tasks.register("e2eTest") {
     description = "Run read-only E2E tests in all environments. Also runs data-modifying E2E tests " +
-            "when e2e.env=local or preview."
+            "when the target environment's properties set e2e.modifyingAllowed=true."
     group = "verification"
     dependsOn "e2eReadOnly"
-    def envName = project.findProperty('e2e.env') as String
-    if (envName == 'local' || envName == 'preview') {
+    if (isModifyingAllowed()) {
         dependsOn "e2eModifying"
     }
     outputs.upToDateWhen { false }

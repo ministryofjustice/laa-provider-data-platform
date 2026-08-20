@@ -6,14 +6,16 @@ on:
       target:      { type: string, required: true }
       rel:         { type: string, required: false, default: "" }
       servicePort: { type: string, required: false, default: "8080" }
-      e2eProfile:  { type: string, required: false, default: "",
-                     description: "Override the e2e.env Gradle property (defaults to the value derived from target)" }
+      useLocal:    { type: boolean, required: false, default: false,
+                     description: "Run against the committed local.properties fixture instead of the e2e_properties secret (used for preview, whose database isn't seeded with the shared fixture data)" }
     secrets:
       kube_cert:      { required: true }
       kube_cluster:   { required: true }
       kube_namespace: { required: true }
       kube_token:     { required: true }
       e2e_auth_token: { required: true }
+      e2e_properties: { required: true,
+                        description: "Complete E2E properties content for this environment (pass \"\" and set useLocal: true for preview, which always uses the committed local.properties fixture)" }
   workflow_dispatch:
     inputs:
       target:      { type: choice, required: true, options: [ "uat", "staging", "prod" ], default: "uat",
@@ -37,30 +39,13 @@ jobs:
         id:   vars
         shell: bash
         env:
-          TARGET:      ${{ inputs.target }}
-          REL:         ${{ inputs.rel || 'stable' }}
-          SP:          ${{ inputs.servicePort }}
-          E2E_PROFILE: ${{ inputs.e2eProfile }}
+          REL: ${{ inputs.rel || 'stable' }}
+          SP:  ${{ inputs.servicePort }}
         run: |
-          echo "Run e2e tests - target: [$TARGET], rel: [$REL], servicePort: [$SP]"
-          # Map target to profile
-          case "$TARGET" in
-            dev)                        PROFILE=dev ;;
-            uat)                        PROFILE=uat ;;
-            staging)                    PROFILE=staging ;;
-            prod)                       PROFILE=prod ;;
-            prod_auto_without_approval) PROFILE=prod ;;
-            *)                          exit 1 ;;
-          esac
-          # Allow caller to override the e2e profile independently of the kube target
-          if [ -n "$E2E_PROFILE" ]; then
-            PROFILE="$E2E_PROFILE"
-          fi
+          echo "Run e2e tests - rel: [$REL], servicePort: [$SP]"
           # Determine service name
           SVC="pdp-${REL}-provider-data-platform"
-          echo "Resolved profile name: [$PROFILE]"
           echo "Resolved service name: [$SVC]"
-          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
           echo "svc=$SVC" >> "$GITHUB_OUTPUT"
 
       - name: "Set up Java 25 (Temurin distro)"
@@ -108,14 +93,14 @@ jobs:
         if:   steps.kube_auth.outputs.kube_auth_attempted == 'true'
         env:
           E2E_AUTH_TOKEN: ${{ secrets.e2e_auth_token }}
+          E2E_PROPERTIES: ${{ secrets.e2e_properties }}
+          E2E_USE_LOCAL:  ${{ inputs.useLocal }}
           GITHUB_TOKEN:   ${{ github.token }}
           GITHUB_ACTOR:   ${{ github.actor }}
-          PROFILE:        ${{ steps.vars.outputs.profile }}
         run: |
           ./gradlew :provider-data-e2e:e2eTest \
-            -Pe2e.env="$PROFILE" \
-            -De2e.baseUri="http://127.0.0.1:18080" \
             -De2e.authToken="${E2E_AUTH_TOKEN}" \
+            -De2e.baseUri="http://127.0.0.1:18080" \
             --stacktrace
 
       - name: "Upload E2E reports"

@@ -99,3 +99,29 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 }
+
+// Add PACT provider test source set
+sourceSets {
+    pactTest {
+        java.srcDir 'src/pactTest/java'
+        resources.srcDir 'src/pactTest/resources'
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += compileClasspath
+    }
+}
+
+configurations {
+    pactTestImplementation.extendsFrom testImplementation
+    pactTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.register('pactTest', Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.pactTest.output.classesDirs
+    classpath = sourceSets.pactTest.runtimeClasspath
+}

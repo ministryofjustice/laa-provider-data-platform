@@ -11,8 +11,8 @@ pluginManagement {
         gradlePluginPortal()
     }
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.3.7'
-        id 'org.openapi.generator' version '7.24.0'
+        id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin' version '3.0.3'
+        id 'org.openapi.generator' version '7.25.0'
         id 'io.freefair.lombok' version '9.5.0'
         id 'com.diffplug.spotless' version '8.8.0'
         id 'io.github.ben-manes.versions' version '0.61.0' // for provider-data-e2e

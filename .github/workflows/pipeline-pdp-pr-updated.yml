@@ -68,6 +68,13 @@ jobs:
         run: |
           ./gradlew :provider-data-api:checkOpenApiBundleUpToDate
 
+      - name: "Lint the OpenAPI spec"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew :provider-data-api:lintOpenApi
+
   gradle-build-and-publish:
     name: "Build PR #${{ needs.plan.outputs.prnum }}"
     needs: [ plan ]

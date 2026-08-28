@@ -86,6 +86,13 @@ jobs:
         run: |
           ./gradlew :provider-data-api:checkOpenApiBundleUpToDate
 
+      - name: "Lint the OpenAPI spec"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew :provider-data-api:lintOpenApi
+
   create-tag:
     name: "Create Git tag ${{ needs.plan.outputs.gtag }}"
     if:   needs.plan.outputs.gtag && (needs.plan.outputs.reltype != 'none')

@@ -2,12 +2,23 @@ openapi: 3.0.3
 info:
   title: Provider API
   version: 1.0.0
+  license:
+    name: MIT
+    url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/LICENSE
   description: |
     API for managing Legal Service Providers, including Chambers, solicitors, and advocates.
 
     Unless explicitly stated otherwise, `officeGUID` values identify the provider-office link
     record, not the underlying office record. The underlying office GUID is mainly an internal
     identifier used to associate an office record with a provider-office link.
+
+servers:
+  - url: https://laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk
+    description: Development
+  - url: https://laa-provider-data-platform-uat.apps.live.cloud-platform.service.justice.gov.uk
+    description: UAT
+  - url: https://laa-provider-data-platform-staging.apps.live.cloud-platform.service.justice.gov.uk
+    description: Staging
 
 paths:
   /provider-liaison-managers/{liaisonManagerGUID}:

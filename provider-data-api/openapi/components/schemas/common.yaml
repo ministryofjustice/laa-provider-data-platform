@@ -20,7 +20,7 @@ BaseEntityV2:
       type: integer
       format: int64
       description: "Record version (for audit and event concurrency)"
-      example: "12"
+      example: 12
     createdBy:
       type: string
       description: "User ID from the auth token which resulted in creating this record"
@@ -170,21 +170,21 @@ LinksV2:
   properties:
     self:
       type: string
-      example: "/example?page=2&pageSize=10"
+      example: "https://example.com/example?page=2&pageSize=10"
       format: uri
     next:
       type: string
-      example: "/example?page=3&pageSize=10"
+      example: "https://example.com/example?page=3&pageSize=10"
       format: uri
     prev:
       type: string
-      example: "/example?page=1&pageSize=10"
+      example: "https://example.com/example?page=1&pageSize=10"
       format: uri
     first:
       type: string
-      example: "/example?page=1&pageSize=10"
+      example: "https://example.com/example?page=1&pageSize=10"
       format: uri
     last:
       type: string
-      example: "/example?page=5&pageSize=10"
+      example: "https://example.com/example?page=5&pageSize=10"
       format: uri

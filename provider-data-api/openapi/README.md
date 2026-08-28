@@ -14,17 +14,33 @@ one large file.
 ## Editing
 
 1. Edit the relevant fragment file(s) under `paths/` and `components/`.
-2. Re-bundle into the committed single-file spec:
+2. Lint the spec (see [Linting](#linting) below) and fix any errors.
+3. Re-bundle into the committed single-file spec:
 
    ```sh
    npx --yes @redocly/cli bundle provider-data-api/openapi/index.yaml \
      -o provider-data-api/bundled-openapi-spec.yaml --ext yaml
    ```
 
-3. Commit both the fragment changes and the regenerated `bundled-openapi-spec.yaml`.
+   Or via Gradle: `./gradlew :provider-data-api:bundleOpenApi`.
+
+4. Commit both the fragment changes and the regenerated `bundled-openapi-spec.yaml`.
 
 CI checks that `bundled-openapi-spec.yaml` matches what bundling the fragments produces, and fails
 if they have drifted apart (e.g. someone forgot to re-bundle, or hand-edited the bundle directly).
+CI also lints the spec (see below).
+
+## Linting
+
+```sh
+npx --yes @redocly/cli lint provider-data-api/openapi/index.yaml
+```
+
+Or via Gradle: `./gradlew :provider-data-api:lintOpenApi`.
+
+Lint rules are configured in `provider-data-api/redocly.yaml`. Some rules are deliberately
+downgraded there, with a comment explaining why - check that file before assuming a warning can be
+ignored.
 
 ## Why a committed bundle
 

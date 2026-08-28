@@ -231,7 +231,7 @@ OfficeWebsiteV2:
   format: uri
   description: |
     CWA ref: PO_VENDOR_CONTACTS.URL
-  example: "www.abc.com"
+  example: "https://www.abc.com"
 
 DXdxNumberV2:
   type: string

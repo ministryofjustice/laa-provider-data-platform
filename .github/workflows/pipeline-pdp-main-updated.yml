@@ -61,7 +61,7 @@ jobs:
   source-scan:
     name: "Source scan"
     needs: [ plan ]
-    permissions: { contents: read }
+    permissions: { contents: read, packages: read }
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -69,6 +69,22 @@ jobs:
       - run: |
           ### Check the Helm chart lints OK
           helm lint ./helm_deploy/provider-data-platform --quiet --strict
+
+      - name: "Set up Java 25 (Temurin distro)"
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: "temurin"
+          java-version: "25"
+
+      - name: "Set up Gradle"
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: "Check OpenAPI bundle is up to date with openapi/ source"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./gradlew :provider-data-api:checkOpenApiBundleUpToDate
 
   create-tag:
     name: "Create Git tag ${{ needs.plan.outputs.gtag }}"

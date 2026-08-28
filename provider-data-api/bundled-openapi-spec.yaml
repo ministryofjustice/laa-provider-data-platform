@@ -8,7 +8,9 @@ info:
     Unless explicitly stated otherwise, `officeGUID` values identify the provider-office link
     record, not the underlying office record. The underlying office GUID is mainly an internal
     identifier used to associate an office record with a provider-office link.
-
+security:
+  - ApiKeyAuth: []
+  - AzureAD: []
 paths:
   /provider-liaison-managers/{liaisonManagerGUID}:
     get:
@@ -22,10 +24,10 @@ paths:
       description: |
         Retrieve details of a specific liaison manager.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/LiaisonManagerGUID"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/LiaisonManagerGUID'
       responses:
-        "200":
+        '200':
           description: Successful response
           content:
             application/json:
@@ -33,13 +35,13 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/ProviderLiaisonManagerV2"
-        "404":
+                    $ref: '#/components/schemas/ProviderLiaisonManagerV2'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
+                $ref: '#/components/schemas/NotFoundError'
     patch:
       summary: Amend a liaison manager
       security:
@@ -51,16 +53,16 @@ paths:
       description: |
         Amend the permitted details of an existing liaison manager.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/LiaisonManagerGUID"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/LiaisonManagerGUID'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProviderLiaisonManagerPatchV2"
+              $ref: '#/components/schemas/ProviderLiaisonManagerPatchV2'
       responses:
-        "200":
+        '200':
           description: Successful response
           content:
             application/json:
@@ -68,20 +70,19 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/ProviderLiaisonManagerV2"
-        "400":
+                    $ref: '#/components/schemas/ProviderLiaisonManagerV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-        "404":
+                $ref: '#/components/schemas/BadRequestError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
+                $ref: '#/components/schemas/NotFoundError'
   /provider-events:
     get:
       summary: Retrieve a list of event headers
@@ -98,14 +99,14 @@ paths:
         1) Search event header history.
         2) Identify event GUID for a given correlationId.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
         - name: eventType
           in: query
           required: false
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/EventTypeV2"
+              $ref: '#/components/schemas/EventTypeV2'
           description: Filter by event type (multi)
         - name: correlationId
           in: query
@@ -113,10 +114,10 @@ paths:
           schema:
             type: string
           description: Filter by correlation Id
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of events matching the filters
           content:
             application/json:
@@ -129,40 +130,35 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/EventHeaderV2"
+                          $ref: '#/components/schemas/EventHeaderV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-events/{eventGUID}:
     get:
       summary: Retrieve event by GUID
@@ -178,7 +174,7 @@ paths:
         Use cases:
         1) Retrieve details necessary for connectors to downstream systems
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
         - name: eventGUID
           in: path
           required: true
@@ -186,7 +182,7 @@ paths:
             type: string
           description: Filter by event GUID
       responses:
-        "200":
+        '200':
           description: Event details
           content:
             application/json:
@@ -194,28 +190,25 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/EventV2"
-        "400":
+                    $ref: '#/components/schemas/EventV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "500":
+                $ref: '#/components/schemas/ForbiddenError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-contract-managers:
     get:
       summary: Retrieve a list of contract managers
@@ -237,7 +230,7 @@ paths:
         Use cases:
         1) List available contract managers to get the GUID before assigning them to an office
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
         - name: contractManagerId
           in: query
           required: false
@@ -253,10 +246,10 @@ paths:
             type: string
           description: |
             Fuzzy search by contract manager name (searches both first and last names)
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of contract managers matching the filters
           content:
             application/json:
@@ -269,40 +262,35 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/ContractManagerV2"
+                          $ref: '#/components/schemas/ContractManagerV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms:
     post:
       summary: Create a provider firm
@@ -327,15 +315,15 @@ paths:
         Use cases:
         1) Create a complete record for a provider firm
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProviderCreateV2"
+              $ref: '#/components/schemas/ProviderCreateV2'
       responses:
-        "201":
+        '201':
           description: Created successfully
           content:
             application/json:
@@ -346,46 +334,41 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
-
-        "400":
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: |
             Not found. Returned when a referenced parent entity (e.g. a practitioner's parent
             Chambers) does not exist.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "409":
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
           description: Conflict
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConflictError"
-
-        "500":
+                $ref: '#/components/schemas/ConflictError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
+                $ref: '#/components/schemas/InternalServerError'
     get:
       summary: Retrieve providers with optional filters
       security:
@@ -399,7 +382,7 @@ paths:
         1) Browse provider data
         2) Search for specific provider(s) that match criteria
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
         - name: providerFirmGUID
           in: query
           required: false
@@ -439,7 +422,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/ProviderFirmTypeV2"
+              $ref: '#/components/schemas/ProviderFirmTypeV2'
           description: Filter by provider type (multi)
         - name: accountNumber
           in: query
@@ -473,10 +456,10 @@ paths:
             items:
               type: string
           description: Filter by parent firm number (multi)
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of providers matching the filters
           content:
             application/json:
@@ -489,32 +472,29 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/ProviderV2"
+                          $ref: '#/components/schemas/ProviderV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "500":
+                $ref: '#/components/schemas/ForbiddenError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}:
     get:
       summary: Retrieve provider details by GUID or firm number
@@ -530,10 +510,10 @@ paths:
         Use cases:
         1) Retrieve provider firm details when GUID or firm number is available
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
       responses:
-        "200":
+        '200':
           description: Details retrieved successfully
           content:
             application/json:
@@ -541,26 +521,25 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/ProviderV2"
-
-        "403":
+                    $ref: '#/components/schemas/ProviderV2'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
+                $ref: '#/components/schemas/InternalServerError'
     patch:
       summary: Update provider firm details
       security:
@@ -579,16 +558,16 @@ paths:
            Note that changing parent Chambers should also re-link office details and liaison manager.
            There are three options: 1. use new Chambers' LM, 2. keep existing LM or 3. add new LM.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProviderPatchV2"
+              $ref: '#/components/schemas/ProviderPatchV2'
       responses:
-        "200":
+        '200':
           description: Details updated successfully
           content:
             application/json:
@@ -599,37 +578,33 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
-
-        "400":
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details:
     get:
       summary: Retrieve a list of provider bank accounts with optional filters
@@ -658,8 +633,8 @@ paths:
         1) Retrieve the list of bank accounts available for office assignment. Use `GUID` in office
            payment PATCH operation to set alternative bank account details.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
         - name: bankAccountNumber
           in: query
           required: false
@@ -667,11 +642,10 @@ paths:
             type: string
           description: |
             Partial text search by bank account number
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
-
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of bank accounts matching the filters
           content:
             application/json:
@@ -684,39 +658,35 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/BankAccountV2"
+                          $ref: '#/components/schemas/BankAccountV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/bank-details:
     get:
       summary: Retrieve a list of provider's office bank accounts with optional filters
@@ -739,9 +709,9 @@ paths:
         1) Retrieve the list of bank accounts assigned to office. Use `GUID` in office payment
            PATCH operation to set alternative bank account details.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
         - name: bankAccountNumber
           in: query
           required: false
@@ -749,11 +719,10 @@ paths:
             type: string
           description: |
             Partial text search by bank account number
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
-
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of bank accounts matching the filters
           content:
             application/json:
@@ -766,39 +735,35 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/OfficeBankAccountV2"
+                          $ref: '#/components/schemas/OfficeBankAccountV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices:
     post:
       summary: Create an office for a Legal Service Provider firm
@@ -815,16 +780,16 @@ paths:
         Use cases:
         1) Create additional office details for Legal Service Provider firm
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LSPOfficeCreateV2"
+              $ref: '#/components/schemas/LSPOfficeCreateV2'
       responses:
-        "201":
+        '201':
           description: Office created successfully
           content:
             application/json:
@@ -835,39 +800,37 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
                       officeGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       officeCode:
-                        $ref: "#/components/schemas/OfficeAccountNumberV2"
-
-        "400":
+                        $ref: '#/components/schemas/OfficeAccountNumberV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
     get:
       summary: Retrieve a list of provider offices with optional filters
       security:
@@ -889,12 +852,12 @@ paths:
         3) Show details of the Advocate's office (which is the Chambers' office they are currently
            assigned to)
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of provider offices matching the filters
           content:
             application/json:
@@ -907,36 +870,35 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/OfficeV2"
+                          $ref: '#/components/schemas/OfficeV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms-offices:
     get:
       summary: Retrieve a list of provider offices with optional filters
@@ -954,7 +916,7 @@ paths:
         2) Browse all offices of a specific provider when only `officeGUID` or `officeCode`
            is known.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
+        - $ref: '#/components/parameters/TraceParentHeader'
         - name: officeGUID
           in: query
           required: false
@@ -975,13 +937,11 @@ paths:
           in: query
           schema:
             type: boolean
-          description: >-
-            Use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for
-            the provider that the office with specified GUID belongs to.
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+          description: Use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for the provider that the office with specified GUID belongs to.
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: List of provider offices matching the filters
           content:
             application/json:
@@ -994,30 +954,29 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/OfficeV2"
+                          $ref: '#/components/schemas/OfficeV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "400":
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "500":
+                $ref: '#/components/schemas/ForbiddenError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}:
     get:
       summary: Retrieve provider office details by GUID or office code
@@ -1033,11 +992,11 @@ paths:
         Use cases:
         1) Retrieve office details by GUID or office code
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
       responses:
-        "200":
+        '200':
           description: Details retrieved successfully
           content:
             application/json:
@@ -1045,25 +1004,25 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/OfficeV2"
-        "403":
+                    $ref: '#/components/schemas/OfficeV2'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
+                $ref: '#/components/schemas/InternalServerError'
     patch:
       summary: Update provider office details
       security:
@@ -1099,17 +1058,17 @@ paths:
            `false` in the same request, otherwise the request is rejected.
            Must not be combined with `activeDateTo` in the same request.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OfficePatchV2"
+              $ref: '#/components/schemas/OfficePatchV2'
       responses:
-        "200":
+        '200':
           description: Details updated successfully
           content:
             application/json:
@@ -1120,42 +1079,40 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
                       officeGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       officeCode:
-                        $ref: "#/components/schemas/OfficeAccountNumberV2"
-        "400":
+                        $ref: '#/components/schemas/OfficeAccountNumberV2'
+        '400':
           description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/liaison-managers:
     post:
-      summary: >-
-        Create a liaison manager for office. Creating new manager end-dates all other managers.
+      summary: Create a liaison manager for office. Creating new manager end-dates all other managers.
       security:
         - ApiKeyAuth: []
         - AzureAD: []
@@ -1174,17 +1131,17 @@ paths:
            office.
         5) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OfficeLiaisonManagerCreateOrLinkV2"
+              $ref: '#/components/schemas/OfficeLiaisonManagerCreateOrLinkV2'
       responses:
-        "201":
+        '201':
           description: Liaison manager created or assigned successfully
           content:
             application/json:
@@ -1195,44 +1152,39 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
                       officeGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       officeCode:
-                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+                        $ref: '#/components/schemas/OfficeAccountNumberV2'
                       liaisonManagerGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
-
-        "400":
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
     get:
       summary: Retrieve liaison managers for a given office
       security:
@@ -1247,13 +1199,13 @@ paths:
         Use cases:
         1) Show full list of liaison managers including currently active and assigned in the past.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: Details retrieved successfully
           content:
             application/json:
@@ -1266,34 +1218,32 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/LiaisonManagerV2"
+                          $ref: '#/components/schemas/LiaisonManagerV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "403":
+                        $ref: '#/components/schemas/LinksV2'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
     post:
-      summary: >-
-        Assign a contract manager for office. Assigning a new manager removes the previous manager.
+      summary: Assign a contract manager for office. Assigning a new manager removes the previous manager.
       security:
         - ApiKeyAuth: []
         - AzureAD: []
@@ -1314,17 +1264,17 @@ paths:
         Use cases:
         1) Assign new contract manager to a given office.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ContractManagerProviderPatchV2"
+              $ref: '#/components/schemas/ContractManagerProviderPatchV2'
       responses:
-        "201":
+        '201':
           description: Contract manager assigned successfully
           content:
             application/json:
@@ -1335,38 +1285,34 @@ paths:
                     type: object
                     properties:
                       providerFirmGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       providerFirmNumber:
-                        $ref: "#/components/schemas/ProviderFirmNumberV2"
+                        $ref: '#/components/schemas/ProviderFirmNumberV2'
                       officeGUID:
-                        $ref: "#/components/schemas/BaseEntityGUIDV2"
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
                       officeCode:
-                        $ref: "#/components/schemas/OfficeAccountNumberV2"
+                        $ref: '#/components/schemas/OfficeAccountNumberV2'
                       contractManagerId:
                         type: string
                         description: Unique identifier of the assigned contract manager
-
-        "400":
+        '400':
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BadRequestError"
-
-        "403":
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-
-        "500":
+                $ref: '#/components/schemas/ForbiddenError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
     get:
       summary: Retrieve contract managers for a given provider office
       security:
@@ -1378,13 +1324,13 @@ paths:
       description: |
         Retrieve provider office contract managers. Applicable only for LSPs.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/OfficeGUIDorCode"
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/OfficeGUIDorCode'
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: Details retrieved successfully
           content:
             application/json:
@@ -1397,30 +1343,29 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/OfficeContractManagerV2"
+                          $ref: '#/components/schemas/OfficeContractManagerV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "403":
+                        $ref: '#/components/schemas/LinksV2'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
   /provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
     get:
       summary: Retrieve practitioners for a given Chambers
@@ -1442,12 +1387,12 @@ paths:
         Use cases:
         1) List all Advocates and Barristers assigned to given Chambers.
       parameters:
-        - $ref: "#/components/parameters/TraceParentHeader"
-        - $ref: "#/components/parameters/ProviderFirmGUIDorFirmNumber"
-        - $ref: "#/components/parameters/QPageNumber"
-        - $ref: "#/components/parameters/QPageSize"
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
       responses:
-        "200":
+        '200':
           description: Details retrieved successfully
           content:
             application/json:
@@ -1460,57 +1405,36 @@ paths:
                       content:
                         type: array
                         items:
-                          $ref: "#/components/schemas/OfficePractitionerV2"
+                          $ref: '#/components/schemas/OfficePractitionerV2'
                       metadata:
-                        $ref: "#/components/schemas/PaginatedSearchV2"
+                        $ref: '#/components/schemas/PaginatedSearchV2'
                       links:
-                        $ref: "#/components/schemas/LinksV2"
-        "403":
+                        $ref: '#/components/schemas/LinksV2'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ForbiddenError"
-        "404":
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotFoundError"
-        "500":
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
           description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InternalServerError"
-
+                $ref: '#/components/schemas/InternalServerError'
 components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      name: X-Authorization
-      in: header
-    AzureAD:
-      type: oauth2
-      description: >
-        OAuth2 client credentials via Microsoft Entra ID. Callers acquire a token using
-        `scope={backend-api-application-id}/.default`. The API then enforces the
-        `PDA_ACCESS` application role from the JWT `roles` claim.
-      flows:
-        clientCredentials:
-          tokenUrl: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
-          scopes:
-            '{backend-api-application-id}/.default': >
-              Request app permissions granted to the client app for this API (including
-              `PDA_ACCESS`).
-
   schemas:
     BaseEntityGUIDV2:
       type: string
       format: uuid
-      description: "GUID is the primary key for entity"
-      example: "123e4567-e89b-12d3-a456-426614174000"
-
+      description: GUID is the primary key for entity
+      example: 123e4567-e89b-12d3-a456-426614174000
     BaseEntityV2:
       type: object
       required:
@@ -1522,29 +1446,28 @@ components:
         - lastUpdatedTimestamp
       properties:
         guid:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         version:
           type: integer
           format: int64
-          description: "Record version (for audit and event concurrency)"
-          example: "12"
+          description: Record version (for audit and event concurrency)
+          example: '12'
         createdBy:
           type: string
-          description: "User ID from the auth token which resulted in creating this record"
-          example: "john.smith.42"
+          description: User ID from the auth token which resulted in creating this record
+          example: john.smith.42
         createdTimestamp:
           type: string
           format: date-time
-          example: "2025-09-25T09:30:00Z"
+          example: '2025-09-25T09:30:00Z'
         lastUpdatedBy:
           type: string
-          description: "User ID from the auth token which resulted in updating this record last"
-          example: "john.doe.24"
+          description: User ID from the auth token which resulted in updating this record last
+          example: john.doe.24
         lastUpdatedTimestamp:
           type: string
           format: date-time
-          example: "2025-09-26T12:30:00Z"
-
+          example: '2025-09-26T12:30:00Z'
     ErrorResponse:
       type: object
       properties:
@@ -1553,8 +1476,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00XX"
-
+              example: P00XX
     BadRequestError:
       type: object
       properties:
@@ -1563,8 +1485,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00BR"
-
+              example: P00BR
     ForbiddenError:
       type: object
       properties:
@@ -1573,8 +1494,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00AD"
-
+              example: P00AD
     ConflictError:
       type: object
       properties:
@@ -1583,8 +1503,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00CV"
-
+              example: P00CV
     NotFoundError:
       type: object
       properties:
@@ -1593,8 +1512,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00NF"
-
+              example: P00NF
     InternalServerError:
       type: object
       properties:
@@ -1603,8 +1521,7 @@ components:
           properties:
             errorCode:
               type: string
-              example: "P00SE"
-
+              example: P00SE
     ProviderFirmNumberV2:
       type: string
       description: |
@@ -1614,8 +1531,7 @@ components:
         *TODO: Is this the same as account number. CWA ref, is it segment 1*
         *TODO: Do we need ccmsFirmId. xxccms_provider_offices_v.providerfirm_id*
         *TODO: Check rules for generating these and what sequence number to start from at go live*
-      example: "3856"
-
+      example: '3856'
     ProviderFirmTypeV2:
       type: string
       enum:
@@ -1628,31 +1544,21 @@ components:
         CWA ref: PO_VENDORS.ATTRIBUTE4.
 
         *TODO: Check if these are all valid types*
-
     ProviderFirmNameV2:
       type: string
       description: |
         Name of the provider firm.
 
         CWA ref: PO_VENDORS.VENDOR_NAME
-      example: "Legal Services Co."
-
+      example: Legal Services Co.
     ProviderCreateV2:
-      # x-class-extra-annotation is placed here (not on ProviderCreatePractitionerV2) because
-      # openapi-generator flattens this allOf/oneOf into a single ProviderCreateV2 class, which
-      # is the class actually deserialized for POST /provider-firms (see ProviderFirmController).
-      # createdTimestamp is a server-assigned audit field for every provider type, not just
-      # practitioners, so it must be rejected here regardless of firmType.
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"createdTimestamp"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"createdTimestamp"})'
       allOf:
-        - $ref: "#/components/schemas/ProviderCreateBaseV2"
+        - $ref: '#/components/schemas/ProviderCreateBaseV2'
         - oneOf:
-            - $ref: "#/components/schemas/ProviderCreateLSPV2"
-            - $ref: "#/components/schemas/ProviderCreateChambersV2"
-            - $ref: "#/components/schemas/ProviderCreatePractitionerV2"
-
+            - $ref: '#/components/schemas/ProviderCreateLSPV2'
+            - $ref: '#/components/schemas/ProviderCreateChambersV2'
+            - $ref: '#/components/schemas/ProviderCreatePractitionerV2'
     ProviderCreateBaseV2:
       type: object
       required:
@@ -1660,10 +1566,9 @@ components:
         - name
       properties:
         firmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
         name:
-          $ref: "#/components/schemas/ProviderFirmNameV2"
-
+          $ref: '#/components/schemas/ProviderFirmNameV2'
     ProviderCreateLSPV2:
       type: object
       required:
@@ -1671,11 +1576,10 @@ components:
       properties:
         legalServicesProvider:
           allOf:
-            - $ref: "#/components/schemas/LSPDetailsCreateV2"
-            - $ref: "#/components/schemas/LSPHeadOfficeCreateV2"
+            - $ref: '#/components/schemas/LSPDetailsCreateV2'
+            - $ref: '#/components/schemas/LSPHeadOfficeCreateV2'
       description: |
         Create provider of `firmType=Legal Services Provider`
-
     ProviderCreateChambersV2:
       type: object
       required:
@@ -1683,34 +1587,29 @@ components:
       properties:
         chambers:
           allOf:
-            - $ref: "#/components/schemas/ChambersHeadOfficeCreateV2"
+            - $ref: '#/components/schemas/ChambersHeadOfficeCreateV2'
       description: |
         Create provider of `firmType=Chambers`
-
     ProviderCreatePractitionerV2:
       type: object
       required:
         - practitioner
       properties:
         practitioner:
-          x-class-extra-annotation: >-
-            @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-            {"address", "telephoneNumber", "emailAddress", "website", "dxDetails"})
+          x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"address", "telephoneNumber", "emailAddress", "website", "dxDetails"})'
           allOf:
-            - $ref: "#/components/schemas/PractitionerDetailsCreateV2"
-            - $ref: "#/components/schemas/PractitionerHeadOfficeCreateV2"
+            - $ref: '#/components/schemas/PractitionerDetailsCreateV2'
+            - $ref: '#/components/schemas/PractitionerHeadOfficeCreateV2'
       description: |
         Create provider of `firmType=Advocate`. Office is linked to the parent Chambers' office.
-
     ProviderV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
-        - $ref: "#/components/schemas/ProviderBaseV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
+        - $ref: '#/components/schemas/ProviderBaseV2'
         - oneOf:
-            - $ref: "#/components/schemas/ProviderLSPV2"
-            - $ref: "#/components/schemas/ProviderChambersV2"
-            - $ref: "#/components/schemas/ProviderPractitionerV2"
-
+            - $ref: '#/components/schemas/ProviderLSPV2'
+            - $ref: '#/components/schemas/ProviderChambersV2'
+            - $ref: '#/components/schemas/ProviderPractitionerV2'
     ProviderBaseV2:
       type: object
       required:
@@ -1719,84 +1618,69 @@ components:
         - name
       properties:
         firmNumber:
-          $ref: "#/components/schemas/ProviderFirmNumberV2"
+          $ref: '#/components/schemas/ProviderFirmNumberV2'
         firmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
         name:
-          $ref: "#/components/schemas/ProviderFirmNameV2"
-
+          $ref: '#/components/schemas/ProviderFirmNameV2'
     ProviderLSPV2:
       type: object
       required:
         - legalServicesProvider
       properties:
         legalServicesProvider:
-          $ref: "#/components/schemas/LSPDetailsV2"
+          $ref: '#/components/schemas/LSPDetailsV2'
       description: |
         Provider of `firmType=Legal Services Provider`
-
     ProviderChambersV2:
       type: object
       required:
         - chambers
       properties:
         chambers:
-          $ref: "#/components/schemas/ChambersDetailsV2"
+          $ref: '#/components/schemas/ChambersDetailsV2'
       description: |
         Provider of `firmType=Chambers`
-
     ProviderPractitionerV2:
       type: object
       required:
         - practitioner
       properties:
         practitioner:
-          $ref: "#/components/schemas/PractitionerDetailsV2"
+          $ref: '#/components/schemas/PractitionerDetailsV2'
       description: |
         Provider of `firmType=Advocate`
-
     ProviderPatchV2:
-      # x-class-extra-annotation is placed here (not on ProviderPatchPractitionerV2) because
-      # openapi-generator flattens this allOf/oneOf into a single ProviderPatchV2 class, which
-      # is the class actually deserialized for PATCH /provider-firms/{id} (see
-      # ProviderFirmController). These fields must be rejected regardless of firmType.
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "createdTimestamp"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "createdTimestamp"})'
       allOf:
-        - $ref: "#/components/schemas/ProviderPatchBaseV2"
+        - $ref: '#/components/schemas/ProviderPatchBaseV2'
         - oneOf:
-            - $ref: "#/components/schemas/ProviderPatchLSPV2"
-            - $ref: "#/components/schemas/ProviderPatchChambersV2"
-            - $ref: "#/components/schemas/ProviderPatchPractitionerV2"
-
+            - $ref: '#/components/schemas/ProviderPatchLSPV2'
+            - $ref: '#/components/schemas/ProviderPatchChambersV2'
+            - $ref: '#/components/schemas/ProviderPatchPractitionerV2'
     ProviderPatchBaseV2:
       type: object
       properties:
         name:
-          $ref: "#/components/schemas/ProviderFirmNameV2"
-
+          $ref: '#/components/schemas/ProviderFirmNameV2'
     ProviderPatchLSPV2:
       type: object
       properties:
         legalServicesProvider:
-          $ref: "#/components/schemas/LSPDetailsPatchV2"
+          $ref: '#/components/schemas/LSPDetailsPatchV2'
       description: |
         Update provider of `firmType=Legal Services Provider`
-
     ProviderPatchChambersV2:
       type: object
       description: |
         Update provider of `firmType=Chambers`
-
     ProviderPatchPractitionerV2:
       type: object
       properties:
         practitioner:
-          $ref: "#/components/schemas/PractitionerDetailsPatchV2"
+          $ref: '#/components/schemas/PractitionerDetailsPatchV2'
       description: |
         Update provider of `firmType=Advocate`
-
     LSPDetailsConstitutionalStatusV2:
       type: string
       enum:
@@ -1821,14 +1705,12 @@ components:
         to true.
 
         CWA ref: PO_VENDORS.ATTRIBUTE1.
-
     LSPDetailsNotForProfitOrganisationFlagV2:
       type: boolean
       description: |
         *TODO: Check if this flag is true for LSP with constitutionalStatus=Charity*
 
         CWA ref: PO_VENDORS.ATTRIBUTE3.
-
     LSPDetailsIndemnityReceivedDateV2:
       type: string
       format: date
@@ -1836,7 +1718,6 @@ components:
         *TODO: Need better description of this field*
 
         CWA ref: PO_VENDORS.ATTRIBUTE2.
-
     LSPDetailsCompaniesHouseNumberV2:
       type: string
       description: |
@@ -1845,20 +1726,18 @@ components:
         WARNING: same field is used by Advocates for Bar Council or SRA roll number.
 
         CWA ref: PO_VENDORS.ATTRIBUTE11
-      example: "*TODO: Provide example*"
-
+      example: '*TODO: Provide example*'
     LSPDetailsCreateV2:
       type: object
       required:
         - constitutionalStatus
       properties:
         constitutionalStatus:
-          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+          $ref: '#/components/schemas/LSPDetailsConstitutionalStatusV2'
         indemnityReceivedDate:
-          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+          $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
         companiesHouseNumber:
-          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
-
+          $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
     LSPDetailsV2:
       type: object
       required:
@@ -1869,46 +1748,43 @@ components:
         - headOffice
       properties:
         constitutionalStatus:
-          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+          $ref: '#/components/schemas/LSPDetailsConstitutionalStatusV2'
         notForProfitOrganisationFlag:
-          $ref: "#/components/schemas/LSPDetailsNotForProfitOrganisationFlagV2"
+          $ref: '#/components/schemas/LSPDetailsNotForProfitOrganisationFlagV2'
         indemnityReceivedDate:
-          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+          $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
         companiesHouseNumber:
-          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
+          $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
         headOffice:
-          $ref: "#/components/schemas/LSPHeadOfficeDetailsV2"
-
+          $ref: '#/components/schemas/LSPHeadOfficeDetailsV2'
     LSPDetailsPatchV2:
       type: object
       properties:
         constitutionalStatus:
-          $ref: "#/components/schemas/LSPDetailsConstitutionalStatusV2"
+          $ref: '#/components/schemas/LSPDetailsConstitutionalStatusV2'
         indemnityReceivedDate:
-          $ref: "#/components/schemas/LSPDetailsIndemnityReceivedDateV2"
+          $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
         companiesHouseNumber:
-          $ref: "#/components/schemas/LSPDetailsCompaniesHouseNumberV2"
+          $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
         headOffice:
-          $ref: "#/components/schemas/LSPHeadOfficeDetailsPatchV2"
+          $ref: '#/components/schemas/LSPHeadOfficeDetailsPatchV2'
         firmIntervenedFlag:
-          $ref: "#/components/schemas/FirmIntervenedFlagV2"
+          $ref: '#/components/schemas/FirmIntervenedFlagV2'
         firmIntervenedDate:
-          $ref: "#/components/schemas/FirmIntervenedDateV2"
+          $ref: '#/components/schemas/FirmIntervenedDateV2'
         holdAllPaymentsFlag:
-          $ref: "#/components/schemas/HoldAllPaymentsFlagV2"
+          $ref: '#/components/schemas/HoldAllPaymentsFlagV2'
         holdAllPaymentsReason:
-          $ref: "#/components/schemas/HoldAllPaymentsReasonV2"
+          $ref: '#/components/schemas/HoldAllPaymentsReasonV2'
         referredToDebtRecoveryFlag:
-          $ref: "#/components/schemas/ReferredToDebtRecoveryFlagV2"
-
+          $ref: '#/components/schemas/ReferredToDebtRecoveryFlagV2'
     ChambersDetailsV2:
       type: object
       required:
         - office
       properties:
         office:
-          $ref: "#/components/schemas/ChambersOfficeCoreDetailsV2"
-
+          $ref: '#/components/schemas/ChambersOfficeCoreDetailsV2'
     PractitionerDetailsParentUpdateV2:
       oneOf:
         - type: object
@@ -1916,14 +1792,13 @@ components:
             - parentGUID
           properties:
             parentGUID:
-              $ref: "#/components/schemas/BaseEntityGUIDV2"
+              $ref: '#/components/schemas/BaseEntityGUIDV2'
         - type: object
           required:
             - parentFirmNumber
           properties:
             parentFirmNumber:
-              $ref: "#/components/schemas/ProviderFirmNumberV2"
-
+              $ref: '#/components/schemas/ProviderFirmNumberV2'
     PractitionerDetailsParentV2:
       type: object
       required:
@@ -1932,12 +1807,11 @@ components:
         - parentFirmType
       properties:
         parentGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         parentFirmNumber:
-          $ref: "#/components/schemas/ProviderFirmNumberV2"
+          $ref: '#/components/schemas/ProviderFirmNumberV2'
         parentFirmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
-
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
     PractitionerDetailsAdvocateTypeV2:
       type: string
       enum:
@@ -1953,7 +1827,6 @@ components:
         CWA ref: PO_VENDORS.ATTRIBUTE9.
 
         *TODO: Need better description of this field, any business rules*
-
     PractitionerDetailsAdvocateLevelV2:
       type: string
       enum:
@@ -1967,7 +1840,6 @@ components:
         CWA ref: PO_VENDORS.ATTRIBUTE10.
 
         *TODO: Need better description of this field, any business rules*
-
     PractitionerDetailsBarristerLevelV2:
       type: string
       enum:
@@ -1981,7 +1853,6 @@ components:
         CWA ref: PO_VENDORS.ATTRIBUTE10.
 
         *TODO: Need better description of this field, any business rules*
-
     PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2:
       type: string
       description: |
@@ -1991,8 +1862,7 @@ components:
         number and by Barristers for Bar Council roll number).
 
         *TODO: Need better description of this field, any business rules*
-      example: "*TODO: Provide example*"
-
+      example: '*TODO: Provide example*'
     PractitionerDetailsBarCouncilRollNumberV2:
       type: string
       description: |
@@ -2002,8 +1872,7 @@ components:
         number and by Advocates for SRA roll number).
 
         *TODO: Need better description of this field, any business rules*
-      example: "*TODO: Provide example*"
-
+      example: '*TODO: Provide example*'
     PractitionerDetailsAdvocateDetailsV2:
       type: object
       required:
@@ -2011,10 +1880,9 @@ components:
         - solicitorRegulationAuthorityRollNumber
       properties:
         advocateLevel:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateLevelV2"
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateLevelV2'
         solicitorRegulationAuthorityRollNumber:
-          $ref: "#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2'
     PractitionerDetailsBarristerDetailsV2:
       type: object
       required:
@@ -2022,17 +1890,15 @@ components:
         - barCouncilRollNumber
       properties:
         barristerLevel:
-          $ref: "#/components/schemas/PractitionerDetailsBarristerLevelV2"
+          $ref: '#/components/schemas/PractitionerDetailsBarristerLevelV2'
         barCouncilRollNumber:
-          $ref: "#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2'
     PractitionerDetailsCreateV2:
       allOf:
-        - $ref: "#/components/schemas/PractitionerDetailsCreateBaseV2"
+        - $ref: '#/components/schemas/PractitionerDetailsCreateBaseV2'
         - oneOf:
-            - $ref: "#/components/schemas/PractitionerDetailsCreateAdvocateV2"
-            - $ref: "#/components/schemas/PractitionerDetailsCreateBarristerV2"
-
+            - $ref: '#/components/schemas/PractitionerDetailsCreateAdvocateV2'
+            - $ref: '#/components/schemas/PractitionerDetailsCreateBarristerV2'
     PractitionerDetailsCreateBaseV2:
       type: object
       required:
@@ -2042,37 +1908,33 @@ components:
         parentFirms:
           type: array
           items:
-            $ref: "#/components/schemas/PractitionerDetailsParentUpdateV2"
+            $ref: '#/components/schemas/PractitionerDetailsParentUpdateV2'
         advocateType:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateTypeV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateTypeV2'
     PractitionerDetailsCreateAdvocateV2:
       type: object
       required:
         - advocate
       properties:
         advocate:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateDetailsV2"
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateDetailsV2'
       description: |
         Applicable only for `advocateType=Advocate`
-
     PractitionerDetailsCreateBarristerV2:
       type: object
       required:
         - barrister
       properties:
         barrister:
-          $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
+          $ref: '#/components/schemas/PractitionerDetailsBarristerDetailsV2'
       description: |
         Applicable only for `advocateType=Barrister`
-
     PractitionerDetailsV2:
       allOf:
-        - $ref: "#/components/schemas/PractitionerDetailsBaseV2"
+        - $ref: '#/components/schemas/PractitionerDetailsBaseV2'
         - oneOf:
-            - $ref: "#/components/schemas/PractitionerDetailsAdvocateV2"
-            - $ref: "#/components/schemas/PractitionerDetailsBarristerV2"
-
+            - $ref: '#/components/schemas/PractitionerDetailsAdvocateV2'
+            - $ref: '#/components/schemas/PractitionerDetailsBarristerV2'
     PractitionerDetailsBaseV2:
       type: object
       required:
@@ -2083,67 +1945,57 @@ components:
         parentFirms:
           type: array
           items:
-            $ref: "#/components/schemas/PractitionerDetailsParentV2"
+            $ref: '#/components/schemas/PractitionerDetailsParentV2'
         advocateType:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateTypeV2"
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateTypeV2'
         office:
-          $ref: "#/components/schemas/PractitionerOfficeCoreDetailsV2"
-
+          $ref: '#/components/schemas/PractitionerOfficeCoreDetailsV2'
     PractitionerDetailsAdvocateV2:
       type: object
       required:
         - advocate
       properties:
         advocate:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateDetailsV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateDetailsV2'
     PractitionerDetailsBarristerV2:
       type: object
       required:
         - barrister
       properties:
         barrister:
-          $ref: "#/components/schemas/PractitionerDetailsBarristerDetailsV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsBarristerDetailsV2'
     PractitionerDetailsPatchV2:
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"advocateType", "name", "accountNumber", "address", "telephoneNumber", "emailAddress",
-        "website", "dxDetails"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"advocateType", "name", "accountNumber", "address", "telephoneNumber", "emailAddress", "website", "dxDetails"})'
       allOf:
-        - $ref: "#/components/schemas/PractitionerDetailsPatchBaseV2"
+        - $ref: '#/components/schemas/PractitionerDetailsPatchBaseV2'
         - type: object
           properties:
             liaisonManager:
-              $ref: "#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2"
+              $ref: '#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2'
         - oneOf:
-            - $ref: "#/components/schemas/PractitionerDetailsPatchAdvocateDetailsV2"
-            - $ref: "#/components/schemas/PractitionerDetailsPatchBarristerDetailsV2"
-
+            - $ref: '#/components/schemas/PractitionerDetailsPatchAdvocateDetailsV2'
+            - $ref: '#/components/schemas/PractitionerDetailsPatchBarristerDetailsV2'
     PractitionerDetailsPatchBaseV2:
       type: object
       properties:
         parentFirms:
           type: array
           items:
-            $ref: "#/components/schemas/PractitionerDetailsParentUpdateV2"
-
+            $ref: '#/components/schemas/PractitionerDetailsParentUpdateV2'
     PractitionerDetailsPatchAdvocateDetailsV2:
       type: object
       properties:
         advocateLevel:
-          $ref: "#/components/schemas/PractitionerDetailsAdvocateLevelV2"
+          $ref: '#/components/schemas/PractitionerDetailsAdvocateLevelV2'
         solicitorRegulationAuthorityRollNumber:
-          $ref: "#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2'
     PractitionerDetailsPatchBarristerDetailsV2:
       type: object
       properties:
         barristerLevel:
-          $ref: "#/components/schemas/PractitionerDetailsBarristerLevelV2"
+          $ref: '#/components/schemas/PractitionerDetailsBarristerLevelV2'
         barCouncilRollNumber:
-          $ref: "#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2"
-
+          $ref: '#/components/schemas/PractitionerDetailsBarCouncilRollNumberV2'
     LSPHeadOfficeCreateV2:
       type: object
       required:
@@ -2153,77 +2005,74 @@ components:
         - contractManager
       properties:
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationCreateV2"
+          $ref: '#/components/schemas/VATRegistrationCreateV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsCreateV2"
+          $ref: '#/components/schemas/PaymentDetailsCreateV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXCreateV2"
+          $ref: '#/components/schemas/DXCreateV2'
         liaisonManager:
-          $ref: "#/components/schemas/LiaisonManagerCreateV2"
+          $ref: '#/components/schemas/LiaisonManagerCreateV2'
         contractManager:
-          $ref: "#/components/schemas/HeadOfficeContractManagerLinkV2"
-
+          $ref: '#/components/schemas/HeadOfficeContractManagerLinkV2'
     LSPHeadOfficeDetailsV2:
       allOf:
-        - $ref: "#/components/schemas/LSPOfficeDetailsV2"
+        - $ref: '#/components/schemas/LSPOfficeDetailsV2'
         - type: object
           required:
             - officeGUID
             - headOfficeFlag
           properties:
             officeGUID:
-              $ref: "#/components/schemas/BaseEntityGUIDV2"
+              $ref: '#/components/schemas/BaseEntityGUIDV2'
             headOfficeFlag:
               type: boolean
             activeDateFrom:
-              $ref: "#/components/schemas/OfficeActiveDateFromV2"
+              $ref: '#/components/schemas/OfficeActiveDateFromV2'
             liaisonManager:
-              $ref: "#/components/schemas/LiaisonManagerV2"
+              $ref: '#/components/schemas/LiaisonManagerV2'
             contractManager:
-              $ref: "#/components/schemas/OfficeContractManagerV2"
+              $ref: '#/components/schemas/OfficeContractManagerV2'
             bankAccount:
-              $ref: "#/components/schemas/OfficeBankAccountV2"
-
+              $ref: '#/components/schemas/OfficeBankAccountV2'
     LSPHeadOfficeDetailsPatchV2:
       type: object
       properties:
         officeGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         clearActiveDateTo:
-          $ref: "#/components/schemas/ClearActiveDateToV2"
+          $ref: '#/components/schemas/ClearActiveDateToV2'
         debtRecoveryFlag:
-          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
         falseBalanceFlag:
-          $ref: "#/components/schemas/FalseBalanceFlagV2"
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressPatchV2"
+          $ref: '#/components/schemas/OfficeAddressPatchV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXPatchV2"
+          $ref: '#/components/schemas/DXPatchV2'
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationV2"
+          $ref: '#/components/schemas/VATRegistrationV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
+          $ref: '#/components/schemas/PaymentDetailsPatchOrLinkV2'
         intervened:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
-
+          $ref: '#/components/schemas/IntervenedOfficeDetailsPatchV2'
     ChambersHeadOfficeCreateV2:
       type: object
       required:
@@ -2231,20 +2080,19 @@ components:
         - liaisonManager
       properties:
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXCreateV2"
+          $ref: '#/components/schemas/DXCreateV2'
         liaisonManager:
-          $ref: "#/components/schemas/ChambersOfficeLiaisonManagerCreateOrLinkV2"
+          $ref: '#/components/schemas/ChambersOfficeLiaisonManagerCreateOrLinkV2'
         contractManager:
-          $ref: "#/components/schemas/HeadOfficeContractManagerLinkV2"
-
+          $ref: '#/components/schemas/HeadOfficeContractManagerLinkV2'
     PractitionerHeadOfficeCreateV2:
       type: object
       required:
@@ -2252,12 +2100,11 @@ components:
         - liaisonManager
       properties:
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationCreateV2"
+          $ref: '#/components/schemas/VATRegistrationCreateV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsCreateV2"
+          $ref: '#/components/schemas/PaymentDetailsCreateV2'
         liaisonManager:
-          $ref: "#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2"
-
+          $ref: '#/components/schemas/AdvocateOfficeLiaisonManagerCreateOrLinkV2'
     LSPOfficeCreateV2:
       type: object
       required:
@@ -2267,32 +2114,30 @@ components:
         - contractManager
       properties:
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationCreateV2"
+          $ref: '#/components/schemas/VATRegistrationCreateV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsCreateOrLinkV2"
+          $ref: '#/components/schemas/PaymentDetailsCreateOrLinkV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXCreateV2"
+          $ref: '#/components/schemas/DXCreateV2'
         liaisonManager:
-          $ref: "#/components/schemas/LSPOfficeLiaisonManagerCreateOrLinkV2"
+          $ref: '#/components/schemas/LSPOfficeLiaisonManagerCreateOrLinkV2'
         contractManager:
-          $ref: "#/components/schemas/LSPOfficeContractManagerLinkV2"
-
+          $ref: '#/components/schemas/LSPOfficeContractManagerLinkV2'
     OfficeAccountNumberV2:
       type: string
       description: |
         Unique provider office identifier.
 
         CWA ref: PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE
-      example: "0Q731M"
-
+      example: 0Q731M
     OfficeActiveDateToV2:
       type: string
       format: date
@@ -2316,13 +2161,11 @@ components:
         this value; the request is rejected if it is omitted or `false`.
 
         CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
-
     OfficeActiveDateFromV2:
       type: string
       format: date
       description: |
         Start date of activity for the provider office link.
-
     ClearActiveDateToV2:
       type: boolean
       description: |
@@ -2336,7 +2179,6 @@ components:
         this way requires `falseBalanceFlag` and `payment.paymentHeldFlag` to both be included
         and set to `false` in the same request, unless each is already `false`. The API does not
         auto-correct these values; the request is rejected if either is omitted or `true`.
-
     DebtRecoveryFlagV2:
       type: boolean
       description: |
@@ -2344,7 +2186,6 @@ components:
         If office is made inactive this flag should be reset to false.
 
         CWA ref: via fake contract manager.
-
     FalseBalanceFlagV2:
       type: boolean
       description: |
@@ -2354,15 +2195,13 @@ components:
         The API does not auto-correct this value.
 
         CWA ref: via fake contract manager.
-
     OfficeV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - oneOf:
-            - $ref: "#/components/schemas/LSPOfficeDetailsV2"
-            - $ref: "#/components/schemas/ChambersOfficeDetailsV2"
-            - $ref: "#/components/schemas/AdvocateOfficeDetailsV2"
-
+            - $ref: '#/components/schemas/LSPOfficeDetailsV2'
+            - $ref: '#/components/schemas/ChambersOfficeDetailsV2'
+            - $ref: '#/components/schemas/AdvocateOfficeDetailsV2'
     LSPOfficeDetailsV2:
       type: object
       required:
@@ -2375,32 +2214,31 @@ components:
         - payment
       properties:
         firmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         debtRecoveryFlag:
-          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
         falseBalanceFlag:
-          $ref: "#/components/schemas/FalseBalanceFlagV2"
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
         intervened:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXV2"
+          $ref: '#/components/schemas/DXV2'
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationV2"
+          $ref: '#/components/schemas/VATRegistrationV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsV2"
-
+          $ref: '#/components/schemas/PaymentDetailsV2'
     ChambersOfficeDetailsV2:
       type: object
       required:
@@ -2409,22 +2247,21 @@ components:
         - address
       properties:
         firmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXV2"
-
+          $ref: '#/components/schemas/DXV2'
     AdvocateOfficeDetailsV2:
       type: object
       required:
@@ -2437,111 +2274,100 @@ components:
         - payment
       properties:
         firmType:
-          $ref: "#/components/schemas/ProviderFirmTypeV2"
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         debtRecoveryFlag:
-          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
         falseBalanceFlag:
-          $ref: "#/components/schemas/FalseBalanceFlagV2"
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
         intervened:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressV2"
+          $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXV2"
+          $ref: '#/components/schemas/DXV2'
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationV2"
+          $ref: '#/components/schemas/VATRegistrationV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsV2"
-
+          $ref: '#/components/schemas/PaymentDetailsV2'
     OfficePatchV2:
       oneOf:
-        - $ref: "#/components/schemas/LSPOfficePatchV2"
-        - $ref: "#/components/schemas/ChambersOfficePatchV2"
-        - $ref: "#/components/schemas/AdvocateOfficePatchV2"
-
+        - $ref: '#/components/schemas/LSPOfficePatchV2'
+        - $ref: '#/components/schemas/ChambersOfficePatchV2'
+        - $ref: '#/components/schemas/AdvocateOfficePatchV2'
     LSPOfficePatchV2:
       type: object
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"officeGUID", "providerFirmGUID", "accountNumber"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"officeGUID", "providerFirmGUID", "accountNumber"})'
       properties:
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         clearActiveDateTo:
-          $ref: "#/components/schemas/ClearActiveDateToV2"
+          $ref: '#/components/schemas/ClearActiveDateToV2'
         debtRecoveryFlag:
-          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
         falseBalanceFlag:
-          $ref: "#/components/schemas/FalseBalanceFlagV2"
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
         intervened:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsPatchV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressPatchV2"
+          $ref: '#/components/schemas/OfficeAddressPatchV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXPatchV2"
+          $ref: '#/components/schemas/DXPatchV2'
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationV2"
+          $ref: '#/components/schemas/VATRegistrationV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
-
+          $ref: '#/components/schemas/PaymentDetailsPatchOrLinkV2'
     ChambersOfficePatchV2:
       type: object
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"officeGUID", "providerFirmGUID", "accountNumber"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"officeGUID", "providerFirmGUID", "accountNumber"})'
       properties:
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         clearActiveDateTo:
-          $ref: "#/components/schemas/ClearActiveDateToV2"
+          $ref: '#/components/schemas/ClearActiveDateToV2'
         address:
-          $ref: "#/components/schemas/OfficeAddressPatchV2"
+          $ref: '#/components/schemas/OfficeAddressPatchV2'
         telephoneNumber:
-          $ref: "#/components/schemas/OfficePhoneV2"
+          $ref: '#/components/schemas/OfficePhoneV2'
         emailAddress:
-          $ref: "#/components/schemas/OfficeEmailAddressV2"
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
         website:
-          $ref: "#/components/schemas/OfficeWebsiteV2"
+          $ref: '#/components/schemas/OfficeWebsiteV2'
         dxDetails:
-          $ref: "#/components/schemas/DXPatchV2"
-
+          $ref: '#/components/schemas/DXPatchV2'
     AdvocateOfficePatchV2:
       type: object
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"officeGUID", "providerFirmGUID", "accountNumber"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"officeGUID", "providerFirmGUID", "accountNumber"})'
       properties:
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
         clearActiveDateTo:
-          $ref: "#/components/schemas/ClearActiveDateToV2"
+          $ref: '#/components/schemas/ClearActiveDateToV2'
         debtRecoveryFlag:
-          $ref: "#/components/schemas/DebtRecoveryFlagV2"
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
         falseBalanceFlag:
-          $ref: "#/components/schemas/FalseBalanceFlagV2"
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
         intervened:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsPatchV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsPatchV2'
         vatRegistration:
-          $ref: "#/components/schemas/VATRegistrationV2"
+          $ref: '#/components/schemas/VATRegistrationV2'
         payment:
-          $ref: "#/components/schemas/PaymentDetailsPatchOrLinkV2"
-
+          $ref: '#/components/schemas/PaymentDetailsPatchOrLinkV2'
     ChambersOfficeCoreDetailsV2:
       type: object
       required:
@@ -2549,12 +2375,11 @@ components:
         - accountNumber
       properties:
         officeGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
-
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
     PractitionerOfficeCoreDetailsV2:
       type: object
       required:
@@ -2562,19 +2387,17 @@ components:
         - accountNumber
       properties:
         officeGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         accountNumber:
-          $ref: "#/components/schemas/OfficeAccountNumberV2"
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
         activeDateTo:
-          $ref: "#/components/schemas/OfficeActiveDateToV2"
-
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
     IntervenedOfficeDetailsIntervenedFlagV2:
       type: boolean
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE11 (this is an enum in CWA "Y"/"N").
 
         *TODO: Need better description of this field, any business rules*
-
     IntervenedOfficeDetailsIntervenedChangeDateV2:
       type: string
       format: date
@@ -2582,57 +2405,49 @@ components:
         CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE12.
 
         *TODO: Need better description of this field, any business rules*
-
     IntervenedOfficeDetailsV2:
       type: object
       required:
         - intervenedFlag
       properties:
         intervenedFlag:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2'
         intervenedChangeDate:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2"
-
+          $ref: '#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2'
     IntervenedOfficeDetailsPatchV2:
       type: object
       required:
         - intervenedFlag
       properties:
         intervenedFlag:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2"
+          $ref: '#/components/schemas/IntervenedOfficeDetailsIntervenedFlagV2'
         intervenedChangeDate:
-          $ref: "#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2"
-
+          $ref: '#/components/schemas/IntervenedOfficeDetailsIntervenedChangeDateV2'
     FirmIntervenedFlagV2:
       type: boolean
       description: |
         Flag indicating whether firm is under intervention.
         If true, firmIntervenedDate must also be provided.
-
     FirmIntervenedDateV2:
       type: string
       format: date
       description: |
         Date when firm was placed under intervention.
         Must be provided together with firmIntervenedFlag.
-
     HoldAllPaymentsFlagV2:
       type: boolean
       description: |
         Flag indicating whether all payments should be held.
         If true, holdAllPaymentsReason must also be provided.
-
     HoldAllPaymentsReasonV2:
       type: string
       description: |
         Reason for holding all payments.
         Must be provided together with holdAllPaymentsFlag.
-
     ReferredToDebtRecoveryFlagV2:
       type: boolean
       description: |
         Flag indicating whether firm has been referred to debt recovery.
-
     OfficeAddressPatchV2:
       description: |
         Address fields for a PATCH request. All fields are optional — absent or null means
@@ -2645,12 +2460,12 @@ components:
           type: string
           nullable: true
           minLength: 1
-          example: "JUSTICE HOUSE"
+          example: JUSTICE HOUSE
         line2:
           type: string
           nullable: true
           minLength: 1
-          example: "1 COURT LANE"
+          example: 1 COURT LANE
         line3:
           type: string
           nullable: true
@@ -2663,7 +2478,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          example: "LEEDS"
+          example: LEEDS
         county:
           type: string
           nullable: true
@@ -2672,8 +2487,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          example: "LS1 1AA"
-
+          example: LS1 1AA
     OfficeAddressV2:
       type: object
       required:
@@ -2687,14 +2501,14 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1.
 
             *TODO: Find out what address info is stored in this attribute*
-          example: "JUSTICE HOUSE"
+          example: JUSTICE HOUSE
         line2:
           type: string
           description: |
             CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2.
 
             *TODO: Find out what address info is stored in this attribute*
-          example: "1 COURT LANE"
+          example: 1 COURT LANE
         line3:
           type: string
           description: |
@@ -2713,7 +2527,7 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.CITY.
 
             *TODO: Any business rules for verifying data*
-          example: "LEEDS"
+          example: LEEDS
         county:
           type: string
           description: |
@@ -2726,43 +2540,37 @@ components:
             CWA ref: PO_VENDOR_SITES_ALL.ZIP.
 
             *TODO: Any business rules for verifying data*
-          example: "LS1 1AA"
-
+          example: LS1 1AA
     OfficePhoneV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE.
 
         *TODO: Any business rules for verifying data. Do we need it as a separate field*
-      example: "0113 496 0000"
-
+      example: 0113 496 0000
     OfficeEmailAddressV2:
       type: string
       format: email
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.EMAIL_ADDRESS
-
     OfficeWebsiteV2:
       type: string
       format: uri
       description: |
         CWA ref: PO_VENDOR_CONTACTS.URL
-      example: "www.abc.com"
-
+      example: www.abc.com
     DXdxNumberV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE6.
 
         *TODO: Need better description of this field*
-
     DXdxCentreV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE7.
 
         *TODO: Need better description of this field*
-
     DXCreateV2:
       type: object
       required:
@@ -2770,10 +2578,9 @@ components:
         - dxCentre
       properties:
         dxNumber:
-          $ref: "#/components/schemas/DXdxNumberV2"
+          $ref: '#/components/schemas/DXdxNumberV2'
         dxCentre:
-          $ref: "#/components/schemas/DXdxCentreV2"
-
+          $ref: '#/components/schemas/DXdxCentreV2'
     DXV2:
       type: object
       required:
@@ -2781,10 +2588,9 @@ components:
         - dxCentre
       properties:
         dxNumber:
-          $ref: "#/components/schemas/DXdxNumberV2"
+          $ref: '#/components/schemas/DXdxNumberV2'
         dxCentre:
-          $ref: "#/components/schemas/DXdxCentreV2"
-
+          $ref: '#/components/schemas/DXdxCentreV2'
     DXPatchV2:
       type: object
       required:
@@ -2792,32 +2598,28 @@ components:
         - dxCentre
       properties:
         dxNumber:
-          $ref: "#/components/schemas/DXdxNumberV2"
+          $ref: '#/components/schemas/DXdxNumberV2'
         dxCentre:
-          $ref: "#/components/schemas/DXdxCentreV2"
-
+          $ref: '#/components/schemas/DXdxCentreV2'
     VATRegistrationVatNumberV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.VAT_REGISTRATION_NUM
-      example: "476628407"
-
+      example: '476628407'
     VATRegistrationCreateV2:
       type: object
       required:
         - vatNumber
       properties:
         vatNumber:
-          $ref: "#/components/schemas/VATRegistrationVatNumberV2"
-
+          $ref: '#/components/schemas/VATRegistrationVatNumberV2'
     VATRegistrationV2:
       type: object
       required:
         - vatNumber
       properties:
         vatNumber:
-          $ref: "#/components/schemas/VATRegistrationVatNumberV2"
-
+          $ref: '#/components/schemas/VATRegistrationVatNumberV2'
     PaymentDetailsPaymentMethodV2:
       type: string
       enum:
@@ -2827,7 +2629,6 @@ components:
         CWA ref: PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD.
 
         *TODO: Check the enum values. Any business rules*
-
     PaymentDetailsPaymentHeldFlagV2:
       type: boolean
       description: |
@@ -2840,37 +2641,33 @@ components:
         and set to `true` (deactivation) or `false` (reactivation), unless it already holds that
         value. The API does not auto-correct this value; see `OfficeActiveDateToV2` and
         `ClearActiveDateToV2`.
-
     PaymentDetailsPaymentHeldReasonV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_SITES_ALL.HOLD_REASON.
 
         *TODO: Check if this is mandatory when paymentHeldFlag=Y*
-      example: "Under investigation"
-
+      example: Under investigation
     PaymentDetailsCreateV2:
       type: object
       required:
         - paymentMethod
       properties:
         paymentMethod:
-          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentMethodV2'
         bankAccountDetails:
-          $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
-
+          $ref: '#/components/schemas/BankAccountProviderOfficeCreateV2'
     PaymentDetailsCreateOrLinkV2:
       type: object
       required:
         - paymentMethod
       properties:
         paymentMethod:
-          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentMethodV2'
         bankAccountDetails:
           oneOf:
-            - $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
-            - $ref: "#/components/schemas/BankAccountProviderOfficeLinkV2"
-
+            - $ref: '#/components/schemas/BankAccountProviderOfficeCreateV2'
+            - $ref: '#/components/schemas/BankAccountProviderOfficeLinkV2'
     PaymentDetailsV2:
       type: object
       required:
@@ -2878,12 +2675,11 @@ components:
         - paymentHeldFlag
       properties:
         paymentMethod:
-          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentMethodV2'
         paymentHeldFlag:
-          $ref: "#/components/schemas/PaymentDetailsPaymentHeldFlagV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentHeldFlagV2'
         paymentHeldReason:
-          $ref: "#/components/schemas/PaymentDetailsPaymentHeldReasonV2"
-
+          $ref: '#/components/schemas/PaymentDetailsPaymentHeldReasonV2'
     PaymentDetailsPatchOrLinkV2:
       type: object
       required:
@@ -2891,40 +2687,35 @@ components:
         - paymentHeldFlag
       properties:
         paymentMethod:
-          $ref: "#/components/schemas/PaymentDetailsPaymentMethodV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentMethodV2'
         paymentHeldFlag:
-          $ref: "#/components/schemas/PaymentDetailsPaymentHeldFlagV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentHeldFlagV2'
         paymentHeldReason:
-          $ref: "#/components/schemas/PaymentDetailsPaymentHeldReasonV2"
+          $ref: '#/components/schemas/PaymentDetailsPaymentHeldReasonV2'
         bankAccountDetails:
           oneOf:
-            - $ref: "#/components/schemas/BankAccountProviderOfficeCreateV2"
-            - $ref: "#/components/schemas/BankAccountProviderOfficeLinkV2"
-
+            - $ref: '#/components/schemas/BankAccountProviderOfficeCreateV2'
+            - $ref: '#/components/schemas/BankAccountProviderOfficeLinkV2'
     BankAccountAccountNameV2:
       type: string
       description: |
         CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NAME
-      example: "ABC co (UK) LLP CLIENT A/C 1"
-
+      example: ABC co (UK) LLP CLIENT A/C 1
     BankAccountSortCodeV2:
       type: string
       description: |
         CWA ref: AP_BANK_BRANCHES.BANK_NUM
-      example: "000000"
-
+      example: '000000'
     BankAccountAccountNumberV2:
       type: string
       description: |
         CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NUM
-      example: "00000000"
-
+      example: '00000000'
     BankAccountActiveDateFromV2:
       type: string
       format: date
       description: |
         CWA ref: AP_BANK_ACCOUNT_USES_ALL.START_DATE
-
     BankAccountActiveDateToV2:
       type: string
       format: date
@@ -2933,7 +2724,6 @@ components:
 
         Absent from the response for the currently active record (i.e. where the underlying value
         is null).
-
     BankAccountPrimaryFlagV2:
       type: boolean
       description: |
@@ -2946,7 +2736,6 @@ components:
         old.primary=false and old.activeDateTo=new.activeDateFrom.
 
         CWA ref: AP_BANK_ACCOUNT_USES_ALL.PRIMARY_FLAG.
-
     BankAccountProviderOfficeCreateV2:
       type: object
       required:
@@ -2955,29 +2744,28 @@ components:
         - accountNumber
       properties:
         accountName:
-          $ref: "#/components/schemas/BankAccountAccountNameV2"
+          $ref: '#/components/schemas/BankAccountAccountNameV2'
         sortCode:
-          $ref: "#/components/schemas/BankAccountSortCodeV2"
+          $ref: '#/components/schemas/BankAccountSortCodeV2'
         accountNumber:
-          $ref: "#/components/schemas/BankAccountAccountNumberV2"
+          $ref: '#/components/schemas/BankAccountAccountNumberV2'
         activeDateFrom:
-          $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+          $ref: '#/components/schemas/BankAccountActiveDateFromV2'
       description: |
         Only applicable for `paymentMethod=EFT`.
 
         `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
         Record that previously had primary flag set must be updated so that `activeDateTo` is set
         to new primary record's activeDateFrom and primary flag is set to false.
-
     BankAccountProviderOfficeLinkV2:
       type: object
       required:
         - bankAccountGUID
       properties:
         bankAccountGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
         activeDateFrom:
-          $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+          $ref: '#/components/schemas/BankAccountActiveDateFromV2'
       description: |
         Only applicable for `paymentMethod=EFT`.
 
@@ -2987,10 +2775,9 @@ components:
 
         `bankAccountGUID` can be obtained using
         `GET /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details`
-
     BankAccountV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - accountName
@@ -2998,15 +2785,14 @@ components:
             - accountNumber
           properties:
             accountName:
-              $ref: "#/components/schemas/BankAccountAccountNameV2"
+              $ref: '#/components/schemas/BankAccountAccountNameV2'
             sortCode:
-              $ref: "#/components/schemas/BankAccountSortCodeV2"
+              $ref: '#/components/schemas/BankAccountSortCodeV2'
             accountNumber:
-              $ref: "#/components/schemas/BankAccountAccountNumberV2"
-
+              $ref: '#/components/schemas/BankAccountAccountNumberV2'
     OfficeBankAccountV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - accountName
@@ -3016,81 +2802,70 @@ components:
             - primaryFlag
           properties:
             accountName:
-              $ref: "#/components/schemas/BankAccountAccountNameV2"
+              $ref: '#/components/schemas/BankAccountAccountNameV2'
             sortCode:
-              $ref: "#/components/schemas/BankAccountSortCodeV2"
+              $ref: '#/components/schemas/BankAccountSortCodeV2'
             accountNumber:
-              $ref: "#/components/schemas/BankAccountAccountNumberV2"
+              $ref: '#/components/schemas/BankAccountAccountNumberV2'
             activeDateFrom:
-              $ref: "#/components/schemas/BankAccountActiveDateFromV2"
+              $ref: '#/components/schemas/BankAccountActiveDateFromV2'
             activeDateTo:
-              $ref: "#/components/schemas/BankAccountActiveDateToV2"
+              $ref: '#/components/schemas/BankAccountActiveDateToV2'
             primaryFlag:
-              $ref: "#/components/schemas/BankAccountPrimaryFlagV2"
-
+              $ref: '#/components/schemas/BankAccountPrimaryFlagV2'
     LiaisonManagerFirstNameV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_CONTACTS.FIRST_NAME
-      example: "John"
-
+      example: John
     LiaisonManagerLastNameV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_CONTACTS.LAST_NAME
-      example: "Smith"
-
+      example: Smith
     LiaisonManagerEmailAddressV2:
       type: string
       format: email
       description: |
         CWA ref: PO_VENDOR_CONTACTS.EMAIL_ADDRESS
-      example: "john.smith@example.com"
-
+      example: john.smith@example.com
     LiaisonManagerPhoneV2:
       type: string
       description: |
         CWA ref: PO_VENDOR_CONTACTS.AREA_CODE + PO_VENDOR_CONTACTS.PHONE.
 
         *TODO: Any business rules for verifying data. Do we need it as a separate field*
-      example: "0113 496 0000"
-
+      example: 0113 496 0000
     LiaisonManagerActiveDateFromV2:
       type: string
       format: date
       description: |
         CWA ref: PO_VENDOR_CONTACTS.CREATION_DATE
-
     LiaisonManagerActiveDateToV2:
       type: string
       format: date
       description: |
         CWA ref: PO_VENDOR_CONTACTS.INACTIVE_DATE
-
     OfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
-
+        - $ref: '#/components/schemas/LiaisonManagerCreateV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkHeadOfficeV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkChambersV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkByGUIDV2'
     LSPOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkHeadOfficeV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
-
+        - $ref: '#/components/schemas/LiaisonManagerCreateV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkHeadOfficeV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkByGUIDV2'
     ChambersOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
-
+        - $ref: '#/components/schemas/LiaisonManagerCreateV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkByGUIDV2'
     AdvocateOfficeLiaisonManagerCreateOrLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/LiaisonManagerCreateV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkChambersV2"
-        - $ref: "#/components/schemas/LiaisonManagerLinkByGUIDV2"
-
+        - $ref: '#/components/schemas/LiaisonManagerCreateV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkChambersV2'
+        - $ref: '#/components/schemas/LiaisonManagerLinkByGUIDV2'
     LiaisonManagerCreateV2:
       type: object
       required:
@@ -3100,20 +2875,19 @@ components:
         - telephoneNumber
       properties:
         firstName:
-          $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+          $ref: '#/components/schemas/LiaisonManagerFirstNameV2'
         lastName:
-          $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+          $ref: '#/components/schemas/LiaisonManagerLastNameV2'
         emailAddress:
-          $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+          $ref: '#/components/schemas/LiaisonManagerEmailAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+          $ref: '#/components/schemas/LiaisonManagerPhoneV2'
         activeDateFrom:
-          $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
+          $ref: '#/components/schemas/LiaisonManagerActiveDateFromV2'
       description: |
         activeDateFrom by default is set to today's date. Previously 'active' liaison manager
         assignment activeDateTo's value should be set to activeDateFrom's date minus one day of the
         new assignment.
-
     LiaisonManagerLinkHeadOfficeV2:
       type: object
       required:
@@ -3127,7 +2901,6 @@ components:
         Applicable only for LSP offices. Indicates that new liaison manager assignment should be to
         the liaison manager that is currently specified at the head office. This update only links
         the data (no duplicate is created).
-
     LiaisonManagerLinkChambersV2:
       type: object
       required:
@@ -3141,7 +2914,6 @@ components:
         Applicable only for Advocate/Barrister. Indicates that new liaison manager assignment
         should be to the liaison manager that is currently specified at the Chambers' office. This
         update only links the data (no duplicate is created).
-
     LiaisonManagerLinkedFlagV2:
       type: boolean
       description: |
@@ -3155,10 +2927,9 @@ components:
 
         This flag is informational only; changes to the parent entity's liaison manager do not
         cascade to offices where this flag is set.
-
     ProviderLiaisonManagerV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - firstName
@@ -3166,32 +2937,28 @@ components:
             - emailAddress
           properties:
             firstName:
-              $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+              $ref: '#/components/schemas/LiaisonManagerFirstNameV2'
             lastName:
-              $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+              $ref: '#/components/schemas/LiaisonManagerLastNameV2'
             emailAddress:
-              $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+              $ref: '#/components/schemas/LiaisonManagerEmailAddressV2'
             telephoneNumber:
-              $ref: "#/components/schemas/LiaisonManagerPhoneV2"
-
+              $ref: '#/components/schemas/LiaisonManagerPhoneV2'
     ProviderLiaisonManagerPatchV2:
       type: object
-      x-class-extra-annotation: >-
-        @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
-        {"guid", "firstName", "lastName", "activeDateFrom", "activeDateTo"})
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"guid", "firstName", "lastName", "activeDateFrom", "activeDateTo"})'
       properties:
         emailAddress:
-          $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+          $ref: '#/components/schemas/LiaisonManagerEmailAddressV2'
         telephoneNumber:
-          $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+          $ref: '#/components/schemas/LiaisonManagerPhoneV2'
       description: |
         Permitted fields for amending a liaison manager. Only emailAddress and telephoneNumber
         may be amended. The fields guid, firstName, lastName, activeDateFrom and activeDateTo
         are read-only and will be rejected if provided.
-
     LiaisonManagerV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - firstName
@@ -3202,52 +2969,48 @@ components:
             - linkedFlag
           properties:
             firstName:
-              $ref: "#/components/schemas/LiaisonManagerFirstNameV2"
+              $ref: '#/components/schemas/LiaisonManagerFirstNameV2'
             lastName:
-              $ref: "#/components/schemas/LiaisonManagerLastNameV2"
+              $ref: '#/components/schemas/LiaisonManagerLastNameV2'
             emailAddress:
-              $ref: "#/components/schemas/LiaisonManagerEmailAddressV2"
+              $ref: '#/components/schemas/LiaisonManagerEmailAddressV2'
             telephoneNumber:
-              $ref: "#/components/schemas/LiaisonManagerPhoneV2"
+              $ref: '#/components/schemas/LiaisonManagerPhoneV2'
             activeDateFrom:
-              $ref: "#/components/schemas/LiaisonManagerActiveDateFromV2"
+              $ref: '#/components/schemas/LiaisonManagerActiveDateFromV2'
             activeDateTo:
-              $ref: "#/components/schemas/LiaisonManagerActiveDateToV2"
+              $ref: '#/components/schemas/LiaisonManagerActiveDateToV2'
             linkedFlag:
-              $ref: "#/components/schemas/LiaisonManagerLinkedFlagV2"
-
+              $ref: '#/components/schemas/LiaisonManagerLinkedFlagV2'
     LiaisonManagerLinkByGUIDV2:
       type: object
       required:
         - liaisonManagerGUID
       properties:
         liaisonManagerGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
       description: |
         Links an existing liaison manager to an office by GUID. Use this when the liaison manager
         already exists and you want to assign it to an office without creating a duplicate.
-
     ContractManagerProviderPatchV2:
       oneOf:
-        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
-        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
-        - $ref: "#/components/schemas/ContractManagerLinkHeadOfficeV2"
+        - $ref: '#/components/schemas/ContractManagerLinkByGUIDV2'
+        - $ref: '#/components/schemas/ContractManagerLinkDefaultV2'
+        - $ref: '#/components/schemas/ContractManagerLinkHeadOfficeV2'
       description: |
         Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
         `useHeadOfficeContractManager` must be provided. `useHeadOfficeContractManager` assigns
         whichever contract manager is currently linked to the provider's head office and is
         applicable for LSP child offices only.
-
     ContractManagerLinkByGUIDV2:
       type: object
       required:
         - contractManagerGUID
       properties:
         contractManagerGUID:
-          $ref: "#/components/schemas/BaseEntityGUIDV2"
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
       description: |
         Links an existing contract manager to an office by GUID.
-
     ContractManagerLinkDefaultV2:
       type: object
       required:
@@ -3259,7 +3022,6 @@ components:
             Setting this flag to true assigns the system default contract manager.
       description: |
         Indicates that the system default contract manager should be assigned.
-
     ContractManagerLinkHeadOfficeV2:
       type: object
       required:
@@ -3274,60 +3036,52 @@ components:
         should be to the contract manager that is currently specified at the head office (Firm
         Contract Manager trickle-down). This update only links the data (no duplicate is created).
         Rejected if the head office has no contract manager assigned.
-
     LSPOfficeContractManagerLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
-        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
-        - $ref: "#/components/schemas/ContractManagerLinkHeadOfficeV2"
+        - $ref: '#/components/schemas/ContractManagerLinkByGUIDV2'
+        - $ref: '#/components/schemas/ContractManagerLinkDefaultV2'
+        - $ref: '#/components/schemas/ContractManagerLinkHeadOfficeV2'
       description: |
         Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
         `useHeadOfficeContractManager` must be provided when creating an LSP Child Office.
-
     HeadOfficeContractManagerLinkV2:
       oneOf:
-        - $ref: "#/components/schemas/ContractManagerLinkByGUIDV2"
-        - $ref: "#/components/schemas/ContractManagerLinkDefaultV2"
+        - $ref: '#/components/schemas/ContractManagerLinkByGUIDV2'
+        - $ref: '#/components/schemas/ContractManagerLinkDefaultV2'
       description: |
         Exactly one of `contractManagerGUID` or `useDefaultContractManager` must be provided when
         creating an LSP or Chambers head office. `useHeadOfficeContractManager` is not applicable
         here since this office is itself the head office.
-
     OfficePractitionerV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
-        - $ref: "#/components/schemas/ProviderBaseV2"
-        - $ref: "#/components/schemas/ProviderPractitionerV2"
-
+        - $ref: '#/components/schemas/BaseEntityV2'
+        - $ref: '#/components/schemas/ProviderBaseV2'
+        - $ref: '#/components/schemas/ProviderPractitionerV2'
     ContractManagerContractManagerIdV2:
       type: string
-      example: "*TODO: Provide example*"
+      example: '*TODO: Provide example*'
       description: |
         CWA ref: PER_ALL_PEOPLE_F.PERSON_ID (for provider firms' offices ID is stored in
         PO_VENDOR_SITES_ALL.ATTRIBUTE4)
-
     ContractManagerFirstNameV2:
       type: string
-      example: "John"
+      example: John
       description: |
         CWA ref: PER_ALL_PEOPLE_F.FIRST_NAME
-
     ContractManagerLastNameV2:
       type: string
-      example: "Smith"
+      example: Smith
       description: |
         CWA ref: PER_ALL_PEOPLE_F.LAST_NAME
-
     ContractManagerEmailAddressV2:
       type: string
       format: email
       description: |
         CWA ref: PER_ALL_PEOPLE_F.EMAIL_ADDRESS
-      example: "john.smith@example.com"
-
+      example: john.smith@example.com
     ContractManagerV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - contractManagerId
@@ -3335,17 +3089,16 @@ components:
             - lastName
           properties:
             contractManagerId:
-              $ref: "#/components/schemas/ContractManagerContractManagerIdV2"
+              $ref: '#/components/schemas/ContractManagerContractManagerIdV2'
             firstName:
-              $ref: "#/components/schemas/ContractManagerFirstNameV2"
+              $ref: '#/components/schemas/ContractManagerFirstNameV2'
             lastName:
-              $ref: "#/components/schemas/ContractManagerLastNameV2"
+              $ref: '#/components/schemas/ContractManagerLastNameV2'
             email:
-              $ref: "#/components/schemas/ContractManagerEmailAddressV2"
-
+              $ref: '#/components/schemas/ContractManagerEmailAddressV2'
     OfficeContractManagerV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           required:
             - contractManagerId
@@ -3353,14 +3106,13 @@ components:
             - lastName
           properties:
             contractManagerId:
-              $ref: "#/components/schemas/ContractManagerContractManagerIdV2"
+              $ref: '#/components/schemas/ContractManagerContractManagerIdV2'
             firstName:
-              $ref: "#/components/schemas/ContractManagerFirstNameV2"
+              $ref: '#/components/schemas/ContractManagerFirstNameV2'
             lastName:
-              $ref: "#/components/schemas/ContractManagerLastNameV2"
+              $ref: '#/components/schemas/ContractManagerLastNameV2'
             email:
-              $ref: "#/components/schemas/ContractManagerEmailAddressV2"
-
+              $ref: '#/components/schemas/ContractManagerEmailAddressV2'
     PaginatedSearchV2:
       type: object
       required:
@@ -3368,104 +3120,100 @@ components:
         - pagination
       properties:
         searchCriteria:
-          $ref: "#/components/schemas/SearchCriteriaV2"
+          $ref: '#/components/schemas/SearchCriteriaV2'
         pagination:
-          $ref: "#/components/schemas/PaginationV2"
+          $ref: '#/components/schemas/PaginationV2'
         sort:
-          $ref: "#/components/schemas/SortV2"
-
+          $ref: '#/components/schemas/SortV2'
     SearchCriteriaV2:
       type: object
       properties:
         criteria:
           type: array
           items:
-            $ref: "#/components/schemas/SearchCriterionV2"
-
+            $ref: '#/components/schemas/SearchCriterionV2'
     SearchCriterionV2:
       type: object
       properties:
         filter:
           type: string
-          example: "guid"
-          description: "Filter key"
+          example: guid
+          description: Filter key
         values:
           type: array
           items:
             type: string
-            example: "123e4567-e89b-12d3-a456-426614174000"
-            description: "Filter value(s) used for this search"
-
+            example: 123e4567-e89b-12d3-a456-426614174000
+            description: Filter value(s) used for this search
     PaginationV2:
       type: object
       properties:
         currentPage:
           type: integer
           example: 2
-          description: "Page index denoting the current page index for response, starting from 0"
+          description: Page index denoting the current page index for response, starting from 0
         pageSize:
           type: integer
           example: 10
-          description: "Page size used for this search"
+          description: Page size used for this search
         totalPages:
           type: integer
           example: 5
-          description: "Total number of pages"
+          description: Total number of pages
         totalItems:
           type: integer
           format: int64
           example: 123
-          description: "Total number of records for given search request"
-
+          description: Total number of records for given search request
     SortV2:
       type: object
       properties:
         field:
           type: string
-          example: "sortByOption"
+          example: sortByOption
         direction:
           type: string
-          enum: [asc, desc]
-          example: "asc"
-
+          enum:
+            - asc
+            - desc
+          example: asc
     LinksV2:
       type: object
       properties:
         self:
           type: string
-          example: "/example?page=2&pageSize=10"
+          example: /example?page=2&pageSize=10
           format: uri
         next:
           type: string
-          example: "/example?page=3&pageSize=10"
+          example: /example?page=3&pageSize=10
           format: uri
         prev:
           type: string
-          example: "/example?page=1&pageSize=10"
+          example: /example?page=1&pageSize=10
           format: uri
         first:
           type: string
-          example: "/example?page=1&pageSize=10"
+          example: /example?page=1&pageSize=10
           format: uri
         last:
           type: string
-          example: "/example?page=5&pageSize=10"
+          example: /example?page=5&pageSize=10
           format: uri
-
     ProviderFirmChangedSnapshotEventV2Payload:
       type: object
       properties:
         providerFirm:
-          $ref: "#/components/schemas/ProviderV2"
+          $ref: '#/components/schemas/ProviderV2'
         bankDetails:
           type: array
           items:
-            $ref: "#/components/schemas/BankAccountV2"
+            $ref: '#/components/schemas/BankAccountV2'
         offices:
           type: array
           items:
             allOf:
-              - $ref: "#/components/schemas/OfficeV2"
+              - $ref: '#/components/schemas/OfficeV2'
               - type: object
                 required:
                   - liaisonManagers
@@ -3474,40 +3222,36 @@ components:
                   liaisonManagers:
                     type: array
                     items:
-                      $ref: "#/components/schemas/LiaisonManagerV2"
+                      $ref: '#/components/schemas/LiaisonManagerV2'
                   contractManagers:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ContractManagerV2"
+                      $ref: '#/components/schemas/ContractManagerV2'
                   officeBankDetails:
                     type: array
                     items:
-                      $ref: "#/components/schemas/OfficeBankAccountV2"
-
+                      $ref: '#/components/schemas/OfficeBankAccountV2'
     EventTypeV2:
       type: string
       enum:
         - ProviderFirmChangedSnapshotEvent
-
     EventSourceV2:
       type: string
       enum:
         - apiV2
-
     EventHeaderV2:
       allOf:
-        - $ref: "#/components/schemas/BaseEntityV2"
+        - $ref: '#/components/schemas/BaseEntityV2'
         - type: object
           properties:
             eventSource:
-              $ref: "#/components/schemas/EventSourceV2"
+              $ref: '#/components/schemas/EventSourceV2'
             eventType:
-              $ref: "#/components/schemas/EventTypeV2"
+              $ref: '#/components/schemas/EventTypeV2'
             correlationId:
               type: string
             traceId:
               type: string
-
     EventV2:
       type: object
       required:
@@ -3515,11 +3259,10 @@ components:
         - eventPayload
       properties:
         eventHeader:
-          $ref: "#/components/schemas/EventHeaderV2"
+          $ref: '#/components/schemas/EventHeaderV2'
         eventPayload:
           oneOf:
-            - $ref: "#/components/schemas/ProviderFirmChangedSnapshotEventV2Payload"
-
+            - $ref: '#/components/schemas/ProviderFirmChangedSnapshotEventV2Payload'
   parameters:
     LiaisonManagerGUID:
       name: liaisonManagerGUID
@@ -3529,25 +3272,22 @@ components:
       schema:
         type: string
         format: uuid
-
     TraceParentHeader:
       name: traceparent
       in: header
       required: false
       schema:
         type: string
-        pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
-      description: >
-        W3C Trace Context header used for distributed tracing.
-        Format: 00-<trace-id>-<span-id>-<trace-flags>.
-        Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0
+        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+      description: |
+        W3C Trace Context header used for distributed tracing. Format: 00-<trace-id>-<span-id>-<trace-flags>. Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0
     ProviderFirmGUIDorFirmNumber:
       name: providerFirmGUIDorFirmNumber
       in: path
       required: true
       schema:
         type: string
-      description: >
+      description: |
         GUID of the provider firm, or the firm number (unique account number).
     OfficeGUIDorCode:
       name: officeGUIDorCode
@@ -3555,9 +3295,7 @@ components:
       required: true
       schema:
         type: string
-      description: >-
-        GUID of the provider-office link (not of the underlying office record), or the office code
-        (unique account number).
+      description: GUID of the provider-office link (not of the underlying office record), or the office code (unique account number).
     QPageNumber:
       name: page
       in: query
@@ -3565,7 +3303,6 @@ components:
       schema:
         type: integer
       description: Page index for given request (start from 0, default is 0)
-
     QPageSize:
       name: pageSize
       in: query
@@ -3573,7 +3310,18 @@ components:
       schema:
         type: integer
       description: Page size for given request (default is 100)
-
-security:
-  - ApiKeyAuth: []
-  - AzureAD: []
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: X-Authorization
+      in: header
+    AzureAD:
+      type: oauth2
+      description: |
+        OAuth2 client credentials via Microsoft Entra ID. Callers acquire a token using `scope={backend-api-application-id}/.default`. The API then enforces the `PDA_ACCESS` application role from the JWT `roles` claim.
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
+          scopes:
+            '{backend-api-application-id}/.default': |
+              Request app permissions granted to the client app for this API (including `PDA_ACCESS`).

@@ -1,0 +1,303 @@
+OfficeAccountNumberV2:
+  type: string
+  description: |
+    Unique provider office identifier.
+
+    CWA ref: PO_VENDOR_SITES_ALL.VENDOR_SITE_CODE
+  example: "0Q731M"
+
+OfficeActiveDateToV2:
+  type: string
+  format: date
+  description: |
+    End date of activity.
+
+    When `activeDateTo` is set on the head office for LSP all child offices that do not have
+    `activeDateTo` set should be updated to the same value (i.e. deactivating head office
+    deactivates all active child offices).
+
+    When `activeDateTo` is set on the Chambers' office all assigned advocates/barristers that
+    do not have `activeDateTo` set should be updated to the same value (i.e. deactivating
+    a Chambers' office deactivates all active advocate/barrister offices).
+
+    When `activeDateTo` is set on an LSP office or an Advocate/Barrister office, the
+    `debtRecoveryFlag` should be set to false.
+
+    When `activeDateTo` is set on an LSP office or an Advocate/Barrister office that was
+    previously active (deactivation), `payment.paymentHeldFlag` must be included and set to
+    `true` in the same request, unless it is already `true`. The API does not auto-correct
+    this value; the request is rejected if it is omitted or `false`.
+
+    CWA ref: PO_VENDOR_SITES_ALL.INACTIVE_DATE
+
+OfficeActiveDateFromV2:
+  type: string
+  format: date
+  description: |
+    Start date of activity for the provider office link.
+
+ClearActiveDateToV2:
+  type: boolean
+  description: |
+    When `true`, clears `activeDateTo` back to `null`, re-activating the office.
+
+    This field exists because a PATCH request cannot otherwise distinguish an explicit
+    `activeDateTo: null` (meaning "clear the value") from the field being absent (meaning
+    "no change"). Must not be combined with `activeDateTo` in the same request.
+
+    On an LSP or Advocate/Barrister office that was previously inactive, reactivating in
+    this way requires `falseBalanceFlag` and `payment.paymentHeldFlag` to both be included
+    and set to `false` in the same request, unless each is already `false`. The API does not
+    auto-correct these values; the request is rejected if either is omitted or `true`.
+
+DebtRecoveryFlagV2:
+  type: boolean
+  description: |
+    Can only be set to true if the firm office is still active.
+    If office is made inactive this flag should be reset to false.
+
+    CWA ref: via fake contract manager.
+
+FalseBalanceFlagV2:
+  type: boolean
+  description: |
+    Can only be set to true if the firm office is inactive.
+    If the office is being made active in the same request (`clearActiveDateTo: true`), this
+    flag must also be explicitly set to `false` in that request, unless it is already `false`.
+    The API does not auto-correct this value.
+
+    CWA ref: via fake contract manager.
+
+OfficeV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - oneOf:
+    - $ref: "./legal-services-provider.yaml#/LSPOfficeDetailsV2"
+    - $ref: "./chambers.yaml#/ChambersOfficeDetailsV2"
+    - $ref: "./practitioner.yaml#/AdvocateOfficeDetailsV2"
+
+OfficePatchV2:
+  oneOf:
+  - $ref: "./legal-services-provider.yaml#/LSPOfficePatchV2"
+  - $ref: "./chambers.yaml#/ChambersOfficePatchV2"
+  - $ref: "./practitioner.yaml#/AdvocateOfficePatchV2"
+
+IntervenedOfficeDetailsIntervenedFlagV2:
+  type: boolean
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE11 (this is an enum in CWA "Y"/"N").
+
+    *TODO: Need better description of this field, any business rules*
+
+IntervenedOfficeDetailsIntervenedChangeDateV2:
+  type: string
+  format: date
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE12.
+
+    *TODO: Need better description of this field, any business rules*
+
+IntervenedOfficeDetailsV2:
+  type: object
+  required:
+  - intervenedFlag
+  properties:
+    intervenedFlag:
+      $ref: "#/IntervenedOfficeDetailsIntervenedFlagV2"
+    intervenedChangeDate:
+      $ref: "#/IntervenedOfficeDetailsIntervenedChangeDateV2"
+
+IntervenedOfficeDetailsPatchV2:
+  type: object
+  required:
+  - intervenedFlag
+  properties:
+    intervenedFlag:
+      $ref: "#/IntervenedOfficeDetailsIntervenedFlagV2"
+    intervenedChangeDate:
+      $ref: "#/IntervenedOfficeDetailsIntervenedChangeDateV2"
+
+OfficeAddressPatchV2:
+  description: |
+    Address fields for a PATCH request. All fields are optional — absent or null means
+    "leave unchanged". If a field is provided it must be non-blank (`minLength: 1`).
+    Mandatory address fields (`line1`, `townOrCity`, `postcode`) cannot be blanked via
+    a PATCH because null is treated as "leave unchanged" and empty strings are rejected.
+  type: object
+  properties:
+    line1:
+      type: string
+      nullable: true
+      minLength: 1
+      example: "JUSTICE HOUSE"
+    line2:
+      type: string
+      nullable: true
+      minLength: 1
+      example: "1 COURT LANE"
+    line3:
+      type: string
+      nullable: true
+      minLength: 1
+    line4:
+      type: string
+      nullable: true
+      minLength: 1
+    townOrCity:
+      type: string
+      nullable: true
+      minLength: 1
+      example: "LEEDS"
+    county:
+      type: string
+      nullable: true
+      minLength: 1
+    postcode:
+      type: string
+      nullable: true
+      minLength: 1
+      example: "LS1 1AA"
+
+OfficeAddressV2:
+  type: object
+  required:
+  - line1
+  - townOrCity
+  - postcode
+  properties:
+    line1:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE1.
+
+        *TODO: Find out what address info is stored in this attribute*
+      example: "JUSTICE HOUSE"
+    line2:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE2.
+
+        *TODO: Find out what address info is stored in this attribute*
+      example: "1 COURT LANE"
+    line3:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE3.
+
+        *TODO: Find out what address info is stored in this attribute*
+    line4:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ADDRESS_LINE4.
+
+        *TODO: Find out what address info is stored in this attribute*
+    townOrCity:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.CITY.
+
+        *TODO: Any business rules for verifying data*
+      example: "LEEDS"
+    county:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.COUNTY.
+
+        *TODO: Any business rules for verifying data*
+    postcode:
+      type: string
+      description: |
+        CWA ref: PO_VENDOR_SITES_ALL.ZIP.
+
+        *TODO: Any business rules for verifying data*
+      example: "LS1 1AA"
+
+OfficePhoneV2:
+  type: string
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.AREA_CODE + PO_VENDOR_SITES_ALL.PHONE.
+
+    *TODO: Any business rules for verifying data. Do we need it as a separate field*
+  example: "0113 496 0000"
+
+OfficeEmailAddressV2:
+  type: string
+  format: email
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.EMAIL_ADDRESS
+
+OfficeWebsiteV2:
+  type: string
+  format: uri
+  description: |
+    CWA ref: PO_VENDOR_CONTACTS.URL
+  example: "www.abc.com"
+
+DXdxNumberV2:
+  type: string
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE6.
+
+    *TODO: Need better description of this field*
+
+DXdxCentreV2:
+  type: string
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.ATTRIBUTE7.
+
+    *TODO: Need better description of this field*
+
+DXCreateV2:
+  type: object
+  required:
+  - dxNumber
+  - dxCentre
+  properties:
+    dxNumber:
+      $ref: "#/DXdxNumberV2"
+    dxCentre:
+      $ref: "#/DXdxCentreV2"
+
+DXV2:
+  type: object
+  required:
+  - dxNumber
+  - dxCentre
+  properties:
+    dxNumber:
+      $ref: "#/DXdxNumberV2"
+    dxCentre:
+      $ref: "#/DXdxCentreV2"
+
+DXPatchV2:
+  type: object
+  required:
+  - dxNumber
+  - dxCentre
+  properties:
+    dxNumber:
+      $ref: "#/DXdxNumberV2"
+    dxCentre:
+      $ref: "#/DXdxCentreV2"
+
+VATRegistrationVatNumberV2:
+  type: string
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.VAT_REGISTRATION_NUM
+  example: "476628407"
+
+VATRegistrationCreateV2:
+  type: object
+  required:
+  - vatNumber
+  properties:
+    vatNumber:
+      $ref: "#/VATRegistrationVatNumberV2"
+
+VATRegistrationV2:
+  type: object
+  required:
+  - vatNumber
+  properties:
+    vatNumber:
+      $ref: "#/VATRegistrationVatNumberV2"

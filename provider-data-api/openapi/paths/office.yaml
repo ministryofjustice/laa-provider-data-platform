@@ -1,0 +1,352 @@
+/provider-firms-offices:
+  get:
+    summary: Retrieve a list of provider offices with optional filters
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getOffices
+    tags:
+    - Provider Firm Offices
+    description: |
+      Retrieve office details when you do not have `providerFirmGUID` or `firmNumber`.
+
+      Use cases:
+      1) Browse all active offices
+      2) Browse all offices of a specific provider when only `officeGUID` or `officeCode`
+         is known.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: officeGUID
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by provider office GUID (multi)
+    - name: officeCode
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by provider office code (multi)
+    - name: allProviderOffices
+      in: query
+      schema:
+        type: boolean
+      description: >-
+        Use this filter in conjunction with `officeGUID` or `officeCode` to get all offices for
+        the provider that the office with specified GUID belongs to.
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of provider offices matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/office.yaml#/OfficeV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/offices:
+  post:
+    summary: Create an office for a Legal Service Provider firm
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createProviderFirmOffice
+    tags:
+    - Provider Firm Offices
+    description: |
+      Create new office details used by given provider firm. Only applicable for
+      `firmType=Legal Service Provider`.
+
+      Use cases:
+      1) Create additional office details for Legal Service Provider firm
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/legal-services-provider.yaml#/LSPOfficeCreateV2"
+    responses:
+      "201":
+        description: Office created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+                    officeGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    officeCode:
+                      $ref: "../components/schemas/office.yaml#/OfficeAccountNumberV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+  get:
+    summary: Retrieve a list of provider offices with optional filters
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmOffices
+    tags:
+    - Provider Firm Offices
+    description: |
+      Retrieve office details for a given provider. Use this endpoint when you have
+      `providerFirmGUID`.
+
+      When you do not have `providerFirmGUID` but only `officeGUID` or `officeCode` - use
+      `/provider-firms-offices?officeGUID=123e4567-e89b-12d3-a456-426614174000&allProviderOffices=true`
+
+      Use cases:
+      1) Browse all offices belonging to a Legal Service Provider firm
+      2) Show details of the Chambers' office
+      3) Show details of the Advocate's office (which is the Chambers' office they are currently
+         assigned to)
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of provider offices matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/office.yaml#/OfficeV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}:
+  get:
+    summary: Retrieve provider office details by GUID or office code
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmOfficeByGUID
+    tags:
+    - Provider Firm Offices
+    description: |
+      Retrieve provider office details.
+
+      Use cases:
+      1) Retrieve office details by GUID or office code
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    responses:
+      "200":
+        description: Details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "../components/schemas/office.yaml#/OfficeV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+  patch:
+    summary: Update provider office details
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: updateProviderFirmOffice
+    tags:
+    - Provider Firm Offices
+    description: |
+      Update provider office details.
+
+      Note that `firmType=Advocate` can't patch Chambers' office details.
+
+      Use cases:
+      1) Deactivating office details by setting `activeDateTo`.
+         Note that if the office is a head office of Legal Service Provider firm, `activeDateTo`
+         should be set on all other offices which are not yet de-activated.
+         For a Chambers' office, `activeDateTo` can only be applied if no active practitioners
+         are linked to the Chambers (DS_MAPD_FR_019). All associated practitioners must be
+         deactivated or reassigned to another Chambers before this Chambers can be made inactive.
+      2) Holding payments using `paymentHeldFlag`
+      3) Updating office details
+      4) Setting `intervened` flag
+      5) Creating or assigning different bank details using `payment.bankAccountDetails`
+      6) Setting `debtRecoveryFlag` for LSP/Advocate. Can only be set to true if the firm office
+         is still active. If office is made inactive this flag should be reset to false.
+      7) Setting `falseBalanceFlag` for LSP/Advocate. Can only be set to true if the firm office
+         is inactive. If the office is being made active in the same request, `falseBalanceFlag`
+         must be explicitly set to `false`, unless it is already `false`.
+      8) Re-activating an office by setting `clearActiveDateTo: true`. This clears `activeDateTo`
+         for LSP and Advocate/Barrister offices. `falseBalanceFlag` and `payment.paymentHeldFlag`
+         are not reset automatically: if either is already `true`, it must be explicitly set to
+         `false` in the same request, otherwise the request is rejected.
+         Must not be combined with `activeDateTo` in the same request.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/office.yaml#/OfficePatchV2"
+    responses:
+      "200":
+        description: Details updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+                    officeGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    officeCode:
+                      $ref: "../components/schemas/office.yaml#/OfficeAccountNumberV2"
+      "400":
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

@@ -6,8 +6,9 @@
 - Use UK English in all user-facing text (docs, comments, logs, errors, UI).
 - Keep prose concise and technical.
 - This is a Java 25 / Spring Boot 4 / Gradle project with three sub-projects:
-  - `provider-data-api` - OpenAPI spec (`laa-data-pda.yml`) and generated interfaces/models,
-    published as a library to GitHub Packages.
+  - `provider-data-api` - OpenAPI spec authored as split files under `openapi/` and bundled into
+    `bundled-openapi-spec.yaml`, plus generated interfaces/models, published as a library to
+    GitHub Packages.
   - `provider-data-service` - Spring Boot application (controller-service-repository, JPA, Flyway).
   - `provider-data-e2e` - REST Assured end-to-end tests; no Spring context.
 - Many StackOverflow answers, AI training data, and third-party documentation examples target

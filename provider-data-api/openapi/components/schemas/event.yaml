@@ -1,0 +1,67 @@
+ProviderFirmChangedSnapshotEventV2Payload:
+  type: object
+  properties:
+    providerFirm:
+      $ref: "./provider-firm.yaml#/ProviderV2"
+    bankDetails:
+      type: array
+      items:
+        $ref: "./bank-account.yaml#/BankAccountV2"
+    offices:
+      type: array
+      items:
+        allOf:
+        - $ref: "./office.yaml#/OfficeV2"
+        - type: object
+          required:
+          - liaisonManagers
+          - contractManagers
+          properties:
+            liaisonManagers:
+              type: array
+              items:
+                $ref: "./liaison-manager.yaml#/LiaisonManagerV2"
+            contractManagers:
+              type: array
+              items:
+                $ref: "./contract-manager.yaml#/ContractManagerV2"
+            officeBankDetails:
+              type: array
+              items:
+                $ref: "./bank-account.yaml#/OfficeBankAccountV2"
+
+EventTypeV2:
+  type: string
+  enum:
+  - ProviderFirmChangedSnapshotEvent
+
+EventSourceV2:
+  type: string
+  enum:
+  - apiV2
+
+EventHeaderV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - type: object
+    properties:
+      eventSource:
+        $ref: "#/EventSourceV2"
+      eventType:
+        $ref: "#/EventTypeV2"
+      correlationId:
+        type: string
+      traceId:
+        type: string
+
+EventV2:
+  type: object
+  required:
+  - eventHeader
+  - eventPayload
+  properties:
+    eventHeader:
+      $ref: "#/EventHeaderV2"
+    eventPayload:
+      oneOf:
+      - $ref: "#/ProviderFirmChangedSnapshotEventV2Payload"

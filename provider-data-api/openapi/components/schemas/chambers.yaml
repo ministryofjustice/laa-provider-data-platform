@@ -1,0 +1,117 @@
+ChambersDetailsV2:
+  type: object
+  required:
+  - office
+  properties:
+    office:
+      $ref: "#/ChambersOfficeCoreDetailsV2"
+
+ChambersHeadOfficeCreateV2:
+  type: object
+  required:
+  - address
+  - liaisonManager
+  properties:
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXCreateV2"
+    liaisonManager:
+      $ref: "#/ChambersOfficeLiaisonManagerCreateOrLinkV2"
+    contractManager:
+      $ref: "./contract-manager.yaml#/HeadOfficeContractManagerLinkV2"
+
+ProviderCreateChambersV2:
+  type: object
+  required:
+  - chambers
+  properties:
+    chambers:
+      allOf:
+      - $ref: "#/ChambersHeadOfficeCreateV2"
+  description: |
+    Create provider of `firmType=Chambers`
+
+ProviderChambersV2:
+  type: object
+  required:
+  - chambers
+  properties:
+    chambers:
+      $ref: "#/ChambersDetailsV2"
+  description: |
+    Provider of `firmType=Chambers`
+
+ProviderPatchChambersV2:
+  type: object
+  description: |
+    Update provider of `firmType=Chambers`
+
+ChambersOfficeDetailsV2:
+  type: object
+  required:
+  - firmType
+  - accountNumber
+  - address
+  properties:
+    firmType:
+      $ref: "./provider-firm.yaml#/ProviderFirmTypeV2"
+    accountNumber:
+      $ref: "./office.yaml#/OfficeAccountNumberV2"
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXV2"
+
+ChambersOfficePatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"officeGUID", "providerFirmGUID", "accountNumber"})
+  properties:
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    clearActiveDateTo:
+      $ref: "./office.yaml#/ClearActiveDateToV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressPatchV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXPatchV2"
+
+ChambersOfficeCoreDetailsV2:
+  type: object
+  required:
+  - officeGUID
+  - accountNumber
+  properties:
+    officeGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    accountNumber:
+      $ref: "./office.yaml#/OfficeAccountNumberV2"
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+
+ChambersOfficeLiaisonManagerCreateOrLinkV2:
+  oneOf:
+  - $ref: "./liaison-manager.yaml#/LiaisonManagerCreateV2"
+  - $ref: "./liaison-manager.yaml#/LiaisonManagerLinkByGUIDV2"

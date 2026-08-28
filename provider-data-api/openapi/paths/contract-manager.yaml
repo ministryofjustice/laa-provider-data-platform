@@ -1,0 +1,217 @@
+/provider-contract-managers:
+  get:
+    summary: Retrieve a list of contract managers
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderContractManagers
+    tags:
+    - Contract Managers
+    description: |
+      Retrieve a list of contract managers.
+
+      These are employee records in CWA and potentially we need to get this information from
+      SiLAS.
+
+      Contract managers are required for assigning contracts and schedules to a provider firm in
+      CWA.
+
+      Use cases:
+      1) List available contract managers to get the GUID before assigning them to an office
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: contractManagerId
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by contract manager ID (multi)
+    - name: name
+      in: query
+      required: false
+      schema:
+        type: string
+      description: |
+        Fuzzy search by contract manager name (searches both first and last names)
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of contract managers matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/contract-manager.yaml#/ContractManagerV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
+  post:
+    summary: >-
+      Assign a contract manager for office. Assigning a new manager removes the previous manager.
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createProviderFirmOfficeContractManager
+    tags:
+    - Provider Firm Offices Contract Managers
+    description: |
+      Assigning a new contract manager for an office.
+
+      There should be only a maximum of one assignment (MVP scope).
+
+      Applicable only for LSPs.
+
+      Note that in CWA there are currently fake contract manager entries assigned as it is a
+      mandatory field. In addition business users used some of these entries to mark debt
+      recovery and false balance flags. This is no longer necessary in the new model.
+
+      Use cases:
+      1) Assign new contract manager to a given office.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/contract-manager.yaml#/ContractManagerProviderPatchV2"
+    responses:
+      "201":
+        description: Contract manager assigned successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+                    officeGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    officeCode:
+                      $ref: "../components/schemas/office.yaml#/OfficeAccountNumberV2"
+                    contractManagerId:
+                      type: string
+                      description: Unique identifier of the assigned contract manager
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+  get:
+    summary: Retrieve contract managers for a given provider office
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmOfficeContractManagers
+    tags:
+    - Provider Firm Offices Contract Managers
+    description: |
+      Retrieve provider office contract managers. Applicable only for LSPs.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: Details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/contract-manager.yaml#/OfficeContractManagerV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

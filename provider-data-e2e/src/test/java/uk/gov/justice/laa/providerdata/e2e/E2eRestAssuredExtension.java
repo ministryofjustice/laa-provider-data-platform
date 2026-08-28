@@ -24,7 +24,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  *
  * <ul>
  *   <li>Base URI and optional auth token from {@link E2eConfig}
- *   <li>OpenAPI response validation against {@code laa-data-pda.yml}
+ *   <li>OpenAPI response validation against {@code bundled-openapi-spec.yaml}
  *   <li>Connection and socket timeouts
  *   <li>Request/response logging on validation failure
  * </ul>
@@ -38,9 +38,11 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
 
   private static OpenApiValidationFilter createValidationFilter() {
     try (InputStream is =
-        E2eRestAssuredExtension.class.getClassLoader().getResourceAsStream("laa-data-pda.yml")) {
+        E2eRestAssuredExtension.class
+            .getClassLoader()
+            .getResourceAsStream("bundled-openapi-spec.yaml")) {
       if (is == null) {
-        throw new IllegalStateException("Cannot find laa-data-pda.yml on classpath");
+        throw new IllegalStateException("Cannot find bundled-openapi-spec.yaml on classpath");
       }
       String spec = new String(is.readAllBytes(), StandardCharsets.UTF_8);
       if (E2eConfig.authToken() == null || E2eConfig.authToken().isBlank()) {

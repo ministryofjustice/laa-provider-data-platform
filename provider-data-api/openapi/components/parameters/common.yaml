@@ -1,0 +1,52 @@
+LiaisonManagerGUID:
+  name: liaisonManagerGUID
+  in: path
+  description: The GUID of the liaison manager.
+  required: true
+  schema:
+    type: string
+    format: uuid
+
+TraceParentHeader:
+  name: traceparent
+  in: header
+  required: false
+  schema:
+    type: string
+    pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+  description: >
+    W3C Trace Context header used for distributed tracing.
+    Format: 00-<trace-id>-<span-id>-<trace-flags>.
+    Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0
+ProviderFirmGUIDorFirmNumber:
+  name: providerFirmGUIDorFirmNumber
+  in: path
+  required: true
+  schema:
+    type: string
+  description: >
+    GUID of the provider firm, or the firm number (unique account number).
+OfficeGUIDorCode:
+  name: officeGUIDorCode
+  in: path
+  required: true
+  schema:
+    type: string
+  description: >-
+    GUID of the provider-office link (not of the underlying office record), or the office code
+    (unique account number).
+QPageNumber:
+  name: page
+  in: query
+  required: false
+  schema:
+    type: integer
+  description: Page index for given request (start from 0, default is 0)
+
+QPageSize:
+  name: pageSize
+  in: query
+  required: false
+  schema:
+    type: integer
+  description: Page size for given request (default is 100)

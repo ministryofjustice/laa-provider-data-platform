@@ -1,0 +1,132 @@
+ProviderFirmNumberV2:
+  type: string
+  description: |
+    Unique provider firm identifier. CWA ref: PO_VENDOR_CONTACTS.SEGMENT1
+
+    *TODO: Check which to use, SiLAS uses segment1, but all V1 endpoints use VENDOR_ID in path*
+    *TODO: Is this the same as account number. CWA ref, is it segment 1*
+    *TODO: Do we need ccmsFirmId. xxccms_provider_offices_v.providerfirm_id*
+    *TODO: Check rules for generating these and what sequence number to start from at go live*
+  example: "3856"
+
+ProviderFirmTypeV2:
+  type: string
+  enum:
+  - Legal Services Provider
+  - Chambers
+  - Advocate
+  description: |
+    Type of the provider firm. Barristers are entered as Advocates.
+
+    CWA ref: PO_VENDORS.ATTRIBUTE4.
+
+    *TODO: Check if these are all valid types*
+
+ProviderFirmNameV2:
+  type: string
+  description: |
+    Name of the provider firm.
+
+    CWA ref: PO_VENDORS.VENDOR_NAME
+  example: "Legal Services Co."
+
+ProviderCreateV2:
+      # x-class-extra-annotation is placed here (not on ProviderCreatePractitionerV2) because
+      # openapi-generator flattens this allOf/oneOf into a single ProviderCreateV2 class, which
+      # is the class actually deserialized for POST /provider-firms (see ProviderFirmController).
+      # createdTimestamp is a server-assigned audit field for every provider type, not just
+      # practitioners, so it must be rejected here regardless of firmType.
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"createdTimestamp"})
+  allOf:
+  - $ref: "#/ProviderCreateBaseV2"
+  - oneOf:
+    - $ref: "./legal-services-provider.yaml#/ProviderCreateLSPV2"
+    - $ref: "./chambers.yaml#/ProviderCreateChambersV2"
+    - $ref: "./practitioner.yaml#/ProviderCreatePractitionerV2"
+
+ProviderCreateBaseV2:
+  type: object
+  required:
+  - firmType
+  - name
+  properties:
+    firmType:
+      $ref: "#/ProviderFirmTypeV2"
+    name:
+      $ref: "#/ProviderFirmNameV2"
+
+ProviderV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - $ref: "#/ProviderBaseV2"
+  - oneOf:
+    - $ref: "./legal-services-provider.yaml#/ProviderLSPV2"
+    - $ref: "./chambers.yaml#/ProviderChambersV2"
+    - $ref: "./practitioner.yaml#/ProviderPractitionerV2"
+
+ProviderBaseV2:
+  type: object
+  required:
+  - firmNumber
+  - firmType
+  - name
+  properties:
+    firmNumber:
+      $ref: "#/ProviderFirmNumberV2"
+    firmType:
+      $ref: "#/ProviderFirmTypeV2"
+    name:
+      $ref: "#/ProviderFirmNameV2"
+
+ProviderPatchV2:
+      # x-class-extra-annotation is placed here (not on ProviderPatchPractitionerV2) because
+      # openapi-generator flattens this allOf/oneOf into a single ProviderPatchV2 class, which
+      # is the class actually deserialized for PATCH /provider-firms/{id} (see
+      # ProviderFirmController). These fields must be rejected regardless of firmType.
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "createdTimestamp"})
+  allOf:
+  - $ref: "#/ProviderPatchBaseV2"
+  - oneOf:
+    - $ref: "./legal-services-provider.yaml#/ProviderPatchLSPV2"
+    - $ref: "./chambers.yaml#/ProviderPatchChambersV2"
+    - $ref: "./practitioner.yaml#/ProviderPatchPractitionerV2"
+
+ProviderPatchBaseV2:
+  type: object
+  properties:
+    name:
+      $ref: "#/ProviderFirmNameV2"
+
+FirmIntervenedFlagV2:
+  type: boolean
+  description: |
+    Flag indicating whether firm is under intervention.
+    If true, firmIntervenedDate must also be provided.
+
+FirmIntervenedDateV2:
+  type: string
+  format: date
+  description: |
+    Date when firm was placed under intervention.
+    Must be provided together with firmIntervenedFlag.
+
+HoldAllPaymentsFlagV2:
+  type: boolean
+  description: |
+    Flag indicating whether all payments should be held.
+    If true, holdAllPaymentsReason must also be provided.
+
+HoldAllPaymentsReasonV2:
+  type: string
+  description: |
+    Reason for holding all payments.
+    Must be provided together with holdAllPaymentsFlag.
+
+ReferredToDebtRecoveryFlagV2:
+  type: boolean
+  description: |
+    Flag indicating whether firm has been referred to debt recovery.

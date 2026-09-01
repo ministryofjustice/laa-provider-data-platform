@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       itag: { type: string, required: true }
-      junit_results_path:           { type: string, required: false, default: "provider-data-service/build/reports/integrationTest" }
+      junit_results_path:           { type: string, required: false, default: "provider-data-service/build/test-results" }
       junit_report_path:            { type: string, required: false, default: "provider-data-service/build/reports/tests" }
       checkstyle_report_path:       { type: string, required: false, default: "provider-data-service/build/reports/checkstyle" }
       jacoco_coverage_report_path:  { type: string, required: false, default: "provider-data-service/build/reports/jacoco" }
@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       itag: { type: string, required: true, description: "Registry tag (e.g. 'v1.4.2', 'pr-925-0af')" }
-      junit_results_path:          { type: string, required: false, default: "provider-data-service/build/reports/integrationTest", description: "Path to integration test report artifact" }
-      junit_report_path:           { type: string, required: false, default: "provider-data-service/build/reports/tests", description: "Path to JUnit HTML report" }
+      junit_results_path:          { type: string, required: false, default: "provider-data-service/build/test-results", description: "Path to JUnit test results artifact" }
+      junit_report_path:           { type: string, required: false, default: "provider-data-service/build/reports/tests", description: "Path to JUnit HTML report artifact" }
       checkstyle_report_path:      { type: string, required: false, default: "provider-data-service/build/reports/checkstyle", description: "Path to Checkstyle report" }
       jacoco_coverage_report_path: { type: string, required: false, default: "provider-data-service/build/reports/jacoco", description: "Path to JaCoCo report" }
 
@@ -85,20 +85,20 @@ jobs:
           path: ${{ inputs.checkstyle_report_path }}
           retention-days: 7
 
-      - name: "Upload test report for app"
+      - name: "Upload test results"
+        if:   always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results
+          path: ${{ inputs.junit_results_path }}
+          retention-days: 7
+
+      - name: "Upload test report"
         if:   always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-report
           path: ${{ inputs.junit_report_path }}
-          retention-days: 7
-
-      - name: "Upload integration test report for app"
-        if:   always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: integration-test-report
-          path: ${{ inputs.junit_results_path }}
           retention-days: 7
 
       - name: "Upload JaCoCo coverage report"

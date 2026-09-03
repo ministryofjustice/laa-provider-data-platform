@@ -1,0 +1,21 @@
+{
+  "consumer": { "name": "pdp-sample-consumer" },
+  "provider": { "name": "laa-provider-data-platform" },
+  "interactions": [
+    {
+      "description": "get liaison manager by guid",
+      "providerStates": [{ "name": "liaison manager exists" }],
+      "request": {
+        "method": "GET",
+        "path": "/provider-liaison-managers/00000000-0000-0000-0000-000000000001"
+      },
+      "response": {
+        "status": 200,
+        "body": {}
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": { "version": "3.0.0" }
+  }
+}

@@ -1,0 +1,168 @@
+/provider-firms/{providerFirmGUIDorFirmNumber}/bank-details:
+  get:
+    summary: Retrieve a list of provider bank accounts with optional filters
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmBankAccounts
+    tags:
+    - Provider Firm Bank Accounts
+    description: |
+      Retrieve bank account details for a given provider.
+
+      This is a read-only retrieval operation. It does not create, amend, assign, or unassign
+      bank accounts.
+
+      For `Legal Service Provider` or `Advocate` firm type the response returns bank accounts
+      associated with that provider only.
+
+      For `Chambers` firm type the response returns bank accounts for all Advocates in that
+      Chambers.
+
+      Note that bank account details are created only via creating or updating office details
+      using the `payment` element.
+
+      Use cases:
+      1) Retrieve the list of bank accounts available for office assignment. Use `GUID` in office
+         payment PATCH operation to set alternative bank account details.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - name: bankAccountNumber
+      in: query
+      required: false
+      schema:
+        type: string
+      description: |
+        Partial text search by bank account number
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+
+    responses:
+      "200":
+        description: List of bank accounts matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/bank-account.yaml#/BankAccountV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/bank-details:
+  get:
+    summary: Retrieve a list of provider's office bank accounts with optional filters
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmOfficeBankAccounts
+    tags:
+    - Provider Firm Bank Accounts
+    description: |
+      Retrieve bank account details for a given provider's office.
+
+      This is a read-only retrieval operation. It does not create, amend, assign, or unassign
+      bank accounts.
+
+      Note that bank account details are created only via creating or updating office details
+      using the `payment` element.
+
+      Use cases:
+      1) Retrieve the list of bank accounts assigned to office. Use `GUID` in office payment
+         PATCH operation to set alternative bank account details.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    - name: bankAccountNumber
+      in: query
+      required: false
+      schema:
+        type: string
+      description: |
+        Partial text search by bank account number
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+
+    responses:
+      "200":
+        description: List of bank accounts matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/bank-account.yaml#/OfficeBankAccountV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

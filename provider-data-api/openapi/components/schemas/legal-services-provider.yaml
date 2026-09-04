@@ -1,0 +1,324 @@
+LSPDetailsConstitutionalStatusV2:
+  type: string
+  enum:
+  - Partnership
+  - Limited Company
+  - Sole Practitioner
+  - LLP
+  - Charity
+  - Government Funded Organisation
+  description: |
+    'N/A' for Firm type Advocate or Chambers.
+
+    For Legal Services provider, options are:
+      - 'Partnership',
+      - 'Limited Company',
+      - 'Sole Practitioner',
+      - 'LLP', (Limited Liability Partnership)
+      - 'Charity',
+      - 'Government Funded Organisation'.
+
+    When constitutional status is set to 'Charity' `notForProfitOrganisationFlag` must be set
+    to true.
+
+    CWA ref: PO_VENDORS.ATTRIBUTE1.
+
+LSPDetailsNotForProfitOrganisationFlagV2:
+  type: boolean
+  description: |
+    *TODO: Check if this flag is true for LSP with constitutionalStatus=Charity*
+
+    CWA ref: PO_VENDORS.ATTRIBUTE3.
+
+LSPDetailsIndemnityReceivedDateV2:
+  type: string
+  format: date
+  description: |
+    *TODO: Need better description of this field*
+
+    CWA ref: PO_VENDORS.ATTRIBUTE2.
+
+LSPDetailsCompaniesHouseNumberV2:
+  type: string
+  description: |
+    *TODO: Need better description of this field*
+
+    WARNING: same field is used by Advocates for Bar Council or SRA roll number.
+
+    CWA ref: PO_VENDORS.ATTRIBUTE11
+  example: "*TODO: Provide example*"
+
+LSPDetailsCreateV2:
+  type: object
+  required:
+  - constitutionalStatus
+  properties:
+    constitutionalStatus:
+      $ref: "#/LSPDetailsConstitutionalStatusV2"
+    indemnityReceivedDate:
+      $ref: "#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "#/LSPDetailsCompaniesHouseNumberV2"
+
+LSPDetailsV2:
+  type: object
+  required:
+  - constitutionalStatus
+  - notForProfitOrganisationFlag
+  - indemnityReceivedDate
+  - companiesHouseNumber
+  - headOffice
+  properties:
+    constitutionalStatus:
+      $ref: "#/LSPDetailsConstitutionalStatusV2"
+    notForProfitOrganisationFlag:
+      $ref: "#/LSPDetailsNotForProfitOrganisationFlagV2"
+    indemnityReceivedDate:
+      $ref: "#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "#/LSPDetailsCompaniesHouseNumberV2"
+    headOffice:
+      $ref: "#/LSPHeadOfficeDetailsV2"
+
+LSPDetailsPatchV2:
+  type: object
+  properties:
+    constitutionalStatus:
+      $ref: "#/LSPDetailsConstitutionalStatusV2"
+    indemnityReceivedDate:
+      $ref: "#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "#/LSPDetailsCompaniesHouseNumberV2"
+    headOffice:
+      $ref: "#/LSPHeadOfficeDetailsPatchV2"
+    firmIntervenedFlag:
+      $ref: "./provider-firm.yaml#/FirmIntervenedFlagV2"
+    firmIntervenedDate:
+      $ref: "./provider-firm.yaml#/FirmIntervenedDateV2"
+    holdAllPaymentsFlag:
+      $ref: "./provider-firm.yaml#/HoldAllPaymentsFlagV2"
+    holdAllPaymentsReason:
+      $ref: "./provider-firm.yaml#/HoldAllPaymentsReasonV2"
+    referredToDebtRecoveryFlag:
+      $ref: "./provider-firm.yaml#/ReferredToDebtRecoveryFlagV2"
+
+LSPHeadOfficeCreateV2:
+  type: object
+  required:
+  - address
+  - payment
+  - liaisonManager
+  - contractManager
+  properties:
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationCreateV2"
+    payment:
+      $ref: "./bank-account.yaml#/PaymentDetailsCreateV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXCreateV2"
+    liaisonManager:
+      $ref: "./liaison-manager.yaml#/LiaisonManagerCreateV2"
+    contractManager:
+      $ref: "./contract-manager.yaml#/HeadOfficeContractManagerLinkV2"
+
+LSPHeadOfficeDetailsV2:
+  allOf:
+  - $ref: "#/LSPOfficeDetailsV2"
+  - type: object
+    required:
+    - officeGUID
+    - headOfficeFlag
+    properties:
+      officeGUID:
+        $ref: "./common.yaml#/BaseEntityGUIDV2"
+      headOfficeFlag:
+        type: boolean
+      activeDateFrom:
+        $ref: "./office.yaml#/OfficeActiveDateFromV2"
+      liaisonManager:
+        $ref: "./liaison-manager.yaml#/LiaisonManagerV2"
+      contractManager:
+        $ref: "./contract-manager.yaml#/OfficeContractManagerV2"
+      bankAccount:
+        $ref: "./bank-account.yaml#/OfficeBankAccountV2"
+
+LSPHeadOfficeDetailsPatchV2:
+  type: object
+  properties:
+    officeGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    accountNumber:
+      $ref: "./office.yaml#/OfficeAccountNumberV2"
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    clearActiveDateTo:
+      $ref: "./office.yaml#/ClearActiveDateToV2"
+    debtRecoveryFlag:
+      $ref: "./office.yaml#/DebtRecoveryFlagV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressPatchV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXPatchV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+    payment:
+      $ref: "./bank-account.yaml#/PaymentDetailsPatchOrLinkV2"
+    intervened:
+      $ref: "./office.yaml#/IntervenedOfficeDetailsPatchV2"
+
+LSPOfficeCreateV2:
+  type: object
+  required:
+  - address
+  - payment
+  - liaisonManager
+  - contractManager
+  properties:
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationCreateV2"
+    payment:
+      $ref: "./bank-account.yaml#/PaymentDetailsCreateOrLinkV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXCreateV2"
+    liaisonManager:
+      $ref: "#/LSPOfficeLiaisonManagerCreateOrLinkV2"
+    contractManager:
+      $ref: "#/LSPOfficeContractManagerLinkV2"
+
+ProviderCreateLSPV2:
+  type: object
+  required:
+  - legalServicesProvider
+  properties:
+    legalServicesProvider:
+      allOf:
+      - $ref: "#/LSPDetailsCreateV2"
+      - $ref: "#/LSPHeadOfficeCreateV2"
+  description: |
+    Create provider of `firmType=Legal Services Provider`
+
+ProviderLSPV2:
+  type: object
+  required:
+  - legalServicesProvider
+  properties:
+    legalServicesProvider:
+      $ref: "#/LSPDetailsV2"
+  description: |
+    Provider of `firmType=Legal Services Provider`
+
+ProviderPatchLSPV2:
+  type: object
+  properties:
+    legalServicesProvider:
+      $ref: "#/LSPDetailsPatchV2"
+  description: |
+    Update provider of `firmType=Legal Services Provider`
+
+LSPOfficeDetailsV2:
+  type: object
+  required:
+  - firmType
+  - accountNumber
+  - debtRecoveryFlag
+  - falseBalanceFlag
+  - intervened
+  - address
+  - payment
+  properties:
+    firmType:
+      $ref: "./provider-firm.yaml#/ProviderFirmTypeV2"
+    accountNumber:
+      $ref: "./office.yaml#/OfficeAccountNumberV2"
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    debtRecoveryFlag:
+      $ref: "./office.yaml#/DebtRecoveryFlagV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    intervened:
+      $ref: "./office.yaml#/IntervenedOfficeDetailsV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+    payment:
+      $ref: "./bank-account.yaml#/PaymentDetailsV2"
+
+LSPOfficePatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"officeGUID", "providerFirmGUID", "accountNumber"})
+  properties:
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    clearActiveDateTo:
+      $ref: "./office.yaml#/ClearActiveDateToV2"
+    debtRecoveryFlag:
+      $ref: "./office.yaml#/DebtRecoveryFlagV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    intervened:
+      $ref: "./office.yaml#/IntervenedOfficeDetailsPatchV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressPatchV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXPatchV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+    payment:
+      $ref: "./bank-account.yaml#/PaymentDetailsPatchOrLinkV2"
+
+LSPOfficeContractManagerLinkV2:
+  oneOf:
+  - $ref: "./contract-manager.yaml#/ContractManagerLinkByGUIDV2"
+  - $ref: "./contract-manager.yaml#/ContractManagerLinkDefaultV2"
+  - $ref: "./contract-manager.yaml#/ContractManagerLinkHeadOfficeV2"
+  description: |
+    Exactly one of `contractManagerGUID`, `useDefaultContractManager` or
+    `useHeadOfficeContractManager` must be provided when creating an LSP Child Office.
+
+LSPOfficeLiaisonManagerCreateOrLinkV2:
+  oneOf:
+  - $ref: "./liaison-manager.yaml#/LiaisonManagerCreateV2"
+  - $ref: "./liaison-manager.yaml#/LiaisonManagerLinkHeadOfficeV2"
+  - $ref: "./liaison-manager.yaml#/LiaisonManagerLinkByGUIDV2"

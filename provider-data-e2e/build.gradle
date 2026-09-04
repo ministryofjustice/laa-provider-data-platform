@@ -21,7 +21,7 @@ dependencies {
     // Rest Assured
     testImplementation platform('io.rest-assured:rest-assured-bom:6.0.1')
     testImplementation 'io.rest-assured:rest-assured'
-    // OpenAPI response validation against laa-data-pda.yml
+    // OpenAPI response validation against bundled-openapi-spec.yaml
     testImplementation project(':provider-data-api')
     testImplementation 'com.atlassian.oai:openapi-request-validator-restassured:3.0.0'
 }

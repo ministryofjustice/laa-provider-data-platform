@@ -11,11 +11,12 @@ firm and office (and, later on, contract and schedule) data.
 
 Includes the following subprojects:
 
-- `provider-data-api` - OpenAPI specification used for generating API stub interfaces and
-  documentation.
-- `provider-data-service` - REST API service with CRUD operations interfacing a JPA repository
-  with an in-memory database.
-- `provider-data-e2e` - End-to-end tests to target a running system.
+- [`provider-data-api`](./provider-data-api/) - OpenAPI specification used for generating API stub
+  interfaces and documentation. For more details on how to work with the OpenAPI spec, see
+  [`provider-data-api/openapi/README.md`](./provider-data-api/openapi/README.md).
+- [`provider-data-service`](./provider-data-service/) - REST API service with CRUD operations
+  interfacing a JPA repository with a PostgreSQL database.
+- [`provider-data-e2e`](./provider-data-e2e/) - End-to-end tests to target a running system.
 
 ## Build and run the application
 

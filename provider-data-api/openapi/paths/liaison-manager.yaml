@@ -1,0 +1,209 @@
+/provider-liaison-managers/{liaisonManagerGUID}:
+  get:
+    summary: Retrieve a liaison manager
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getLiaisonManager
+    tags:
+    - Provider Liaison Managers
+    description: |
+      Retrieve details of a specific liaison manager.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/LiaisonManagerGUID"
+    responses:
+      "200":
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "../components/schemas/liaison-manager.yaml#/ProviderLiaisonManagerV2"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+  patch:
+    summary: Amend a liaison manager
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: updateLiaisonManager
+    tags:
+    - Provider Liaison Managers
+    description: |
+      Amend the permitted details of an existing liaison manager.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/LiaisonManagerGUID"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/liaison-manager.yaml#/ProviderLiaisonManagerPatchV2"
+    responses:
+      "200":
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "../components/schemas/liaison-manager.yaml#/ProviderLiaisonManagerV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/liaison-managers:
+  post:
+    summary: >-
+      Create a liaison manager for office. Creating new manager end-dates all other managers.
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createProviderFirmOfficeLiaisonManager
+    tags:
+    - Provider Firm Offices Liaison Managers
+    description: |
+      Create new liaison manager for an office. There can be only one active liaison manager and
+      all firm types are able to have liaison manager independently set at the office level.
+
+      Use cases:
+      1) Create a new liaison manager entry specific to given LSP office.
+      2) Choose to use LSP's head office liaison manager for given LSP office.
+      3) Create a new liaison manager entry specific to Chambers' office.
+      4) Create a new liaison manager entry specific to Advocate/Barrister for a given Chambers'
+         office.
+      5) Choose to use Chambers' office liaison manager for given Advocate/Barrister.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/liaison-manager.yaml#/OfficeLiaisonManagerCreateOrLinkV2"
+    responses:
+      "201":
+        description: Liaison manager created or assigned successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+                    officeGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    officeCode:
+                      $ref: "../components/schemas/office.yaml#/OfficeAccountNumberV2"
+                    liaisonManagerGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+  get:
+    summary: Retrieve liaison managers for a given office
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmOfficeLiaisonManagers
+    tags:
+    - Provider Firm Offices Liaison Managers
+    description: |
+      Retrieve provider office liaison managers.
+
+      Use cases:
+      1) Show full list of liaison managers including currently active and assigned in the past.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/OfficeGUIDorCode"
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: Details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/liaison-manager.yaml#/LiaisonManagerV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

@@ -1,0 +1,390 @@
+openapi: 3.0.3
+info:
+  title: Provider API
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/LICENSE
+  description: |
+    API for managing Legal Service Providers, including Chambers, solicitors, and advocates.
+
+    Unless explicitly stated otherwise, `officeGUID` values identify the provider-office link
+    record, not the underlying office record. The underlying office GUID is mainly an internal
+    identifier used to associate an office record with a provider-office link.
+
+servers:
+  - url: https://laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk
+    description: Development
+  - url: https://laa-provider-data-platform-uat.apps.live.cloud-platform.service.justice.gov.uk
+    description: UAT
+  - url: https://laa-provider-data-platform-staging.apps.live.cloud-platform.service.justice.gov.uk
+    description: Staging
+
+paths:
+  /provider-liaison-managers/{liaisonManagerGUID}:
+    $ref: ./paths/liaison-manager.yaml#/~1provider-liaison-managers~1{liaisonManagerGUID}
+  /provider-events:
+    $ref: ./paths/event.yaml#/~1provider-events
+  /provider-events/{eventGUID}:
+    $ref: ./paths/event.yaml#/~1provider-events~1{eventGUID}
+  /provider-contract-managers:
+    $ref: ./paths/contract-manager.yaml#/~1provider-contract-managers
+  /provider-firms:
+    $ref: ./paths/provider-firm.yaml#/~1provider-firms
+  /provider-firms/{providerFirmGUIDorFirmNumber}:
+    $ref: ./paths/provider-firm.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}
+  /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details:
+    $ref: ./paths/bank-account.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1bank-details
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/bank-details:
+    $ref: ./paths/bank-account.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices~1{officeGUIDorCode}~1bank-details
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices:
+    $ref: ./paths/office.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices
+  /provider-firms-offices:
+    $ref: ./paths/office.yaml#/~1provider-firms-offices
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}:
+    $ref: ./paths/office.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices~1{officeGUIDorCode}
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/liaison-managers:
+    $ref: ./paths/liaison-manager.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices~1{officeGUIDorCode}~1liaison-managers
+  /provider-firms/{providerFirmGUIDorFirmNumber}/offices/{officeGUIDorCode}/contract-managers:
+    $ref: ./paths/contract-manager.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices~1{officeGUIDorCode}~1contract-managers
+  /provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
+    $ref: ./paths/provider-firm.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1practitioners
+components:
+  schemas:
+    BaseEntityGUIDV2:
+      $ref: ./components/schemas/common.yaml#/BaseEntityGUIDV2
+    BaseEntityV2:
+      $ref: ./components/schemas/common.yaml#/BaseEntityV2
+    ErrorResponse:
+      $ref: ./components/schemas/common.yaml#/ErrorResponse
+    BadRequestError:
+      $ref: ./components/schemas/common.yaml#/BadRequestError
+    ForbiddenError:
+      $ref: ./components/schemas/common.yaml#/ForbiddenError
+    ConflictError:
+      $ref: ./components/schemas/common.yaml#/ConflictError
+    NotFoundError:
+      $ref: ./components/schemas/common.yaml#/NotFoundError
+    InternalServerError:
+      $ref: ./components/schemas/common.yaml#/InternalServerError
+    ProviderFirmNumberV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmNumberV2
+    ProviderFirmTypeV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmTypeV2
+    ProviderFirmNameV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmNameV2
+    ProviderCreateV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderCreateV2
+    ProviderCreateBaseV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderCreateBaseV2
+    ProviderCreateLSPV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/ProviderCreateLSPV2
+    ProviderCreateChambersV2:
+      $ref: ./components/schemas/chambers.yaml#/ProviderCreateChambersV2
+    ProviderCreatePractitionerV2:
+      $ref: ./components/schemas/practitioner.yaml#/ProviderCreatePractitionerV2
+    ProviderV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderV2
+    ProviderBaseV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderBaseV2
+    ProviderLSPV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/ProviderLSPV2
+    ProviderChambersV2:
+      $ref: ./components/schemas/chambers.yaml#/ProviderChambersV2
+    ProviderPractitionerV2:
+      $ref: ./components/schemas/practitioner.yaml#/ProviderPractitionerV2
+    ProviderPatchV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderPatchV2
+    ProviderPatchBaseV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ProviderPatchBaseV2
+    ProviderPatchLSPV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/ProviderPatchLSPV2
+    ProviderPatchChambersV2:
+      $ref: ./components/schemas/chambers.yaml#/ProviderPatchChambersV2
+    ProviderPatchPractitionerV2:
+      $ref: ./components/schemas/practitioner.yaml#/ProviderPatchPractitionerV2
+    LSPDetailsConstitutionalStatusV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsConstitutionalStatusV2
+    LSPDetailsNotForProfitOrganisationFlagV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsNotForProfitOrganisationFlagV2
+    LSPDetailsIndemnityReceivedDateV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsIndemnityReceivedDateV2
+    LSPDetailsCompaniesHouseNumberV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsCompaniesHouseNumberV2
+    LSPDetailsCreateV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsCreateV2
+    LSPDetailsV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsV2
+    LSPDetailsPatchV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPDetailsPatchV2
+    ChambersDetailsV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersDetailsV2
+    PractitionerDetailsParentUpdateV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsParentUpdateV2
+    PractitionerDetailsParentV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsParentV2
+    PractitionerDetailsAdvocateTypeV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsAdvocateTypeV2
+    PractitionerDetailsAdvocateLevelV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsAdvocateLevelV2
+    PractitionerDetailsBarristerLevelV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsBarristerLevelV2
+    PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsSolicitorRegulationAuthorityRollNumberV2
+    PractitionerDetailsBarCouncilRollNumberV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsBarCouncilRollNumberV2
+    PractitionerDetailsAdvocateDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsAdvocateDetailsV2
+    PractitionerDetailsBarristerDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsBarristerDetailsV2
+    PractitionerDetailsCreateV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsCreateV2
+    PractitionerDetailsCreateBaseV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsCreateBaseV2
+    PractitionerDetailsCreateAdvocateV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsCreateAdvocateV2
+    PractitionerDetailsCreateBarristerV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsCreateBarristerV2
+    PractitionerDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsV2
+    PractitionerDetailsBaseV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsBaseV2
+    PractitionerDetailsAdvocateV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsAdvocateV2
+    PractitionerDetailsBarristerV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsBarristerV2
+    PractitionerDetailsPatchV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsPatchV2
+    PractitionerDetailsPatchBaseV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsPatchBaseV2
+    PractitionerDetailsPatchAdvocateDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsPatchAdvocateDetailsV2
+    PractitionerDetailsPatchBarristerDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerDetailsPatchBarristerDetailsV2
+    LSPHeadOfficeCreateV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPHeadOfficeCreateV2
+    LSPHeadOfficeDetailsV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPHeadOfficeDetailsV2
+    LSPHeadOfficeDetailsPatchV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPHeadOfficeDetailsPatchV2
+    ChambersHeadOfficeCreateV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersHeadOfficeCreateV2
+    PractitionerHeadOfficeCreateV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerHeadOfficeCreateV2
+    LSPOfficeCreateV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPOfficeCreateV2
+    OfficeAccountNumberV2:
+      $ref: ./components/schemas/office.yaml#/OfficeAccountNumberV2
+    OfficeActiveDateToV2:
+      $ref: ./components/schemas/office.yaml#/OfficeActiveDateToV2
+    OfficeActiveDateFromV2:
+      $ref: ./components/schemas/office.yaml#/OfficeActiveDateFromV2
+    ClearActiveDateToV2:
+      $ref: ./components/schemas/office.yaml#/ClearActiveDateToV2
+    DebtRecoveryFlagV2:
+      $ref: ./components/schemas/office.yaml#/DebtRecoveryFlagV2
+    FalseBalanceFlagV2:
+      $ref: ./components/schemas/office.yaml#/FalseBalanceFlagV2
+    OfficeV2:
+      $ref: ./components/schemas/office.yaml#/OfficeV2
+    LSPOfficeDetailsV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPOfficeDetailsV2
+    ChambersOfficeDetailsV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersOfficeDetailsV2
+    AdvocateOfficeDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/AdvocateOfficeDetailsV2
+    OfficePatchV2:
+      $ref: ./components/schemas/office.yaml#/OfficePatchV2
+    LSPOfficePatchV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPOfficePatchV2
+    ChambersOfficePatchV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersOfficePatchV2
+    AdvocateOfficePatchV2:
+      $ref: ./components/schemas/practitioner.yaml#/AdvocateOfficePatchV2
+    ChambersOfficeCoreDetailsV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersOfficeCoreDetailsV2
+    PractitionerOfficeCoreDetailsV2:
+      $ref: ./components/schemas/practitioner.yaml#/PractitionerOfficeCoreDetailsV2
+    IntervenedOfficeDetailsIntervenedFlagV2:
+      $ref: ./components/schemas/office.yaml#/IntervenedOfficeDetailsIntervenedFlagV2
+    IntervenedOfficeDetailsIntervenedChangeDateV2:
+      $ref: ./components/schemas/office.yaml#/IntervenedOfficeDetailsIntervenedChangeDateV2
+    IntervenedOfficeDetailsV2:
+      $ref: ./components/schemas/office.yaml#/IntervenedOfficeDetailsV2
+    IntervenedOfficeDetailsPatchV2:
+      $ref: ./components/schemas/office.yaml#/IntervenedOfficeDetailsPatchV2
+    FirmIntervenedFlagV2:
+      $ref: ./components/schemas/provider-firm.yaml#/FirmIntervenedFlagV2
+    FirmIntervenedDateV2:
+      $ref: ./components/schemas/provider-firm.yaml#/FirmIntervenedDateV2
+    HoldAllPaymentsFlagV2:
+      $ref: ./components/schemas/provider-firm.yaml#/HoldAllPaymentsFlagV2
+    HoldAllPaymentsReasonV2:
+      $ref: ./components/schemas/provider-firm.yaml#/HoldAllPaymentsReasonV2
+    ReferredToDebtRecoveryFlagV2:
+      $ref: ./components/schemas/provider-firm.yaml#/ReferredToDebtRecoveryFlagV2
+    OfficeAddressPatchV2:
+      $ref: ./components/schemas/office.yaml#/OfficeAddressPatchV2
+    OfficeAddressV2:
+      $ref: ./components/schemas/office.yaml#/OfficeAddressV2
+    OfficePhoneV2:
+      $ref: ./components/schemas/office.yaml#/OfficePhoneV2
+    OfficeEmailAddressV2:
+      $ref: ./components/schemas/office.yaml#/OfficeEmailAddressV2
+    OfficeWebsiteV2:
+      $ref: ./components/schemas/office.yaml#/OfficeWebsiteV2
+    DXdxNumberV2:
+      $ref: ./components/schemas/office.yaml#/DXdxNumberV2
+    DXdxCentreV2:
+      $ref: ./components/schemas/office.yaml#/DXdxCentreV2
+    DXCreateV2:
+      $ref: ./components/schemas/office.yaml#/DXCreateV2
+    DXV2:
+      $ref: ./components/schemas/office.yaml#/DXV2
+    DXPatchV2:
+      $ref: ./components/schemas/office.yaml#/DXPatchV2
+    VATRegistrationVatNumberV2:
+      $ref: ./components/schemas/office.yaml#/VATRegistrationVatNumberV2
+    VATRegistrationCreateV2:
+      $ref: ./components/schemas/office.yaml#/VATRegistrationCreateV2
+    VATRegistrationV2:
+      $ref: ./components/schemas/office.yaml#/VATRegistrationV2
+    PaymentDetailsPaymentMethodV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsPaymentMethodV2
+    PaymentDetailsPaymentHeldFlagV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsPaymentHeldFlagV2
+    PaymentDetailsPaymentHeldReasonV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsPaymentHeldReasonV2
+    PaymentDetailsCreateV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsCreateV2
+    PaymentDetailsCreateOrLinkV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsCreateOrLinkV2
+    PaymentDetailsV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsV2
+    PaymentDetailsPatchOrLinkV2:
+      $ref: ./components/schemas/bank-account.yaml#/PaymentDetailsPatchOrLinkV2
+    BankAccountAccountNameV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountAccountNameV2
+    BankAccountSortCodeV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountSortCodeV2
+    BankAccountAccountNumberV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountAccountNumberV2
+    BankAccountActiveDateFromV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountActiveDateFromV2
+    BankAccountActiveDateToV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountActiveDateToV2
+    BankAccountPrimaryFlagV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountPrimaryFlagV2
+    BankAccountProviderOfficeCreateV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountProviderOfficeCreateV2
+    BankAccountProviderOfficeLinkV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountProviderOfficeLinkV2
+    BankAccountV2:
+      $ref: ./components/schemas/bank-account.yaml#/BankAccountV2
+    OfficeBankAccountV2:
+      $ref: ./components/schemas/bank-account.yaml#/OfficeBankAccountV2
+    LiaisonManagerFirstNameV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerFirstNameV2
+    LiaisonManagerLastNameV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerLastNameV2
+    LiaisonManagerEmailAddressV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerEmailAddressV2
+    LiaisonManagerPhoneV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerPhoneV2
+    LiaisonManagerActiveDateFromV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerActiveDateFromV2
+    LiaisonManagerActiveDateToV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerActiveDateToV2
+    OfficeLiaisonManagerCreateOrLinkV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/OfficeLiaisonManagerCreateOrLinkV2
+    LSPOfficeLiaisonManagerCreateOrLinkV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPOfficeLiaisonManagerCreateOrLinkV2
+    ChambersOfficeLiaisonManagerCreateOrLinkV2:
+      $ref: ./components/schemas/chambers.yaml#/ChambersOfficeLiaisonManagerCreateOrLinkV2
+    AdvocateOfficeLiaisonManagerCreateOrLinkV2:
+      $ref: ./components/schemas/practitioner.yaml#/AdvocateOfficeLiaisonManagerCreateOrLinkV2
+    LiaisonManagerCreateV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerCreateV2
+    LiaisonManagerLinkHeadOfficeV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerLinkHeadOfficeV2
+    LiaisonManagerLinkChambersV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerLinkChambersV2
+    LiaisonManagerLinkedFlagV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerLinkedFlagV2
+    ProviderLiaisonManagerV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/ProviderLiaisonManagerV2
+    ProviderLiaisonManagerPatchV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/ProviderLiaisonManagerPatchV2
+    LiaisonManagerV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerV2
+    LiaisonManagerLinkByGUIDV2:
+      $ref: ./components/schemas/liaison-manager.yaml#/LiaisonManagerLinkByGUIDV2
+    ContractManagerProviderPatchV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerProviderPatchV2
+    ContractManagerLinkByGUIDV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerLinkByGUIDV2
+    ContractManagerLinkDefaultV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerLinkDefaultV2
+    ContractManagerLinkHeadOfficeV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerLinkHeadOfficeV2
+    LSPOfficeContractManagerLinkV2:
+      $ref: ./components/schemas/legal-services-provider.yaml#/LSPOfficeContractManagerLinkV2
+    HeadOfficeContractManagerLinkV2:
+      $ref: ./components/schemas/contract-manager.yaml#/HeadOfficeContractManagerLinkV2
+    OfficePractitionerV2:
+      $ref: ./components/schemas/practitioner.yaml#/OfficePractitionerV2
+    ContractManagerContractManagerIdV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerContractManagerIdV2
+    ContractManagerFirstNameV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerFirstNameV2
+    ContractManagerLastNameV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerLastNameV2
+    ContractManagerEmailAddressV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerEmailAddressV2
+    ContractManagerV2:
+      $ref: ./components/schemas/contract-manager.yaml#/ContractManagerV2
+    OfficeContractManagerV2:
+      $ref: ./components/schemas/contract-manager.yaml#/OfficeContractManagerV2
+    PaginatedSearchV2:
+      $ref: ./components/schemas/common.yaml#/PaginatedSearchV2
+    SearchCriteriaV2:
+      $ref: ./components/schemas/common.yaml#/SearchCriteriaV2
+    SearchCriterionV2:
+      $ref: ./components/schemas/common.yaml#/SearchCriterionV2
+    PaginationV2:
+      $ref: ./components/schemas/common.yaml#/PaginationV2
+    SortV2:
+      $ref: ./components/schemas/common.yaml#/SortV2
+    LinksV2:
+      $ref: ./components/schemas/common.yaml#/LinksV2
+    ProviderFirmChangedSnapshotEventV2Payload:
+      $ref: ./components/schemas/event.yaml#/ProviderFirmChangedSnapshotEventV2Payload
+    EventTypeV2:
+      $ref: ./components/schemas/event.yaml#/EventTypeV2
+    EventSourceV2:
+      $ref: ./components/schemas/event.yaml#/EventSourceV2
+    EventHeaderV2:
+      $ref: ./components/schemas/event.yaml#/EventHeaderV2
+    EventV2:
+      $ref: ./components/schemas/event.yaml#/EventV2
+  parameters:
+    LiaisonManagerGUID:
+      $ref: ./components/parameters/common.yaml#/LiaisonManagerGUID
+    TraceParentHeader:
+      $ref: ./components/parameters/common.yaml#/TraceParentHeader
+    ProviderFirmGUIDorFirmNumber:
+      $ref: ./components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber
+    OfficeGUIDorCode:
+      $ref: ./components/parameters/common.yaml#/OfficeGUIDorCode
+    QPageNumber:
+      $ref: ./components/parameters/common.yaml#/QPageNumber
+    QPageSize:
+      $ref: ./components/parameters/common.yaml#/QPageSize
+  securitySchemes:
+    ApiKeyAuth:
+      $ref: ./components/security-schemes.yaml#/ApiKeyAuth
+    AzureAD:
+      $ref: ./components/security-schemes.yaml#/AzureAD
+security:
+- ApiKeyAuth: []
+- AzureAD: []

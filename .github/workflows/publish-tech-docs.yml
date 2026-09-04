@@ -3,7 +3,7 @@ name: "Publish tech-docs"
 on:
   push:
     branches: [ main ]
-    paths: [ "tech-docs/**", ".github/workflows/publish-tech-docs.yml", "provider-data-api/laa-data-pda.yml" ]
+    paths: [ "tech-docs/**", ".github/workflows/publish-tech-docs.yml", "provider-data-api/bundled-openapi-spec.yaml" ]
   workflow_dispatch:
 
 permissions: { contents: read, id-token: write, pages: write }
@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
-            provider-data-api/laa-data-pda.yml
+            provider-data-api/bundled-openapi-spec.yaml
             tech-docs/scripts/prepare-api-spec.sh
           sparse-checkout-cone-mode: false
 
@@ -39,7 +39,7 @@ jobs:
         with:
           name: generated-api-spec
           path: |
-            tech-docs/source/pda-r2/api/laa-data-pda.yml
+            tech-docs/source/pda-r2/api/bundled-openapi-spec.yaml
             tech-docs/source/pda-r2/api/widdershins.html.md
           retention-days: 1
 

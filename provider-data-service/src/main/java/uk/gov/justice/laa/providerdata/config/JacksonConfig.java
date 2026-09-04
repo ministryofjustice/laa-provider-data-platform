@@ -52,7 +52,7 @@ public class JacksonConfig {
    * restrictions declared in the OpenAPI schema, returning a 400 Bad Request when a caller sends a
    * field listed in {@link RejectProperties#names()}.
    *
-   * <p>To apply this to a generated model, add to the schema in {@code laa-data-pda.yml}:
+   * <p>To apply this to a generated model, add to the schema in {@code bundled-openapi-spec.yaml}:
    * <pre>{@code
    * x-class-extra-annotation: >-
    *   @uk.gov.justice.laa.providerdata.annotation.RejectProperties(

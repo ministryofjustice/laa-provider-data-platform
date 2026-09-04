@@ -1,0 +1,133 @@
+/provider-events:
+  get:
+    summary: Retrieve a list of event headers
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderEvents
+    tags:
+    - Events
+    description: |
+      Provides capability to view all events that have been emitted by the microservice.
+
+      Use cases:
+      1) Search event header history.
+      2) Identify event GUID for a given correlationId.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: eventType
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: "../components/schemas/event.yaml#/EventTypeV2"
+      description: Filter by event type (multi)
+    - name: correlationId
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Filter by correlation Id
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of events matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/event.yaml#/EventHeaderV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-events/{eventGUID}:
+  get:
+    summary: Retrieve event by GUID
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getEventByGUID
+    tags:
+    - Events
+    description: |
+      Retrieve full event details by GUID.
+
+      Use cases:
+      1) Retrieve details necessary for connectors to downstream systems
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: eventGUID
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Filter by event GUID
+    responses:
+      "200":
+        description: Event details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "../components/schemas/event.yaml#/EventV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

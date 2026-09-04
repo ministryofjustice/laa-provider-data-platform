@@ -9,8 +9,10 @@ weight: 20
 The Provider Data API r2 is described using the
 [OpenAPI 3.0 specification](https://spec.openapis.org/oas/v3.0.3).
 
-The specification source is
-[`provider-data-api/laa-data-pda.yml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/provider-data-api/laa-data-pda.yml).
+The specification source is authored as split files under
+[`provider-data-api/openapi/`](https://github.com/ministryofjustice/laa-provider-data-platform/tree/main/provider-data-api/openapi)
+and bundled into
+[`provider-data-api/bundled-openapi-spec.yaml`](https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/provider-data-api/bundled-openapi-spec.yaml).
 
 ## Renderings
 

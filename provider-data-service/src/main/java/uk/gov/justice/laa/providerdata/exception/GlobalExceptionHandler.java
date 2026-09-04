@@ -100,7 +100,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   /**
    * Returns the spec-defined {@code error} extension object for the given status. The error code
-   * values correspond to the examples in the {@code laa-data-pda.yml} OpenAPI spec.
+   * values correspond to the examples in the {@code bundled-openapi-spec.yaml} OpenAPI spec.
    */
   private static Object errorFor(HttpStatusCode status) {
     return switch (status.value()) {

@@ -1,0 +1,209 @@
+PaymentDetailsPaymentMethodV2:
+  type: string
+  enum:
+  - CHECK
+  - EFT
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD.
+
+    *TODO: Check the enum values. Any business rules*
+
+PaymentDetailsPaymentHeldFlagV2:
+  type: boolean
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.HOLD_ALL_PAYMENTS_FLAG (this is an enum in CWA "Y"/"N").
+
+    *TODO: Check the enum values. Any business rules*
+
+    When an LSP or Advocate/Barrister office is being deactivated (`activeDateTo` set) or
+    reactivated (`clearActiveDateTo: true`) in the same request, this flag must be included
+    and set to `true` (deactivation) or `false` (reactivation), unless it already holds that
+    value. The API does not auto-correct this value; see `OfficeActiveDateToV2` and
+    `ClearActiveDateToV2`.
+
+PaymentDetailsPaymentHeldReasonV2:
+  type: string
+  description: |
+    CWA ref: PO_VENDOR_SITES_ALL.HOLD_REASON.
+
+    *TODO: Check if this is mandatory when paymentHeldFlag=Y*
+  example: "Under investigation"
+
+PaymentDetailsCreateV2:
+  type: object
+  required:
+  - paymentMethod
+  properties:
+    paymentMethod:
+      $ref: "#/PaymentDetailsPaymentMethodV2"
+    bankAccountDetails:
+      $ref: "#/BankAccountProviderOfficeCreateV2"
+
+PaymentDetailsCreateOrLinkV2:
+  type: object
+  required:
+  - paymentMethod
+  properties:
+    paymentMethod:
+      $ref: "#/PaymentDetailsPaymentMethodV2"
+    bankAccountDetails:
+      oneOf:
+      - $ref: "#/BankAccountProviderOfficeCreateV2"
+      - $ref: "#/BankAccountProviderOfficeLinkV2"
+
+PaymentDetailsV2:
+  type: object
+  required:
+  - paymentMethod
+  - paymentHeldFlag
+  properties:
+    paymentMethod:
+      $ref: "#/PaymentDetailsPaymentMethodV2"
+    paymentHeldFlag:
+      $ref: "#/PaymentDetailsPaymentHeldFlagV2"
+    paymentHeldReason:
+      $ref: "#/PaymentDetailsPaymentHeldReasonV2"
+
+PaymentDetailsPatchOrLinkV2:
+  type: object
+  required:
+  - paymentMethod
+  - paymentHeldFlag
+  properties:
+    paymentMethod:
+      $ref: "#/PaymentDetailsPaymentMethodV2"
+    paymentHeldFlag:
+      $ref: "#/PaymentDetailsPaymentHeldFlagV2"
+    paymentHeldReason:
+      $ref: "#/PaymentDetailsPaymentHeldReasonV2"
+    bankAccountDetails:
+      oneOf:
+      - $ref: "#/BankAccountProviderOfficeCreateV2"
+      - $ref: "#/BankAccountProviderOfficeLinkV2"
+
+BankAccountAccountNameV2:
+  type: string
+  description: |
+    CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NAME
+  example: "ABC co (UK) LLP CLIENT A/C 1"
+
+BankAccountSortCodeV2:
+  type: string
+  description: |
+    CWA ref: AP_BANK_BRANCHES.BANK_NUM
+  example: "000000"
+
+BankAccountAccountNumberV2:
+  type: string
+  description: |
+    CWA ref: AP_BANK_ACCOUNTS_ALL.BANK_ACCOUNT_NUM
+  example: "00000000"
+
+BankAccountActiveDateFromV2:
+  type: string
+  format: date
+  description: |
+    CWA ref: AP_BANK_ACCOUNT_USES_ALL.START_DATE
+
+BankAccountActiveDateToV2:
+  type: string
+  format: date
+  description: |
+    CWA ref: AP_BANK_ACCOUNT_USES_ALL.END_DATE
+
+    Absent from the response for the currently active record (i.e. where the underlying value
+    is null).
+
+BankAccountPrimaryFlagV2:
+  type: boolean
+  description: |
+    Marks currently active bank account details for given provider office.
+    Bank account details which are not primary are considered historical
+    selections.
+
+    If this flag is set to true and there is an 'old' bank details record
+    that was marked as primary, then the 'old' record should be set to
+    old.primary=false and old.activeDateTo=new.activeDateFrom.
+
+    CWA ref: AP_BANK_ACCOUNT_USES_ALL.PRIMARY_FLAG.
+
+BankAccountProviderOfficeCreateV2:
+  type: object
+  required:
+  - accountName
+  - sortCode
+  - accountNumber
+  properties:
+    accountName:
+      $ref: "#/BankAccountAccountNameV2"
+    sortCode:
+      $ref: "#/BankAccountSortCodeV2"
+    accountNumber:
+      $ref: "#/BankAccountAccountNumberV2"
+    activeDateFrom:
+      $ref: "#/BankAccountActiveDateFromV2"
+  description: |
+    Only applicable for `paymentMethod=EFT`.
+
+    `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
+    Record that previously had primary flag set must be updated so that `activeDateTo` is set
+    to new primary record's activeDateFrom and primary flag is set to false.
+
+BankAccountProviderOfficeLinkV2:
+  type: object
+  required:
+  - bankAccountGUID
+  properties:
+    bankAccountGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    activeDateFrom:
+      $ref: "#/BankAccountActiveDateFromV2"
+  description: |
+    Only applicable for `paymentMethod=EFT`.
+
+    `activeDateFrom` is set to today's date by default. `primaryFlag` is set to true by default.
+    Record that previously had primary flag set must be updated so that `activeDateTo` is set
+    to new primary record's `activeDateFrom` and primary flag is set to false.
+
+    `bankAccountGUID` can be obtained using
+    `GET /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details`
+
+BankAccountV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - type: object
+    required:
+    - accountName
+    - sortCode
+    - accountNumber
+    properties:
+      accountName:
+        $ref: "#/BankAccountAccountNameV2"
+      sortCode:
+        $ref: "#/BankAccountSortCodeV2"
+      accountNumber:
+        $ref: "#/BankAccountAccountNumberV2"
+
+OfficeBankAccountV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - type: object
+    required:
+    - accountName
+    - sortCode
+    - accountNumber
+    - activeDateFrom
+    - primaryFlag
+    properties:
+      accountName:
+        $ref: "#/BankAccountAccountNameV2"
+      sortCode:
+        $ref: "#/BankAccountSortCodeV2"
+      accountNumber:
+        $ref: "#/BankAccountAccountNumberV2"
+      activeDateFrom:
+        $ref: "#/BankAccountActiveDateFromV2"
+      activeDateTo:
+        $ref: "#/BankAccountActiveDateToV2"
+      primaryFlag:
+        $ref: "#/BankAccountPrimaryFlagV2"

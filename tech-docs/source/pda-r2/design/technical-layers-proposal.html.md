@@ -274,7 +274,7 @@ the contract module events as they get defined.
 
 ## The API and event contracts for continuity
 
-The OpenAPI specification (`provider-data-api/src/main/resources/laa-data-pda.yml`), also published
+The OpenAPI specification (`provider-data-api/bundled-openapi-spec.yaml`), also published
 as a versioned library to the GitHub Package Registry, is the stable API that PDA-r2 consumers
 depend on. The event schema serves the same purpose. Both should be treated as more long-lived than
 any internal implementation details. When thinking about a possible backend migration, these

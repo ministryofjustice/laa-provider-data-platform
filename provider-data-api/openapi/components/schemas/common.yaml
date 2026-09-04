@@ -1,0 +1,190 @@
+BaseEntityGUIDV2:
+  type: string
+  format: uuid
+  description: "GUID is the primary key for entity"
+  example: "123e4567-e89b-12d3-a456-426614174000"
+
+BaseEntityV2:
+  type: object
+  required:
+  - guid
+  - version
+  - createdBy
+  - createdTimestamp
+  - lastUpdatedBy
+  - lastUpdatedTimestamp
+  properties:
+    guid:
+      $ref: "#/BaseEntityGUIDV2"
+    version:
+      type: integer
+      format: int64
+      description: "Record version (for audit and event concurrency)"
+      example: 12
+    createdBy:
+      type: string
+      description: "User ID from the auth token which resulted in creating this record"
+      example: "john.smith.42"
+    createdTimestamp:
+      type: string
+      format: date-time
+      example: "2025-09-25T09:30:00Z"
+    lastUpdatedBy:
+      type: string
+      description: "User ID from the auth token which resulted in updating this record last"
+      example: "john.doe.24"
+    lastUpdatedTimestamp:
+      type: string
+      format: date-time
+      example: "2025-09-26T12:30:00Z"
+
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00XX"
+
+BadRequestError:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00BR"
+
+ForbiddenError:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00AD"
+
+ConflictError:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00CV"
+
+NotFoundError:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00NF"
+
+InternalServerError:
+  type: object
+  properties:
+    error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "P00SE"
+
+PaginatedSearchV2:
+  type: object
+  required:
+  - searchCriteria
+  - pagination
+  properties:
+    searchCriteria:
+      $ref: "#/SearchCriteriaV2"
+    pagination:
+      $ref: "#/PaginationV2"
+    sort:
+      $ref: "#/SortV2"
+
+SearchCriteriaV2:
+  type: object
+  properties:
+    criteria:
+      type: array
+      items:
+        $ref: "#/SearchCriterionV2"
+
+SearchCriterionV2:
+  type: object
+  properties:
+    filter:
+      type: string
+      example: "guid"
+      description: "Filter key"
+    values:
+      type: array
+      items:
+        type: string
+        example: "123e4567-e89b-12d3-a456-426614174000"
+        description: "Filter value(s) used for this search"
+
+PaginationV2:
+  type: object
+  properties:
+    currentPage:
+      type: integer
+      example: 2
+      description: "Page index denoting the current page index for response, starting from 0"
+    pageSize:
+      type: integer
+      example: 10
+      description: "Page size used for this search"
+    totalPages:
+      type: integer
+      example: 5
+      description: "Total number of pages"
+    totalItems:
+      type: integer
+      format: int64
+      example: 123
+      description: "Total number of records for given search request"
+
+SortV2:
+  type: object
+  properties:
+    field:
+      type: string
+      example: "sortByOption"
+    direction:
+      type: string
+      enum: [asc, desc]
+      example: "asc"
+
+LinksV2:
+  type: object
+  properties:
+    self:
+      type: string
+      example: "https://example.com/example?page=2&pageSize=10"
+      format: uri
+    next:
+      type: string
+      example: "https://example.com/example?page=3&pageSize=10"
+      format: uri
+    prev:
+      type: string
+      example: "https://example.com/example?page=1&pageSize=10"
+      format: uri
+    first:
+      type: string
+      example: "https://example.com/example?page=1&pageSize=10"
+      format: uri
+    last:
+      type: string
+      example: "https://example.com/example?page=5&pageSize=10"
+      format: uri

@@ -1,0 +1,28 @@
+# Redocly CLI configuration for the bundled OpenAPI spec.
+# Used by:
+#   - `npx --yes @redocly/cli lint openapi/index.yaml` (manual use)
+#   - the `lintOpenApi` Gradle task (see build.gradle)
+#   - CI (.github/workflows/pipeline-pdp-pr-updated.yml and pipeline-pdp-main-updated.yml)
+
+apis:
+  main:
+    root: openapi/index.yaml
+
+rules:
+  # DSTEW-????: the `oneOf` branches used to discriminate Office/OfficePatch payloads by
+  # provider type (legal-services-provider / chambers / practitioner) share several optional
+  # properties (e.g. address, telephoneNumber, dxDetails) without a `discriminator` or any
+  # mutually-exclusive constraint. Redocly correctly flags this as ambiguous: given a JSON
+  # payload containing only the shared properties, more than one branch could match.
+  #
+  # In practice this has not caused a problem because openapi-generator resolves the actual
+  # subtype from context (e.g. `firmType` elsewhere in the payload, or the specific endpoint
+  # called) rather than from `oneOf` ambiguity resolution. Fixing this properly means adding a
+  # `discriminator`/`mapping` (or narrowing the shared properties per-branch) across
+  # office.yaml, legal-services-provider.yaml, chambers.yaml and practitioner.yaml, which is a
+  # deliberate schema-design change and not a quick fix.
+  #
+  # Downgraded to `warn` (from the recommended-config default of `warn`, but pinned explicitly
+  # here) while this is investigated. Do not silence this rule entirely — new genuinely-illogical
+  # oneOf/allOf usages elsewhere in the spec should still be caught.
+  no-illogical-composition-keywords: warn

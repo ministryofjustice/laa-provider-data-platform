@@ -1,0 +1,389 @@
+/provider-firms:
+  post:
+    summary: Create a provider firm
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createProviderFirm
+    tags:
+    - Provider Firms
+    description: |
+      Create a provider firm (e.g., Legal Service Provider, Chambers, advocates).
+
+      Each provider must include a name, type, and other type specific data.
+
+      The request body should contain either `legalServicesProvider`, `chambers` or
+      `practitioner` element depending on the type.
+
+      `practitioner` is further sub-divided into `Advocate` or `Barrister`.
+
+      Each entity will have its own specific schema and data requirement for a complete record.
+
+      Use cases:
+      1) Create a complete record for a provider firm
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/provider-firm.yaml#/ProviderCreateV2"
+    responses:
+      "201":
+        description: Created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: |
+          Not found. Returned when a referenced parent entity (e.g. a practitioner's parent
+          Chambers) does not exist.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+  get:
+    summary: Retrieve providers with optional filters
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirms
+    tags:
+    - Provider Firms
+    description: |
+      Use cases:
+      1) Browse provider data
+      2) Search for specific provider(s) that match criteria
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: providerFirmGUID
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by provider firm GUID (multi)
+    - name: providerFirmNumber
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by provider firm number (multi)
+    - name: name
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Filter by provider name
+    - name: activeStatus
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+        - All
+        - Active
+        - ContingentLiability
+        - ActiveOrContingentLiability
+      description: Filter by active status
+    - name: type
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmTypeV2"
+      description: Filter by provider type (multi)
+    - name: accountNumber
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by office account number (multi)
+    - name: practitionerRollNumber
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by Barrister roll number or Advocate SRA (multi)
+    - name: parentFirmGUID
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by parent firm GUID (multi)
+    - name: parentFirmNumber
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by parent firm number (multi)
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of providers matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/provider-firm.yaml#/ProviderV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}:
+  get:
+    summary: Retrieve provider details by GUID or firm number
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmByGUIDorFirmNumber
+    tags:
+    - Provider Firms
+    description: |
+      Retrieve basic provider details. Use sub-resources to retrieve other information.
+
+      Use cases:
+      1) Retrieve provider firm details when GUID or firm number is available
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    responses:
+      "200":
+        description: Details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "../components/schemas/provider-firm.yaml#/ProviderV2"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+  patch:
+    summary: Update provider firm details
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: updateProviderFirm
+    tags:
+    - Provider Firms
+    description: |
+      Use cases:
+      1) Updating firm name
+      2) Updating Legal Service Provider's basic details
+      3) Changing head office of a Legal Service Provider.
+      4) Updating Barrister's or Advocate's basic details
+      5) Changing parent firm of a Barrister or an Advocate.
+         Note that changing parent Chambers should also re-link office details and liaison manager.
+         There are three options: 1. use new Chambers' LM, 2. keep existing LM or 3. add new LM.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/provider-firm.yaml#/ProviderPatchV2"
+    responses:
+      "200":
+        description: Details updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
+  get:
+    summary: Retrieve practitioners for a given Chambers
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmPractitioners
+    tags:
+    - Chambers Practitioners
+    description: |
+      Retrieve Chambers practitioners.
+
+      Note that to create new practitioner you need to create new provider firm of type
+      `Barrister` or `Advocate`.
+
+      To re-assign Advocate/Barrister to a different Chambers, use the PATCH
+      `/provider-firms/{providerFirmGUIDorFirmNumber}` to change parent firms.
+
+      Use cases:
+      1) List all Advocates and Barristers assigned to given Chambers.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: Details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/practitioner.yaml#/OfficePractitionerV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

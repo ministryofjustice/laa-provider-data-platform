@@ -4,13 +4,13 @@
 
 set -e
 
-SPEC=provider-data-api/laa-data-pda.yml
+SPEC=provider-data-api/bundled-openapi-spec.yaml
 OUT=tech-docs/source/pda-r2/api
 
 mkdir -p "$OUT"
 
 # Copy spec YAML so the CDN-based renderers (Redoc, Swagger UI, Scalar, Elements) can load it
-cp "$SPEC" "$OUT/laa-data-pda.yml"
+cp "$SPEC" "$OUT/bundled-openapi-spec.yaml"
 
 # Widdershins — Markdown rendered inside the MoJ tech-docs chrome
 npx --yes widdershins \
@@ -22,7 +22,7 @@ npx --yes widdershins \
 # Strip widdershins' own front matter; prepend a minimal title so Middleman
 # applies the MoJ layout (header/footer) but omit weight so it has no nav entry
 {
-  printf -- '---\ntitle: Provider Data API r2 – Widdershins\nsource_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/provider-data-api/laa-data-pda.yml\n---\n\n'
+  printf -- '---\ntitle: Provider Data API r2 – Widdershins\nsource_url: https://github.com/ministryofjustice/laa-provider-data-platform/blob/main/provider-data-api/bundled-openapi-spec.yaml\n---\n\n'
   awk 'BEGIN{p=0;n=0} !p && /^---/{n++; if(n==2){p=1}; next} p{print}' /tmp/widdershins-raw.md
 } > "$OUT/widdershins.html.md"
 

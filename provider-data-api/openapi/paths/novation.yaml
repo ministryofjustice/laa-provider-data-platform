@@ -1,0 +1,440 @@
+# Novation endpoints (provider change events such as mergers, acquisitions, legal entity
+# changes, partnership changes or organisational restructures) and their predecessor/successor
+# relationships.
+#
+# Only the create endpoint (POST /novations) is implemented so far (DSTEW-1975). The remaining
+# operations below are published as contract-only stubs for the follow-up stories that amend
+# Novations and relationships (DSTEW-1977/1978), and derive provider lineage (DSTEW-1982).
+/novations:
+  post:
+    summary: Create a Novation
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createNovation
+    tags:
+    - Novations
+    description: |
+      Create a Novation record together with its initial predecessor/successor provider
+      relationships. At least one relationship is required; each relationship requires a
+      predecessor and successor provider firm and may optionally reference a Child Office.
+
+      A Novation cannot be created directly with a status of Rescinded. Decision Date and
+      Decision Reason requirements depend on the selected Novation Status (BR-39).
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/novation.yaml#/NovationCreateV2"
+    responses:
+      "201":
+        description: Created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/novation.yaml#/NovationCreateResponseV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: A referenced provider or office was not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+  get:
+    summary: Retrieve Novations
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getNovations
+    tags:
+    - Novations
+    description: |
+      Retrieve Novations with optional filters.
+
+      Not yet implemented; published as a contract-only stub.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - name: novationGUID
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by Novation GUID (multi)
+    - name: novationStatus
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: "../components/schemas/novation.yaml#/NovationStatusV2"
+      description: Filter by Novation status (multi)
+    - name: providerFirmGUID
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      description: Filter by predecessor or successor provider firm GUID (multi)
+    - $ref: "../components/parameters/common.yaml#/QPageNumber"
+    - $ref: "../components/parameters/common.yaml#/QPageSize"
+    responses:
+      "200":
+        description: List of Novations matching the filters
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: object
+                  required: [content, metadata, links]
+                  properties:
+                    content:
+                      type: array
+                      items:
+                        $ref: "../components/schemas/novation.yaml#/NovationV2"
+                    metadata:
+                      $ref: "../components/schemas/common.yaml#/PaginatedSearchV2"
+                    links:
+                      $ref: "../components/schemas/common.yaml#/LinksV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/novations/{novationGUID}:
+  get:
+    summary: Retrieve a Novation
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getNovation
+    tags:
+    - Novations
+    description: |
+      Retrieve a Novation and its relationships.
+
+      Not yet implemented; published as a contract-only stub.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/NovationGUID"
+    responses:
+      "200":
+        description: Novation details retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/novation.yaml#/NovationV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+  patch:
+    summary: Amend a Novation
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: updateNovation
+    tags:
+    - Novations
+    description: |
+      Amend permitted Novation details or perform a permitted status transition.
+
+      Not yet implemented; published as a contract-only stub for DSTEW-1977.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/NovationGUID"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/novation.yaml#/NovationPatchV2"
+    responses:
+      "200":
+        description: Novation updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/novation.yaml#/NovationV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/novations/{novationGUID}/relationships:
+  post:
+    summary: Add a relationship to a Novation
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createNovationRelationship
+    tags:
+    - Novation Relationships
+    description: |
+      Add a predecessor/successor relationship to an existing Novation.
+
+      Not yet implemented; published as a contract-only stub for DSTEW-1976/1982.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/NovationGUID"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/novation.yaml#/NovationRelationshipCreateV2"
+    responses:
+      "201":
+        description: Relationship created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: object
+                  required: [novationRelationshipGUID]
+                  properties:
+                    novationRelationshipGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: The Novation or a referenced entity was not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/novations/{novationGUID}/relationships/{novationRelationshipGUID}:
+  patch:
+    summary: Amend a Novation relationship
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: updateNovationRelationship
+    tags:
+    - Novation Relationships
+    description: |
+      Amend the permitted fields of an existing Novation Relationship. Existing identifiers for
+      the Novation and the relationship itself are immutable.
+
+      Not yet implemented; published as a contract-only stub for DSTEW-1978.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/NovationGUID"
+    - $ref: "../components/parameters/common.yaml#/NovationRelationshipGUID"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/novation.yaml#/NovationRelationshipPatchV2"
+    responses:
+      "200":
+        description: Relationship updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/novation.yaml#/NovationRelationshipV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
+/provider-firms/{providerFirmGUIDorFirmNumber}/lineage:
+  get:
+    summary: Retrieve provider lineage
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: getProviderFirmLineage
+    tags:
+    - Provider Firm Lineage
+    description: |
+      Retrieve provider predecessor and successor relationships across Novation events,
+      ordered chronologically by Novation effective date.
+
+      Not yet implemented; published as a contract-only stub for DSTEW-1982.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"
+    responses:
+      "200":
+        description: Provider lineage retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/novation.yaml#/ProviderFirmLineageV2"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "404":
+        description: Not found
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/NotFoundError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"

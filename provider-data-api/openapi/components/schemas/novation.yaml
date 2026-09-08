@@ -1,0 +1,284 @@
+NovationTypeV2:
+  type: string
+  description: |
+    Business classification of the Novation. The final permitted value set is still to be
+    confirmed by the business, so this is intentionally not constrained by an enum yet.
+  example: Merger
+
+NovationStatusV2:
+  type: string
+  enum:
+  - Proposed
+  - Approved
+  - Approved with Conditions
+  - Rejected
+  - Withdrawn
+  - Rescinded
+
+NovationCreateStatusV2:
+  type: string
+  description: Initial Novation status. A Novation cannot be created directly as Rescinded.
+  enum:
+  - Proposed
+  - Approved
+  - Approved with Conditions
+  - Rejected
+  - Withdrawn
+
+NovationCoreV2:
+  type: object
+  required:
+  - novationType
+  - novationEffectiveDate
+  properties:
+    novationType:
+      $ref: "#/NovationTypeV2"
+    novationEffectiveDate:
+      type: string
+      format: date
+    novationStatus:
+      $ref: "#/NovationStatusV2"
+    decisionDate:
+      type: string
+      format: date
+      nullable: true
+      description: Required when the Novation has moved out of Proposed.
+    decisionReason:
+      type: string
+      nullable: true
+      description: Required for decision statuses as defined by BR-39.
+    decisionBy:
+      type: string
+      nullable: true
+      readOnly: true
+      description: User ID from the authenticated request which moved the Novation out of Proposed.
+    rescindedDate:
+      type: string
+      format: date
+      nullable: true
+      description: Required when the status is Rescinded.
+    rescindedReason:
+      type: string
+      nullable: true
+      description: Required when the status is Rescinded.
+    rescindedBy:
+      type: string
+      nullable: true
+      readOnly: true
+      description: User ID from the authenticated request which rescinded the Novation.
+    driverForNovation:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+
+NovationCreateV2:
+  type: object
+  required:
+  - novationType
+  - novationEffectiveDate
+  - relationships
+  properties:
+    novationType:
+      $ref: "#/NovationTypeV2"
+    novationEffectiveDate:
+      type: string
+      format: date
+    novationStatus:
+      $ref: "#/NovationCreateStatusV2"
+    decisionDate:
+      type: string
+      format: date
+      nullable: true
+    decisionReason:
+      type: string
+      nullable: true
+      description: Decision reason required according to the initial non-Proposed status.
+    driverForNovation:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    relationships:
+      type: array
+      minItems: 1
+      items:
+        $ref: "#/NovationRelationshipCreateV2"
+      description: |
+        Predecessor/successor relationships for this Novation. Multiple entries support
+        many-to-one and one-to-many provider changes.
+
+NovationV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - $ref: "#/NovationCoreV2"
+  - type: object
+    required:
+    - relationships
+    properties:
+      relationships:
+        type: array
+        items:
+          $ref: "#/NovationRelationshipV2"
+
+NovationCreateResponseV2:
+  type: object
+  required:
+  - novationGUID
+  - novationRelationshipGUIDs
+  properties:
+    novationGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    novationRelationshipGUIDs:
+      type: array
+      items:
+        $ref: "./common.yaml#/BaseEntityGUIDV2"
+
+NovationRelationshipCreateV2:
+  type: object
+  required:
+  - previousProviderFirmGUID
+  - newProviderFirmGUID
+  properties:
+    previousProviderFirmGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    newProviderFirmGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    previousOfficeGUID:
+      type: string
+      format: uuid
+      nullable: true
+      description: GUID of the provider-office link, not the underlying physical office row.
+    newOfficeGUID:
+      type: string
+      format: uuid
+      nullable: true
+      description: GUID of the provider-office link, not the underlying physical office row.
+    previousContractGUID:
+      type: string
+      format: uuid
+      nullable: true
+    newContractGUID:
+      type: string
+      format: uuid
+      nullable: true
+    previousScheduleGUID:
+      type: string
+      format: uuid
+      nullable: true
+    newScheduleGUID:
+      type: string
+      format: uuid
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+  description: |
+    One predecessor/successor mapping belonging to a Novation. Previous/new Contract GUIDs
+    must be supplied together when a Contract relationship is recorded. Previous/new Schedule
+    GUIDs must be supplied together when a Schedule relationship is recorded. Referenced
+    Offices, Contracts and Schedules must be consistent with the referenced provider firms;
+    those cross-entity rules are enforced by the service.
+
+NovationRelationshipV2:
+  allOf:
+  - $ref: "./common.yaml#/BaseEntityV2"
+  - $ref: "#/NovationRelationshipCreateV2"
+  - type: object
+    required:
+    - novationGUID
+    properties:
+      novationGUID:
+        $ref: "./common.yaml#/BaseEntityGUIDV2"
+
+NovationPatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"guid", "relationships", "decisionBy", "rescindedBy", "createdBy", "createdTimestamp",
+    "lastUpdatedBy", "lastUpdatedTimestamp"})
+  properties:
+    novationType:
+      $ref: "#/NovationTypeV2"
+    novationEffectiveDate:
+      type: string
+      format: date
+    novationStatus:
+      $ref: "#/NovationStatusV2"
+    decisionDate:
+      type: string
+      format: date
+      nullable: true
+    decisionReason:
+      type: string
+      nullable: true
+      description: Original decision reason; must not be overwritten by a later rescission.
+    rescindedDate:
+      type: string
+      format: date
+      nullable: true
+      description: Required when transitioning an Approved or Approved with Conditions Novation to Rescinded.
+    rescindedReason:
+      type: string
+      nullable: true
+      description: Required when transitioning an Approved or Approved with Conditions Novation to Rescinded.
+    driverForNovation:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+
+NovationRelationshipPatchV2:
+  allOf:
+  - $ref: "#/NovationRelationshipCreateV2"
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"guid", "novationGUID", "createdBy", "createdTimestamp", "lastUpdatedBy", "lastUpdatedTimestamp"})
+
+ProviderFirmLineageRelationshipV2:
+  type: object
+  required:
+  - novationGUID
+  - novationType
+  - novationEffectiveDate
+  - previousProviderFirmGUID
+  - newProviderFirmGUID
+  properties:
+    novationGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    novationType:
+      $ref: "#/NovationTypeV2"
+    novationEffectiveDate:
+      type: string
+      format: date
+    novationStatus:
+      $ref: "#/NovationStatusV2"
+    previousProviderFirmGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    newProviderFirmGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+
+ProviderFirmLineageV2:
+  type: object
+  required:
+  - providerFirmGUID
+  - relationships
+  properties:
+    providerFirmGUID:
+      $ref: "./common.yaml#/BaseEntityGUIDV2"
+    currentProviderFirmGUIDs:
+      type: array
+      items:
+        $ref: "./common.yaml#/BaseEntityGUIDV2"
+      description: |
+        Provider firm(s) at the current end of the lineage graph. Array form preserves the
+        ability to represent one-to-many successor relationships. Precise treatment of
+        rescinded Novations remains subject to business clarification.
+    relationships:
+      type: array
+      items:
+        $ref: "#/ProviderFirmLineageRelationshipV2"
+      description: Relationships ordered by Novation effective date.

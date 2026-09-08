@@ -95,6 +95,11 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
       // Negative tests exercise enum, identifier-format, and string-length constraints and must
       // reach the API to assert expected 400 problem responses.
       //
+      // validation.request.body.schema.minItems:
+      // Negative tests submit an empty array for a field with a minimum item count (e.g. a
+      // Novation with no relationships) to verify the service rejects it, mirroring the
+      // 'required' suppression above.
+      //
       // validation.request.body.schema.type:
       // Negative tests send an explicit JSON null for a required string field (e.g.
       // contractManagerGUID: null) to verify the service rejects it. Without this suppression the
@@ -124,6 +129,8 @@ class E2eRestAssuredExtension implements BeforeAllCallback {
                       .withLevel(
                           "validation.request.body.schema.required", ValidationReport.Level.WARN)
                       .withLevel("validation.request.body.schema.enum", ValidationReport.Level.WARN)
+                      .withLevel(
+                          "validation.request.body.schema.minItems", ValidationReport.Level.WARN)
                       .withLevel("validation.request.body.schema.type", ValidationReport.Level.WARN)
                       .withLevel(
                           "validation.request.body.schema.format.uuid", ValidationReport.Level.WARN)

@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.providerdata.pact; // TODO: <base-package>.pact
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.justice.laa.providerdata.service.ProviderLiaisonManagerService;
 

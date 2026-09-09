@@ -2,6 +2,7 @@ package uk.gov.justice.laa.providerdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,6 +43,7 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
   private String previousProviderFirmGuid;
   private String newProviderFirmGuid;
   private String previousOfficeGuid;
+  private String newOfficeGuid;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -50,14 +52,8 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
     previousProviderFirmGuid = createLspFirm("Integration Test Predecessor LSP");
     newProviderFirmGuid = createLspFirm("Integration Test Successor LSP");
 
-    String getOfficesResponse =
-        mockMvc
-            .perform(get("/provider-firms/{id}/offices", previousProviderFirmGuid))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    previousOfficeGuid = JsonPath.read(getOfficesResponse, "$.data.content[0].guid");
+    previousOfficeGuid = getHeadOfficeGuid(previousProviderFirmGuid);
+    newOfficeGuid = getHeadOfficeGuid(newProviderFirmGuid);
   }
 
   private String createLspFirm(String firmName) throws Exception {
@@ -98,6 +94,48 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
             .andReturn();
     return JsonPath.read(result.getResponse().getContentAsString(), "$.data.providerFirmGUID");
   }
+
+  private String getHeadOfficeGuid(String providerFirmGuid) throws Exception {
+    String getOfficesResponse =
+        mockMvc
+            .perform(get("/provider-firms/{id}/offices", providerFirmGuid))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return JsonPath.read(getOfficesResponse, "$.data.content[0].guid");
+  }
+
+  private CreatedNovation createMinimalNovation() throws Exception {
+    String requestBody =
+        """
+        {
+          "novationType": "Merger",
+          "novationEffectiveDate": "2026-01-01",
+          "relationships": [
+            {
+              "previousProviderFirmGUID": "%s",
+              "newProviderFirmGUID": "%s"
+            }
+          ]
+        }
+        """
+            .formatted(previousProviderFirmGuid, newProviderFirmGuid);
+
+    var result =
+        mockMvc
+            .perform(
+                post("/novations").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    return new CreatedNovation(
+        JsonPath.read(result.getResponse().getContentAsString(), "$.data.novationGUID"),
+        JsonPath.read(
+            result.getResponse().getContentAsString(), "$.data.novationRelationshipGUIDs[0]"));
+  }
+
+  private record CreatedNovation(String novationGuid, String relationshipGuid) {}
 
   @Test
   void createNovation_persistsNovationAndRelationship_returnsGeneratedIdentifiers()
@@ -319,5 +357,160 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
     mockMvc
         .perform(post("/novations").contentType(MediaType.APPLICATION_JSON).content(requestBody))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateNovation_validAmendment_persistsNovationAndRetainsRelationship() throws Exception {
+    CreatedNovation created = createMinimalNovation();
+    long relationshipCountBefore = novationLinkRepository.count();
+
+    mockMvc
+        .perform(
+            patch("/novations/{novationGUID}", created.novationGuid())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "novationType": "Legal entity change",
+                      "novationEffectiveDate": "2026-03-01",
+                      "novationStatus": "Approved",
+                      "decisionDate": "2026-02-01",
+                      "driverForNovation": "Correction",
+                      "notes": "Updated Novation"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.guid").value(created.novationGuid()))
+        .andExpect(jsonPath("$.data.novationType").value("Legal entity change"))
+        .andExpect(jsonPath("$.data.novationEffectiveDate").value("2026-03-01"))
+        .andExpect(jsonPath("$.data.novationStatus").value("Approved"))
+        .andExpect(jsonPath("$.data.decisionDate").value("2026-02-01"))
+        .andExpect(jsonPath("$.data.driverForNovation").value("Correction"))
+        .andExpect(jsonPath("$.data.notes").value("Updated Novation"))
+        .andExpect(jsonPath("$.data.relationships[0].guid").value(created.relationshipGuid()));
+
+    NovationEntity savedNovation =
+        novationRepository.findById(UUID.fromString(created.novationGuid())).orElseThrow();
+    assertThat(savedNovation.getNovationType()).isEqualTo("Legal entity change");
+    assertThat(savedNovation.getNovationStatus()).isEqualTo("Approved");
+    assertThat(savedNovation.getDecisionBy()).isEqualTo("SYSTEM");
+    assertThat(novationLinkRepository.count()).isEqualTo(relationshipCountBefore);
+  }
+
+  @Test
+  void updateNovation_invalidRescission_returns400AndLeavesRecordUnchanged() throws Exception {
+    CreatedNovation created = createMinimalNovation();
+
+    mockMvc
+        .perform(
+            patch("/novations/{novationGUID}", created.novationGuid())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "novationStatus": "Rescinded",
+                      "rescindedDate": "2026-04-01",
+                      "rescindedReason": "Cancelled"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+
+    NovationEntity savedNovation =
+        novationRepository.findById(UUID.fromString(created.novationGuid())).orElseThrow();
+    assertThat(savedNovation.getNovationStatus()).isNull();
+    assertThat(savedNovation.getRescindedDate()).isNull();
+    assertThat(savedNovation.getRescindedReason()).isNull();
+  }
+
+  @Test
+  void updateNovation_approvedToRescinded_updatesExistingRecord() throws Exception {
+    CreatedNovation created = createMinimalNovation();
+    mockMvc
+        .perform(
+            patch("/novations/{novationGUID}", created.novationGuid())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "novationStatus": "Approved",
+                      "decisionDate": "2026-02-01"
+                    }
+                    """))
+        .andExpect(status().isOk());
+    long novationCountBefore = novationRepository.count();
+
+    mockMvc
+        .perform(
+            patch("/novations/{novationGUID}", created.novationGuid())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "novationStatus": "Rescinded",
+                      "rescindedDate": "2026-04-01",
+                      "rescindedReason": "Cancelled"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.guid").value(created.novationGuid()))
+        .andExpect(jsonPath("$.data.novationStatus").value("Rescinded"))
+        .andExpect(jsonPath("$.data.decisionDate").value("2026-02-01"))
+        .andExpect(jsonPath("$.data.rescindedDate").value("2026-04-01"))
+        .andExpect(jsonPath("$.data.rescindedReason").value("Cancelled"));
+
+    assertThat(novationRepository.count()).isEqualTo(novationCountBefore);
+  }
+
+  @Test
+  void updateNovationRelationship_validAmendment_persistsRelationship() throws Exception {
+    CreatedNovation created = createMinimalNovation();
+    String replacementPreviousProviderGuid = createLspFirm("Replacement Previous LSP");
+    String replacementNewProviderGuid = createLspFirm("Replacement New LSP");
+    String replacementPreviousOfficeGuid = getHeadOfficeGuid(replacementPreviousProviderGuid);
+    String replacementNewOfficeGuid = getHeadOfficeGuid(replacementNewProviderGuid);
+
+    mockMvc
+        .perform(
+            patch(
+                    "/novations/{novationGUID}/relationships/{novationRelationshipGUID}",
+                    created.novationGuid(),
+                    created.relationshipGuid())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "previousProviderFirmGUID": "%s",
+                      "newProviderFirmGUID": "%s",
+                      "previousOfficeGUID": "%s",
+                      "newOfficeGUID": "%s",
+                      "notes": "Updated relationship"
+                    }
+                    """
+                        .formatted(
+                            replacementPreviousProviderGuid,
+                            replacementNewProviderGuid,
+                            replacementPreviousOfficeGuid,
+                            replacementNewOfficeGuid)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.guid").value(created.relationshipGuid()))
+        .andExpect(jsonPath("$.data.novationGUID").value(created.novationGuid()))
+        .andExpect(
+            jsonPath("$.data.previousProviderFirmGUID").value(replacementPreviousProviderGuid))
+        .andExpect(jsonPath("$.data.newProviderFirmGUID").value(replacementNewProviderGuid))
+        .andExpect(jsonPath("$.data.previousOfficeGUID").value(replacementPreviousOfficeGuid))
+        .andExpect(jsonPath("$.data.newOfficeGUID").value(replacementNewOfficeGuid))
+        .andExpect(jsonPath("$.data.notes").value("Updated relationship"));
+
+    NovationLinkEntity savedLink =
+        novationLinkRepository.findById(UUID.fromString(created.relationshipGuid())).orElseThrow();
+    assertThat(savedLink.getPreviousProvider().getGuid())
+        .isEqualTo(UUID.fromString(replacementPreviousProviderGuid));
+    assertThat(savedLink.getNewProvider().getGuid())
+        .isEqualTo(UUID.fromString(replacementNewProviderGuid));
+    assertThat(savedLink.getPreviousOffice().getGuid())
+        .isEqualTo(UUID.fromString(replacementPreviousOfficeGuid));
+    assertThat(savedLink.getNewOffice().getGuid())
+        .isEqualTo(UUID.fromString(replacementNewOfficeGuid));
+    assertThat(savedLink.getNotes()).isEqualTo("Updated relationship");
   }
 }

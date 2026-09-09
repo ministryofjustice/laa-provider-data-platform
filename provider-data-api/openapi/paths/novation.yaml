@@ -2,9 +2,9 @@
 # changes, partnership changes or organisational restructures) and their predecessor/successor
 # relationships.
 #
-# Only the create endpoint (POST /novations) is implemented so far (DSTEW-1975). The remaining
-# operations below are published as contract-only stubs for the follow-up stories that amend
-# Novations and relationships (DSTEW-1977/1978), and derive provider lineage (DSTEW-1982).
+# POST /novations, GET /novations/{novationGUID}, PATCH /novations/{novationGUID} and
+# PATCH /novations/{novationGUID}/relationships/{novationRelationshipGUID} are implemented. The
+# remaining operations are published as contract-only stubs for follow-up stories.
 /novations:
   post:
     summary: Create a Novation
@@ -161,8 +161,6 @@
     - Novations
     description: |
       Retrieve a Novation and its relationships.
-
-      Not yet implemented; published as a contract-only stub.
     parameters:
     - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
     - $ref: "../components/parameters/common.yaml#/NovationGUID"
@@ -206,7 +204,11 @@
     description: |
       Amend permitted Novation details or perform a permitted status transition.
 
-      Not yet implemented; published as a contract-only stub for DSTEW-1977.
+      Status transitions follow the Novation status management rules: Proposed can move to
+      Approved, Approved with Conditions, Rejected or Withdrawn; Approved and Approved with
+      Conditions can move to Rescinded. Rescission updates the existing Novation record and records
+      rescission-specific date, reason and user metadata without overwriting the original decision
+      metadata.
     parameters:
     - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
     - $ref: "../components/parameters/common.yaml#/NovationGUID"
@@ -339,7 +341,9 @@
       Amend the permitted fields of an existing Novation Relationship. Existing identifiers for
       the Novation and the relationship itself are immutable.
 
-      Not yet implemented; published as a contract-only stub for DSTEW-1978.
+      This operation supports correcting supported predecessor/successor provider and Child Office
+      relationships for DSTEW-1977. Contract and Schedule GUID fields are retained as forward-
+      compatible opaque values until those entities are implemented in later stories.
     parameters:
     - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
     - $ref: "../components/parameters/common.yaml#/NovationGUID"

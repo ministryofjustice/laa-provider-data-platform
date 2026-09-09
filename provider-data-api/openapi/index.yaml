@@ -13,11 +13,11 @@ info:
     identifier used to associate an office record with a provider-office link.
 
 servers:
-  - url: https://laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-dev.apps.live.cloud-platform.service.justice.gov.uk
     description: Development
-  - url: https://laa-provider-data-platform-uat.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-uat.apps.live.cloud-platform.service.justice.gov.uk
     description: UAT
-  - url: https://laa-provider-data-platform-staging.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-staging.apps.live.cloud-platform.service.justice.gov.uk
     description: Staging
 
 paths:
@@ -49,6 +49,16 @@ paths:
     $ref: ./paths/contract-manager.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1offices~1{officeGUIDorCode}~1contract-managers
   /provider-firms/{providerFirmGUIDorFirmNumber}/practitioners:
     $ref: ./paths/provider-firm.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1practitioners
+  /novations:
+    $ref: ./paths/novation.yaml#/~1novations
+  /novations/{novationGUID}:
+    $ref: ./paths/novation.yaml#/~1novations~1{novationGUID}
+  /novations/{novationGUID}/relationships:
+    $ref: ./paths/novation.yaml#/~1novations~1{novationGUID}~1relationships
+  /novations/{novationGUID}/relationships/{novationRelationshipGUID}:
+    $ref: ./paths/novation.yaml#/~1novations~1{novationGUID}~1relationships~1{novationRelationshipGUID}
+  /provider-firms/{providerFirmGUIDorFirmNumber}/lineage:
+    $ref: ./paths/novation.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}~1lineage
 components:
   schemas:
     BaseEntityGUIDV2:
@@ -67,6 +77,32 @@ components:
       $ref: ./components/schemas/common.yaml#/NotFoundError
     InternalServerError:
       $ref: ./components/schemas/common.yaml#/InternalServerError
+    NovationTypeV2:
+      $ref: ./components/schemas/novation.yaml#/NovationTypeV2
+    NovationStatusV2:
+      $ref: ./components/schemas/novation.yaml#/NovationStatusV2
+    NovationCreateStatusV2:
+      $ref: ./components/schemas/novation.yaml#/NovationCreateStatusV2
+    NovationCoreV2:
+      $ref: ./components/schemas/novation.yaml#/NovationCoreV2
+    NovationCreateV2:
+      $ref: ./components/schemas/novation.yaml#/NovationCreateV2
+    NovationV2:
+      $ref: ./components/schemas/novation.yaml#/NovationV2
+    NovationCreateResponseV2:
+      $ref: ./components/schemas/novation.yaml#/NovationCreateResponseV2
+    NovationRelationshipCreateV2:
+      $ref: ./components/schemas/novation.yaml#/NovationRelationshipCreateV2
+    NovationRelationshipV2:
+      $ref: ./components/schemas/novation.yaml#/NovationRelationshipV2
+    NovationPatchV2:
+      $ref: ./components/schemas/novation.yaml#/NovationPatchV2
+    NovationRelationshipPatchV2:
+      $ref: ./components/schemas/novation.yaml#/NovationRelationshipPatchV2
+    ProviderFirmLineageRelationshipV2:
+      $ref: ./components/schemas/novation.yaml#/ProviderFirmLineageRelationshipV2
+    ProviderFirmLineageV2:
+      $ref: ./components/schemas/novation.yaml#/ProviderFirmLineageV2
     ProviderFirmNumberV2:
       $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmNumberV2
     ProviderFirmTypeV2:
@@ -376,6 +412,10 @@ components:
       $ref: ./components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber
     OfficeGUIDorCode:
       $ref: ./components/parameters/common.yaml#/OfficeGUIDorCode
+    NovationGUID:
+      $ref: ./components/parameters/common.yaml#/NovationGUID
+    NovationRelationshipGUID:
+      $ref: ./components/parameters/common.yaml#/NovationRelationshipGUID
     QPageNumber:
       $ref: ./components/parameters/common.yaml#/QPageNumber
     QPageSize:

@@ -6,6 +6,22 @@ LiaisonManagerGUID:
   schema:
     type: string
     format: uuid
+NovationGUID:
+  name: novationGUID
+  in: path
+  description: The GUID of the Novation.
+  required: true
+  schema:
+    type: string
+    format: uuid
+NovationRelationshipGUID:
+  name: novationRelationshipGUID
+  in: path
+  description: The GUID of the Novation Relationship.
+  required: true
+  schema:
+    type: string
+    format: uuid
 
 TraceParentHeader:
   name: traceparent

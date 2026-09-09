@@ -12,11 +12,11 @@ info:
     record, not the underlying office record. The underlying office GUID is mainly an internal
     identifier used to associate an office record with a provider-office link.
 servers:
-  - url: https://laa-provider-data-platform-dev.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-dev.apps.live.cloud-platform.service.justice.gov.uk
     description: Development
-  - url: https://laa-provider-data-platform-uat.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-uat.apps.live.cloud-platform.service.justice.gov.uk
     description: UAT
-  - url: https://laa-provider-data-platform-staging.apps.live.cloud-platform.service.justice.gov.uk
+  - url: https://laa-data-provider-api-staging.apps.live.cloud-platform.service.justice.gov.uk
     description: Staging
 security:
   - ApiKeyAuth: []
@@ -1438,6 +1438,446 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InternalServerError'
+  /novations:
+    post:
+      summary: Create a Novation
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: createNovation
+      tags:
+        - Novations
+      description: |
+        Create a Novation record together with its initial predecessor/successor provider
+        relationships. At least one relationship is required; each relationship requires a
+        predecessor and successor provider firm and may optionally reference a Child Office.
+
+        A Novation cannot be created directly with a status of Rescinded. Decision Date and
+        Decision Reason requirements depend on the selected Novation Status (BR-39).
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovationCreateV2'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NovationCreateResponseV2'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: A referenced provider or office was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+    get:
+      summary: Retrieve Novations
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: getNovations
+      tags:
+        - Novations
+      description: |
+        Retrieve Novations with optional filters.
+
+        Not yet implemented; published as a contract-only stub.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - name: novationGUID
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by Novation GUID (multi)
+        - name: novationStatus
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/NovationStatusV2'
+          description: Filter by Novation status (multi)
+        - name: providerFirmGUID
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by predecessor or successor provider firm GUID (multi)
+        - $ref: '#/components/parameters/QPageNumber'
+        - $ref: '#/components/parameters/QPageSize'
+      responses:
+        '200':
+          description: List of Novations matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - content
+                      - metadata
+                      - links
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/NovationV2'
+                      metadata:
+                        $ref: '#/components/schemas/PaginatedSearchV2'
+                      links:
+                        $ref: '#/components/schemas/LinksV2'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  /novations/{novationGUID}:
+    get:
+      summary: Retrieve a Novation
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: getNovation
+      tags:
+        - Novations
+      description: |
+        Retrieve a Novation and its relationships.
+
+        Not yet implemented; published as a contract-only stub.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/NovationGUID'
+      responses:
+        '200':
+          description: Novation details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NovationV2'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+    patch:
+      summary: Amend a Novation
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: updateNovation
+      tags:
+        - Novations
+      description: |
+        Amend permitted Novation details or perform a permitted status transition.
+
+        Not yet implemented; published as a contract-only stub for DSTEW-1977.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/NovationGUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovationPatchV2'
+      responses:
+        '200':
+          description: Novation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NovationV2'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  /novations/{novationGUID}/relationships:
+    post:
+      summary: Add a relationship to a Novation
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: createNovationRelationship
+      tags:
+        - Novation Relationships
+      description: |
+        Add a predecessor/successor relationship to an existing Novation.
+
+        Not yet implemented; published as a contract-only stub for DSTEW-1976/1982.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/NovationGUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovationRelationshipCreateV2'
+      responses:
+        '201':
+          description: Relationship created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - novationRelationshipGUID
+                    properties:
+                      novationRelationshipGUID:
+                        $ref: '#/components/schemas/BaseEntityGUIDV2'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: The Novation or a referenced entity was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  /novations/{novationGUID}/relationships/{novationRelationshipGUID}:
+    patch:
+      summary: Amend a Novation relationship
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: updateNovationRelationship
+      tags:
+        - Novation Relationships
+      description: |
+        Amend the permitted fields of an existing Novation Relationship. Existing identifiers for
+        the Novation and the relationship itself are immutable.
+
+        Not yet implemented; published as a contract-only stub for DSTEW-1978.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/NovationGUID'
+        - $ref: '#/components/parameters/NovationRelationshipGUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovationRelationshipPatchV2'
+      responses:
+        '200':
+          description: Relationship updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NovationRelationshipV2'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  /provider-firms/{providerFirmGUIDorFirmNumber}/lineage:
+    get:
+      summary: Retrieve provider lineage
+      security:
+        - ApiKeyAuth: []
+        - AzureAD: []
+      operationId: getProviderFirmLineage
+      tags:
+        - Provider Firm Lineage
+      description: |
+        Retrieve provider predecessor and successor relationships across Novation events,
+        ordered chronologically by Novation effective date.
+
+        Not yet implemented; published as a contract-only stub for DSTEW-1982.
+      parameters:
+        - $ref: '#/components/parameters/TraceParentHeader'
+        - $ref: '#/components/parameters/ProviderFirmGUIDorFirmNumber'
+      responses:
+        '200':
+          description: Provider lineage retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProviderFirmLineageV2'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 components:
   schemas:
     BaseEntityGUIDV2:
@@ -1532,6 +1972,273 @@ components:
             errorCode:
               type: string
               example: P00SE
+    NovationTypeV2:
+      type: string
+      description: |
+        Business classification of the Novation. The final permitted value set is still to be
+        confirmed by the business, so this is intentionally not constrained by an enum yet.
+      example: Merger
+    NovationStatusV2:
+      type: string
+      enum:
+        - Proposed
+        - Approved
+        - Approved with Conditions
+        - Rejected
+        - Withdrawn
+        - Rescinded
+    NovationCreateStatusV2:
+      type: string
+      description: Initial Novation status. A Novation cannot be created directly as Rescinded.
+      enum:
+        - Proposed
+        - Approved
+        - Approved with Conditions
+        - Rejected
+        - Withdrawn
+    NovationCoreV2:
+      type: object
+      required:
+        - novationType
+        - novationEffectiveDate
+      properties:
+        novationType:
+          $ref: '#/components/schemas/NovationTypeV2'
+        novationEffectiveDate:
+          type: string
+          format: date
+        novationStatus:
+          $ref: '#/components/schemas/NovationStatusV2'
+        decisionDate:
+          type: string
+          format: date
+          nullable: true
+          description: Required when the Novation has moved out of Proposed.
+        decisionReason:
+          type: string
+          nullable: true
+          description: Required for decision statuses as defined by BR-39.
+        decisionBy:
+          type: string
+          nullable: true
+          readOnly: true
+          description: User ID from the authenticated request which moved the Novation out of Proposed.
+        rescindedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Required when the status is Rescinded.
+        rescindedReason:
+          type: string
+          nullable: true
+          description: Required when the status is Rescinded.
+        rescindedBy:
+          type: string
+          nullable: true
+          readOnly: true
+          description: User ID from the authenticated request which rescinded the Novation.
+        driverForNovation:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    NovationCreateV2:
+      type: object
+      required:
+        - novationType
+        - novationEffectiveDate
+        - relationships
+      properties:
+        novationType:
+          $ref: '#/components/schemas/NovationTypeV2'
+        novationEffectiveDate:
+          type: string
+          format: date
+        novationStatus:
+          $ref: '#/components/schemas/NovationCreateStatusV2'
+        decisionDate:
+          type: string
+          format: date
+          nullable: true
+        decisionReason:
+          type: string
+          nullable: true
+          description: Decision reason required according to the initial non-Proposed status.
+        driverForNovation:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        relationships:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/NovationRelationshipCreateV2'
+          description: |
+            Predecessor/successor relationships for this Novation. Multiple entries support
+            many-to-one and one-to-many provider changes.
+    NovationV2:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntityV2'
+        - $ref: '#/components/schemas/NovationCoreV2'
+        - type: object
+          required:
+            - relationships
+          properties:
+            relationships:
+              type: array
+              items:
+                $ref: '#/components/schemas/NovationRelationshipV2'
+    NovationCreateResponseV2:
+      type: object
+      required:
+        - novationGUID
+        - novationRelationshipGUIDs
+      properties:
+        novationGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        novationRelationshipGUIDs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseEntityGUIDV2'
+    NovationRelationshipCreateV2:
+      type: object
+      required:
+        - previousProviderFirmGUID
+        - newProviderFirmGUID
+      properties:
+        previousProviderFirmGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        newProviderFirmGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        previousOfficeGUID:
+          type: string
+          format: uuid
+          nullable: true
+          description: GUID of the provider-office link, not the underlying physical office row.
+        newOfficeGUID:
+          type: string
+          format: uuid
+          nullable: true
+          description: GUID of the provider-office link, not the underlying physical office row.
+        previousContractGUID:
+          type: string
+          format: uuid
+          nullable: true
+        newContractGUID:
+          type: string
+          format: uuid
+          nullable: true
+        previousScheduleGUID:
+          type: string
+          format: uuid
+          nullable: true
+        newScheduleGUID:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      description: |
+        One predecessor/successor mapping belonging to a Novation. Previous/new Contract GUIDs
+        must be supplied together when a Contract relationship is recorded. Previous/new Schedule
+        GUIDs must be supplied together when a Schedule relationship is recorded. Referenced
+        Offices, Contracts and Schedules must be consistent with the referenced provider firms;
+        those cross-entity rules are enforced by the service.
+    NovationRelationshipV2:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntityV2'
+        - $ref: '#/components/schemas/NovationRelationshipCreateV2'
+        - type: object
+          required:
+            - novationGUID
+          properties:
+            novationGUID:
+              $ref: '#/components/schemas/BaseEntityGUIDV2'
+    NovationPatchV2:
+      type: object
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"guid", "relationships", "decisionBy", "rescindedBy", "createdBy", "createdTimestamp", "lastUpdatedBy", "lastUpdatedTimestamp"})'
+      properties:
+        novationType:
+          $ref: '#/components/schemas/NovationTypeV2'
+        novationEffectiveDate:
+          type: string
+          format: date
+        novationStatus:
+          $ref: '#/components/schemas/NovationStatusV2'
+        decisionDate:
+          type: string
+          format: date
+          nullable: true
+        decisionReason:
+          type: string
+          nullable: true
+          description: Original decision reason; must not be overwritten by a later rescission.
+        rescindedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Required when transitioning an Approved or Approved with Conditions Novation to Rescinded.
+        rescindedReason:
+          type: string
+          nullable: true
+          description: Required when transitioning an Approved or Approved with Conditions Novation to Rescinded.
+        driverForNovation:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    NovationRelationshipPatchV2:
+      allOf:
+        - $ref: '#/components/schemas/NovationRelationshipCreateV2'
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"guid", "novationGUID", "createdBy", "createdTimestamp", "lastUpdatedBy", "lastUpdatedTimestamp"})'
+    ProviderFirmLineageRelationshipV2:
+      type: object
+      required:
+        - novationGUID
+        - novationType
+        - novationEffectiveDate
+        - previousProviderFirmGUID
+        - newProviderFirmGUID
+      properties:
+        novationGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        novationType:
+          $ref: '#/components/schemas/NovationTypeV2'
+        novationEffectiveDate:
+          type: string
+          format: date
+        novationStatus:
+          $ref: '#/components/schemas/NovationStatusV2'
+        previousProviderFirmGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        newProviderFirmGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+    ProviderFirmLineageV2:
+      type: object
+      required:
+        - providerFirmGUID
+        - relationships
+      properties:
+        providerFirmGUID:
+          $ref: '#/components/schemas/BaseEntityGUIDV2'
+        currentProviderFirmGUIDs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseEntityGUIDV2'
+          description: |
+            Provider firm(s) at the current end of the lineage graph. Array form preserves the
+            ability to represent one-to-many successor relationships. Precise treatment of
+            rescinded Novations remains subject to business clarification.
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderFirmLineageRelationshipV2'
+          description: Relationships ordered by Novation effective date.
     ProviderFirmNumberV2:
       type: string
       description: |
@@ -3306,6 +4013,22 @@ components:
       schema:
         type: string
       description: GUID of the provider-office link (not of the underlying office record), or the office code (unique account number).
+    NovationGUID:
+      name: novationGUID
+      in: path
+      description: The GUID of the Novation.
+      required: true
+      schema:
+        type: string
+        format: uuid
+    NovationRelationshipGUID:
+      name: novationRelationshipGUID
+      in: path
+      description: The GUID of the Novation Relationship.
+      required: true
+      schema:
+        type: string
+        format: uuid
     QPageNumber:
       name: page
       in: query

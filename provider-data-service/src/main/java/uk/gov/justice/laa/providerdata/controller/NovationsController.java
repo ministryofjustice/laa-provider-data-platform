@@ -26,11 +26,9 @@ import uk.gov.justice.laa.providerdata.service.NovationCreationService;
 /**
  * REST controller implementing the Novations API.
  *
- * <p>{@code createNovation} and {@code getNovation} (DSTEW-1975) are implemented. {@code
- * getNovation} is deliberately minimal: a single Novation lookup by GUID with its relationships,
- * sufficient to satisfy AC2/AC9 (relationships and history must be retrievable). {@code
- * getNovations} (list/search) and {@code updateNovation} are published as contract-only stubs for
- * future stories (DSTEW-1976/1977) and return 501 Not Implemented.
+ * <p>{@code createNovation} (DSTEW-1975) and {@code getNovation} (DSTEW-1980) are implemented.
+ * {@code getNovations} (list/search) and {@code updateNovation} are published as contract-only
+ * stubs for future stories (DSTEW-1976/1977) and return 501 Not Implemented.
  */
 @RestController
 public class NovationsController implements NovationsApi {
@@ -81,6 +79,13 @@ public class NovationsController implements NovationsApi {
     return ResponseEntity.status(HttpStatus.CREATED).body(new CreateNovation201Response(data));
   }
 
+  /**
+   * Retrieves a Novation record and its supported predecessor/successor provider relationships.
+   *
+   * @param novationGUID the Novation GUID
+   * @param traceparent W3C Trace Context header, unused
+   * @return 200 with the Novation and its relationships
+   */
   @Override
   public ResponseEntity<GetNovation200Response> getNovation(
       UUID novationGUID, @Nullable String traceparent) {

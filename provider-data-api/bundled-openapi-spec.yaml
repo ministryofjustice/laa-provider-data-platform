@@ -1597,9 +1597,12 @@ paths:
       tags:
         - Novations
       description: |
-        Retrieve a Novation and its relationships.
+        Retrieve a Novation record and its supported predecessor/successor provider relationships.
+        Supported relationships include Legal Organisation relationships and Child Office
+        relationships where those Office links are available.
 
-        Not yet implemented; published as a contract-only stub.
+        This is a read-only operation and does not create, amend or delete Novation data or
+        relationship data.
       parameters:
         - $ref: '#/components/parameters/TraceParentHeader'
         - $ref: '#/components/parameters/NovationGUID'

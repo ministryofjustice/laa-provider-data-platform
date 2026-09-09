@@ -42,6 +42,7 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
   private String previousProviderFirmGuid;
   private String newProviderFirmGuid;
   private String previousOfficeGuid;
+  private String newOfficeGuid;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -50,14 +51,8 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
     previousProviderFirmGuid = createLspFirm("Integration Test Predecessor LSP");
     newProviderFirmGuid = createLspFirm("Integration Test Successor LSP");
 
-    String getOfficesResponse =
-        mockMvc
-            .perform(get("/provider-firms/{id}/offices", previousProviderFirmGuid))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    previousOfficeGuid = JsonPath.read(getOfficesResponse, "$.data.content[0].guid");
+    previousOfficeGuid = getHeadOfficeGuid(previousProviderFirmGuid);
+    newOfficeGuid = getHeadOfficeGuid(newProviderFirmGuid);
   }
 
   private String createLspFirm(String firmName) throws Exception {
@@ -97,6 +92,17 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
             .andExpect(status().isCreated())
             .andReturn();
     return JsonPath.read(result.getResponse().getContentAsString(), "$.data.providerFirmGUID");
+  }
+
+  private String getHeadOfficeGuid(String providerFirmGuid) throws Exception {
+    String getOfficesResponse =
+        mockMvc
+            .perform(get("/provider-firms/{id}/offices", providerFirmGuid))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return JsonPath.read(getOfficesResponse, "$.data.content[0].guid");
   }
 
   @Test
@@ -158,17 +164,24 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
         {
           "novationType": "Merger",
           "novationEffectiveDate": "2026-01-01",
+          "novationStatus": "Approved with Conditions",
+          "decisionDate": "2026-02-01",
+          "decisionReason": "Board approval required before transfer",
+          "driverForNovation": "Organisational restructure",
           "notes": "Integration test novation",
           "relationships": [
             {
               "previousProviderFirmGUID": "%s",
               "newProviderFirmGUID": "%s",
+              "previousOfficeGUID": "%s",
+              "newOfficeGUID": "%s",
               "notes": "Integration test relationship"
             }
           ]
         }
         """
-            .formatted(previousProviderFirmGuid, newProviderFirmGuid);
+            .formatted(
+                previousProviderFirmGuid, newProviderFirmGuid, previousOfficeGuid, newOfficeGuid);
 
     var createResult =
         mockMvc
@@ -188,6 +201,12 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.guid").value(novationGuid))
         .andExpect(jsonPath("$.data.novationType").value("Merger"))
+        .andExpect(jsonPath("$.data.novationEffectiveDate").value("2026-01-01"))
+        .andExpect(jsonPath("$.data.novationStatus").value("Approved with Conditions"))
+        .andExpect(jsonPath("$.data.decisionDate").value("2026-02-01"))
+        .andExpect(
+            jsonPath("$.data.decisionReason").value("Board approval required before transfer"))
+        .andExpect(jsonPath("$.data.driverForNovation").value("Organisational restructure"))
         .andExpect(jsonPath("$.data.notes").value("Integration test novation"))
         .andExpect(jsonPath("$.data.relationships.length()").value(1))
         .andExpect(
@@ -195,8 +214,46 @@ class NovationsIntegrationTest extends PostgresqlSpringBootTest {
                 .value(previousProviderFirmGuid))
         .andExpect(
             jsonPath("$.data.relationships[0].newProviderFirmGUID").value(newProviderFirmGuid))
+        .andExpect(jsonPath("$.data.relationships[0].previousOfficeGUID").value(previousOfficeGuid))
+        .andExpect(jsonPath("$.data.relationships[0].newOfficeGUID").value(newOfficeGuid))
         .andExpect(
             jsonPath("$.data.relationships[0].notes").value("Integration test relationship"));
+  }
+
+  @Test
+  void getNovation_doesNotCreateAmendOrDeleteNovationData() throws Exception {
+    String createRequestBody =
+        """
+        {
+          "novationType": "Merger",
+          "novationEffectiveDate": "2026-01-01",
+          "relationships": [
+            {
+              "previousProviderFirmGUID": "%s",
+              "newProviderFirmGUID": "%s"
+            }
+          ]
+        }
+        """
+            .formatted(previousProviderFirmGuid, newProviderFirmGuid);
+
+    var createResult =
+        mockMvc
+            .perform(
+                post("/novations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequestBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String novationGuid =
+        JsonPath.read(createResult.getResponse().getContentAsString(), "$.data.novationGUID");
+    long novationCountBefore = novationRepository.count();
+    long relationshipCountBefore = novationLinkRepository.count();
+
+    mockMvc.perform(get("/novations/{novationGUID}", novationGuid)).andExpect(status().isOk());
+
+    assertThat(novationRepository.count()).isEqualTo(novationCountBefore);
+    assertThat(novationLinkRepository.count()).isEqualTo(relationshipCountBefore);
   }
 
   @Test

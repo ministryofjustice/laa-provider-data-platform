@@ -51,6 +51,83 @@ class ProviderFirmControllerTest {
   @MockitoBean private ProviderMapper providerFirmMapper;
 
   @Test
+  void createPublicDefenderService_validRequest_returns201WithGuidAndFirmNumber() throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmCreationService.createPdsFirm(any(), any(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "PDS-ABCD1234"));
+
+    mockMvc
+        .perform(
+            post("/provider-firms/public-defender-services")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "name": "Birmingham Public Defender Service",
+                          "constitutionalStatus": "Government Funded Organisation",
+                          "headOffice": {
+                            "address": {
+                              "line1": "1 New Street",
+                              "townOrCity": "Birmingham",
+                              "postcode": "B1 1AA"
+                            }
+                          }
+                        }
+                        """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("PDS-ABCD1234"));
+  }
+
+  @Test
+  void createPublicDefenderService_missingMandatoryField_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/provider-firms/public-defender-services")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "name": "Birmingham Public Defender Service",
+                          "headOffice": {
+                            "address": {
+                              "line1": "1 New Street",
+                              "townOrCity": "Birmingham",
+                              "postcode": "B1 1AA"
+                            }
+                          }
+                        }
+                        """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createPublicDefenderService_unpairedDxDetails_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/provider-firms/public-defender-services")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                        {
+                          "name": "Birmingham Public Defender Service",
+                          "constitutionalStatus": "Government Funded Organisation",
+                          "headOffice": {
+                            "address": {
+                              "line1": "1 New Street",
+                              "townOrCity": "Birmingham",
+                              "postcode": "B1 1AA"
+                            },
+                            "dxDetails": {
+                              "dxNumber": "12345"
+                            }
+                          }
+                        }
+                        """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void createProviderFirm_lsp_returns201WithGuidAndFirmNumber() throws Exception {
     UUID guid = UUID.randomUUID();
     when(providerFirmCreationService.createLspFirm(

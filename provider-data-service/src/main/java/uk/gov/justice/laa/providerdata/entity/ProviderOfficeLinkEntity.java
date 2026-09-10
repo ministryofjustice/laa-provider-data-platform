@@ -22,8 +22,8 @@ import lombok.experimental.SuperBuilder;
 /**
  * Provider Office Link entity representing a link between provider and office. There is always only
  * one head office. For Advocate type the office is the Chambers' office. Advocate can however have
- * an alternative bank account, intervention etc. Base entity for LSP ProviderOfficeLink and
- * Advocate ProviderOfficeLink subtypes.
+ * an alternative bank account, intervention etc. Base entity for LSP, PDS, Chambers, and Advocate
+ * ProviderOfficeLink subtypes.
  */
 @SuperBuilder
 @NoArgsConstructor

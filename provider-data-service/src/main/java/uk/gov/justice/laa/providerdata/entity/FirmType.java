@@ -6,6 +6,7 @@ public final class FirmType {
   public static final String LEGAL_SERVICES_PROVIDER = "Legal Services Provider";
   public static final String CHAMBERS = "Chambers";
   public static final String ADVOCATE = "Advocate";
+  public static final String PUBLIC_DEFENDER_SERVICE = "Public Defender Service";
 
   private FirmType() {}
 }

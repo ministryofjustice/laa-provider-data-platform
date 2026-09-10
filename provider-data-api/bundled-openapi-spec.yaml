@@ -517,6 +517,8 @@ paths:
       description: |
         Create a provider firm of type `Public Defender Service` together with its head office.
         The firm type is implied by this resource path and is not supplied by the caller.
+        The current PDS scope supports a head office only. Whether PDS providers may have child
+        offices is an open business question for a future change.
 
         Unlike a Legal Services Provider, a PDS provider does not require a contract manager,
         liaison manager, bank account, contract or schedule association.
@@ -2380,7 +2382,10 @@ components:
           $ref: '#/components/schemas/PDSHeadOfficeCreateV2'
       description: |
         Complete request to create a Public Defender Service provider and its head office. The firm
-        type is fixed by the PDS-specific endpoint and is not supplied by the caller.
+        type is fixed by the PDS-specific endpoint and is not supplied by the caller. The current PDS
+        scope supports a head office only; whether child offices may be added is an open business
+        question for a future change. The nested head office is therefore implicitly the provider's
+        head office.
     ProviderCreateV2:
       x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"createdTimestamp"})'
       allOf:
@@ -2440,6 +2445,7 @@ components:
             - $ref: '#/components/schemas/ProviderLSPV2'
             - $ref: '#/components/schemas/ProviderChambersV2'
             - $ref: '#/components/schemas/ProviderPractitionerV2'
+            - $ref: '#/components/schemas/ProviderPDSV2'
     ProviderBaseV2:
       type: object
       required:
@@ -3032,6 +3038,7 @@ components:
             - $ref: '#/components/schemas/LSPOfficeDetailsV2'
             - $ref: '#/components/schemas/ChambersOfficeDetailsV2'
             - $ref: '#/components/schemas/AdvocateOfficeDetailsV2'
+            - $ref: '#/components/schemas/PDSOfficeDetailsV2'
     LSPOfficeDetailsV2:
       type: object
       required:
@@ -4093,6 +4100,61 @@ components:
         eventPayload:
           oneOf:
             - $ref: '#/components/schemas/ProviderFirmChangedSnapshotEventV2Payload'
+    PDSOfficeDetailsV2:
+      type: object
+      required:
+        - firmType
+        - accountNumber
+        - address
+      properties:
+        firmType:
+          $ref: '#/components/schemas/ProviderFirmTypeV2'
+        accountNumber:
+          $ref: '#/components/schemas/OfficeAccountNumberV2'
+        activeDateTo:
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
+        address:
+          $ref: '#/components/schemas/OfficeAddressV2'
+        telephoneNumber:
+          $ref: '#/components/schemas/OfficePhoneV2'
+        emailAddress:
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
+        website:
+          $ref: '#/components/schemas/OfficeWebsiteV2'
+        dxDetails:
+          $ref: '#/components/schemas/DXV2'
+        vatRegistration:
+          $ref: '#/components/schemas/VATRegistrationV2'
+    PDSHeadOfficeDetailsV2:
+      allOf:
+        - $ref: '#/components/schemas/PDSOfficeDetailsV2'
+        - type: object
+          required:
+            - officeGUID
+          properties:
+            officeGUID:
+              $ref: '#/components/schemas/BaseEntityGUIDV2'
+    PDSDetailsV2:
+      type: object
+      required:
+        - constitutionalStatus
+        - headOffice
+      properties:
+        constitutionalStatus:
+          $ref: '#/components/schemas/PDSConstitutionalStatusV2'
+        indemnityReceivedDate:
+          $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
+        companiesHouseNumber:
+          $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
+        headOffice:
+          $ref: '#/components/schemas/PDSHeadOfficeDetailsV2'
+    ProviderPDSV2:
+      type: object
+      required:
+        - publicDefenderService
+      properties:
+        publicDefenderService:
+          $ref: '#/components/schemas/PDSDetailsV2'
   parameters:
     LiaisonManagerGUID:
       name: liaisonManagerGUID

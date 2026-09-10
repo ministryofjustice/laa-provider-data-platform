@@ -45,4 +45,66 @@ PublicDefenderServiceCreateV2:
       $ref: "#/PDSHeadOfficeCreateV2"
   description: |
     Complete request to create a Public Defender Service provider and its head office. The firm
-    type is fixed by the PDS-specific endpoint and is not supplied by the caller.
+    type is fixed by the PDS-specific endpoint and is not supplied by the caller. The current PDS
+    scope supports a head office only; whether child offices may be added is an open business
+    question for a future change. The nested head office is therefore implicitly the provider's
+    head office.
+
+PDSDetailsV2:
+  type: object
+  required:
+  - constitutionalStatus
+  - headOffice
+  properties:
+    constitutionalStatus:
+      $ref: "#/PDSConstitutionalStatusV2"
+    indemnityReceivedDate:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsCompaniesHouseNumberV2"
+    headOffice:
+      $ref: "#/PDSHeadOfficeDetailsV2"
+
+PDSHeadOfficeDetailsV2:
+  allOf:
+  - $ref: "#/PDSOfficeDetailsV2"
+  - type: object
+    required:
+    - officeGUID
+    properties:
+      officeGUID:
+        $ref: "./common.yaml#/BaseEntityGUIDV2"
+
+PDSOfficeDetailsV2:
+  type: object
+  required:
+  - firmType
+  - accountNumber
+  - address
+  properties:
+    firmType:
+      $ref: "./provider-firm.yaml#/ProviderFirmTypeV2"
+    accountNumber:
+      $ref: "./office.yaml#/OfficeAccountNumberV2"
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+
+ProviderPDSV2:
+  type: object
+  required:
+  - publicDefenderService
+  properties:
+    publicDefenderService:
+      $ref: "#/PDSDetailsV2"

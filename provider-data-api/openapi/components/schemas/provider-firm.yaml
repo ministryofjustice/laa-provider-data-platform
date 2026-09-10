@@ -67,6 +67,7 @@ ProviderV2:
     - $ref: "./legal-services-provider.yaml#/ProviderLSPV2"
     - $ref: "./chambers.yaml#/ProviderChambersV2"
     - $ref: "./practitioner.yaml#/ProviderPractitionerV2"
+    - $ref: "./public-defender-service.yaml#/ProviderPDSV2"
 
 ProviderBaseV2:
   type: object

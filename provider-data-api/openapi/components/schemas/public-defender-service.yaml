@@ -1,0 +1,48 @@
+PDSConstitutionalStatusV2:
+  type: string
+  enum:
+  - Government Funded Organisation
+  description: Constitutional status for a Public Defender Service provider.
+
+PDSHeadOfficeCreateV2:
+  type: object
+  required:
+  - address
+  properties:
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationCreateV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXCreateV2"
+  description: |
+    PDS head office details. Address line 1, city and postcode are required by `OfficeAddressV2`.
+    DX Number and DX Centre must either both be supplied or both be absent. No payment, bank
+    account, liaison manager or contract manager is required.
+
+PublicDefenderServiceCreateV2:
+  type: object
+  required:
+  - name
+  - constitutionalStatus
+  - headOffice
+  properties:
+    name:
+      $ref: "./provider-firm.yaml#/ProviderFirmNameV2"
+    constitutionalStatus:
+      $ref: "#/PDSConstitutionalStatusV2"
+    indemnityReceivedDate:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsCompaniesHouseNumberV2"
+    headOffice:
+      $ref: "#/PDSHeadOfficeCreateV2"
+  description: |
+    Complete request to create a Public Defender Service provider and its head office. The firm
+    type is fixed by the PDS-specific endpoint and is not supplied by the caller.

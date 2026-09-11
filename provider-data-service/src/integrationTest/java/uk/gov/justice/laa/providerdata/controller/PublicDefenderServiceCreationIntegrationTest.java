@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -127,6 +128,61 @@ class PublicDefenderServiceCreationIntegrationTest extends PostgresqlSpringBootT
             pdsOfficeLinkRepository.findAll().stream()
                 .noneMatch(link -> link.getProvider().getName().equals(firmName)))
         .isTrue();
+  }
+
+  @Test
+  void dstew2026_ac1_createdPdsCanBeRetrievedWithoutMutation() throws Exception {
+    MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+
+    String createResponse =
+        mockMvc
+            .perform(
+                post("/provider-firms/public-defender-services")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(validRequest("Integration PDS Retrieval")))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    String providerGuid = JsonPath.read(createResponse, "$.data.providerFirmGUID");
+    String firmNumber = JsonPath.read(createResponse, "$.data.providerFirmNumber");
+    PdsProviderEntity before =
+        (PdsProviderEntity) providerRepository.findByFirmNumber(firmNumber).orElseThrow();
+    Long versionBefore = before.getVersion();
+
+    String response =
+        mockMvc
+            .perform(get("/provider-firms/{id}", providerGuid))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat((Object) JsonPath.read(response, "$.data.guid")).isEqualTo(providerGuid);
+    assertThat((Object) JsonPath.read(response, "$.data.firmNumber")).isEqualTo(firmNumber);
+    assertThat((Object) JsonPath.read(response, "$.data.firmType"))
+        .isEqualTo("Public Defender Service");
+    assertThat((Object) JsonPath.read(response, "$.data.name"))
+        .isEqualTo("Integration PDS Retrieval");
+    assertThat(
+            (Object) JsonPath.read(response, "$.data.publicDefenderService.constitutionalStatus"))
+        .isEqualTo("Government Funded Organisation");
+    assertThat(
+            (Object)
+                JsonPath.read(response, "$.data.publicDefenderService.headOffice.accountNumber"))
+        .isNotNull();
+    assertThat(
+            (Object)
+                JsonPath.read(response, "$.data.publicDefenderService.headOffice.address.line1"))
+        .isEqualTo("1 Integration Street");
+    assertThat(response).doesNotContain("\"legalServicesProvider\"");
+    assertThat(response).doesNotContain("\"chambers\"");
+    assertThat(response).doesNotContain("\"practitioner\"");
+
+    PdsProviderEntity after =
+        (PdsProviderEntity) providerRepository.findByFirmNumber(firmNumber).orElseThrow();
+    assertThat(after.getVersion()).isEqualTo(versionBefore);
   }
 
   private static String validRequest(String name) {

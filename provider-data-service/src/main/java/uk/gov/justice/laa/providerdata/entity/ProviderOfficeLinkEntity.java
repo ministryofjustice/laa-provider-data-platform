@@ -95,6 +95,10 @@ public class ProviderOfficeLinkEntity extends AuditableEntity {
   @Column(name = "DEBT_RECOVERY_FLAG")
   private Boolean debtRecoveryFlag;
 
+  /** PO.PO_VENDOR_SITES_ALL.ATTRIBUTE16 CHAR(1). */
+  @Column(name = "FALSE_BALANCE_FLAG")
+  private Boolean falseBalanceFlag;
+
   /** The database column is NOT NULL, so default it here (some tests/mappers don't set it). */
   @PrePersist
   void prePersistDefaults() {

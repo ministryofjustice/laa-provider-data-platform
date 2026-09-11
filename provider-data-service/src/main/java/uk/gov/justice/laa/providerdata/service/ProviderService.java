@@ -21,6 +21,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -33,6 +34,8 @@ import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
+import uk.gov.justice.laa.providerdata.model.PDSDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PDSOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
@@ -149,6 +152,11 @@ public class ProviderService {
           provider, providerFirmGUIDorFirmNumber, lspPatch, lspProviderOfficeLinkRepository);
     }
 
+    var pdsPatch = patch.getPublicDefenderService();
+    if (pdsPatch != null) {
+      applyPdsPatch(provider, providerFirmGUIDorFirmNumber, pdsPatch);
+    }
+
     var practitionerPatch = patch.getPractitioner();
     if (practitionerPatch != null) {
       applyPractitionerPatch(
@@ -166,6 +174,80 @@ public class ProviderService {
     var saved = providerRepository.save(provider);
 
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+  }
+
+  private void applyPdsPatch(
+      ProviderEntity provider, String providerFirmGUIDorFirmNumber, PDSDetailsPatchV2 patch) {
+    if (!(provider instanceof PdsProviderEntity pdsProvider)) {
+      throw new IllegalArgumentException(
+          "publicDefenderService updates require a Public Defender Service provider: "
+              + providerFirmGUIDorFirmNumber);
+    }
+
+    if (patch.getConstitutionalStatus() != null) {
+      pdsProvider.setConstitutionalStatus(patch.getConstitutionalStatus().getValue());
+    }
+    if (patch.getIndemnityReceivedDate() != null) {
+      pdsProvider.setIndemnityReceivedDate(patch.getIndemnityReceivedDate());
+    }
+    if (patch.getCompaniesHouseNumber() != null) {
+      pdsProvider.setCompaniesHouseNumber(patch.getCompaniesHouseNumber());
+    }
+
+    PdsProviderOfficeLinkEntity headOffice =
+        pdsProviderOfficeLinkRepository
+            .findByProviderAndHeadOfficeFlagTrue(pdsProvider)
+            .orElseThrow(
+                () ->
+                    new ItemNotFoundException(
+                        "Public Defender Service has no head office: " + provider.getGuid()));
+    applyPdsOfficePatch(headOffice, patch.getHeadOffice());
+
+    if (patch.getFirmIntervenedFlag() != null) {
+      headOffice.setIntervenedFlag(patch.getFirmIntervenedFlag());
+    }
+    if (patch.getFirmIntervenedDate() != null) {
+      headOffice.setIntervenedChangeDate(patch.getFirmIntervenedDate());
+    }
+    if (patch.getHoldAllPaymentsFlag() != null) {
+      headOffice.setPaymentHeldFlag(patch.getHoldAllPaymentsFlag());
+    }
+    if (patch.getHoldAllPaymentsReason() != null) {
+      headOffice.setPaymentHeldReason(patch.getHoldAllPaymentsReason());
+    }
+    if (patch.getReferredToDebtRecoveryFlag() != null) {
+      headOffice.setDebtRecoveryFlag(patch.getReferredToDebtRecoveryFlag());
+    }
+  }
+
+  private static void applyPdsOfficePatch(
+      PdsProviderOfficeLinkEntity link, @Nullable PDSOfficePatchV2 patch) {
+    if (patch == null) {
+      return;
+    }
+    if (patch.getActiveDateTo() != null) {
+      link.setActiveDateTo(patch.getActiveDateTo());
+    } else if (Boolean.TRUE.equals(patch.getClearActiveDateTo())) {
+      link.setActiveDateTo(null);
+    }
+    if (patch.getDebtRecoveryFlag() != null) {
+      link.setDebtRecoveryFlag(patch.getDebtRecoveryFlag());
+    }
+    if (patch.getFalseBalanceFlag() != null) {
+      link.setFalseBalanceFlag(patch.getFalseBalanceFlag());
+    }
+    if (patch.getIntervened() != null) {
+      link.setIntervenedFlag(patch.getIntervened().getIntervenedFlag());
+      link.setIntervenedChangeDate(patch.getIntervened().getIntervenedChangeDate());
+    }
+    if (patch.getPayment() != null) {
+      if (patch.getPayment().getPaymentHeldFlag() != null) {
+        link.setPaymentHeldFlag(patch.getPayment().getPaymentHeldFlag());
+      }
+      if (patch.getPayment().getPaymentHeldReason() != null) {
+        link.setPaymentHeldReason(patch.getPayment().getPaymentHeldReason());
+      }
+    }
   }
 
   private static void applyLspPatch(

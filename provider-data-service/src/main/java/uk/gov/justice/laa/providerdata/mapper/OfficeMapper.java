@@ -214,6 +214,12 @@ public interface OfficeMapper {
   @Mapping(target = "paymentHeldReason", source = "paymentHeldReason")
   PaymentDetailsV2 toPayment(AdvocateProviderOfficeLinkEntity link);
 
+  /** Maps payment-held fields of a provider-office link without exposing a payment method. */
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(target = "paymentHeldFlag", source = "paymentHeldFlag")
+  @Mapping(target = "paymentHeldReason", source = "paymentHeldReason")
+  PaymentDetailsV2 toPayment(ProviderOfficeLinkEntity link);
+
   /**
    * Maps intervention fields of an {@link LspProviderOfficeLinkEntity} to an {@link
    * IntervenedOfficeDetailsV2}.
@@ -249,6 +255,7 @@ public interface OfficeMapper {
         .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
         .firmType(firmTypeFromEntity(link))
         .accountNumber(link.getAccountNumber())
+        .headOfficeFlag(link.getHeadOfficeFlag())
         .activeDateTo(link.getActiveDateTo())
         .debtRecoveryFlag(link.getDebtRecoveryFlag())
         .falseBalanceFlag(link.getFalseBalanceFlag())
@@ -308,6 +315,9 @@ public interface OfficeMapper {
     if (link instanceof AdvocateProviderOfficeLinkEntity advocateLink) {
       return toAdvocateOfficeV2(advocateLink);
     }
+    if (link instanceof PdsProviderOfficeLinkEntity pdsLink) {
+      return toPdsOfficeV2(pdsLink);
+    }
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
         .guid(link.getGuid())
@@ -324,6 +334,38 @@ public interface OfficeMapper {
         .emailAddress(office.getEmailAddress())
         .website(stringToUri(link.getWebsite()))
         .dxDetails(toDxDetails(office));
+  }
+
+  /** Maps a PDS head-office link to an {@link OfficeV2} response DTO. */
+  default OfficeV2 toPdsOfficeV2(PdsProviderOfficeLinkEntity link) {
+    OfficeEntity office = link.getOffice();
+    return new OfficeV2()
+        .guid(link.getGuid())
+        .version(office.getVersion())
+        .createdBy(office.getCreatedBy())
+        .createdTimestamp(office.getCreatedTimestamp())
+        .lastUpdatedBy(office.getLastUpdatedBy())
+        .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
+        .firmType(firmTypeFromEntity(link))
+        .accountNumber(link.getAccountNumber())
+        .headOfficeFlag(link.getHeadOfficeFlag())
+        .activeDateTo(link.getActiveDateTo())
+        .debtRecoveryFlag(link.getDebtRecoveryFlag())
+        .falseBalanceFlag(link.getFalseBalanceFlag())
+        .address(toAddress(office))
+        .telephoneNumber(office.getTelephoneNumber())
+        .emailAddress(office.getEmailAddress())
+        .website(stringToUri(link.getWebsite()))
+        .dxDetails(toDxDetails(office))
+        .vatRegistration(
+            link.getVatRegistrationNumber() == null
+                ? null
+                : new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber()))
+        .payment(toPayment(link))
+        .intervened(
+            new IntervenedOfficeDetailsV2()
+                .intervenedFlag(link.getIntervenedFlag())
+                .intervenedChangeDate(link.getIntervenedChangeDate()));
   }
 
   /**

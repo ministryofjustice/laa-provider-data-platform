@@ -245,6 +245,12 @@ components:
       $ref: ./components/schemas/chambers.yaml#/ChambersOfficePatchV2
     AdvocateOfficePatchV2:
       $ref: ./components/schemas/practitioner.yaml#/AdvocateOfficePatchV2
+    PDSOfficePatchV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/PDSOfficePatchV2
+    PDSDetailsPatchV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/PDSDetailsPatchV2
+    ProviderPatchPDSV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/ProviderPatchPDSV2
     ChambersOfficeCoreDetailsV2:
       $ref: ./components/schemas/chambers.yaml#/ChambersOfficeCoreDetailsV2
     PractitionerOfficeCoreDetailsV2:

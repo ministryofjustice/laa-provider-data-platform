@@ -231,6 +231,9 @@ public interface ProviderMapper {
         .firmType(ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE)
         .accountNumber(link.getAccountNumber())
         .activeDateTo(link.getActiveDateTo())
+        .debtRecoveryFlag(link.getDebtRecoveryFlag())
+        .falseBalanceFlag(link.getFalseBalanceFlag())
+        .intervened(toIntervened(link))
         .address(
             new OfficeAddressV2()
                 .line1(office.getAddressLine1())
@@ -354,7 +357,7 @@ public interface ProviderMapper {
         .postcode(office.getAddressPostCode());
   }
 
-  private IntervenedOfficeDetailsV2 toIntervened(LspProviderOfficeLinkEntity link) {
+  private IntervenedOfficeDetailsV2 toIntervened(ProviderOfficeLinkEntity link) {
     return new IntervenedOfficeDetailsV2()
         .intervenedFlag(link.getIntervenedFlag())
         .intervenedChangeDate(link.getIntervenedChangeDate());

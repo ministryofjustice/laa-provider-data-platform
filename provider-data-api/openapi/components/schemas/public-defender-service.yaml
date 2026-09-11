@@ -65,6 +65,94 @@ PDSDetailsV2:
     headOffice:
       $ref: "#/PDSHeadOfficeDetailsV2"
 
+ProviderPatchPDSV2:
+  type: object
+  properties:
+    publicDefenderService:
+      $ref: "#/PDSDetailsPatchV2"
+  description: |
+    Update permitted details of a Public Defender Service provider. Firm type and server-owned
+    identifiers are not amendable through the common provider PATCH operation.
+
+PDSDetailsPatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"firmType", "accountNumber", "providerFirmGUID", "providerFirmNumber", "headOfficeFlag"})
+  properties:
+    constitutionalStatus:
+      $ref: "#/PDSConstitutionalStatusV2"
+    indemnityReceivedDate:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsIndemnityReceivedDateV2"
+    companiesHouseNumber:
+      $ref: "./legal-services-provider.yaml#/LSPDetailsCompaniesHouseNumberV2"
+    firmIntervenedFlag:
+      $ref: "./provider-firm.yaml#/FirmIntervenedFlagV2"
+    firmIntervenedDate:
+      $ref: "./provider-firm.yaml#/FirmIntervenedDateV2"
+    holdAllPaymentsFlag:
+      $ref: "./provider-firm.yaml#/HoldAllPaymentsFlagV2"
+    holdAllPaymentsReason:
+      $ref: "./provider-firm.yaml#/HoldAllPaymentsReasonV2"
+    referredToDebtRecoveryFlag:
+      $ref: "./provider-firm.yaml#/ReferredToDebtRecoveryFlagV2"
+    headOffice:
+      $ref: "#/PDSHeadOfficeDetailsPatchV2"
+
+PDSHeadOfficeDetailsPatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"officeGUID", "providerFirmGUID", "accountNumber", "headOfficeFlag"})
+  properties:
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    clearActiveDateTo:
+      $ref: "./office.yaml#/ClearActiveDateToV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressPatchV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXPatchV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+
+PDSOfficePatchV2:
+  type: object
+  x-class-extra-annotation: >-
+    @uk.gov.justice.laa.providerdata.annotation.RejectProperties(
+    {"officeGUID", "providerFirmGUID", "accountNumber", "headOfficeFlag"})
+  properties:
+    activeDateTo:
+      $ref: "./office.yaml#/OfficeActiveDateToV2"
+    clearActiveDateTo:
+      $ref: "./office.yaml#/ClearActiveDateToV2"
+    debtRecoveryFlag:
+      $ref: "./office.yaml#/DebtRecoveryFlagV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    intervened:
+      $ref: "./office.yaml#/IntervenedOfficeDetailsPatchV2"
+    address:
+      $ref: "./office.yaml#/OfficeAddressPatchV2"
+    telephoneNumber:
+      $ref: "./office.yaml#/OfficePhoneV2"
+    emailAddress:
+      $ref: "./office.yaml#/OfficeEmailAddressV2"
+    website:
+      $ref: "./office.yaml#/OfficeWebsiteV2"
+    dxDetails:
+      $ref: "./office.yaml#/DXPatchV2"
+    vatRegistration:
+      $ref: "./office.yaml#/VATRegistrationV2"
+
 PDSHeadOfficeDetailsV2:
   allOf:
   - $ref: "#/PDSOfficeDetailsV2"
@@ -88,6 +176,12 @@ PDSOfficeDetailsV2:
       $ref: "./office.yaml#/OfficeAccountNumberV2"
     activeDateTo:
       $ref: "./office.yaml#/OfficeActiveDateToV2"
+    debtRecoveryFlag:
+      $ref: "./office.yaml#/DebtRecoveryFlagV2"
+    falseBalanceFlag:
+      $ref: "./office.yaml#/FalseBalanceFlagV2"
+    intervened:
+      $ref: "./office.yaml#/IntervenedOfficeDetailsV2"
     address:
       $ref: "./office.yaml#/OfficeAddressV2"
     telephoneNumber:

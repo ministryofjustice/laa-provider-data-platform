@@ -598,19 +598,22 @@ public class ProviderFirmController {
     boolean hasName = request.getName() != null;
     boolean hasLspDetails = request.getLegalServicesProvider() != null;
     boolean hasPractitionerDetails = request.getPractitioner() != null;
+    boolean hasPdsDetails = request.getPublicDefenderService() != null;
 
-    if (!hasName && !hasLspDetails && !hasPractitionerDetails) {
+    if (!hasName && !hasLspDetails && !hasPractitionerDetails && !hasPdsDetails) {
       throw new IllegalArgumentException(
-          "At least one of name, legalServicesProvider or practitioner must be provided");
+          "At least one of name, legalServicesProvider, practitioner or publicDefenderService "
+              + "must be provided");
     }
 
     if (hasName && request.getName().isBlank()) {
       throw new IllegalArgumentException("name must not be blank");
     }
 
-    if (hasLspDetails && hasPractitionerDetails) {
-      throw new IllegalArgumentException(
-          "Exactly one of legalServicesProvider or practitioner may be provided");
+    int subtypeCount =
+        (hasLspDetails ? 1 : 0) + (hasPractitionerDetails ? 1 : 0) + (hasPdsDetails ? 1 : 0);
+    if (subtypeCount > 1) {
+      throw new IllegalArgumentException("At most one provider subtype may be provided");
     }
 
     if (hasLspDetails) {

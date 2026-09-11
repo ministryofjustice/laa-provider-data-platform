@@ -97,6 +97,7 @@ ProviderPatchV2:
     - $ref: "./legal-services-provider.yaml#/ProviderPatchLSPV2"
     - $ref: "./chambers.yaml#/ProviderPatchChambersV2"
     - $ref: "./practitioner.yaml#/ProviderPatchPractitionerV2"
+    - $ref: "./public-defender-service.yaml#/ProviderPatchPDSV2"
 
 ProviderPatchBaseV2:
   type: object

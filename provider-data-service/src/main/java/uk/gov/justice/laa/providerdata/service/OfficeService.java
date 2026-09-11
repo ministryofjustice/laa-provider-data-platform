@@ -25,6 +25,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
@@ -38,6 +39,7 @@ import uk.gov.justice.laa.providerdata.model.IntervenedOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LSPOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressPatchV2;
 import uk.gov.justice.laa.providerdata.model.OfficePatchV2;
+import uk.gov.justice.laa.providerdata.model.PDSOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2BankAccountDetails;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPatchOrLinkV2;
@@ -458,6 +460,7 @@ public class OfficeService {
         findProviderOfficeLink(provider, officeGUIDorCode)
             .orElseThrow(() -> new ItemNotFoundException("Office not found: " + officeGUIDorCode));
 
+    validatePdsOfficePatchType(patch, link);
     validatePaymentMethodBankAccountRule(patch, link);
     validateActivationFlagTransitionRules(patch, link);
 
@@ -509,6 +512,28 @@ public class OfficeService {
         applyIntervenedPatchToLink(advocate.getIntervened(), link);
         applyPaymentPatchToLink(advocate.getPayment(), provider, link);
       }
+      case PDSOfficePatchV2 pds -> {
+        applyContactPatch(
+            link.getOffice(),
+            link,
+            pds.getAddress(),
+            pds.getTelephoneNumber(),
+            pds.getEmailAddress(),
+            pds.getWebsite(),
+            pds.getDxDetails());
+        applyActivationPatchToLink(
+            pds.getActiveDateTo(),
+            Boolean.TRUE.equals(pds.getClearActiveDateTo()),
+            pds.getDebtRecoveryFlag(),
+            pds.getFalseBalanceFlag(),
+            provider,
+            link);
+        applyIntervenedPatchToLink(pds.getIntervened(), link);
+        if (pds.getVatRegistration() != null
+            && link instanceof PdsProviderOfficeLinkEntity pdsLink) {
+          pdsLink.setVatRegistrationNumber(pds.getVatRegistration().getVatNumber());
+        }
+      }
       default ->
           throw new IllegalStateException(
               "Unhandled OfficePatchV2 subtype: " + patch.getClass().getSimpleName());
@@ -519,6 +544,18 @@ public class OfficeService {
 
     return new OfficeCreationResult(
         provider.getGuid(), provider.getFirmNumber(), link.getGuid(), link.getAccountNumber());
+  }
+
+  private static void validatePdsOfficePatchType(
+      OfficePatchV2 patch, ProviderOfficeLinkEntity link) {
+    if (patch instanceof PDSOfficePatchV2 && !(link instanceof PdsProviderOfficeLinkEntity)) {
+      throw new IllegalArgumentException(
+          "PDS office updates require a Public Defender Service office");
+    }
+    if (link instanceof PdsProviderOfficeLinkEntity && !(patch instanceof PDSOfficePatchV2)) {
+      throw new IllegalArgumentException(
+          "Public Defender Service offices only support PDS office updates");
+    }
   }
 
   /**
@@ -539,6 +576,7 @@ public class OfficeService {
         validatePaymentConditionalRules(advocate.getPayment(), errors);
         validateIntervenedConditionalRules(advocate.getIntervened(), errors);
       }
+      case PDSOfficePatchV2 pds -> validateIntervenedConditionalRules(pds.getIntervened(), errors);
       default -> {
         /* do nothing. */
       }
@@ -651,6 +689,7 @@ public class OfficeService {
           case LSPOfficePatchV2 lsp -> lsp.getActiveDateTo();
           case AdvocateOfficePatchV2 advocate -> advocate.getActiveDateTo();
           case ChambersOfficePatchV2 chambers -> chambers.getActiveDateTo();
+          case PDSOfficePatchV2 pds -> pds.getActiveDateTo();
           default -> null;
         };
     boolean clearActiveDateTo =
@@ -660,12 +699,14 @@ public class OfficeService {
               Boolean.TRUE.equals(advocate.getClearActiveDateTo());
           case ChambersOfficePatchV2 chambers ->
               Boolean.TRUE.equals(chambers.getClearActiveDateTo());
+          case PDSOfficePatchV2 pds -> Boolean.TRUE.equals(pds.getClearActiveDateTo());
           default -> false;
         };
     Boolean patchFalseBalanceFlag =
         switch (patch) {
           case LSPOfficePatchV2 lsp -> lsp.getFalseBalanceFlag();
           case AdvocateOfficePatchV2 advocate -> advocate.getFalseBalanceFlag();
+          case PDSOfficePatchV2 pds -> pds.getFalseBalanceFlag();
           default -> null; // ChambersOfficePatchV2 has no falseBalanceFlag field.
         };
     PaymentDetailsPatchOrLinkV2 payment =
@@ -689,7 +730,7 @@ public class OfficeService {
       boolean alreadyHeld = Boolean.TRUE.equals(link.getPaymentHeldFlag());
       boolean requestHoldsPayment =
           payment != null && Boolean.TRUE.equals(payment.getPaymentHeldFlag());
-      if (!alreadyHeld && !requestHoldsPayment) {
+      if (!(link instanceof PdsProviderOfficeLinkEntity) && !alreadyHeld && !requestHoldsPayment) {
         throw new IllegalArgumentException(
             "Office patch validation failed: payment.paymentHeldFlag must be set to true in the"
                 + " same request when deactivating an office, unless it is already true");
@@ -700,7 +741,7 @@ public class OfficeService {
       boolean alreadyHeld = Boolean.TRUE.equals(link.getPaymentHeldFlag());
       boolean requestClearsPayment =
           payment != null && Boolean.FALSE.equals(payment.getPaymentHeldFlag());
-      if (alreadyHeld && !requestClearsPayment) {
+      if (!(link instanceof PdsProviderOfficeLinkEntity) && alreadyHeld && !requestClearsPayment) {
         throw new IllegalArgumentException(
             "Office patch validation failed: payment.paymentHeldFlag must be set to false in the"
                 + " same request when reactivating an office, unless it is already false");
@@ -779,6 +820,13 @@ public class OfficeService {
               patchDebtRecoveryFlag,
               patchFalseBalanceFlag,
               advocateLink);
+      case PdsProviderOfficeLinkEntity pdsLink ->
+          applyActivationPatchToPdsLink(
+              patchActiveDateTo,
+              clearActiveDateTo,
+              patchDebtRecoveryFlag,
+              patchFalseBalanceFlag,
+              pdsLink);
       default ->
           throw new IllegalStateException(
               "Unhandled ProviderOfficeLinkEntity subtype: " + link.getClass().getSimpleName());
@@ -866,6 +914,34 @@ public class OfficeService {
       // Does not touch falseBalanceFlag: validateActivationFlagTransitionRules has already
       // rejected the request unless falseBalanceFlag is already false or is being explicitly
       // cleared in this request, so no auto-correction is needed here (DSTEW-1675 AC3).
+      link.setActiveDateTo(null);
+    }
+
+    if (patchDebtRecoveryFlag != null) {
+      link.setDebtRecoveryFlag(patchDebtRecoveryFlag);
+    }
+    if (patchFalseBalanceFlag != null) {
+      link.setFalseBalanceFlag(patchFalseBalanceFlag);
+    }
+  }
+
+  private static void applyActivationPatchToPdsLink(
+      @Nullable LocalDate patchActiveDateTo,
+      boolean clearActiveDateTo,
+      @Nullable Boolean patchDebtRecoveryFlag,
+      @Nullable Boolean patchFalseBalanceFlag,
+      PdsProviderOfficeLinkEntity link) {
+    LocalDate effectiveActiveDateTo =
+        patchActiveDateTo != null
+            ? patchActiveDateTo
+            : clearActiveDateTo ? null : link.getActiveDateTo();
+    validateFlagCombinations(
+        patchDebtRecoveryFlag, patchFalseBalanceFlag, effectiveActiveDateTo != null);
+
+    if (patchActiveDateTo != null) {
+      link.setActiveDateTo(patchActiveDateTo);
+      link.setDebtRecoveryFlag(Boolean.FALSE);
+    } else if (clearActiveDateTo) {
       link.setActiveDateTo(null);
     }
     if (patchDebtRecoveryFlag != null) {

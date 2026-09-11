@@ -216,6 +216,11 @@ public interface ProviderMapper {
                       pdsEntity.getConstitutionalStatus()))
               .indemnityReceivedDate(pdsEntity.getIndemnityReceivedDate())
               .companiesHouseNumber(pdsEntity.getCompaniesHouseNumber())
+              .firmIntervenedFlag(pdsHeadOffice.getIntervenedFlag())
+              .firmIntervenedDate(pdsHeadOffice.getIntervenedChangeDate())
+              .holdAllPaymentsFlag(pdsHeadOffice.getPaymentHeldFlag())
+              .holdAllPaymentsReason(pdsHeadOffice.getPaymentHeldReason())
+              .referredToDebtRecoveryFlag(pdsHeadOffice.getDebtRecoveryFlag())
               .headOffice(toPdsHeadOfficeDetails(pdsHeadOffice)));
     } else if (FirmType.PUBLIC_DEFENDER_SERVICE.equals(entity.getFirmType())) {
       result.setPublicDefenderService(new PDSDetailsV2());
@@ -230,7 +235,14 @@ public interface ProviderMapper {
         .officeGUID(link.getGuid())
         .firmType(ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE)
         .accountNumber(link.getAccountNumber())
+        .headOfficeFlag(link.getHeadOfficeFlag())
         .activeDateTo(link.getActiveDateTo())
+        .debtRecoveryFlag(link.getDebtRecoveryFlag())
+        .falseBalanceFlag(link.getFalseBalanceFlag())
+        .intervened(
+            new IntervenedOfficeDetailsV2()
+                .intervenedFlag(link.getIntervenedFlag())
+                .intervenedChangeDate(link.getIntervenedChangeDate()))
         .address(
             new OfficeAddressV2()
                 .line1(office.getAddressLine1())
@@ -244,6 +256,10 @@ public interface ProviderMapper {
         .emailAddress(office.getEmailAddress())
         .website(toUri(link.getWebsite()))
         .dxDetails(toDxDetails(office))
+        .payment(
+            new PaymentDetailsV2()
+                .paymentHeldFlag(link.getPaymentHeldFlag())
+                .paymentHeldReason(link.getPaymentHeldReason()))
         .vatRegistration(
             link.getVatRegistrationNumber() == null
                 ? null

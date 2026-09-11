@@ -2497,6 +2497,7 @@ components:
             - $ref: '#/components/schemas/ProviderPatchLSPV2'
             - $ref: '#/components/schemas/ProviderPatchChambersV2'
             - $ref: '#/components/schemas/ProviderPatchPractitionerV2'
+            - $ref: '#/components/schemas/ProviderPatchPDSV2'
     ProviderPatchBaseV2:
       type: object
       properties:
@@ -3144,6 +3145,7 @@ components:
         - $ref: '#/components/schemas/LSPOfficePatchV2'
         - $ref: '#/components/schemas/ChambersOfficePatchV2'
         - $ref: '#/components/schemas/AdvocateOfficePatchV2'
+        - $ref: '#/components/schemas/PDSOfficePatchV2'
     LSPOfficePatchV2:
       type: object
       x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"officeGUID", "providerFirmGUID", "accountNumber"})'
@@ -3208,6 +3210,60 @@ components:
           $ref: '#/components/schemas/VATRegistrationV2'
         payment:
           $ref: '#/components/schemas/PaymentDetailsPatchOrLinkV2'
+    PDSOfficePatchV2:
+      type: object
+      x-class-extra-annotation: '@uk.gov.justice.laa.providerdata.annotation.RejectProperties( {"officeGUID", "providerFirmGUID", "accountNumber", "headOfficeFlag"})'
+      properties:
+        activeDateTo:
+          $ref: '#/components/schemas/OfficeActiveDateToV2'
+        clearActiveDateTo:
+          $ref: '#/components/schemas/ClearActiveDateToV2'
+        debtRecoveryFlag:
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
+        falseBalanceFlag:
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
+        intervened:
+          $ref: '#/components/schemas/IntervenedOfficeDetailsPatchV2'
+        address:
+          $ref: '#/components/schemas/OfficeAddressPatchV2'
+        telephoneNumber:
+          $ref: '#/components/schemas/OfficePhoneV2'
+        emailAddress:
+          $ref: '#/components/schemas/OfficeEmailAddressV2'
+        website:
+          $ref: '#/components/schemas/OfficeWebsiteV2'
+        dxDetails:
+          $ref: '#/components/schemas/DXPatchV2'
+        vatRegistration:
+          $ref: '#/components/schemas/VATRegistrationV2'
+        payment:
+          $ref: '#/components/schemas/PaymentDetailsPatchOrLinkV2'
+    PDSDetailsPatchV2:
+      type: object
+      properties:
+        constitutionalStatus:
+          $ref: '#/components/schemas/PDSConstitutionalStatusV2'
+        indemnityReceivedDate:
+          $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
+        companiesHouseNumber:
+          $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
+        firmIntervenedFlag:
+          $ref: '#/components/schemas/FirmIntervenedFlagV2'
+        firmIntervenedDate:
+          $ref: '#/components/schemas/FirmIntervenedDateV2'
+        holdAllPaymentsFlag:
+          $ref: '#/components/schemas/HoldAllPaymentsFlagV2'
+        holdAllPaymentsReason:
+          $ref: '#/components/schemas/HoldAllPaymentsReasonV2'
+        referredToDebtRecoveryFlag:
+          $ref: '#/components/schemas/ReferredToDebtRecoveryFlagV2'
+        headOffice:
+          $ref: '#/components/schemas/PDSOfficePatchV2'
+    ProviderPatchPDSV2:
+      type: object
+      properties:
+        publicDefenderService:
+          $ref: '#/components/schemas/PDSDetailsPatchV2'
     ChambersOfficeCoreDetailsV2:
       type: object
       required:
@@ -4108,14 +4164,26 @@ components:
       required:
         - firmType
         - accountNumber
+        - headOfficeFlag
         - address
       properties:
         firmType:
           $ref: '#/components/schemas/ProviderFirmTypeV2'
         accountNumber:
           $ref: '#/components/schemas/OfficeAccountNumberV2'
+        headOfficeFlag:
+          type: boolean
+          description: Whether this office is the provider's head office.
         activeDateTo:
           $ref: '#/components/schemas/OfficeActiveDateToV2'
+        debtRecoveryFlag:
+          $ref: '#/components/schemas/DebtRecoveryFlagV2'
+        falseBalanceFlag:
+          $ref: '#/components/schemas/FalseBalanceFlagV2'
+        intervened:
+          $ref: '#/components/schemas/IntervenedOfficeDetailsV2'
+        payment:
+          $ref: '#/components/schemas/PaymentDetailsV2'
         address:
           $ref: '#/components/schemas/OfficeAddressV2'
         telephoneNumber:
@@ -4149,6 +4217,16 @@ components:
           $ref: '#/components/schemas/LSPDetailsIndemnityReceivedDateV2'
         companiesHouseNumber:
           $ref: '#/components/schemas/LSPDetailsCompaniesHouseNumberV2'
+        firmIntervenedFlag:
+          $ref: '#/components/schemas/FirmIntervenedFlagV2'
+        firmIntervenedDate:
+          $ref: '#/components/schemas/FirmIntervenedDateV2'
+        holdAllPaymentsFlag:
+          $ref: '#/components/schemas/HoldAllPaymentsFlagV2'
+        holdAllPaymentsReason:
+          $ref: '#/components/schemas/HoldAllPaymentsReasonV2'
+        referredToDebtRecoveryFlag:
+          $ref: '#/components/schemas/ReferredToDebtRecoveryFlagV2'
         headOffice:
           $ref: '#/components/schemas/PDSHeadOfficeDetailsV2'
     ProviderPDSV2:

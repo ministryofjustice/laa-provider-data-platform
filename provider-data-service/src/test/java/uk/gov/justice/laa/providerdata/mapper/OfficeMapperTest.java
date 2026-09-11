@@ -12,6 +12,7 @@ import uk.gov.justice.laa.providerdata.entity.ChambersProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.FirmType;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
@@ -144,6 +145,38 @@ class OfficeMapperTest {
     assertThat(result.getIntervened().getIntervenedFlag()).isTrue();
     assertThat(result.getIntervened().getIntervenedChangeDate())
         .isEqualTo(LocalDate.of(2025, 6, 1));
+  }
+
+  @Test
+  void toOfficeV2_dispatchesPdsLinkAndMapsStatusFields() {
+    OfficeEntity office = officeWithGuid();
+    office.setAddressLine1("1 PDS Street");
+    office.setAddressTownOrCity("London");
+    office.setAddressPostCode("EC1A 1BB");
+
+    PdsProviderOfficeLinkEntity link = new PdsProviderOfficeLinkEntity();
+    link.setGuid(UUID.randomUUID());
+    link.setOffice(office);
+    link.setAccountNumber("PDS001");
+    link.setDebtRecoveryFlag(true);
+    link.setFalseBalanceFlag(false);
+    link.setPaymentHeldFlag(true);
+    link.setPaymentHeldReason("Compliance review");
+    link.setIntervenedFlag(true);
+    link.setIntervenedChangeDate(LocalDate.of(2025, 3, 1));
+    link.setVatRegistrationNumber("GB123456789");
+
+    OfficeV2 result = mapper.toOfficeV2(link);
+
+    assertThat(result.getFirmType()).isEqualTo(ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE);
+    assertThat(result.getAccountNumber()).isEqualTo("PDS001");
+    assertThat(result.getDebtRecoveryFlag()).isTrue();
+    assertThat(result.getFalseBalanceFlag()).isFalse();
+    assertThat(result.getPayment().getPaymentMethod()).isNull();
+    assertThat(result.getPayment().getPaymentHeldFlag()).isTrue();
+    assertThat(result.getPayment().getPaymentHeldReason()).isEqualTo("Compliance review");
+    assertThat(result.getIntervened().getIntervenedFlag()).isTrue();
+    assertThat(result.getVatRegistration().getVatNumber()).isEqualTo("GB123456789");
   }
 
   @Test

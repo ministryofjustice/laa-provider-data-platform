@@ -26,6 +26,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.LspProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
@@ -34,6 +36,9 @@ import uk.gov.justice.laa.providerdata.model.LSPDetailsConstitutionalStatusV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsV2;
 import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
+import uk.gov.justice.laa.providerdata.model.PDSConstitutionalStatusV2;
+import uk.gov.justice.laa.providerdata.model.PDSDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PDSHeadOfficeDetailsV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
@@ -394,6 +399,56 @@ class ProviderFirmControllerTest {
         .perform(get("/provider-firms/{id}", "UNKNOWN"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error.errorCode").value("P00NF"));
+  }
+
+  @Test
+  void getProviderFirm_pds_returnsConfiguredPdsDetails() throws Exception {
+    UUID guid = UUID.randomUUID();
+    UUID officeGuid = UUID.randomUUID();
+    PdsProviderEntity entity =
+        PdsProviderEntity.builder()
+            .firmNumber("PDS-100001")
+            .name("Public Defender Service")
+            .build();
+    entity.setGuid(guid);
+    PdsProviderOfficeLinkEntity headOffice = new PdsProviderOfficeLinkEntity();
+    headOffice.setGuid(officeGuid);
+    ProviderV2 provider =
+        new ProviderV2()
+            .guid(guid)
+            .firmNumber("PDS-100001")
+            .firmType(ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE)
+            .name("Public Defender Service")
+            .publicDefenderService(
+                new PDSDetailsV2()
+                    .constitutionalStatus(PDSConstitutionalStatusV2.GOVERNMENT_FUNDED_ORGANISATION)
+                    .headOffice(
+                        new PDSHeadOfficeDetailsV2()
+                            .officeGUID(officeGuid)
+                            .accountNumber("PDS001")));
+
+    when(providerFirmService.getProvider(guid.toString())).thenReturn(entity);
+    when(providerFirmService.getPdsHeadOffice(entity)).thenReturn(Optional.of(headOffice));
+    when(providerFirmService.getParentLinks(entity)).thenReturn(List.of());
+    when(providerFirmMapper.toProviderV2(
+            entity, null, null, null, null, null, null, headOffice, List.of()))
+        .thenReturn(provider);
+
+    mockMvc
+        .perform(get("/provider-firms/{guid}", guid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.firmType").value("Public Defender Service"))
+        .andExpect(
+            jsonPath("$.data.publicDefenderService.constitutionalStatus")
+                .value("Government Funded Organisation"))
+        .andExpect(
+            jsonPath("$.data.publicDefenderService.headOffice.officeGUID")
+                .value(officeGuid.toString()))
+        .andExpect(
+            jsonPath("$.data.publicDefenderService.headOffice.accountNumber").value("PDS001"))
+        .andExpect(jsonPath("$.data.legalServicesProvider").doesNotExist())
+        .andExpect(jsonPath("$.data.chambers").doesNotExist())
+        .andExpect(jsonPath("$.data.practitioner").doesNotExist());
   }
 
   @Test

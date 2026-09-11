@@ -68,7 +68,7 @@ dependencies {
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-zipkin'
@@ -116,7 +116,7 @@ configurations {
 }
 
 dependencies {
-    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.5'
     pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 tasks.named('processPactTestResources') {

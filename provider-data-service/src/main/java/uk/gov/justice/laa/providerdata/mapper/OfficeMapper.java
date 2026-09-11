@@ -233,6 +233,18 @@ public interface OfficeMapper {
   IntervenedOfficeDetailsV2 toIntervened(AdvocateProviderOfficeLinkEntity link);
 
   /**
+   * Maps intervention fields of a {@link PdsProviderOfficeLinkEntity} to an {@link
+   * IntervenedOfficeDetailsV2}.
+   *
+   * @param link the PDS provider-office link
+   * @return the intervention details
+   */
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(target = "intervenedFlag", source = "intervenedFlag")
+  @Mapping(target = "intervenedChangeDate", source = "intervenedChangeDate")
+  IntervenedOfficeDetailsV2 toIntervened(PdsProviderOfficeLinkEntity link);
+
+  /**
    * Maps an {@link LspProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO.
    *
    * @param link the LSP provider-office link entity (with eagerly-loaded {@code office})
@@ -293,6 +305,35 @@ public interface OfficeMapper {
   }
 
   /**
+   * Maps a {@link PdsProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO.
+   *
+   * @param link the PDS provider-office link entity (with eagerly-loaded {@code office})
+   * @return the populated response DTO
+   */
+  default OfficeV2 toPdsOfficeV2(PdsProviderOfficeLinkEntity link) {
+    OfficeEntity office = link.getOffice();
+    return new OfficeV2()
+        .guid(link.getGuid())
+        .version(office.getVersion())
+        .createdBy(office.getCreatedBy())
+        .createdTimestamp(office.getCreatedTimestamp())
+        .lastUpdatedBy(office.getLastUpdatedBy())
+        .lastUpdatedTimestamp(office.getLastUpdatedTimestamp())
+        .firmType(firmTypeFromEntity(link))
+        .accountNumber(link.getAccountNumber())
+        .activeDateTo(link.getActiveDateTo())
+        .debtRecoveryFlag(link.getDebtRecoveryFlag())
+        .falseBalanceFlag(link.getFalseBalanceFlag())
+        .address(toAddress(office))
+        .telephoneNumber(office.getTelephoneNumber())
+        .emailAddress(office.getEmailAddress())
+        .website(stringToUri(link.getWebsite()))
+        .dxDetails(toDxDetails(office))
+        .vatRegistration(toVatRegistration(link))
+        .intervened(toIntervened(link));
+  }
+
+  /**
    * Maps a {@link ProviderOfficeLinkEntity} to an {@link OfficeV2} response DTO using only the
    * fields present on the base entity. LSP/Advocate-specific fields (VAT, payment details,
    * intervention, debt/false-balance flags) are omitted; for those, use {@link #toLspOfficeV2} or
@@ -307,6 +348,9 @@ public interface OfficeMapper {
     }
     if (link instanceof AdvocateProviderOfficeLinkEntity advocateLink) {
       return toAdvocateOfficeV2(advocateLink);
+    }
+    if (link instanceof PdsProviderOfficeLinkEntity pdsLink) {
+      return toPdsOfficeV2(pdsLink);
     }
     OfficeEntity office = link.getOffice();
     return new OfficeV2()
@@ -361,6 +405,13 @@ public interface OfficeMapper {
 
   /** Returns a {@link VATRegistrationV2} when a VAT number is present; otherwise {@code null}. */
   default @Nullable VATRegistrationV2 toVatRegistration(AdvocateProviderOfficeLinkEntity link) {
+    return link.getVatRegistrationNumber() != null
+        ? new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber())
+        : null;
+  }
+
+  /** Returns a {@link VATRegistrationV2} when a VAT number is present; otherwise {@code null}. */
+  default @Nullable VATRegistrationV2 toVatRegistration(PdsProviderOfficeLinkEntity link) {
     return link.getVatRegistrationNumber() != null
         ? new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber())
         : null;

@@ -41,7 +41,4 @@ public final class LspProviderOfficeLinkEntity extends ProviderOfficeLinkEntity 
   /** PO.PO_VENDOR_SITES_ALL.EDI_PAYMENT_METHOD VARCHAR2(25). */
   @Column(name = "PAYMENT_METHOD")
   private String paymentMethod;
-
-  @Column(name = "FALSE_BALANCE_FLAG")
-  private Boolean falseBalanceFlag;
 }

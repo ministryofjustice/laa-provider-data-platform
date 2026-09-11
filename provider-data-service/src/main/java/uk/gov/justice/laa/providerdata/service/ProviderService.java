@@ -21,6 +21,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
@@ -33,6 +34,9 @@ import uk.gov.justice.laa.providerdata.model.LSPHeadOfficeDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkChambersV2;
+import uk.gov.justice.laa.providerdata.model.PDSDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PDSHeadOfficeDetailsPatchV2;
+import uk.gov.justice.laa.providerdata.model.PDSOfficePatchV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsParentUpdateV2OneOf1;
@@ -72,6 +76,7 @@ public class ProviderService {
   private final OfficeContractManagerLinkRepository officeContractManagerLinkRepository;
   private final OfficeBankAccountLinkRepository officeBankAccountLinkRepository;
   private final LiaisonManagerRepository liaisonManagerRepository;
+  private final OfficeService officeService;
 
   /**
    * Inject dependencies.
@@ -96,7 +101,8 @@ public class ProviderService {
       OfficeLiaisonManagerLinkRepository officeLiaisonManagerLinkRepository,
       OfficeContractManagerLinkRepository officeContractManagerLinkRepository,
       OfficeBankAccountLinkRepository officeBankAccountLinkRepository,
-      LiaisonManagerRepository liaisonManagerRepository) {
+      LiaisonManagerRepository liaisonManagerRepository,
+      OfficeService officeService) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
     this.pdsProviderOfficeLinkRepository = pdsProviderOfficeLinkRepository;
@@ -109,6 +115,7 @@ public class ProviderService {
     this.officeContractManagerLinkRepository = officeContractManagerLinkRepository;
     this.officeBankAccountLinkRepository = officeBankAccountLinkRepository;
     this.liaisonManagerRepository = liaisonManagerRepository;
+    this.officeService = officeService;
   }
 
   /**
@@ -163,9 +170,146 @@ public class ProviderService {
           liaisonManagerRepository);
     }
 
+    var pdsPatch = patch.getPublicDefenderService();
+    if (pdsPatch != null) {
+      applyPdsPatch(provider, providerFirmGUIDorFirmNumber, pdsPatch);
+    }
+
     var saved = providerRepository.save(provider);
 
     return ProviderCreationResult.withoutOffice(saved.getGuid(), saved.getFirmNumber());
+  }
+
+  private void applyPdsPatch(
+      ProviderEntity provider, String providerFirmGUIDorFirmNumber, PDSDetailsPatchV2 patch) {
+    if (!(provider instanceof PdsProviderEntity pdsProvider)) {
+      throw new IllegalArgumentException(
+          "publicDefenderService updates require a Public Defender Service provider: "
+              + providerFirmGUIDorFirmNumber);
+    }
+
+    validatePdsPatch(patch, pdsProvider);
+
+    if (patch.getConstitutionalStatus() != null) {
+      pdsProvider.setConstitutionalStatus(patch.getConstitutionalStatus().getValue());
+    }
+    if (patch.getIndemnityReceivedDate() != null) {
+      pdsProvider.setIndemnityReceivedDate(patch.getIndemnityReceivedDate());
+    }
+    if (patch.getCompaniesHouseNumber() != null) {
+      pdsProvider.setCompaniesHouseNumber(patch.getCompaniesHouseNumber());
+    }
+
+    var headOfficePatch = patch.getHeadOffice();
+    if (headOfficePatch != null
+        || patch.getFirmIntervenedFlag() != null
+        || patch.getFirmIntervenedDate() != null
+        || patch.getHoldAllPaymentsFlag() != null
+        || patch.getHoldAllPaymentsReason() != null
+        || patch.getReferredToDebtRecoveryFlag() != null) {
+      var headOffice =
+          pdsProviderOfficeLinkRepository
+              .findByProviderAndHeadOfficeFlagTrue(pdsProvider)
+              .orElseThrow(
+                  () ->
+                      new ItemNotFoundException(
+                          "PDS provider has no head office: " + pdsProvider.getGuid()));
+      PDSOfficePatchV2 officePatch = toPdsOfficePatch(headOfficePatch);
+      if (patch.getFirmIntervenedFlag() != null) {
+        officePatch.intervened(
+            new uk.gov.justice.laa.providerdata.model.IntervenedOfficeDetailsPatchV2()
+                .intervenedFlag(patch.getFirmIntervenedFlag())
+                .intervenedChangeDate(patch.getFirmIntervenedDate()));
+      }
+      if (patch.getReferredToDebtRecoveryFlag() != null) {
+        officePatch.debtRecoveryFlag(patch.getReferredToDebtRecoveryFlag());
+      }
+      officeService.patchOffice(
+          providerFirmGUIDorFirmNumber, headOffice.getGuid().toString(), officePatch);
+      if (patch.getHoldAllPaymentsFlag() != null) {
+        headOffice.setPaymentHeldFlag(patch.getHoldAllPaymentsFlag());
+        headOffice.setPaymentHeldReason(patch.getHoldAllPaymentsReason());
+        pdsProviderOfficeLinkRepository.save(headOffice);
+      }
+    }
+  }
+
+  private static PDSOfficePatchV2 toPdsOfficePatch(@Nullable PDSHeadOfficeDetailsPatchV2 patch) {
+    if (patch == null) {
+      return new PDSOfficePatchV2();
+    }
+    return new PDSOfficePatchV2()
+        .activeDateTo(patch.getActiveDateTo())
+        .clearActiveDateTo(patch.getClearActiveDateTo())
+        .falseBalanceFlag(patch.getFalseBalanceFlag())
+        .address(patch.getAddress())
+        .telephoneNumber(patch.getTelephoneNumber())
+        .emailAddress(patch.getEmailAddress())
+        .website(patch.getWebsite())
+        .dxDetails(patch.getDxDetails())
+        .vatRegistration(patch.getVatRegistration());
+  }
+
+  private void validatePdsPatch(PDSDetailsPatchV2 patch, PdsProviderEntity provider) {
+    if (patch.getFirmIntervenedFlag() != null && patch.getFirmIntervenedDate() == null
+        || patch.getFirmIntervenedFlag() == null && patch.getFirmIntervenedDate() != null) {
+      throw new IllegalArgumentException(
+          "firmIntervenedFlag and firmIntervenedDate must be provided together");
+    }
+    if (patch.getHoldAllPaymentsFlag() != null && patch.getHoldAllPaymentsReason() == null
+        || patch.getHoldAllPaymentsFlag() == null && patch.getHoldAllPaymentsReason() != null) {
+      throw new IllegalArgumentException(
+          "holdAllPaymentsFlag and holdAllPaymentsReason must be provided together");
+    }
+    if (Boolean.TRUE.equals(patch.getHoldAllPaymentsFlag())
+        && patch.getHoldAllPaymentsReason().isBlank()) {
+      throw new IllegalArgumentException(
+          "holdAllPaymentsReason must be provided when holdAllPaymentsFlag is true");
+    }
+
+    PDSHeadOfficeDetailsPatchV2 office = patch.getHeadOffice();
+    if (office == null) {
+      return;
+    }
+    if (office.getAddress() != null) {
+      if (office.getAddress().getLine1() != null && office.getAddress().getLine1().isBlank()
+          || office.getAddress().getTownOrCity() != null
+              && office.getAddress().getTownOrCity().isBlank()
+          || office.getAddress().getPostcode() != null
+              && office.getAddress().getPostcode().isBlank()) {
+        throw new IllegalArgumentException("Mandatory address fields must not be blank");
+      }
+    }
+    if (office.getDxDetails() != null
+        && (office.getDxDetails().getDxNumber() == null
+            || office.getDxDetails().getDxCentre() == null)) {
+      throw new IllegalArgumentException(
+          "dxNumber and dxCentre must both be provided or both omitted");
+    }
+    var currentHeadOffice =
+        pdsProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider).orElse(null);
+    if (office.getClearActiveDateTo() != null
+        && Boolean.TRUE.equals(office.getClearActiveDateTo())
+        && currentHeadOffice != null
+        && currentHeadOffice.getActiveDateTo() != null) {
+      throw new IllegalArgumentException("Inactive Date cannot be removed once set");
+    }
+    if (office.getActiveDateTo() != null) {
+      if (!office.getActiveDateTo().equals(LocalDate.now())) {
+        throw new IllegalArgumentException("Inactive Date must be set to today's date only");
+      }
+      if (currentHeadOffice != null
+          && currentHeadOffice.getActiveDateTo() != null
+          && !currentHeadOffice.getActiveDateTo().equals(office.getActiveDateTo())) {
+        throw new IllegalArgumentException("Inactive Date cannot be amended once set");
+      }
+    }
+    if (Boolean.TRUE.equals(office.getFalseBalanceFlag())
+        && (currentHeadOffice == null || currentHeadOffice.getActiveDateTo() == null)
+        && office.getActiveDateTo() == null) {
+      throw new IllegalArgumentException(
+          "False Balance flag can only be applied to an inactive provider");
+    }
   }
 
   private static void applyLspPatch(

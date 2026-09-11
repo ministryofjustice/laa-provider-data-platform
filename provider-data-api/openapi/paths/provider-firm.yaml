@@ -341,6 +341,7 @@
       5) Changing parent firm of a Barrister or an Advocate.
          Note that changing parent Chambers should also re-link office details and liaison manager.
          There are three options: 1. use new Chambers' LM, 2. keep existing LM or 3. add new LM.
+      6) Updating permitted Public Defender Service details and its head office.
     parameters:
     - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
     - $ref: "../components/parameters/common.yaml#/ProviderFirmGUIDorFirmNumber"

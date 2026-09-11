@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.providerdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +65,52 @@ class PublicDefenderServiceCreationIntegrationTest extends PostgresqlSpringBootT
     assertThat(provider.getConstitutionalStatus()).isEqualTo("Government Funded Organisation");
     assertThat(officeLink.getHeadOfficeFlag()).isTrue();
     assertThat(officeLink.getOffice().getAddressLine1()).isEqualTo("1 Integration Street");
+  }
+
+  @Test
+  void dstew2025_ac1_validAmendment_updatesPdsProviderAndHeadOffice() throws Exception {
+    MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+    String response =
+        mockMvc
+            .perform(
+                post("/provider-firms/public-defender-services")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(validRequest("Integration PDS Amendment")))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String firmNumber = JsonPath.read(response, "$.data.providerFirmNumber");
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", firmNumber)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "name": "Integration PDS Amended",
+                      "publicDefenderService": {
+                        "companiesHouseNumber": "12345678",
+                        "headOffice": {
+                          "address": {
+                            "line1": "2 Integration Street",
+                            "townOrCity": "Birmingham",
+                            "postcode": "B2 2BB"
+                          }
+                        }
+                      }
+                    }
+                    """))
+        .andExpect(status().isOk());
+
+    PdsProviderEntity provider =
+        (PdsProviderEntity) providerRepository.findByFirmNumber(firmNumber).orElseThrow();
+    PdsProviderOfficeLinkEntity officeLink =
+        pdsOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider).orElseThrow();
+    assertThat(provider.getName()).isEqualTo("Integration PDS Amended");
+    assertThat(provider.getCompaniesHouseNumber()).isEqualTo("12345678");
+    assertThat(officeLink.getOffice().getAddressLine1()).isEqualTo("2 Integration Street");
   }
 
   @Test

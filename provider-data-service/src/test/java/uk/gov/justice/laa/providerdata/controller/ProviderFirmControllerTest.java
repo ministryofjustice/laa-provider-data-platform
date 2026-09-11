@@ -64,7 +64,8 @@ class ProviderFirmControllerTest {
                     """
                         {
                           "name": "Birmingham Public Defender Service",
-                          "constitutionalStatus": "Government Funded Organisation",
+                          "constitutionalStatus":
+                              "Government Funded Organisation",
                           "headOffice": {
                             "address": {
                               "line1": "1 New Street",
@@ -443,6 +444,28 @@ class ProviderFirmControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
         .andExpect(jsonPath("$.data.providerFirmNumber").value("100003"));
+  }
+
+  @Test
+  void patchProviderFirm_pdsDetails_returns200WithIdentifiers() throws Exception {
+    UUID guid = UUID.randomUUID();
+    when(providerFirmService.patchProvider(anyString(), any()))
+        .thenReturn(ProviderCreationResult.withoutOffice(guid, "PDS-ABCD1234"));
+
+    mockMvc
+        .perform(
+            patch("/provider-firms/{id}", guid.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                        {"publicDefenderService": {
+                          "constitutionalStatus": "Government Funded Organisation",
+                          "companiesHouseNumber": "12345678"
+                        }}
+                        """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.providerFirmGUID").value(guid.toString()))
+        .andExpect(jsonPath("$.data.providerFirmNumber").value("PDS-ABCD1234"));
   }
 
   @Test

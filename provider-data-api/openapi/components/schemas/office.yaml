@@ -82,6 +82,7 @@ OfficePatchV2:
   - $ref: "./legal-services-provider.yaml#/LSPOfficePatchV2"
   - $ref: "./chambers.yaml#/ChambersOfficePatchV2"
   - $ref: "./practitioner.yaml#/AdvocateOfficePatchV2"
+  - $ref: "./public-defender-service.yaml#/PDSOfficePatchV2"
 
 IntervenedOfficeDetailsIntervenedFlagV2:
   type: boolean

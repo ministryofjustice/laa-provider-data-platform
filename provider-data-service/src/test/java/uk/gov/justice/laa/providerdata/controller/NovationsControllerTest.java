@@ -28,6 +28,7 @@ import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.NovationMapperImpl;
 import uk.gov.justice.laa.providerdata.repository.NovationLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.NovationRepository;
+import uk.gov.justice.laa.providerdata.service.NovationAmendmentService;
 import uk.gov.justice.laa.providerdata.service.NovationCreationResult;
 import uk.gov.justice.laa.providerdata.service.NovationCreationService;
 
@@ -37,6 +38,7 @@ class NovationsControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @MockitoBean private NovationCreationService novationCreationService;
+  @MockitoBean private NovationAmendmentService novationAmendmentService;
   @MockitoBean private NovationRepository novationRepository;
   @MockitoBean private NovationLinkRepository novationLinkRepository;
 
@@ -220,12 +222,115 @@ class NovationsControllerTest {
   }
 
   @Test
-  void updateNovation_returns501NotImplemented() throws Exception {
+  void updateNovation_returnsUpdatedNovation() throws Exception {
+    UUID novationGuid = UUID.randomUUID();
+    NovationEntity novation =
+        NovationEntity.builder()
+            .guid(novationGuid)
+            .novationType("Legal entity change")
+            .novationEffectiveDate(LocalDate.of(2026, 3, 1))
+            .novationStatus("Approved")
+            .decisionDate(LocalDate.of(2026, 2, 1))
+            .build();
+    when(novationAmendmentService.updateNovation(any(), any())).thenReturn(novation);
+    when(novationLinkRepository.findByNovationOrderByCreatedTimestampAsc(novation))
+        .thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            patch("/novations/{novationGUID}", novationGuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "novationType": "Legal entity change",
+                      "novationEffectiveDate": "2026-03-01",
+                      "novationStatus": "Approved",
+                      "decisionDate": "2026-02-01"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.guid").value(novationGuid.toString()))
+        .andExpect(jsonPath("$.data.novationType").value("Legal entity change"))
+        .andExpect(jsonPath("$.data.novationStatus").value("Approved"))
+        .andExpect(jsonPath("$.data.decisionDate").value("2026-02-01"));
+  }
+
+  @Test
+  void updateNovation_invalidTransition_returns400() throws Exception {
+    when(novationAmendmentService.updateNovation(any(), any()))
+        .thenThrow(new IllegalArgumentException("novationStatus transition is not permitted"));
+
     mockMvc
         .perform(
             patch("/novations/{novationGUID}", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+                .content(
+                    """
+                    {
+                      "novationStatus": "Rescinded",
+                      "rescindedDate": "2026-04-01",
+                      "rescindedReason": "Cancelled"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createNovationRelationship_returns501NotImplemented() throws Exception {
+    mockMvc
+        .perform(
+            post("/novations/{novationGUID}/relationships", UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "previousProviderFirmGUID": "11111111-1111-1111-1111-111111111111",
+                      "newProviderFirmGUID": "22222222-2222-2222-2222-222222222222"
+                    }
+                    """))
         .andExpect(status().isNotImplemented());
+  }
+
+  @Test
+  void updateNovationRelationship_returnsUpdatedRelationship() throws Exception {
+    UUID novationGuid = UUID.randomUUID();
+    UUID relationshipGuid = UUID.randomUUID();
+    UUID previousProviderGuid = UUID.randomUUID();
+    UUID newProviderGuid = UUID.randomUUID();
+    NovationEntity novation = NovationEntity.builder().guid(novationGuid).build();
+    NovationLinkEntity link =
+        NovationLinkEntity.builder()
+            .guid(relationshipGuid)
+            .novation(novation)
+            .previousProvider(ProviderEntity.builder().guid(previousProviderGuid).build())
+            .newProvider(ProviderEntity.builder().guid(newProviderGuid).build())
+            .notes("Updated relationship")
+            .build();
+    when(novationAmendmentService.updateNovationRelationship(any(), any(), any())).thenReturn(link);
+
+    mockMvc
+        .perform(
+            patch(
+                    "/novations/{novationGUID}/relationships/{novationRelationshipGUID}",
+                    novationGuid,
+                    relationshipGuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "previousProviderFirmGUID": "%s",
+                      "newProviderFirmGUID": "%s",
+                      "notes": "Updated relationship"
+                    }
+                    """
+                        .formatted(previousProviderGuid, newProviderGuid)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.guid").value(relationshipGuid.toString()))
+        .andExpect(jsonPath("$.data.novationGUID").value(novationGuid.toString()))
+        .andExpect(
+            jsonPath("$.data.previousProviderFirmGUID").value(previousProviderGuid.toString()))
+        .andExpect(jsonPath("$.data.newProviderFirmGUID").value(newProviderGuid.toString()))
+        .andExpect(jsonPath("$.data.notes").value("Updated relationship"));
   }
 }

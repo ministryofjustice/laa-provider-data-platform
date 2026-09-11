@@ -6,34 +6,42 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.providerdata.api.NovationRelationshipsApi;
 import uk.gov.justice.laa.providerdata.api.NovationsApi;
 import uk.gov.justice.laa.providerdata.entity.NovationEntity;
 import uk.gov.justice.laa.providerdata.entity.NovationLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.NovationMapper;
 import uk.gov.justice.laa.providerdata.model.CreateNovation201Response;
+import uk.gov.justice.laa.providerdata.model.CreateNovationRelationship201Response;
 import uk.gov.justice.laa.providerdata.model.GetNovation200Response;
 import uk.gov.justice.laa.providerdata.model.GetNovations200Response;
 import uk.gov.justice.laa.providerdata.model.NovationCreateResponseV2;
 import uk.gov.justice.laa.providerdata.model.NovationCreateV2;
 import uk.gov.justice.laa.providerdata.model.NovationPatchV2;
+import uk.gov.justice.laa.providerdata.model.NovationRelationshipCreateV2;
+import uk.gov.justice.laa.providerdata.model.NovationRelationshipPatchV2;
 import uk.gov.justice.laa.providerdata.model.NovationStatusV2;
+import uk.gov.justice.laa.providerdata.model.UpdateNovationRelationship200Response;
 import uk.gov.justice.laa.providerdata.repository.NovationLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.NovationRepository;
+import uk.gov.justice.laa.providerdata.service.NovationAmendmentService;
 import uk.gov.justice.laa.providerdata.service.NovationCreationResult;
 import uk.gov.justice.laa.providerdata.service.NovationCreationService;
 
 /**
  * REST controller implementing the Novations API.
  *
- * <p>{@code createNovation} (DSTEW-1975) and {@code getNovation} (DSTEW-1980) are implemented.
- * {@code getNovations} (list/search) and {@code updateNovation} are published as contract-only
- * stubs for future stories (DSTEW-1976/1977) and return 501 Not Implemented.
+ * <p>{@code createNovation} (DSTEW-1975), {@code getNovation} (DSTEW-1980), {@code updateNovation}
+ * and {@code updateNovationRelationship} (DSTEW-1977) are implemented. {@code getNovations}
+ * (list/search) and {@code createNovationRelationship} are published as contract-only stubs for
+ * future stories and return 501 Not Implemented.
  */
 @RestController
-public class NovationsController implements NovationsApi {
+public class NovationsController implements NovationsApi, NovationRelationshipsApi {
 
   private final NovationCreationService novationCreationService;
+  private final NovationAmendmentService novationAmendmentService;
   private final NovationRepository novationRepository;
   private final NovationLinkRepository novationLinkRepository;
   private final NovationMapper novationMapper;
@@ -42,16 +50,19 @@ public class NovationsController implements NovationsApi {
    * Creates the controller with its collaborators.
    *
    * @param novationCreationService creates Novation records and their relationships
+   * @param novationAmendmentService amends Novation records and relationships
    * @param novationRepository looks up persisted Novation entities for retrieval
    * @param novationLinkRepository looks up persisted Novation relationships for retrieval
    * @param novationMapper maps between entities and API models
    */
   public NovationsController(
       NovationCreationService novationCreationService,
+      NovationAmendmentService novationAmendmentService,
       NovationRepository novationRepository,
       NovationLinkRepository novationLinkRepository,
       NovationMapper novationMapper) {
     this.novationCreationService = novationCreationService;
+    this.novationAmendmentService = novationAmendmentService;
     this.novationRepository = novationRepository;
     this.novationLinkRepository = novationLinkRepository;
     this.novationMapper = novationMapper;
@@ -114,6 +125,32 @@ public class NovationsController implements NovationsApi {
   @Override
   public ResponseEntity<GetNovation200Response> updateNovation(
       UUID novationGUID, NovationPatchV2 novationPatchV2, @Nullable String traceparent) {
+    NovationEntity novation =
+        novationAmendmentService.updateNovation(novationGUID, novationPatchV2);
+    List<NovationLinkEntity> links =
+        novationLinkRepository.findByNovationOrderByCreatedTimestampAsc(novation);
+    return ResponseEntity.ok(
+        new GetNovation200Response(novationMapper.toNovationV2(novation, links)));
+  }
+
+  @Override
+  public ResponseEntity<CreateNovationRelationship201Response> createNovationRelationship(
+      UUID novationGUID,
+      NovationRelationshipCreateV2 novationRelationshipCreateV2,
+      @Nullable String traceparent) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+  }
+
+  @Override
+  public ResponseEntity<UpdateNovationRelationship200Response> updateNovationRelationship(
+      UUID novationGUID,
+      UUID novationRelationshipGUID,
+      NovationRelationshipPatchV2 novationRelationshipPatchV2,
+      @Nullable String traceparent) {
+    NovationLinkEntity link =
+        novationAmendmentService.updateNovationRelationship(
+            novationGUID, novationRelationshipGUID, novationRelationshipPatchV2);
+    return ResponseEntity.ok(
+        new UpdateNovationRelationship200Response(novationMapper.toNovationRelationshipV2(link)));
   }
 }

@@ -14,6 +14,7 @@ import uk.gov.justice.laa.providerdata.entity.LiaisonManagerEntity;
 import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.model.ChambersHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.DXV2;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.providerdata.model.LSPOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficeV2;
+import uk.gov.justice.laa.providerdata.model.PDSHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateOrLinkV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
@@ -92,6 +94,21 @@ public interface OfficeMapper {
   @Mapping(target = "dxDetailsCentre", source = "dxDetails.dxCentre")
   OfficeEntity toOfficeEntity(ChambersHeadOfficeCreateV2 request);
 
+  /** Maps a Public Defender Service head office creation request to an office entity. */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "addressLine1", source = "address.line1")
+  @Mapping(target = "addressLine2", source = "address.line2")
+  @Mapping(target = "addressLine3", source = "address.line3")
+  @Mapping(target = "addressLine4", source = "address.line4")
+  @Mapping(target = "addressTownOrCity", source = "address.townOrCity")
+  @Mapping(target = "addressCounty", source = "address.county")
+  @Mapping(target = "addressPostCode", source = "address.postcode")
+  @Mapping(target = "telephoneNumber", source = "telephoneNumber")
+  @Mapping(target = "emailAddress", source = "emailAddress")
+  @Mapping(target = "dxDetailsNumber", source = "dxDetails.dxNumber")
+  @Mapping(target = "dxDetailsCentre", source = "dxDetails.dxCentre")
+  OfficeEntity toOfficeEntity(PDSHeadOfficeCreateV2 request);
+
   /**
    * Maps an LSP office creation request to a partially-populated {@link
    * LspProviderOfficeLinkEntity}. The caller must set {@code provider}, {@code office}, and {@code
@@ -134,6 +151,13 @@ public interface OfficeMapper {
   @Mapping(target = "website", source = "website", qualifiedByName = "uriToString")
   ChambersProviderOfficeLinkEntity toChambersHeadOfficeLinkTemplate(
       ChambersHeadOfficeCreateV2 request);
+
+  /** Maps a Public Defender Service head office creation request to a link template. */
+  @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
+  @Mapping(target = "headOfficeFlag", expression = "java(Boolean.TRUE)")
+  @Mapping(target = "website", source = "website", qualifiedByName = "uriToString")
+  @Mapping(target = "vatRegistrationNumber", source = "vatRegistration.vatNumber")
+  PdsProviderOfficeLinkEntity toPdsHeadOfficeLinkTemplate(PDSHeadOfficeCreateV2 request);
 
   /** Maps a {@link LiaisonManagerCreateV2} request to a {@link LiaisonManagerEntity}. */
   @BeanMapping(builder = @Builder(disableBuilder = true), ignoreByDefault = true)
@@ -315,6 +339,7 @@ public interface OfficeMapper {
       case LspProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.LEGAL_SERVICES_PROVIDER;
       case ChambersProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.CHAMBERS;
       case AdvocateProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.ADVOCATE;
+      case PdsProviderOfficeLinkEntity _ -> ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE;
       default -> ProviderFirmTypeV2.fromValue(link.getFirmType());
     };
   }

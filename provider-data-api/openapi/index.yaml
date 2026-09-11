@@ -31,6 +31,8 @@ paths:
     $ref: ./paths/contract-manager.yaml#/~1provider-contract-managers
   /provider-firms:
     $ref: ./paths/provider-firm.yaml#/~1provider-firms
+  /provider-firms/public-defender-services:
+    $ref: ./paths/provider-firm.yaml#/~1provider-firms~1public-defender-services
   /provider-firms/{providerFirmGUIDorFirmNumber}:
     $ref: ./paths/provider-firm.yaml#/~1provider-firms~1{providerFirmGUIDorFirmNumber}
   /provider-firms/{providerFirmGUIDorFirmNumber}/bank-details:
@@ -109,6 +111,12 @@ components:
       $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmTypeV2
     ProviderFirmNameV2:
       $ref: ./components/schemas/provider-firm.yaml#/ProviderFirmNameV2
+    PDSConstitutionalStatusV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/PDSConstitutionalStatusV2
+    PDSHeadOfficeCreateV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/PDSHeadOfficeCreateV2
+    PublicDefenderServiceCreateV2:
+      $ref: ./components/schemas/public-defender-service.yaml#/PublicDefenderServiceCreateV2
     ProviderCreateV2:
       $ref: ./components/schemas/provider-firm.yaml#/ProviderCreateV2
     ProviderCreateBaseV2:

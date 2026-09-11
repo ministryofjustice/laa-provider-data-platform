@@ -90,6 +90,13 @@ public class NovationsController implements NovationsApi, NovationRelationshipsA
     return ResponseEntity.status(HttpStatus.CREATED).body(new CreateNovation201Response(data));
   }
 
+  /**
+   * Retrieves a Novation record and its supported predecessor/successor provider relationships.
+   *
+   * @param novationGUID the Novation GUID
+   * @param traceparent W3C Trace Context header, unused
+   * @return 200 with the Novation and its relationships
+   */
   @Override
   public ResponseEntity<GetNovation200Response> getNovation(
       UUID novationGUID, @Nullable String traceparent) {

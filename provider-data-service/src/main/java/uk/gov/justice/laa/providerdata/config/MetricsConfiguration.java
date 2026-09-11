@@ -62,6 +62,21 @@ public class MetricsConfiguration {
   }
 
   /**
+   * Creates a counter for PDS firm creation events.
+   *
+   * @param meterRegistry the configured meter registry
+   * @return a counter incremented for each PDS firm creation
+   */
+  @Bean
+  public Counter pdsFirmCreationCounter(MeterRegistry meterRegistry) {
+    return Counter.builder("provider.creation.total")
+        .description("Total number of provider firms created")
+        .tag("firmware_type", FirmType.PUBLIC_DEFENDER_SERVICE)
+        .tag("application", "provider-data-platform")
+        .register(meterRegistry);
+  }
+
+  /**
    * Creates a timer for LSP firm creation latency.
    *
    * @param meterRegistry the configured meter registry
@@ -102,6 +117,21 @@ public class MetricsConfiguration {
     return Timer.builder("provider.creation.duration")
         .description("Latency of provider firm creation operations")
         .tag("firmware_type", FirmType.ADVOCATE)
+        .tag("application", "provider-data-platform")
+        .register(meterRegistry);
+  }
+
+  /**
+   * Creates a timer for PDS firm creation latency.
+   *
+   * @param meterRegistry the configured meter registry
+   * @return a timer for PDS firm creation operations
+   */
+  @Bean
+  public Timer pdsFirmCreationTimer(MeterRegistry meterRegistry) {
+    return Timer.builder("provider.creation.duration")
+        .description("Latency of provider firm creation operations")
+        .tag("firmware_type", FirmType.PUBLIC_DEFENDER_SERVICE)
         .tag("application", "provider-data-platform")
         .register(meterRegistry);
   }

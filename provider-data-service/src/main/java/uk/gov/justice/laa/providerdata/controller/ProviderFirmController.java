@@ -28,6 +28,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.mapper.OfficeMapper;
@@ -38,6 +39,8 @@ import uk.gov.justice.laa.providerdata.model.ContractManagerLinkByGUIDV2;
 import uk.gov.justice.laa.providerdata.model.ContractManagerLinkDefaultV2;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201Response;
 import uk.gov.justice.laa.providerdata.model.CreateProviderFirm201ResponseData;
+import uk.gov.justice.laa.providerdata.model.CreatePublicDefenderServiceProviderFirm201Response;
+import uk.gov.justice.laa.providerdata.model.CreatePublicDefenderServiceProviderFirm201ResponseData;
 import uk.gov.justice.laa.providerdata.model.DXCreateV2;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirmByGUIDorFirmNumber200Response;
 import uk.gov.justice.laa.providerdata.model.GetProviderFirms200Response;
@@ -46,6 +49,7 @@ import uk.gov.justice.laa.providerdata.model.HeadOfficeContractManagerLinkV2;
 import uk.gov.justice.laa.providerdata.model.LSPDetailsPatchV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerCreateV2;
 import uk.gov.justice.laa.providerdata.model.LiaisonManagerLinkByGUIDV2;
+import uk.gov.justice.laa.providerdata.model.PDSHeadOfficeCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsCreateV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateTypeV2;
@@ -55,6 +59,7 @@ import uk.gov.justice.laa.providerdata.model.ProviderCreateV2;
 import uk.gov.justice.laa.providerdata.model.ProviderFirmTypeV2;
 import uk.gov.justice.laa.providerdata.model.ProviderPatchV2;
 import uk.gov.justice.laa.providerdata.model.ProviderV2;
+import uk.gov.justice.laa.providerdata.model.PublicDefenderServiceCreateV2;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationResult;
 import uk.gov.justice.laa.providerdata.service.ProviderCreationService;
 import uk.gov.justice.laa.providerdata.service.ProviderService;
@@ -125,6 +130,34 @@ public class ProviderFirmController {
                         .providerFirmNumber(result.firmNumber())));
   }
 
+  /** Creates a Public Defender Service provider and its head office atomically. */
+  @PostMapping(
+      path = "/provider-firms/public-defender-services",
+      consumes = "application/json",
+      produces = "application/json")
+  public ResponseEntity<CreatePublicDefenderServiceProviderFirm201Response>
+      createPublicDefenderServiceProviderFirm(@RequestBody PublicDefenderServiceCreateV2 request) {
+    validatePdsRequest(request);
+    ProviderCreationResult result =
+        providerFirmCreationService.createPdsFirm(
+            PdsProviderEntity.builder()
+                .name(request.getName())
+                .constitutionalStatus(request.getConstitutionalStatus().getValue())
+                .indemnityReceivedDate(request.getIndemnityReceivedDate())
+                .companiesHouseNumber(request.getCompaniesHouseNumber())
+                .build(),
+            officeMapper.toOfficeEntity(request.getHeadOffice()),
+            officeMapper.toPdsHeadOfficeLinkTemplate(request.getHeadOffice()));
+
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(
+            new CreatePublicDefenderServiceProviderFirm201Response()
+                .data(
+                    new CreatePublicDefenderServiceProviderFirm201ResponseData()
+                        .providerFirmGUID(result.providerFirmGUID())
+                        .providerFirmNumber(result.firmNumber())));
+  }
+
   /**
    * Retrieves a paginated list of provider firms with optional filters.
    *
@@ -162,14 +195,7 @@ public class ProviderFirmController {
     Page<ProviderV2> result =
         providerFirmService
             .searchProviders(providerFirmGUID, providerFirmNumber, name, null, type, pageable)
-            .map(
-                provider ->
-                    providerFirmMapper.toProviderV2(
-                        provider,
-                        providerFirmService.getLspHeadOffice(provider).orElse(null),
-                        providerFirmService.getChambersHeadOffice(provider).orElse(null),
-                        providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
-                        providerFirmService.getParentLinks(provider)));
+            .map(provider -> toProviderResponseForList(provider));
 
     return ResponseEntity.ok(
         new GetProviderFirms200Response()
@@ -219,12 +245,44 @@ public class ProviderFirmController {
       bankAccount = providerFirmService.getPrimaryOfficeBankAccount(lspHeadOffice).orElse(null);
     }
 
+    var pdsHeadOffice = providerFirmService.getPdsHeadOffice(provider).orElse(null);
+    if (pdsHeadOffice != null) {
+      return providerFirmMapper.toProviderV2(
+          provider,
+          lspHeadOffice,
+          liaisonManager,
+          contractManager,
+          bankAccount,
+          providerFirmService.getChambersHeadOffice(provider).orElse(null),
+          providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+          pdsHeadOffice,
+          providerFirmService.getParentLinks(provider));
+    }
     return providerFirmMapper.toProviderV2(
         provider,
         lspHeadOffice,
         liaisonManager,
         contractManager,
         bankAccount,
+        providerFirmService.getChambersHeadOffice(provider).orElse(null),
+        providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+        providerFirmService.getParentLinks(provider));
+  }
+
+  private ProviderV2 toProviderResponseForList(ProviderEntity provider) {
+    var pdsHeadOffice = providerFirmService.getPdsHeadOffice(provider).orElse(null);
+    if (pdsHeadOffice != null) {
+      return providerFirmMapper.toProviderV2(
+          provider,
+          providerFirmService.getLspHeadOffice(provider).orElse(null),
+          providerFirmService.getChambersHeadOffice(provider).orElse(null),
+          providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
+          pdsHeadOffice,
+          providerFirmService.getParentLinks(provider));
+    }
+    return providerFirmMapper.toProviderV2(
+        provider,
+        providerFirmService.getLspHeadOffice(provider).orElse(null),
         providerFirmService.getChambersHeadOffice(provider).orElse(null),
         providerFirmService.getAdvocateOfficeLink(provider).orElse(null),
         providerFirmService.getParentLinks(provider));
@@ -395,6 +453,30 @@ public class ProviderFirmController {
     validateFirmTypeConsistency(request);
   }
 
+  private static void validatePdsRequest(PublicDefenderServiceCreateV2 request) {
+    if (request == null) {
+      throw new IllegalArgumentException("request body must be provided");
+    }
+    if (isNullOrBlank(request.getName())) {
+      throw new IllegalArgumentException("name must be provided");
+    }
+    if (request.getConstitutionalStatus() == null) {
+      throw new IllegalArgumentException("constitutionalStatus must be provided");
+    }
+    PDSHeadOfficeCreateV2 headOffice = request.getHeadOffice();
+    if (headOffice == null || headOffice.getAddress() == null) {
+      throw new IllegalArgumentException("headOffice.address must be provided");
+    }
+    if (isNullOrBlank(headOffice.getAddress().getLine1())
+        || isNullOrBlank(headOffice.getAddress().getTownOrCity())
+        || isNullOrBlank(headOffice.getAddress().getPostcode())) {
+      throw new IllegalArgumentException(
+          "headOffice.address.line1, headOffice.address.townOrCity and "
+              + "headOffice.address.postcode must be provided");
+    }
+    validateDxDetails(headOffice.getDxDetails());
+  }
+
   private void validateLegalServicesProvider(
       @NotNull @Valid ProviderCreateLSPV2LegalServicesProvider legalServicesProvider) {
     if (legalServicesProvider.getConstitutionalStatus() == null) {
@@ -478,6 +560,9 @@ public class ProviderFirmController {
           case LEGAL_SERVICES_PROVIDER -> "legalServicesProvider";
           case CHAMBERS -> "chambers";
           case ADVOCATE -> "practitioner";
+          case PUBLIC_DEFENDER_SERVICE ->
+              throw new IllegalArgumentException(
+                  "Public Defender Service must use the PDS-specific create endpoint");
         };
     boolean consistent =
         switch (expected) {

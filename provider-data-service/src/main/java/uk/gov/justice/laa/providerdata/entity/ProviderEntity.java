@@ -15,8 +15,8 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DiscriminatorFormula;
 
 /**
- * Base provider entity for LSP, Chambers, and Practitioner (Advocate/Barrister) subtypes, all
- * stored in the {@code PROVIDER} table (SINGLE_TABLE inheritance).
+ * Base provider entity for LSP, Chambers, Practitioner (Advocate/Barrister), and Public Defender
+ * Service subtypes, all stored in the {@code PROVIDER} table (SINGLE_TABLE inheritance).
  *
  * <p>A {@link org.hibernate.annotations.DiscriminatorFormula} is used rather than a plain
  * {@code @DiscriminatorColumn} because practitioners have a two-level type: {@code FIRM_TYPE =

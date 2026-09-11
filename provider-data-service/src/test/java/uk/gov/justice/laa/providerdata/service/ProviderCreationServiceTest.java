@@ -15,10 +15,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.providerdata.entity.AdvocatePractitionerEntity;
@@ -33,6 +33,8 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
@@ -52,6 +54,7 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
+import uk.gov.justice.laa.providerdata.repository.PdsProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
@@ -62,6 +65,7 @@ class ProviderCreationServiceTest {
   @Mock private ProviderRepository providerRepository;
   @Mock private OfficeRepository officeRepository;
   @Mock private LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  @Mock private PdsProviderOfficeLinkRepository pdsProviderOfficeLinkRepository;
   @Mock private ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   @Mock private AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   @Mock private ProviderOfficeLinkRepository providerOfficeLinkRepository;
@@ -79,7 +83,81 @@ class ProviderCreationServiceTest {
   @Mock private Timer chambersFirmCreationTimer;
   @Mock private Timer practitionerFirmCreationTimer;
 
-  @InjectMocks private ProviderCreationService service;
+  @Mock private Counter pdsFirmCreationCounter;
+
+  @Mock private Timer pdsFirmCreationTimer;
+
+  private ProviderCreationService service;
+
+  @BeforeEach
+  void setUp() {
+    service =
+        new ProviderCreationService(
+            providerRepository,
+            officeRepository,
+            lspProviderOfficeLinkRepository,
+            pdsProviderOfficeLinkRepository,
+            chambersProviderOfficeLinkRepository,
+            advocateProviderOfficeLinkRepository,
+            providerOfficeLinkRepository,
+            liaisonManagerRepository,
+            officeLiaisonManagerLinkRepository,
+            providerParentLinkRepository,
+            contractManagerRepository,
+            officeContractManagerLinkRepository,
+            bankDetailsService,
+            bankAccountMapper,
+            lspFirmCreationCounter,
+            chambersFirmCreationCounter,
+            practitionerFirmCreationCounter,
+            lspFirmCreationTimer,
+            chambersFirmCreationTimer,
+            practitionerFirmCreationTimer,
+            pdsFirmCreationCounter,
+            pdsFirmCreationTimer);
+  }
+
+  @Test
+  void createPdsFirm_savesProviderOfficeAndLink_returnsAllIdentifiers() {
+    UUID providerGuid = UUID.randomUUID();
+    UUID officeLinkGuid = UUID.randomUUID();
+    when(providerRepository.save(any()))
+        .thenAnswer(
+            invocation -> {
+              PdsProviderEntity provider = invocation.getArgument(0);
+              provider.setGuid(providerGuid);
+              return provider;
+            });
+    when(officeRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(pdsProviderOfficeLinkRepository.save(any()))
+        .thenAnswer(
+            invocation -> {
+              PdsProviderOfficeLinkEntity link = invocation.getArgument(0);
+              link.setGuid(officeLinkGuid);
+              return link;
+            });
+
+    PdsProviderOfficeLinkEntity linkTemplate = new PdsProviderOfficeLinkEntity();
+    linkTemplate.setHeadOfficeFlag(Boolean.TRUE);
+
+    ProviderCreationResult result =
+        service.createPdsFirm(
+            PdsProviderEntity.builder()
+                .name("Birmingham Public Defender Service")
+                .constitutionalStatus("Government Funded Organisation")
+                .build(),
+            OfficeEntity.builder().addressLine1("1 New Street").build(),
+            linkTemplate);
+
+    assertThat(result.providerFirmGUID()).isEqualTo(providerGuid);
+    assertThat(result.firmNumber()).isNotBlank();
+    assertThat(result.headOfficeGUID()).isEqualTo(officeLinkGuid);
+    assertThat(result.headOfficeAccountNumber()).isNotBlank();
+    assertThat(linkTemplate.getHeadOfficeFlag()).isTrue();
+    verify(pdsFirmCreationCounter).increment();
+    verify(lspProviderOfficeLinkRepository, never()).save(any());
+    verify(chambersProviderOfficeLinkRepository, never()).save(any());
+  }
 
   @Test
   void createLspFirm_savesProviderOfficeAndLink_returnsAllIdentifiers() {

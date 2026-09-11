@@ -23,6 +23,7 @@ import uk.gov.justice.laa.providerdata.config.JacksonConfig;
 import uk.gov.justice.laa.providerdata.entity.NovationEntity;
 import uk.gov.justice.laa.providerdata.entity.NovationLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.exception.ItemNotFoundException;
 import uk.gov.justice.laa.providerdata.mapper.NovationMapperImpl;
 import uk.gov.justice.laa.providerdata.repository.NovationLinkRepository;
@@ -153,6 +154,8 @@ class NovationsControllerTest {
     UUID novationGuid = UUID.randomUUID();
     UUID previousProviderGuid = UUID.randomUUID();
     UUID newProviderGuid = UUID.randomUUID();
+    UUID previousOfficeGuid = UUID.randomUUID();
+    UUID newOfficeGuid = UUID.randomUUID();
     UUID relationshipGuid = UUID.randomUUID();
 
     NovationEntity novation =
@@ -160,6 +163,11 @@ class NovationsControllerTest {
             .guid(novationGuid)
             .novationType("Merger")
             .novationEffectiveDate(LocalDate.of(2026, 1, 1))
+            .novationStatus("Approved with Conditions")
+            .decisionDate(LocalDate.of(2026, 2, 1))
+            .decisionReason("Board approval required before transfer")
+            .driverForNovation("Organisational restructure")
+            .notes("Controller test novation")
             .build();
     NovationLinkEntity link =
         NovationLinkEntity.builder()
@@ -167,6 +175,9 @@ class NovationsControllerTest {
             .novation(novation)
             .previousProvider(ProviderEntity.builder().guid(previousProviderGuid).build())
             .newProvider(ProviderEntity.builder().guid(newProviderGuid).build())
+            .previousOffice(ProviderOfficeLinkEntity.builder().guid(previousOfficeGuid).build())
+            .newOffice(ProviderOfficeLinkEntity.builder().guid(newOfficeGuid).build())
+            .notes("Controller test relationship")
             .build();
 
     when(novationRepository.findById(novationGuid)).thenReturn(Optional.of(novation));
@@ -178,13 +189,26 @@ class NovationsControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.guid").value(novationGuid.toString()))
         .andExpect(jsonPath("$.data.novationType").value("Merger"))
+        .andExpect(jsonPath("$.data.novationEffectiveDate").value("2026-01-01"))
+        .andExpect(jsonPath("$.data.novationStatus").value("Approved with Conditions"))
+        .andExpect(jsonPath("$.data.decisionDate").value("2026-02-01"))
+        .andExpect(
+            jsonPath("$.data.decisionReason").value("Board approval required before transfer"))
+        .andExpect(jsonPath("$.data.driverForNovation").value("Organisational restructure"))
+        .andExpect(jsonPath("$.data.notes").value("Controller test novation"))
         .andExpect(jsonPath("$.data.relationships[0].guid").value(relationshipGuid.toString()))
         .andExpect(
             jsonPath("$.data.relationships[0].previousProviderFirmGUID")
                 .value(previousProviderGuid.toString()))
         .andExpect(
             jsonPath("$.data.relationships[0].newProviderFirmGUID")
-                .value(newProviderGuid.toString()));
+                .value(newProviderGuid.toString()))
+        .andExpect(
+            jsonPath("$.data.relationships[0].previousOfficeGUID")
+                .value(previousOfficeGuid.toString()))
+        .andExpect(
+            jsonPath("$.data.relationships[0].newOfficeGUID").value(newOfficeGuid.toString()))
+        .andExpect(jsonPath("$.data.relationships[0].notes").value("Controller test relationship"));
   }
 
   @Test

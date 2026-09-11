@@ -21,6 +21,7 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
@@ -45,6 +46,7 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeBankAccountLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
+import uk.gov.justice.laa.providerdata.repository.PdsProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderFirmRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
@@ -60,6 +62,7 @@ public class ProviderService {
 
   private final ProviderRepository providerRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  private final PdsProviderOfficeLinkRepository pdsProviderOfficeLinkRepository;
   private final ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   private final ProviderParentLinkRepository providerParentLinkRepository;
@@ -84,6 +87,7 @@ public class ProviderService {
   public ProviderService(
       ProviderRepository providerRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
+      PdsProviderOfficeLinkRepository pdsProviderOfficeLinkRepository,
       ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderParentLinkRepository providerParentLinkRepository,
@@ -95,6 +99,7 @@ public class ProviderService {
       LiaisonManagerRepository liaisonManagerRepository) {
     this.providerRepository = providerRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
+    this.pdsProviderOfficeLinkRepository = pdsProviderOfficeLinkRepository;
     this.chambersProviderOfficeLinkRepository = chambersProviderOfficeLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
     this.providerParentLinkRepository = providerParentLinkRepository;
@@ -625,6 +630,11 @@ public class ProviderService {
   /** Returns the LSP head office link for the given provider, if one exists. */
   public Optional<LspProviderOfficeLinkEntity> getLspHeadOffice(ProviderEntity provider) {
     return lspProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
+  }
+
+  /** Returns the PDS head office link for a provider, when the provider is a PDS. */
+  public Optional<PdsProviderOfficeLinkEntity> getPdsHeadOffice(ProviderEntity provider) {
+    return pdsProviderOfficeLinkRepository.findByProviderAndHeadOfficeFlagTrue(provider);
   }
 
   /** Returns the active liaison manager link for the office, if one exists. */

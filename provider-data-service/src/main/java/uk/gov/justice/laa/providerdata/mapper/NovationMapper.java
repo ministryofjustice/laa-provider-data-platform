@@ -68,7 +68,7 @@ public interface NovationMapper {
 
   /**
    * Maps a persisted {@link NovationEntity} and its relationships to a {@link NovationV2} response
-   * DTO (DSTEW-1975 read path).
+   * DTO (DSTEW-1980 read path).
    *
    * @param novation the persisted Novation
    * @param links the Novation's relationships, in display order

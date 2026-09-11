@@ -21,6 +21,8 @@ import uk.gov.justice.laa.providerdata.entity.OfficeBankAccountLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderParentLinkEntity;
@@ -36,6 +38,8 @@ import uk.gov.justice.laa.providerdata.model.OfficeAddressV2;
 import uk.gov.justice.laa.providerdata.model.OfficeBankAccountV2;
 import uk.gov.justice.laa.providerdata.model.OfficeContractManagerV2;
 import uk.gov.justice.laa.providerdata.model.OfficePractitionerV2;
+import uk.gov.justice.laa.providerdata.model.PDSDetailsV2;
+import uk.gov.justice.laa.providerdata.model.PDSHeadOfficeDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsPaymentMethodV2;
 import uk.gov.justice.laa.providerdata.model.PaymentDetailsV2;
 import uk.gov.justice.laa.providerdata.model.PractitionerDetailsAdvocateDetailsV2;
@@ -68,17 +72,17 @@ public interface ProviderMapper {
   @Mapping(target = "legalServicesProvider", ignore = true)
   @Mapping(target = "chambers", ignore = true)
   @Mapping(target = "practitioner", ignore = true)
+  @Mapping(target = "publicDefenderService", ignore = true)
   ProviderV2 toProviderV2(ProviderEntity entity);
 
   /**
-   * Maps a {@link ProviderEntity} to a {@link ProviderV2} response model, enriching the appropriate
-   * variant sub-object with head office and parent firm data.
+   * Maps a provider with standard subtype data and optional PDS head-office data.
    *
    * @param entity the provider entity
    * @param lspHeadOffice the LSP head office link, or {@code null}
    * @param chambersHeadOffice the Chambers head office link, or {@code null}
    * @param advocateOfficeLink the Advocate office link, or {@code null}
-   * @param parentLinks the parent firm links (for Advocates), or an empty list
+   * @param parentLinks the parent firm links, or an empty list
    * @return the populated response DTO
    */
   default ProviderV2 toProviderV2(
@@ -88,6 +92,27 @@ public interface ProviderMapper {
       @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
       List<ProviderParentLinkEntity> parentLinks) {
     return toProviderV2(
+        entity, lspHeadOffice, chambersHeadOffice, advocateOfficeLink, null, parentLinks);
+  }
+
+  /**
+   * Maps a provider with standard subtype data and optional PDS head-office data.
+   *
+   * @param entity the provider entity
+   * @param lspHeadOffice the LSP head office link, or {@code null}
+   * @param chambersHeadOffice the Chambers head office link, or {@code null}
+   * @param advocateOfficeLink the Advocate office link, or {@code null}
+   * @param parentLinks the parent firm links, or an empty list
+   * @return the populated response DTO
+   */
+  default ProviderV2 toProviderV2(
+      ProviderEntity entity,
+      @Nullable LspProviderOfficeLinkEntity lspHeadOffice,
+      @Nullable ChambersProviderOfficeLinkEntity chambersHeadOffice,
+      @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
+      @Nullable PdsProviderOfficeLinkEntity pdsHeadOffice,
+      List<ProviderParentLinkEntity> parentLinks) {
+    return toProviderV2(
         entity,
         lspHeadOffice,
         null,
@@ -95,12 +120,23 @@ public interface ProviderMapper {
         null,
         chambersHeadOffice,
         advocateOfficeLink,
+        pdsHeadOffice,
         parentLinks);
   }
 
   /**
    * Maps a {@link ProviderEntity} to a {@link ProviderV2} response model with optional enrichment
    * data used by the provider-by-id endpoint.
+   *
+   * @param entity the provider entity
+   * @param lspHeadOffice the LSP head office link, or {@code null}
+   * @param liaisonManagerLink the LSP liaison manager link, or {@code null}
+   * @param contractManagerLink the LSP contract manager link, or {@code null}
+   * @param bankAccountLink the LSP bank account link, or {@code null}
+   * @param chambersHeadOffice the Chambers head office link, or {@code null}
+   * @param advocateOfficeLink the Advocate office link, or {@code null}
+   * @param parentLinks the parent firm links, or an empty list
+   * @return the populated response DTO
    */
   default ProviderV2 toProviderV2(
       ProviderEntity entity,
@@ -110,6 +146,42 @@ public interface ProviderMapper {
       @Nullable OfficeBankAccountLinkEntity bankAccountLink,
       @Nullable ChambersProviderOfficeLinkEntity chambersHeadOffice,
       @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
+      List<ProviderParentLinkEntity> parentLinks) {
+    return toProviderV2(
+        entity,
+        lspHeadOffice,
+        liaisonManagerLink,
+        contractManagerLink,
+        bankAccountLink,
+        chambersHeadOffice,
+        advocateOfficeLink,
+        null,
+        parentLinks);
+  }
+
+  /**
+   * Maps a provider with all optional subtype enrichment data, including PDS data.
+   *
+   * @param entity the provider entity
+   * @param lspHeadOffice the LSP head office link, or {@code null}
+   * @param liaisonManagerLink the LSP liaison manager link, or {@code null}
+   * @param contractManagerLink the LSP contract manager link, or {@code null}
+   * @param bankAccountLink the LSP bank account link, or {@code null}
+   * @param chambersHeadOffice the Chambers head office link, or {@code null}
+   * @param advocateOfficeLink the Advocate office link, or {@code null}
+   * @param pdsHeadOffice the PDS head office link, or {@code null}
+   * @param parentLinks the parent firm links, or an empty list
+   * @return the populated response DTO
+   */
+  default ProviderV2 toProviderV2(
+      ProviderEntity entity,
+      @Nullable LspProviderOfficeLinkEntity lspHeadOffice,
+      @Nullable OfficeLiaisonManagerLinkEntity liaisonManagerLink,
+      @Nullable OfficeContractManagerLinkEntity contractManagerLink,
+      @Nullable OfficeBankAccountLinkEntity bankAccountLink,
+      @Nullable ChambersProviderOfficeLinkEntity chambersHeadOffice,
+      @Nullable AdvocateProviderOfficeLinkEntity advocateOfficeLink,
+      @Nullable PdsProviderOfficeLinkEntity pdsHeadOffice,
       List<ProviderParentLinkEntity> parentLinks) {
     ProviderV2 result = toProviderV2(entity);
     if (lspHeadOffice != null) {
@@ -136,7 +208,46 @@ public interface ProviderMapper {
     } else if (FirmType.ADVOCATE.equals(entity.getFirmType())) {
       result.setPractitioner(new PractitionerDetailsV2());
     }
+    if (pdsHeadOffice != null && entity instanceof PdsProviderEntity pdsEntity) {
+      result.setPublicDefenderService(
+          new PDSDetailsV2()
+              .constitutionalStatus(
+                  uk.gov.justice.laa.providerdata.model.PDSConstitutionalStatusV2.fromValue(
+                      pdsEntity.getConstitutionalStatus()))
+              .indemnityReceivedDate(pdsEntity.getIndemnityReceivedDate())
+              .companiesHouseNumber(pdsEntity.getCompaniesHouseNumber())
+              .headOffice(toPdsHeadOfficeDetails(pdsHeadOffice)));
+    } else if (FirmType.PUBLIC_DEFENDER_SERVICE.equals(entity.getFirmType())) {
+      result.setPublicDefenderService(new PDSDetailsV2());
+    }
     return result;
+  }
+
+  /** Maps a PDS head-office link to its API response model. */
+  default PDSHeadOfficeDetailsV2 toPdsHeadOfficeDetails(PdsProviderOfficeLinkEntity link) {
+    var office = link.getOffice();
+    return new PDSHeadOfficeDetailsV2()
+        .officeGUID(link.getGuid())
+        .firmType(ProviderFirmTypeV2.PUBLIC_DEFENDER_SERVICE)
+        .accountNumber(link.getAccountNumber())
+        .activeDateTo(link.getActiveDateTo())
+        .address(
+            new OfficeAddressV2()
+                .line1(office.getAddressLine1())
+                .line2(office.getAddressLine2())
+                .line3(office.getAddressLine3())
+                .line4(office.getAddressLine4())
+                .townOrCity(office.getAddressTownOrCity())
+                .county(office.getAddressCounty())
+                .postcode(office.getAddressPostCode()))
+        .telephoneNumber(office.getTelephoneNumber())
+        .emailAddress(office.getEmailAddress())
+        .website(toUri(link.getWebsite()))
+        .dxDetails(toDxDetails(office))
+        .vatRegistration(
+            link.getVatRegistrationNumber() == null
+                ? null
+                : new VATRegistrationV2().vatNumber(link.getVatRegistrationNumber()));
   }
 
   private LSPDetailsV2 toLspDetails(

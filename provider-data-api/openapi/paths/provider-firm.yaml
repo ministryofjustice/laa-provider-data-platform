@@ -210,6 +210,74 @@
             schema:
               $ref: "../components/schemas/common.yaml#/InternalServerError"
 
+/provider-firms/public-defender-services:
+  post:
+    summary: Create a Public Defender Service provider firm
+    security:
+    - ApiKeyAuth: []
+    - AzureAD: []
+    operationId: createPublicDefenderServiceProviderFirm
+    tags:
+    - Provider Firms
+    description: |
+      Create a provider firm of type `Public Defender Service` together with its head office.
+      The firm type is implied by this resource path and is not supplied by the caller.
+      The current PDS scope supports a head office only. Whether PDS providers may have child
+      offices is an open business question for a future change.
+
+      Unlike a Legal Services Provider, a PDS provider does not require a contract manager,
+      liaison manager, bank account, contract or schedule association.
+    parameters:
+    - $ref: "../components/parameters/common.yaml#/TraceParentHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/public-defender-service.yaml#/PublicDefenderServiceCreateV2"
+    responses:
+      "201":
+        description: Created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  required:
+                  - providerFirmGUID
+                  - providerFirmNumber
+                  properties:
+                    providerFirmGUID:
+                      $ref: "../components/schemas/common.yaml#/BaseEntityGUIDV2"
+                    providerFirmNumber:
+                      $ref: "../components/schemas/provider-firm.yaml#/ProviderFirmNumberV2"
+      "400":
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/BadRequestError"
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ForbiddenError"
+      "409":
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/ConflictError"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/common.yaml#/InternalServerError"
+
 /provider-firms/{providerFirmGUIDorFirmNumber}:
   get:
     summary: Retrieve provider details by GUID or firm number

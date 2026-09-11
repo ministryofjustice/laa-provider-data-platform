@@ -75,6 +75,7 @@ OfficeV2:
     - $ref: "./legal-services-provider.yaml#/LSPOfficeDetailsV2"
     - $ref: "./chambers.yaml#/ChambersOfficeDetailsV2"
     - $ref: "./practitioner.yaml#/AdvocateOfficeDetailsV2"
+    - $ref: "./public-defender-service.yaml#/PDSOfficeDetailsV2"
 
 OfficePatchV2:
   oneOf:

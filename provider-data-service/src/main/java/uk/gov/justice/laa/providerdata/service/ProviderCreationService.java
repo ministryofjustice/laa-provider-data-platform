@@ -19,6 +19,8 @@ import uk.gov.justice.laa.providerdata.entity.LspProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeContractManagerLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeEntity;
 import uk.gov.justice.laa.providerdata.entity.OfficeLiaisonManagerLinkEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderEntity;
+import uk.gov.justice.laa.providerdata.entity.PdsProviderOfficeLinkEntity;
 import uk.gov.justice.laa.providerdata.entity.PractitionerEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderEntity;
 import uk.gov.justice.laa.providerdata.entity.ProviderOfficeLinkEntity;
@@ -43,6 +45,7 @@ import uk.gov.justice.laa.providerdata.repository.LspProviderOfficeLinkRepositor
 import uk.gov.justice.laa.providerdata.repository.OfficeContractManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeLiaisonManagerLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.OfficeRepository;
+import uk.gov.justice.laa.providerdata.repository.PdsProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderOfficeLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderParentLinkRepository;
 import uk.gov.justice.laa.providerdata.repository.ProviderRepository;
@@ -60,6 +63,7 @@ public class ProviderCreationService {
   private final ProviderRepository providerRepository;
   private final OfficeRepository officeRepository;
   private final LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository;
+  private final PdsProviderOfficeLinkRepository pdsProviderOfficeLinkRepository;
   private final ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository;
   private final AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository;
   private final ProviderOfficeLinkRepository providerOfficeLinkRepository;
@@ -76,6 +80,8 @@ public class ProviderCreationService {
   private final Timer lspFirmCreationTimer;
   private final Timer chambersFirmCreationTimer;
   private final Timer practitionerFirmCreationTimer;
+  private final Counter pdsFirmCreationCounter;
+  private final Timer pdsFirmCreationTimer;
 
   /**
    * Inject dependencies.
@@ -83,6 +89,7 @@ public class ProviderCreationService {
    * @param providerRepository to save provider entities
    * @param officeRepository to save office entities
    * @param lspProviderOfficeLinkRepository to save LSP office links
+   * @param pdsProviderOfficeLinkRepository to save PDS office links
    * @param chambersProviderOfficeLinkRepository to save Chambers office links
    * @param advocateProviderOfficeLinkRepository to save Advocate office links
    * @param providerOfficeLinkRepository to look up parent head offices generically
@@ -99,11 +106,14 @@ public class ProviderCreationService {
    * @param lspFirmCreationTimer for recording LSP firm creation latency
    * @param chambersFirmCreationTimer for recording Chambers firm creation latency
    * @param practitionerFirmCreationTimer for recording Practitioner firm creation latency
+   * @param pdsFirmCreationCounter for tracking PDS firm creations
+   * @param pdsFirmCreationTimer for recording PDS firm creation latency
    */
   public ProviderCreationService(
       ProviderRepository providerRepository,
       OfficeRepository officeRepository,
       LspProviderOfficeLinkRepository lspProviderOfficeLinkRepository,
+      PdsProviderOfficeLinkRepository pdsProviderOfficeLinkRepository,
       ChambersProviderOfficeLinkRepository chambersProviderOfficeLinkRepository,
       AdvocateProviderOfficeLinkRepository advocateProviderOfficeLinkRepository,
       ProviderOfficeLinkRepository providerOfficeLinkRepository,
@@ -119,10 +129,13 @@ public class ProviderCreationService {
       Counter practitionerFirmCreationCounter,
       Timer lspFirmCreationTimer,
       Timer chambersFirmCreationTimer,
-      Timer practitionerFirmCreationTimer) {
+      Timer practitionerFirmCreationTimer,
+      Counter pdsFirmCreationCounter,
+      Timer pdsFirmCreationTimer) {
     this.providerRepository = providerRepository;
     this.officeRepository = officeRepository;
     this.lspProviderOfficeLinkRepository = lspProviderOfficeLinkRepository;
+    this.pdsProviderOfficeLinkRepository = pdsProviderOfficeLinkRepository;
     this.chambersProviderOfficeLinkRepository = chambersProviderOfficeLinkRepository;
     this.advocateProviderOfficeLinkRepository = advocateProviderOfficeLinkRepository;
     this.providerOfficeLinkRepository = providerOfficeLinkRepository;
@@ -139,6 +152,8 @@ public class ProviderCreationService {
     this.lspFirmCreationTimer = lspFirmCreationTimer;
     this.chambersFirmCreationTimer = chambersFirmCreationTimer;
     this.practitionerFirmCreationTimer = practitionerFirmCreationTimer;
+    this.pdsFirmCreationCounter = pdsFirmCreationCounter;
+    this.pdsFirmCreationTimer = pdsFirmCreationTimer;
   }
 
   /**
@@ -207,6 +222,32 @@ public class ProviderCreationService {
     var sample = io.micrometer.core.instrument.Timer.start();
     sample.stop(lspFirmCreationTimer);
     lspFirmCreationCounter.increment();
+
+    return new ProviderCreationResult(
+        savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
+  }
+
+  /** Creates a Public Defender Service provider and its head office atomically. */
+  @Transactional
+  public ProviderCreationResult createPdsFirm(
+      PdsProviderEntity providerTemplate,
+      OfficeEntity officeTemplate,
+      PdsProviderOfficeLinkEntity linkTemplate) {
+    providerTemplate.setFirmNumber(
+        ReferenceNumberUtils.generateFirmNumber(providerTemplate.getFirmType()));
+    ProviderEntity savedProvider = providerRepository.save(providerTemplate);
+
+    OfficeEntity savedOffice = officeRepository.save(officeTemplate);
+    String accountNumber =
+        ReferenceNumberUtils.generateAccountNumber(savedProvider.getFirmType(), null);
+    linkTemplate.setProvider(savedProvider);
+    linkTemplate.setOffice(savedOffice);
+    linkTemplate.setAccountNumber(accountNumber);
+    PdsProviderOfficeLinkEntity savedLink = pdsProviderOfficeLinkRepository.save(linkTemplate);
+
+    var sample = io.micrometer.core.instrument.Timer.start();
+    sample.stop(pdsFirmCreationTimer);
+    pdsFirmCreationCounter.increment();
 
     return new ProviderCreationResult(
         savedProvider.getGuid(), savedProvider.getFirmNumber(), savedLink.getGuid(), accountNumber);
